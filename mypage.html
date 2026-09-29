@@ -241,21 +241,16 @@
     .propose-actions { display: flex; gap: 10px; margin-top: 12px; }
     .propose-actions .btn, .propose-actions .btn-ghost { flex: 1; }
 
-    /* ---------- 동행 진행 현황 (출발 · 병원 도착 인증) ---------- */
-    .progress-box { margin: 0 0 16px; padding: 14px 16px; background: var(--bg); border: 1px solid var(--card-border); border-radius: 14px; }
-    .progress-title { margin: 0 0 10px; font-size: 13px; font-weight: 700; color: var(--ink-sub); }
-    .progress-list { display: flex; flex-direction: column; gap: 10px; }
-    .progress-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-    .progress-row-main { display: flex; align-items: center; gap: 8px; min-width: 0; }
-    .progress-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--card-border); flex-shrink: 0; }
-    .progress-dot.is-done { background: var(--brand); }
-    .progress-text { font-size: 13.5px; color: var(--ink); font-weight: 700; word-break: keep-all; }
-    .progress-text.is-pending { color: var(--ink-sub); font-weight: 500; }
-    .progress-view-btn {
-      flex-shrink: 0; border: 1px solid var(--brand-line); color: var(--brand-dark); background: #fff;
-      padding: 5px 12px; border-radius: 10px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: background-color .15s;
+    /* ---------- 매니저의 GPS/사진 인증 내역 보기 링크 (담당 매니저 카드 안, 이름 아래에 작게) ----------
+       예전엔 '동행 진행 현황'이라는 별도 박스에 출발/도착 상태를 텍스트로도 나열했지만, 그 상태는 위
+       스테퍼(app-stepper)와 완전히 중복되는 정보라 삭제했습니다. 스테퍼에는 없는, 매니저가 실제로 남긴
+       GPS/사진 '증빙'만 보고 싶을 때 누르는 최소한의 텍스트 링크만 남겼습니다. */
+    .manager-verify-row { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; }
+    .manager-verify-btn {
+      border: none; background: none; padding: 0; margin: 0; font: inherit; font-size: 12.5px; font-weight: 700;
+      color: var(--brand-dark); text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
     }
-    .progress-view-btn:hover { background: var(--brand-soft); }
+    .manager-verify-btn:hover { color: var(--brand); }
 
     /* ---------- 케어 진행 단계 프로그레스 바 (실제 신청 카드: 접수 완료 → 배정 완료 → 이동 중 → 현장/병원 도착 → 케어 완료) ---------- */
     /* 카드 안에 들어가는 축소판이라 바깥 여백만 좁힙니다 — 색·타이포는 아래 기본 .stepper 와 완전히 같습니다. */
@@ -1328,7 +1323,7 @@
     // 케어 현황 카드의 5단계 스태퍼와 케어 리포트 모달의 동행 타임라인이 항상 같은 문구를 보여주도록, 서비스
     // 종류별 5단계 라벨을 이 하나의 상수로 통일합니다. 카드 쪽은 careStepLabelsFor(a)(효과 뱃지
     // effectiveStatusInfo/careProgressBar)가, 모달 쪽은 reportTimelineStepsFor(a)(renderReportTimeline/
-    // progressSection)가 둘 다 이 상수만 보고 라벨을 고릅니다 — 서로 다른 문구를 쓰려면 반드시 여기부터
+    // verifyLinksRow)가 둘 다 이 상수만 보고 라벨을 고릅니다 — 서로 다른 문구를 쓰려면 반드시 여기부터
     // 고쳐야 하고, 절대 각자 따로 배열을 만들지 마세요(그게 지금까지의 라벨 불일치 원인이었습니다).
     const CARE_STEP_LABELS_BY_TYPE = {
       hospital: ['접수 완료', '배정 완료', '이동 중', '병원 도착', '케어 완료'],
@@ -1985,6 +1980,8 @@
       info.appendChild(h('div', 'manager-role', '담당 매니저'));
       info.appendChild(h('div', 'manager-name', name ? name + ' 매니저' : '담당 케어 매니저 지정됨')); // 매니저 이름·연락처를 못 가져와도 배정 사실은 표시
       if (m.cert) info.appendChild(h('div', 'manager-meta', m.cert));
+      const verify = verifyLinksRow(a); // 매니저가 남긴 GPS/사진 인증이 있으면 이름 아래에 작은 링크로만 노출
+      if (verify) info.appendChild(verify);
       box.appendChild(info);
 
       if (m.phone) {
@@ -2003,43 +2000,24 @@
       return box;
     }
 
-    // 동행 진행 현황: 매니저가 GPS/사진으로 인증한 출발·병원 도착 시각을 보여주고, 기록이 있으면 '인증 내역 보기'로 상세를 볼 수 있게 합니다.
-    function progressRow(label, atIso, location, photo) {
-      const row = h('div', 'progress-row');
-      const main = h('div', 'progress-row-main');
-      if (atIso) {
-        main.appendChild(h('span', 'progress-dot is-done'));
-        main.appendChild(h('span', 'progress-text', fmtTime(atIso) + ' ' + label + ' 인증 완료'));
-      } else {
-        main.appendChild(h('span', 'progress-dot'));
-        main.appendChild(h('span', 'progress-text is-pending', label + ' 전'));
-      }
-      row.appendChild(main);
-      if (atIso && (location || photo)) {
-        const btn = h('button', 'progress-view-btn', '인증 내역 보기');
-        btn.type = 'button';
-        btn.addEventListener('click', () => openVerifyViewModal(label, atIso, location, photo));
-        row.appendChild(btn);
-      }
-      return row;
-    }
+    // 매니저가 남긴 GPS/사진 인증 증빙 링크: 위 스테퍼가 '지금 어느 단계인지'는 이미 보여주므로, 여기서는
+    // 실제 기록이 있는 단계에 한해 '인증 내역 보기'로 상세(GPS 위치·사진)를 볼 수 있는 최소 텍스트 링크만 만듭니다.
     // 케어 리포트 모달의 '동행 타임라인'과 완전히 같은 5단계·같은 데이터 소스(resolveReportCheckpoints)를 재사용합니다 —
-    // 케어가 아직 진행 중이라 리포트가 없어도(reportForSchedule 이 null 을 반환해도) 문제없이 동작하며, 그 경우
-    // '진료 완료' 단계만 자연히 미기록(전)으로 표시됩니다.
-    function progressSection(a) {
-      const sc = a._schedule;
-      if (!sc) return null; // 매니저가 아직 일정을 수락하지 않았으면(care_schedules 없음) 표시하지 않음
+    // 케어가 아직 진행 중이라 리포트가 없어도(reportForSchedule 이 null 을 반환해도) 문제없이 동작합니다.
+    function verifyLinksRow(a) {
+      if (!a._schedule) return null; // 매니저가 아직 일정을 수락하지 않았으면(care_schedules 없음) 표시하지 않음
       const checkpoints = resolveReportCheckpoints(a, reportForSchedule(a) || {});
-      const box = h('div', 'progress-box');
-      box.appendChild(h('div', 'progress-title', '동행 진행 현황'));
-      const list = h('div', 'progress-list');
+      const row = h('div', 'manager-verify-row');
       reportTimelineStepsFor(a).forEach((step) => {
         const cp = checkpoints[step.key];
         const at = cp && cp.at && !isNaN(new Date(cp.at).getTime()) ? cp.at : null;
-        list.appendChild(progressRow(step.label, at, cp && cp.location, cp && cp.photo));
+        if (!at || !(cp.location || cp.photo)) return; // 실제 GPS/사진 기록이 있는 단계만 링크로 노출
+        const btn = h('button', 'manager-verify-btn', step.label + ' 인증 보기');
+        btn.type = 'button';
+        btn.addEventListener('click', () => openVerifyViewModal(step.label, at, cp.location, cp.photo));
+        row.appendChild(btn);
       });
-      box.appendChild(list);
-      return box;
+      return row.childElementCount ? row : null;
     }
 
     // 매니저가 보낸 '일정 변경 제안' 카드: 제안 일시 + [제안 수락] / [거절 · 기존 유지] 버튼
@@ -2261,11 +2239,8 @@
         card.appendChild(proposalBlock(a, proposal));
       }
 
-      const mgr = managerBlock(a, st); // 배정 완료된 신청이면 담당 매니저 정보
+      const mgr = managerBlock(a, st); // 배정 완료된 신청이면 담당 매니저 정보 (+ GPS/사진 인증 링크)
       if (mgr) card.appendChild(mgr);
-
-      const progress = progressSection(a); // 매니저가 인증한 출발/병원 도착 시각 (일정이 생성된 신청에만 표시)
-      if (progress) card.appendChild(progress);
 
       const foot = h('div', 'app-foot');
       if (svc) {
@@ -2973,8 +2948,8 @@
 
     // 동행 타임라인 5단계 — DB care_checkpoints.step 값(key)은 매니저의 '현장 수행' 단계 전용이라 서비스
     // 종류와 무관하게 항상 이 5개로 고정입니다(mypage-manager.html 의 체크포인트 인증 흐름이 하나뿐이라서).
-    // 케어 리포트 모달의 동행 타임라인과 '동행 진행 현황'(progressSection, 케어가 진행 중일 때 카드에 보이는
-    // 실시간 미니 타임라인)에서만 씁니다.
+    // 케어 리포트 모달의 동행 타임라인과, 담당 매니저 카드 안의 '인증 내역 보기' 링크(verifyLinksRow, 케어가
+    // 진행 중일 때도 매니저가 남긴 GPS/사진 기록을 볼 수 있게 하는 최소 링크)에서만 씁니다.
     // ⚠ 이 5단계는 '케어 현황' 카드 스태퍼(CARE_STEP_LABELS_BY_TYPE = 접수 완료→배정 완료→이동 중→도착→완료,
     // 신청서/일정의 전체 주문 상태)와 서로 다른 개념입니다 — 한쪽은 '주문이 지금 어느 단계인지', 다른 한쪽은
     // '매니저가 현장에서 무엇을 인증했는지'라서 같은 인덱스라도 가리키는 의미가 다릅니다. 예전에 두 라벨
@@ -3067,7 +3042,7 @@
             ? { at: report.submitted_at, location: null, photo: null } : null)
       };
       resolved._debug = { scheduleKey, localCp }; // renderReportTimeline() 의 진단 로그용 — resolveReportCheckpoints() 는
-      // progressSection() 에서도 카드가 다시 그려질 때마다(3~8초 폴링) 호출되므로, 실제 콘솔 로그는 여기서 찍지 않고
+      // verifyLinksRow() 에서도 카드가 다시 그려질 때마다(3~8초 폴링) 호출되므로, 실제 콘솔 로그는 여기서 찍지 않고
       // 리포트 모달을 열 때만 실행되는 renderReportTimeline() 쪽으로 옮겨 불필요한 로그 스팸을 피합니다.
       return resolved;
     }
@@ -3256,7 +3231,7 @@
 
     // 매니저가 현장 5단계 인증 버튼을 누를 때마다(GPS/사진) Realtime·BroadcastChannel·storage 세 경로 중
     // 하나로 신호를 받으면 이 함수를 부릅니다 — care_checkpoints 를 다시 조회한 뒤:
-    //  1) 카드의 '동행 진행 현황'(progressSection)을 다시 그려 방금 인증된 시각/GPS/사진을 보여주고,
+    //  1) 담당 매니저 카드의 '인증 내역 보기' 링크(verifyLinksRow)를 다시 그려 방금 인증된 시각/GPS/사진을 반영하고,
     //  2) 지금 케어 리포트 모달이 열려 있고 같은 리포트라면 동행 타임라인도 새로고침 없이 그 자리에서
     //     에메랄드 체크 뱃지·인증 시각으로 즉시 갱신합니다.
     async function handleCareCheckpointSignal(scheduleId) {
