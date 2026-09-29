@@ -13,10 +13,6 @@
   <!-- 공통 Supabase 클라이언트 (index.html / login.html 과 같은 세션 공유). SDK 뒤에 로드해야 합니다 -->
   <script src="/js/auth-header.js?v=1.0" charset="utf-8"></script>
 <script src="/js/terms-modal.js?v=1.0" charset="utf-8" defer></script>
-  <!-- 실시간 케어 트래킹 지도: Leaflet(오픈스트리트맵) — 카카오맵 JS SDK와 달리 도메인 등록·JS 키 없이 바로 동작합니다.
-       출발지/목적지 주소 → 좌표 변환(지오코딩)에는 mypage-manager.html 과 같은 카카오 로컬 REST API 를 그대로 씁니다. -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <style>
     :root {
       /* mypage-manager.html 과 동일한 디자인 토큰(세이지 그린 축 + 토스 스타일 흰 모듈 카드)을 그대로 공유합니다 */
@@ -265,32 +261,6 @@
     /* 카드 안에 들어가는 축소판이라 바깥 여백만 좁힙니다 — 색·타이포는 아래 기본 .stepper 와 완전히 같습니다. */
     .app-stepper { margin: 2px 0 18px; }
     .app-stepper .step { font-size: 12px; padding: 9px 4px 8px; }
-
-    /* ---------- 실시간 케어 트래킹 지도 (배달 앱처럼: 출발지 · 목적지 · 매니저 실시간 위치) ---------- */
-    .care-map-box { margin: 0 0 16px; }
-    .care-map { height: 220px; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--card-border); background: var(--bg); }
-    /* Leaflet 이 자체 아이콘 클래스(leaflet-*)를 붙이는 영역이라, 우리 쪽 카드 폰트/줄간격이 지도 컨트롤에 새어 들어가지 않게 리셋 */
-    .care-map .leaflet-container { font: inherit; }
-    .care-map-hint { margin: 8px 2px 0; font-size: 12.5px; color: var(--ink-sub); word-break: keep-all; }
-    .care-map-hint.is-live { color: var(--brand-dark); font-weight: 600; }
-    /* 매니저 실시간 위치 마커: 브랜드 컬러 점 + 바깥으로 은은하게 퍼지는 펄스 (배달앱의 '움직이는 마커' 느낌) */
-    .manager-pin { position: relative; width: 18px; height: 18px; }
-    .manager-pin::before, .manager-pin::after {
-      content: ''; position: absolute; inset: 0; border-radius: 50%;
-    }
-    .manager-pin::before { background: var(--brand); box-shadow: 0 0 0 3px #fff, 0 2px 6px rgba(0,0,0,.3); }
-    .manager-pin::after { background: var(--brand); opacity: .35; animation: manager-pin-pulse 1.8s ease-out infinite; }
-    @keyframes manager-pin-pulse {
-      0%   { transform: scale(1);   opacity: .45; }
-      100% { transform: scale(2.4); opacity: 0; }
-    }
-    .care-pin-origin, .care-pin-dest {
-      display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50% 50% 50% 0;
-      transform: rotate(-45deg); color: #fff; font-size: 11px; font-weight: 800; box-shadow: 0 2px 6px rgba(0,0,0,.3);
-    }
-    .care-pin-origin { background: var(--sec-fg); }
-    .care-pin-dest { background: var(--brand-dark); }
-    .care-pin-origin span, .care-pin-dest span { transform: rotate(45deg); }
 
     /* ---------- 케어 진행 단계: 번호 원형 아이콘 대신 라벨 텍스트로 채운 상태 바 ----------
        각 단계를 하나의 텍스트 세그먼트로 두고, 아래쪽 굵은 선으로 '지나온 길'을 표시합니다.
@@ -1303,30 +1273,6 @@
       if (!res.ok) throw new Error('kakao local api ' + res.status);
       return res.json();
     }
-    // 주소/장소명 텍스트 → 좌표. 지번·도로명 주소 검색이 안 되면 키워드(장소명) 검색으로 한 번 더 시도. 키가 없거나 실패하면 null
-    async function geocodeAddress(text) {
-      if (!KAKAO_REST_API_KEY || !String(text || '').trim()) return null;
-      const q = encodeURIComponent(text.trim());
-      const tryUrl = async (url) => {
-        try {
-          const data = await kakaoLocalGet(url);
-          const doc = data.documents && data.documents[0];
-          return doc ? { lat: Number(doc.y), lng: Number(doc.x) } : null;
-        } catch (e) { return null; }
-      };
-      return (await tryUrl(`https://dapi.kakao.com/v2/local/search/address.json?query=${q}`))
-          || (await tryUrl(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${q}`));
-    }
-    // 같은 주소를 렌더링(30초 폴링)마다 다시 조회하지 않도록 캐시 (실패도 null 로 캐시해 반복 실패 호출을 막음)
-    const geocodeCache = new Map();
-    async function geocodeCached(text) {
-      const key = String(text || '').trim();
-      if (!key) return null;
-      if (geocodeCache.has(key)) return geocodeCache.get(key);
-      const result = await geocodeAddress(key);
-      geocodeCache.set(key, result);
-      return result;
-    }
     // 좌표 → 건물번호까지 포함한 상세 주소 (예: '인천 남동구 소래역로 93'). 도로명 주소가 있으면 그걸 우선
     // 쓰고, 없으면 지번 주소로 대체합니다. 케어 리포트 모달의 동행 타임라인에서 매니저가 인증한 GPS 좌표를
     // 사람이 읽는 주소로 바꿀 때 씁니다 — mypage-manager.html 의 reverseGeocode() 와 동일.
@@ -2179,150 +2125,6 @@
       return stepper;
     }
 
-    // ---------- 실시간 케어 트래킹 지도 (Leaflet + 카카오 지오코딩 + Supabase Realtime Broadcast) ----------
-    // careMaps: applicationId -> { map, originMarker, destMarker, managerMarker } — renderCare() 가 다시 그릴 때마다
-    // DOM 카드가 통째로 교체되므로, 이전 Leaflet 인스턴스를 먼저 정리(destroyCareMaps)한 뒤 새로 만듭니다.
-    const careMaps = {};
-    let pendingMapInits = []; // renderCare() 한 번 호출에서 새로 만든 지도 컨테이너들 (DOM 에 붙인 뒤에 초기화)
-    // renderCare() 가 호출될 때마다(3초 폴링·Realtime 이벤트로 자주 재호출됩니다) +1 됩니다. initCareMap() 은
-    // 비동기 지오코딩을 기다리는 동안 이 값이 바뀌면(= 그새 다시 렌더링돼 자기 카드가 이미 사라짐) 죽은 지도
-    // 인스턴스를 계속 만지지 않고 조용히 중단합니다 — 이게 없으면 "Cannot read properties of undefined/null"
-    // 류의 콘솔 에러가 재렌더 빈도만큼 계속 쌓입니다.
-    let careRenderGen = 0;
-
-    function pinIcon(cls, letter) {
-      return L.divIcon({ className: '', html: '<span class="' + cls + '"><span>' + letter + '</span></span>', iconSize: [22, 22], iconAnchor: [11, 22] });
-    }
-    function managerPinIcon() {
-      return L.divIcon({ className: '', html: '<span class="manager-pin"></span>', iconSize: [18, 18], iconAnchor: [9, 9] });
-    }
-
-    function careMapSection(a) {
-      const box = h('div', 'care-map-box');
-      box.appendChild(h('div', 'care-map'));
-      box.appendChild(h('p', 'care-map-hint', '지도를 불러오는 중…'));
-      return box;
-    }
-
-    async function initCareMap(a, container, gen) {
-      if (!container || typeof L === 'undefined') { // Leaflet CDN 로드가 막혔을 때(사내망 등)도 카드 전체가 깨지지 않도록
-        if (container) container.parentElement.querySelector('.care-map-hint').textContent = '지도를 불러오지 못했어요.';
-        return;
-      }
-      const hint = container.parentElement.querySelector('.care-map-hint');
-      try {
-        const map = L.map(container, { attributionControl: true, scrollWheelZoom: false });
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        }).addTo(map);
-
-        const entry = { map, originMarker: null, destMarker: null, managerMarker: null };
-        careMaps[a.id] = entry;
-
-        const [origin, dest] = await Promise.all([geocodeCached(a.origin), geocodeCached(a.destination)]);
-        // 이 await 를 기다리는 사이 renderCare() 가 다시 호출돼(3초 폴링·Realtime) 이 카드가 이미 사라졌을 수
-        // 있습니다 — 그러면 container/map 은 죽은 인스턴스이므로, 계속 만지지 말고 여기서 조용히 멈춥니다
-        // (이걸 안 하면 "Cannot read properties of null" 류의 콘솔 에러가 재렌더될 때마다 계속 쌓입니다).
-        if (gen !== careRenderGen) { try { map.remove(); } catch (e) { /* 이미 정리됐으면 무시 */ } return; }
-        const points = [];
-        if (origin) {
-          entry.originMarker = L.marker([origin.lat, origin.lng], { icon: pinIcon('care-pin-origin', '출') }).addTo(map).bindTooltip('출발지');
-          points.push([origin.lat, origin.lng]);
-        }
-        if (dest) {
-          entry.destMarker = L.marker([dest.lat, dest.lng], { icon: pinIcon('care-pin-dest', '도') }).addTo(map).bindTooltip('목적지 · ' + (a.destination || ''));
-          points.push([dest.lat, dest.lng]);
-        }
-
-        const sc = a._schedule;
-        if (sc && typeof sc.manager_lat === 'number' && typeof sc.manager_lng === 'number') {
-          entry.managerMarker = L.marker([sc.manager_lat, sc.manager_lng], { icon: managerPinIcon() }).addTo(map).bindTooltip('매니저 위치');
-          points.push([sc.manager_lat, sc.manager_lng]);
-        }
-
-        if (points.length >= 2) map.fitBounds(points, { padding: [28, 28] });
-        else if (points.length === 1) map.setView(points[0], 15);
-        else map.setView([37.5665, 126.9780], 10); // 좌표를 하나도 못 구했을 때(주소 인식 실패 등)의 기본 중심(서울)
-
-        if (hint) {
-          if (!origin && !dest) hint.textContent = '주소로 지도 위치를 찾지 못했어요. (카카오 지도 설정을 확인해 주세요)';
-          else if (sc && sc.schedule_status === 'departed') { hint.textContent = '매니저가 이동 중이에요 · 위치가 실시간으로 업데이트돼요.'; hint.classList.add('is-live'); }
-          else if (sc && (sc.schedule_status === 'arrived' || sc.schedule_status === 'completed')) hint.textContent = '병원에 도착했어요.';
-          else hint.textContent = '매니저가 출발하면 실시간 위치가 여기 표시돼요.';
-        }
-      } catch (err) {
-        console.warn('[케어 트래킹 지도] 초기화 실패:', err);
-        if (hint) hint.textContent = '지도를 불러오지 못했어요.';
-      }
-    }
-
-    function destroyCareMaps() {
-      Object.keys(careMaps).forEach((id) => {
-        try { careMaps[id].map.remove(); } catch (e) { /* 이미 제거됐거나 초기화에 실패한 지도는 무시 */ }
-        delete careMaps[id];
-      });
-    }
-
-    // 매니저 마커를 새 좌표로 '부드럽게' 이동 (requestAnimationFrame 으로 직선 보간 — 배달 앱처럼 움직이는 느낌)
-    // rAF 콜백은 최대 900ms 동안 반복되는데, 그 사이 재렌더로 지도가 정리될 수 있어 매 프레임 방어합니다
-    // (없으면 위치 방송이 올 때마다 uncaught 에러가 콘솔에 쌓일 수 있습니다).
-    function animateMarkerTo(marker, toLatLng, duration) {
-      const from = marker.getLatLng();
-      const start = performance.now();
-      function step(now) {
-        try {
-          const t = Math.min(1, (now - start) / duration);
-          marker.setLatLng([from.lat + (toLatLng.lat - from.lat) * t, from.lng + (toLatLng.lng - from.lng) * t]);
-          if (t < 1) requestAnimationFrame(step);
-        } catch (e) { /* 애니메이션 도중 지도가 정리됐으면 조용히 중단 */ }
-      }
-      requestAnimationFrame(step);
-    }
-    function updateManagerMarker(applicationId, lat, lng) {
-      const entry = careMaps[applicationId];
-      if (!entry || !entry.map) return; // 이 신청 카드의 지도가 아직 없거나(로딩 중) 이미 다시 그려져 사라졌으면 조용히 무시
-      try {
-        const toLatLng = L.latLng(lat, lng);
-        if (!entry.managerMarker) entry.managerMarker = L.marker(toLatLng, { icon: managerPinIcon() }).addTo(entry.map).bindTooltip('매니저 위치');
-        else animateMarkerTo(entry.managerMarker, toLatLng, 900);
-        entry.map.panTo(toLatLng, { animate: true });
-      } catch (e) { console.warn('[케어 트래킹 지도] 매니저 위치 갱신 실패(지도가 이미 정리됐을 수 있음):', e); }
-    }
-
-    // ---------- 실시간 위치 수신 (Supabase Realtime Broadcast 구독) ----------
-    // mypage-manager.html 이 'care-location:' + <care_schedules.id> 채널로 15초마다 보내는 좌표를 받아 지도를 갱신합니다.
-    const locationSubs = {}; // scheduleId -> channel
-    function subscribeManagerLocation(scheduleId, applicationId) {
-      if (!supabaseClient || locationSubs[scheduleId]) return;
-      const channel = supabaseClient.channel('care-location:' + scheduleId, { config: { broadcast: { self: false } } });
-      channel.on('broadcast', { event: 'location' }, (msg) => {
-        try {
-          const p = (msg && msg.payload) || {};
-          if (typeof p.lat === 'number' && typeof p.lng === 'number') updateManagerMarker(applicationId, p.lat, p.lng);
-        } catch (e) { console.warn('[케어 트래킹 지도] 위치 방송 처리 실패:', e); }
-      });
-      channel.subscribe();
-      locationSubs[scheduleId] = channel;
-    }
-    function unsubscribeManagerLocation(scheduleId) {
-      const ch = locationSubs[scheduleId];
-      if (!ch) return;
-      supabaseClient.removeChannel(ch);
-      delete locationSubs[scheduleId];
-    }
-    // 지금 화면에 그려진 신청 목록과 구독 상태를 맞춥니다: '이동 중'인 일정만 구독을 켜고, 나머지는 끕니다.
-    function syncLocationSubscriptions(apps) {
-      const activeIds = new Set();
-      (apps || []).forEach((a) => {
-        const sc = a._schedule;
-        if (sc && sc.schedule_status === 'departed' && sc.schedule_id) {
-          activeIds.add(sc.schedule_id);
-          subscribeManagerLocation(sc.schedule_id, a.id);
-        }
-      });
-      Object.keys(locationSubs).forEach((id) => { if (!activeIds.has(id)) unsubscribeManagerLocation(id); });
-    }
-
     // ---------- 실시간 상태 변경 감지 (Supabase Realtime · Postgres Changes 구독) ----------
     // 매니저가 상태를 바꾸면(care_schedules.status update) DB가 직접 알려줍니다 → 30초 폴링(loadCare, 아래
     // setInterval)을 기다리지 않고 바로 다시 불러와 타임라인·뱃지를 갱신합니다.
@@ -2346,9 +2148,9 @@
               console.log('[Realtime] status 변경 감지:', oldStatus, '→', newStatus);
               if (oldStatus === newStatus) {
                 // status 는 그대로고 manager_lat/lng 같은 다른 컬럼만 바뀐 경우(매니저가 '이동 중'일 때
-                // update_manager_location() 이 15초마다 남기는 위치 갱신) — 위치는 별도의 Broadcast 채널
-                // (subscribeManagerLocation)로 이미 실시간 반영되므로, 여기서까지 매번 전체 재조회(loadCare)를
-                // 돌리면 재렌더가 너무 잦아져 지도 재생성과 경합(콘솔 에러 누적의 원인)만 생기고 얻는 게 없습니다.
+                // update_manager_location() 이 15초마다 남기는 위치 갱신) — 이 화면은 위치를 지도로 보여주지
+                // 않으므로 화면에 반영할 게 없습니다. 그런데도 매번 전체 재조회(loadCare)를 돌리면 15초마다
+                // 불필요한 재렌더만 반복되므로 조용히 무시합니다.
                 return;
               }
               // payload 만으로 즉석 반영하지 않고 loadCare() 로 다시 불러오는 이유: application_id 조인(attachSchedules)과
@@ -2391,7 +2193,6 @@
     }
 
     window.addEventListener('beforeunload', () => {
-      Object.keys(locationSubs).forEach(unsubscribeManagerLocation);
       if (scheduleChangesChannel) supabaseClient.removeChannel(scheduleChangesChannel);
       if (arrivalLogsChannel) supabaseClient.removeChannel(arrivalLogsChannel);
       if (careCheckpointsRealtimeChannel) supabaseClient.removeChannel(careCheckpointsRealtimeChannel);
@@ -2465,14 +2266,6 @@
 
       const progress = progressSection(a); // 매니저가 인증한 출발/병원 도착 시각 (일정이 생성된 신청에만 표시)
       if (progress) card.appendChild(progress);
-
-      // 실시간 케어 트래킹 지도: 실제 배정 일정(care_schedules)이 있고 아직 진행 중일 때만 표시합니다.
-      // (제안을 수락해 로컬로만 확정한 건은 실제 일정이 없어 추적할 좌표 자체가 없으므로 지도를 띄우지 않습니다)
-      if (a._schedule && st.tone === 'live') {
-        const mapBox = careMapSection(a);
-        card.appendChild(mapBox);
-        pendingMapInits.push({ application: a, container: mapBox.querySelector('.care-map') });
-      }
 
       const foot = h('div', 'app-foot');
       if (svc) {
@@ -2602,11 +2395,6 @@
       const apps = applications || [];
       console.log('Final Render Data:', apps); // 화면에 실제로 그려지는 신청 목록 (담당 매니저 정보 포함)
       lastCareApps = apps;
-      // 카드가 통째로 새로 그려지므로, 이전 렌더에서 만든 Leaflet 지도 인스턴스를 먼저 정리합니다
-      // (그대로 두면 이미 DOM 에서 떨어져 나간 컨테이너를 계속 참조하게 됩니다).
-      careRenderGen++; // 지금 막 만들어질 지도들의 '세대' — initCareMap() 이 비동기 대기 중 이 값이 또 바뀌면 스스로 중단합니다.
-      destroyCareMaps();
-      pendingMapInits = [];
       body.textContent = '';
       moreBtn.hidden = apps.length === 0;
       badge.hidden = false; // 아래에서 필요할 때만 숨김 (다시 그릴 때 숨김 상태가 남지 않도록)
@@ -2668,16 +2456,6 @@
               // max-height 를 실제 콘텐츠 높이로 지정해야 CSS transition 이 부드럽게 애니메이션됩니다 (auto 는 트랜지션이 안 됨)
               collapse.style.maxHeight = expanded ? collapse.scrollHeight + 'px' : '';
               if (!animate) requestAnimationFrame(() => { collapse.style.transition = ''; });
-              // '더보기'로 펼친 카드 안의 지도는 접혀 있는 동안 만들어졌을 수 있어(Leaflet 문서에서도 권장하는 처리),
-              // 펼침 전환(또는 재렌더 직후 지도가 비동기로 새로 만들어지는 시간)이 끝난 뒤 크기를 다시 계산해
-              // 타일이 빈 화면으로 남지 않게 합니다 — animate 여부와 무관하게 일정 시간 뒤에 한 번 더 맞춰 줍니다.
-              // setTimeout 콜백은 호출 스택과 분리돼 있어, 이 400ms 사이에 재렌더로 지도가 이미 정리됐어도
-              // (destroyCareMaps) try-catch 없이는 uncaught 에러로 콘솔에 계속 쌓일 수 있어 방어합니다.
-              if (expanded) setTimeout(() => {
-                Object.values(careMaps).forEach((entry) => {
-                  try { if (entry && entry.map) entry.map.invalidateSize(); } catch (e) { /* 이미 제거된 지도는 무시 */ }
-                });
-              }, 400);
             };
             setMoreText(false);
             moreBtnEl.setAttribute('aria-expanded', 'false');
@@ -2713,10 +2491,6 @@
         body.appendChild(empty);
       }
 
-      // 카드가 DOM 에 실제로 붙은 뒤에 지도를 초기화합니다(Leaflet 은 컨테이너가 붙어 있어야 정확히 그려집니다),
-      // 그런 다음 지금 화면에 있는 신청 목록 기준으로 실시간 위치 구독 상태를 맞춥니다.
-      pendingMapInits.forEach(({ application, container }) => initCareMap(application, container, careRenderGen));
-      syncLocationSubscriptions(apps);
       renderCareCalendar(); // 이 신청 목록(lastCareApps) 기준으로 하단 '이용 내역 & 케어 리포트' 달력도 함께 갱신
     }
     // ---------- 어르신 목록 (Supabase: seniors) ----------
