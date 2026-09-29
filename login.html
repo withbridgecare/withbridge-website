@@ -14,6 +14,8 @@
   <!-- 공통 인증 헤더 (로그인 상태 감지 · 프로필 아바타/드롭다운). Supabase SDK 뒤에 로드해야 합니다 -->
   <script src="/js/auth-header.js?v=1.0" charset="utf-8"></script>
 <script src="/js/terms-modal.js?v=1.0" charset="utf-8" defer></script>
+  <!-- 브라우저 기본 날짜/시간 피커 대신 쓰는 공통 커스텀 피커 (wb-datepicker.js 참고) -->
+  <script src="/js/wb-datepicker.js?v=1.0"></script>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -319,6 +321,9 @@
     function getSupabase() {
       return window.WBAuth ? window.WBAuth.client : null;
     }
+
+    // 브라우저 기본 날짜 피커 대신 위드브릿지 커스텀 피커로 교체 (wb-datepicker.js)
+    if (window.WBDatePicker) WBDatePicker.attach(document.getElementById('seniorBirth'));
 
     // 카카오 로그인 · 회원가입 (버튼 위치와 상관없이 모두 이 함수를 거칩니다)
     async function loginWithKakao() {
