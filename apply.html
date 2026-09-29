@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>시니어 병원 동행 서비스 신청서</title>
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- 공통 Supabase 클라이언트 + 헤더 로그인 상태. SDK 뒤에 로드해야 합니다 -->
+  <script src="auth-header.js?v=1.0" charset="utf-8"></script>
+<script src="terms-modal.js?v=1.0" charset="utf-8" defer></script>
+  <style>
+    :root {
+      --brand: #78866B;
+      --brand-dark: #3B4B3C;
+      --brand-soft: #F1F6F0;
+      --brand-line: #E2ECE0;
+      --ink: #1A1D21;
+      --ink-sub: #555555;              /* 보조 문구(안내·예시): 흰 배경 대비 7:1 — 읽기 편하도록 어둡게 */
+      --accent: #556B2F;               /* 선택된 항목/주요 버튼의 강조색 (흰 글씨 대비 6:1 이상) */
+      --accent-dark: #455822;
+      --control-border: #858E9C;       /* 입력창·선택 버튼의 테두리 (흰 배경과 3.3:1 → 경계가 또렷하게 보임) */
+      --bg: #FAF8F5;
+      --card: #FFFFFF;
+      --line: #EBE7E0;
+      --danger: #C0392B;
+      --radius: 20px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0; background: var(--bg); color: var(--ink);
+      font-family: 'Pretendard Variable', Pretendard, 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+      font-size: 15px; line-height: 1.6; letter-spacing: -0.01em; -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; }
+    button, input, textarea { font-family: inherit; }
+    [hidden] { display: none !important; }
+
+    /* ---------- 페이지 ---------- */
+    .ap-main { padding: 40px 24px 80px; }
+    .ap-wrap { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 32px; box-shadow: 0 4px 16px rgba(0,0,0,.02); }
+
+    /* 헤더 섹션 */
+    .ap-title { margin: 0 0 12px; font-size: 28px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.35; word-break: keep-all; }
+    .ap-lead { margin: 0 0 24px; font-size: 16px; color: #475569; word-break: keep-all; }
+
+    /* 안내 배너: 하나의 큰 카드 안에서 제목 바로 아래에 붙는 '작은' 연한 초록 콜아웃 (서비스 지역 · 소요 시간 · 문의 · 로그인 이메일) */
+    .notice {
+      display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 10px 26px;
+      margin: 0 0 30px; padding: 16px 20px; background: #F3F7F1; border: 1px solid var(--brand-line); border-left: 5px solid var(--brand);
+      border-radius: 12px; font-size: 13.5px; line-height: 1.55; color: #374151;
+    }
+    .nt-title { margin: 0 0 2px; font-size: 14.5px; font-weight: 800; color: var(--brand-dark); }
+    .nt-sub { margin: 0 0 8px; color: #4B5563; word-break: keep-all; }
+    .nt-areas { margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; }
+    .nt-areas li { display: flex; gap: 8px; align-items: baseline; }
+    .nt-areas strong { flex: 0 0 auto; min-width: 38px; color: var(--brand-dark); }
+    .nt-areas span { word-break: keep-all; }
+    .nt-notes { grid-column: 1 / -1; }
+    .nt-note { margin: 0 0 2px; font-size: 12.5px; color: var(--ink-sub); word-break: keep-all; }
+    .nt-info { align-self: start; margin: 0; padding: 0 0 0 26px; list-style: none; border-left: 1px solid #D5E0D0; display: flex; flex-direction: column; gap: 6px; }
+    .nt-info li { position: relative; padding-left: 14px; word-break: keep-all; }
+    .nt-info li::before { content: '•'; position: absolute; left: 1px; color: var(--brand); font-weight: 700; }
+    .nt-info b { color: var(--ink); }
+    .nt-info a { color: var(--brand-dark); font-weight: 700; text-decoration: none; border-bottom: 1px solid #C9D6C4; white-space: nowrap; }
+    .nt-login { grid-column: 1 / -1; margin: 0; padding-top: 10px; border-top: 1px dashed #C9D6C4; font-size: 13px; font-weight: 600; color: var(--brand-dark); word-break: break-all; }
+    .nt-login::before { content: '✓'; display: inline-block; margin-right: 6px; font-weight: 800; color: var(--accent); }
+
+    /* 입력 폼 */
+    .field { border: none; margin: 0 0 28px; padding: 0; min-width: 0; }
+    .field:last-of-type { margin-bottom: 0; }
+    .field > label, .field > legend { display: block; margin: 0 0 10px; padding: 0; font-size: 16px; font-weight: 700; letter-spacing: -0.02em; word-break: keep-all; }
+    .req { color: var(--danger); margin-left: 2px; }
+    .text-input {
+      width: 100%; padding: 14px 16px; border: 1px solid var(--control-border); border-radius: 12px; background: #fff; color: var(--ink);
+      font-size: 15.5px; outline: none; transition: border-color .15s, box-shadow .15s;
+    }
+    .text-input::placeholder { color: #666666; opacity: 1; }   /* 입력 예시: 이전(#94A3B8)보다 훨씬 진하게 (opacity 1: 브라우저 기본 흐림 방지) */
+    .text-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(85,107,47,.22); }
+    .field.has-error .text-input { border-color: var(--danger); }
+
+    .options { display: flex; flex-wrap: wrap; gap: 10px; }
+    .opt { position: relative; cursor: pointer; }
+    .opt input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+    /* 선택 버튼(알약): 선택되면 진한 강조색 배경 + 흰색 굵은 글씨로 확실히 구분 */
+    .opt span {
+      display: inline-flex; align-items: center; gap: 8px; padding: 12px 18px; border: 2px solid var(--control-border); border-radius: 9999px;
+      background: #fff; color: var(--ink); font-size: 15px; font-weight: 500; transition: all .15s; user-select: none;
+    }
+    .opt span::before { content: ''; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--control-border); background: #fff; flex: 0 0 auto; transition: all .15s; }
+    .opt:hover span { border-color: var(--accent); }
+    .opt input:checked + span { border-color: var(--accent); background: var(--accent); color: #fff; font-weight: 700; }
+    .opt input:checked + span::before { border-color: #fff; background: #fff; box-shadow: inset 0 0 0 3px var(--accent); }
+    .opt input:focus-visible + span { outline: 3px solid rgba(85,107,47,.5); outline-offset: 2px; }
+    .field.has-error .opt span { border-color: #D98E85; }
+
+    /* 개인정보 동의: 테두리 상자 없이 '커스텀 체크박스 + 문구'를 한 줄로.
+       실제 <input type="checkbox"> 를 그대로 쓰고 모양만 바꿉니다 → 키보드(Space)·스크린리더 동작은 기본 체크박스와 동일 */
+    /* ※ 이 label 은 fieldset(.field) 바로 아래라서 '.field > label { display: block; … }' 규칙이 덮어쓰지 못하도록
+         선택자를 더 구체적으로(.field > label.consent-row) 씁니다 */
+    .field > label.consent-row { display: flex; align-items: center; gap: 10px; margin: 0; padding: 0; font-size: 15.5px; font-weight: 500; letter-spacing: normal; cursor: pointer; }
+    .consent-row input {
+      -webkit-appearance: none; appearance: none;               /* 브라우저 기본 체크박스 모양 제거 */
+      width: 20px; height: 20px; margin: 0; flex: 0 0 auto;
+      border: 1.5px solid #d1d5db; border-radius: 6px; background-color: #ffffff; cursor: pointer;
+      background-repeat: no-repeat; background-position: center; background-size: 14px 14px;
+      transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease;
+    }
+    .consent-row input:checked {                                /* 체크 상태: 브랜드 강조색 배경 + 흰색 체크 아이콘(SVG) */
+      background-color: #556B2F; border-color: #556B2F;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ffffff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3.5 8.6 6.6 11.6 12.5 4.6'/%3E%3C/svg%3E");
+    }
+    .consent-row:hover input { border-color: #556B2F; box-shadow: 0 0 0 3px rgba(85,107,47,.14); }   /* 마우스를 올리면 테두리 색 + 옅은 그림자 */
+    .consent-row:hover input:checked { background-color: #455822; border-color: #455822; }
+    .consent-row input:focus-visible { outline: 3px solid rgba(85,107,47,.5); outline-offset: 2px; }  /* 키보드 포커스 */
+    .consent-row span { font-size: 15.5px; font-weight: 500; word-break: keep-all; user-select: none; }
+    .field.has-error .consent-row input:not(:checked) { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(192,57,43,.14); }
+    @media (forced-colors: active) {                            /* 윈도우 '고대비 모드'에서는 배경색이 무시되므로 기본 체크박스로 되돌림 */
+      .consent-row input { -webkit-appearance: checkbox; appearance: auto; }
+    }
+    .consent-help { margin: 8px 0 0 30px; font-size: 13px; color: var(--ink-sub); word-break: keep-all; }   /* 체크박스(20px) + 간격(10px) 만큼 들여써 문구와 세로줄 맞춤 */
+    .consent-help a { color: var(--brand-dark); font-weight: 700; }
+    .consent-row a { color: var(--accent-dark); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }   /* '이용약관' 링크 (누르면 약관 팝업) */
+
+    /* 서비스 선택 카드 */
+    .svc-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .svc { position: relative; display: block; cursor: pointer; }
+    .svc input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+    /* 선택 상태는 라디오의 :checked 로 표시합니다 (스크립트 없이 동작 → 뒤로 가기로 선택이 복원돼도 그대로 보임).
+       선택되면: 진한 강조색 2px 테두리 + 옅은 배경색 + 우측 상단 체크(✓) 배지 */
+    .svc-card { position: relative; display: flex; flex-direction: column; gap: 6px; height: 100%; padding: 16px 16px 14px; border: 2px solid var(--control-border); border-radius: 14px; background: #fff; transition: all .15s; }
+    .svc:hover .svc-card { border-color: var(--accent); }
+    .svc input:checked + .svc-card { border-color: var(--accent); background: #EEF3E6; box-shadow: 0 0 0 3px rgba(85,107,47,.16); }
+    .svc-card::after { /* 체크 배지: 선택 전에는 숨김 */
+      content: '✓'; position: absolute; top: 10px; right: 10px; width: 24px; height: 24px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; background: var(--accent); color: #fff; font-size: 14px; font-weight: 800; line-height: 1;
+      transform: scale(0); opacity: 0; transition: transform .15s, opacity .15s;
+    }
+    .svc input:checked + .svc-card::after { transform: scale(1); opacity: 1; }
+    .svc input:focus-visible + .svc-card { outline: 3px solid rgba(85,107,47,.5); outline-offset: 2px; }
+    .svc-name { padding-right: 28px; font-size: 15.5px; font-weight: 700; line-height: 1.35; word-break: keep-all; }  /* 오른쪽은 체크 배지 자리 */
+    .svc-price { font-size: 14px; font-weight: 800; color: var(--accent-dark); }
+    .svc-desc { font-size: 13px; line-height: 1.5; color: #3F4650; word-break: keep-all; }  /* 설명 글씨를 더 진하게 */
+    .field.has-error .svc-card { border-color: #D98E85; }
+
+    /* 총 예상 금액 배너: 선택 전에는 안내 문구(점선), 선택하면 굵은 금액이 강조되는 배너 */
+    .fee-box { margin-top: 14px; padding: 16px 20px; border-radius: 14px; background: #EEF3E6; border: 2px solid var(--accent); border-left-width: 8px; }
+    .fee-box.is-empty { background: #FBFCFA; border: 2px dashed var(--control-border); color: var(--ink-sub); font-size: 14.5px; }
+    .fee-main { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; letter-spacing: -0.02em; }
+    .fee-label { font-size: 15px; font-weight: 700; color: var(--ink); }
+    .fee-amount { font-size: 26px; font-weight: 800; color: var(--accent-dark); line-height: 1.2; }
+    .fee-unit { font-size: 14.5px; font-weight: 700; color: var(--ink); }
+    .fee-note { margin: 6px 0 0; font-size: 13px; line-height: 1.5; color: var(--ink-sub); word-break: keep-all; }
+
+    textarea.text-input { display: block; min-height: 120px; resize: vertical; line-height: 1.6; }
+    .hint { margin: 6px 2px 0; font-size: 13px; color: var(--ink-sub); word-break: keep-all; }
+    .opt-tag { margin-left: 6px; font-size: 13px; font-weight: 500; color: var(--ink-sub); }
+
+    /* 희망 날짜(date picker) + 시간(time picker) 한 줄 배치. 좁은 화면에서는 flex-wrap 으로 자연스럽게 두 줄로 내려감 */
+    .dt-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .dt-row .dt-date { flex: 1 1 170px; }
+    .dt-row .dt-time { flex: 1 1 150px; cursor: pointer; background-color: #fff; }
+    select.text-input { appearance: auto; background-color: #fff; }
+    /* time input: 박스 톤앤매너(.text-input)는 그대로 두고, 브라우저 기본 타임피커(시계 아이콘 · 모바일 휠피커)는 그대로 노출 */
+    input[type="time"].text-input::-webkit-calendar-picker-indicator { cursor: pointer; }
+
+    /* 출발지 / 목적지를 각각 별도 입력칸으로 분리 (한 칸에 '/' 로 직접 구분해 적을 때 생기는 입력 실수 방지) */
+    .route-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .sub-field { flex: 1 1 220px; min-width: 0; }
+    .sub-label { display: block; margin: 0 0 6px; font-size: 13px; font-weight: 700; color: var(--ink-sub); }
+
+    .err { margin: 8px 2px 0; font-size: 13.5px; color: var(--danger); }
+    .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; } /* 스팸 봇 함정 (사람에게는 안 보임) */
+
+    /* 이용약관 → 개인정보 동의 → 제출 버튼 순서를 시각적으로도 분명히: 구분선 + 넉넉한 위 여백으로 '동의 구간'과 분리 */
+    .submit-area { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line); }
+    .form-error { margin: 0 0 16px; padding: 14px 16px; border-radius: 12px; background: #FDF1EF; color: #7a2f26; font-size: 14px; word-break: keep-all; }
+    .form-error a { color: inherit; font-weight: 700; }
+    .submit {
+      display: block; width: 100%; margin-top: 0; padding: 17px 20px; border: none; border-radius: 9999px;
+      background: var(--accent); color: #fff; font-size: 17px; font-weight: 700; cursor: pointer; transition: background .2s, transform .2s;
+    }
+    .submit:hover { background: var(--accent-dark); transform: translateY(-1px); }
+    .submit:focus-visible { outline: 3px solid rgba(85,107,47,.5); outline-offset: 3px; }
+    .submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+    /* 제출 버튼 아래 여백: 버튼이 카드 가장자리/화면 끝에 붙어 잘려 보이지 않도록 넉넉하게 (60px 이상) */
+    #applyCard { padding-bottom: 64px; }
+
+    /* 접수 완료 */
+    .done { text-align: center; padding: 48px 32px; }
+    .done-icon { display: flex; align-items: center; justify-content: center; width: 64px; height: 64px; margin: 0 auto 18px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 30px; font-weight: 700; }
+    .done h2 { margin: 0 0 10px; font-size: 24px; font-weight: 800; letter-spacing: -0.03em; }
+    .done h2:focus { outline: none; }   /* 접수 후 스크린리더용으로 제목에 포커스를 주는데, 눈에 보이는 테두리는 필요 없음 */
+    .done p { margin: 0 0 6px; color: #475569; word-break: keep-all; }
+    .done .who { margin: 16px auto 0; padding: 12px 16px; max-width: 420px; border-radius: 12px; background: var(--brand-soft); color: var(--brand-dark); font-weight: 700; word-break: break-all; }
+    /* 비로그인 신청 안내: 나중에 로그인하면 이 신청이 마이페이지에 연결됨 */
+    .done .done-login { margin: 18px auto 0; max-width: 420px; font-size: 13.5px; line-height: 1.6; color: #475569; }
+    .done .done-login a { color: var(--brand-dark); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+    .done-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; padding: 13px 26px; border-radius: 9999px; background: var(--accent); color: #fff; font-size: 15px; font-weight: 700; text-decoration: none; }
+    .btn:hover { background: var(--accent-dark); }
+    .btn-ghost { background: var(--brand-soft); color: var(--brand-dark); }
+    .btn-ghost:hover { background: var(--brand-line); }
+
+    /* index.html 헤더/푸터와 동일하게 렌더링되도록 보정 (index 는 Tailwind preflight 적용) */
+    header, footer { letter-spacing: normal; line-height: 1.5; }
+    footer h3 { margin-top: 0; }
+
+    @media (max-width: 640px) {
+      .ap-main { padding: 24px 16px 72px; }
+      .card { padding: 24px 20px; }
+      #applyCard { padding-bottom: 64px; }   /* .card 의 모바일 패딩보다 우선해 제출 버튼 아래 여백 유지 */
+      .fee-amount { font-size: 23px; }
+      .consent-help { margin-left: 30px; }
+      .ap-title { font-size: 23px; }
+      .ap-lead { font-size: 15px; }
+      .notice { grid-template-columns: minmax(0, 1fr); padding: 14px 16px; }
+      .nt-info { padding: 10px 0 0; border-left: 0; border-top: 1px dashed #C9D6C4; }
+      .opt span { padding: 11px 16px; }
+      .svc-options { grid-template-columns: minmax(0, 1fr); }
+      .done { padding: 36px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ====================================================================
+00. 상단 롤링 띠배너 (폰트 12.5px / 높이 38px)
+==================================================================== -->
+<div style="background-color: #78866B; color: #ffffff; font-size: 12.5px; font-weight: 500; height: 38px; overflow: hidden; position: relative; font-family: 'Noto Sans KR', sans-serif;">
+  <div id="topBannerTrack" style="transition: transform 0.5s ease-in-out; width: 100%;">
+    
+    <!-- 문구 1 -->
+    <div style="height: 38px; display: flex; align-items: center; justify-content: center; text-align: center;">
+      <a href="index.html#contact" style="color: #ffffff; text-decoration: none; letter-spacing: -0.2px;">
+        첫 방문 고객 서비스 이용료 할인
+      </a>
+    </div>
+
+    <!-- 문구 2 -->
+    <div style="height: 38px; display: flex; align-items: center; justify-content: center; text-align: center;">
+      <a href="index.html#contact" style="color: #ffffff; text-decoration: none; letter-spacing: -0.2px;">
+        사람과 사람을 잇는 따뜻한 연결, 위드브릿지
+      </a>
+    </div>
+
+    <!-- 문구 3 -->
+    <div style="height: 38px; display: flex; align-items: center; justify-content: center; text-align: center;">
+      <a href="index.html#contact" style="color: #ffffff; text-decoration: none; letter-spacing: -0.2px;">
+        지금 문의하기로 간편하게 상담받기
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<!-- 롤링 동작 자바스크립트 -->
+<script>
+  (function() {
+    let currentIndex = 0;
+    const track = document.getElementById('topBannerTrack');
+    if (!track) return;
+    const totalItems = track.children.length;
+
+    setInterval(function() {
+      currentIndex = (currentIndex + 1) % totalItems;
+      track.style.transform = 'translateY(-' + (currentIndex * 38) + 'px)';
+    }, 3500); // 3.5초마다 롤링
+  })();
+</script>
+
+<!--
+====================================================================
+01. 상단 헤더 (Header)
+====================================================================
+-->
+<!-- 상단 네비게이션 헤더 (독립된 login.html 이동 적용본) -->
+<header style="width: 100%; background-color: #ffffff; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 50; font-family: 'Noto Sans KR', sans-serif;">
+  <div style="max-width: 1380px; margin: 0 auto; padding: 32px 40px; display: flex; align-items: center; justify-content: space-between;">
+    
+    <!-- 로고 영역 (클릭 시 메인 페이지로 이동하도록 index.html 적용) -->
+    <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
+      <img src="https://i.ibb.co/xqjbh2Hg/ab449647-1b1a-4b6d-8e17-71379d22e824.png" alt="위드브릿지 로고" style="height: 98px; width: auto; display: block; object-fit: contain;" />
+    </a>
+
+    <!-- 중앙 메뉴 링크 (소개 메뉴를 about.html로 연결) -->
+    <nav style="display: flex; align-items: center; gap: 44px; font-size: 19px; font-weight: 700;">
+      <a href="about.html" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">소개</a>
+      <a href="index.html#services" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">서비스</a>
+      <a href="index.html#notice" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">공지사항</a>
+      <a href="index.html#reviews" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">고객후기</a>
+      <a href="index.html#faq" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">자주 묻는 질문(FAQ)</a>
+    </nav>
+
+    <!-- 우측 버튼 및 링크 영역 -->
+    <div style="display: flex; align-items: center; gap: 20px;">
+      <!-- 💡 class="auth-buttons" 추가됨: 자바스크립트가 이 영역을 찾아 로그인 시 '로그아웃'으로 바꿉니다 -->
+      <div class="auth-buttons" style="display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 500; color: #1A1D21;">
+        <a href="login.html" style="text-decoration: none; font-weight: 500; color: #1A1D21; transition: color 0.2s;">
+          로그인
+        </a>
+        <span style="color: #d1d5db; font-size: 14px; font-weight: 400;">|</span>
+        <a href="login.html" style="text-decoration: none; font-weight: 500; color: #1A1D21; transition: color 0.2s;">
+          회원가입
+        </a>
+      </div>
+
+      <!-- 문의하기 버튼 (카카오톡 링크 연동) -->
+      <a href="https://accounts.kakao.com/login/?continue=https%3A%2F%2Fpf.kakao.com%2F_xjTdxaX%2Fchat#login" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 16px 36px; background-color: #000000; color: #ffffff; border-radius: 9999px; font-size: 18px; font-weight: 700; text-decoration: none; transition: background-color 0.2s;">
+        문의하기
+      </a>
+    </div>
+
+  </div>
+</header>
+
+  <main class="ap-main">
+    <div class="ap-wrap">
+
+      <!-- ================================================================ -->
+      <!-- 01. 신청서: 하나의 큰 카드 안에 [제목 · 설명] → [안내 배너] → [입력 양식] 이 이어집니다 -->
+      <!-- ================================================================ -->
+      <div class="card" id="applyCard">
+        <h1 class="ap-title" id="applyTitle">시니어 병원 동행 서비스 신청서</h1>
+        <p class="ap-lead">병원 예약부터 진료 동행, 약 수령 및 안전한 귀가까지 전문 동행 매니저가 함께합니다. 정확하고 안전한 동행을 위해 아래 항목을 작성해 주세요.</p>
+
+        <!-- 안내 배너 (작은 연한 초록 콜아웃): 서비스 가능 지역 / 소요 시간 · 안내 · 문의 / 로그인한 계정 이메일 -->
+        <aside class="notice" id="applyIntro" aria-label="신청 전 안내">
+          <div class="nt-region">
+            <h2 class="nt-title">[서비스 가능 지역 안내]</h2>
+            <p class="nt-sub">위드브릿지는 아래 지역을 중심으로 병원 동행 서비스를 제공하고 있습니다.</p>
+            <ul class="nt-areas">
+              <li><strong>인천:</strong> <span>남동구, 연수구, 미추홀구, 부평구, 계양구, 서구 일부</span></li>
+              <li><strong>경기:</strong> <span>시흥시, 부천시, 안산시 일부</span></li>
+            </ul>
+          </div>
+          <ul class="nt-info">
+            <li><b>소요 시간:</b> 약 2~3분</li>
+            <li><b>안내 사항:</b> 신청서 작성 후 2시간 이내에 담당 매니저가 확인 전화를 드립니다.</li>
+            <li><b>문의:</b> 위드브릿지 고객센터 (<a href="tel:01058745760">010-5874-5760</a> / 카카오톡 채널 @위드브릿지)</li>
+          </ul>
+          <div class="nt-notes">
+            <p class="nt-note">※ 위에 표기된 지역 내 출발지(자택 등) 및 목적지(병원)의 동행 서비스 신청이 가능합니다.</p>
+            <p class="nt-note">※ 목록에 없는 주변 지역이라도 일단 주소를 입력해 보시면 담당 매니저가 전화 확인 후 매칭을 도와드립니다.</p>
+          </div>
+          <!-- 로그인한 경우에만 표시: 로그인 계정(이메일)과 신청 내용이 자동으로 연결됨 -->
+          <p class="nt-login" id="loginNote" hidden></p>
+        </aside>
+
+        <!-- ================================================================ -->
+        <!-- 02. 신청서 입력 (같은 카드 안에서 안내 배너 바로 아래로 이어짐) -->
+        <!-- ================================================================ -->
+        <form id="applyForm" novalidate aria-label="시니어 병원 동행 서비스 신청서">
+
+        <!-- 서비스 선택: 아래 입력 항목의 안내 문구와 '기본 요금'이 선택한 서비스에 맞게 바뀝니다.
+             요금은 index.html 의 '이용 요금 안내'(기본 2시간)와 같은 값이며, 화면 안내용일 뿐 저장하지 않습니다 -->
+        <fieldset class="field" id="f-service">
+          <legend>서비스 선택 (Service Type) <span class="req">*</span></legend>
+          <div class="svc-options">
+            <label class="svc">
+              <input type="radio" name="service" value="시니어 병원 동행" data-price="44000">
+              <span class="svc-card">
+                <span class="svc-name">시니어 병원 동행</span>
+                <span class="svc-price">44,000원 / 2시간</span>
+                <span class="svc-desc">접수·수납·약국 동행, 진료 내용 보호자 피드백</span>
+              </span>
+            </label>
+            <label class="svc">
+              <input type="radio" name="service" value="생활 편의 대행" data-price="36000">
+              <span class="svc-card">
+                <span class="svc-name">생활 편의 대행</span>
+                <span class="svc-price">36,000원 / 2시간</span>
+                <span class="svc-desc">관공서·은행 업무, 장보기, 산책·말벗, 스마트폰 교육</span>
+              </span>
+            </label>
+            <label class="svc">
+              <input type="radio" name="service" value="복합 매칭 서비스 (동행 + 생활편의)" data-price="50000">
+              <span class="svc-card">
+                <span class="svc-name">복합 매칭 서비스 (동행 + 생활편의)</span>
+                <span class="svc-price">50,000원 / 2시간</span>
+                <span class="svc-desc">병원 진료 후 약국·은행·장보기까지 원스톱 케어</span>
+              </span>
+            </label>
+          </div>
+          <div class="fee-box is-empty" id="feeBox" aria-live="polite">서비스를 선택하시면 총 예상 금액이 표시됩니다.</div>
+          <p class="err" id="e-service" hidden></p>
+        </fieldset>
+
+        <fieldset class="field" id="f-relationship">
+          <legend>신청자분과 어르신의 관계 <span class="req">*</span></legend>
+          <div class="options">
+            <label class="opt"><input type="radio" name="relationship" value="어르신 본인"><span>어르신 본인</span></label>
+            <label class="opt"><input type="radio" name="relationship" value="자녀"><span>자녀</span></label>
+            <label class="opt"><input type="radio" name="relationship" value="사위·며느리"><span>사위·며느리</span></label>
+            <label class="opt"><input type="radio" name="relationship" value="기타"><span>기타</span></label>
+          </div>
+          <p class="err" id="e-relationship" hidden></p>
+        </fieldset>
+
+        <div class="field" id="f-contact">
+          <div class="route-row">
+            <div class="sub-field">
+              <label class="sub-label" for="contactName">신청자 성함 <span class="req">*</span></label>
+              <input class="text-input" type="text" id="contactName" name="contactName" maxlength="30" autocomplete="name" placeholder="예: 홍길동">
+            </div>
+            <div class="sub-field">
+              <label class="sub-label" for="contactPhone">신청자 연락처 <span class="req">*</span></label>
+              <input class="text-input" type="tel" id="contactPhone" name="contactPhone" maxlength="13" autocomplete="tel" inputmode="numeric" placeholder="예: 010-1234-5678">
+            </div>
+          </div>
+          <p class="err" id="e-contact" hidden></p>
+        </div>
+
+        <div class="field" id="f-datetime">
+          <label for="datetimeDate">희망 날짜 및 시간 <span class="req">*</span></label>
+          <div class="dt-row">
+            <input class="text-input dt-date" type="date" id="datetimeDate" name="datetimeDate" autocomplete="off" aria-label="희망 날짜">
+            <input class="text-input dt-time" type="time" id="datetimeTime" name="datetimeTime" autocomplete="off" aria-label="희망 시간">
+          </div>
+          <p class="hint">희망하시는 날짜와 시간을 선택해 주세요. 확정 일정은 확인 전화에서 다시 안내드려요.</p>
+          <p class="hint">* 예: 오후 04:26 등 실제 출발/방문 희망 시간을 분 단위까지 자유롭게 지정하실 수 있습니다.</p>
+          <p class="err" id="e-datetime" hidden></p>
+        </div>
+
+        <!-- 라벨 · 입력 예시 · 안내 문구는 선택한 서비스에 따라 바뀝니다 (apply 스크립트의 SERVICES 참고).
+             출발지/목적지를 별도 칸으로 나눠, 한 칸에 '/' 로 직접 구분해 적다 실수하는 것을 막습니다 -->
+        <div class="field" id="f-route">
+          <label id="routeGroupLabel">출발지 및 목적지/방문 장소 <span class="req">*</span></label>
+          <div class="route-row">
+            <div class="sub-field">
+              <label class="sub-label" for="routeOrigin">출발지 (자택 등)</label>
+              <input class="text-input" type="text" id="routeOrigin" name="routeOrigin" maxlength="120" autocomplete="off" placeholder="도로명 주소 또는 동/건물명을 입력해 주세요">
+            </div>
+            <div class="sub-field">
+              <label class="sub-label" for="routeDestination" id="routeDestLabel">목적지 (병원명)</label>
+              <input class="text-input" type="text" id="routeDestination" name="routeDestination" maxlength="120" autocomplete="off" placeholder="예: 길병원">
+            </div>
+          </div>
+          <p class="hint" id="routeHint" hidden></p>
+          <p class="err" id="e-route" hidden></p>
+        </div>
+
+        <div class="field" id="f-details">
+          <label for="details">요청 상세 내용<span class="opt-tag">(선택)</span></label>
+          <textarea class="text-input" id="details" name="details" rows="4" maxlength="1000" placeholder="예: 진료과, 장보기 목록, 은행 업무 등 구체적인 요청을 적어 주세요."></textarea>
+        </div>
+
+        <fieldset class="field" id="f-mobility">
+          <legend>어르신 거동 상태 <span class="req">*</span></legend>
+          <div class="options">
+            <label class="opt"><input type="radio" name="mobility" value="혼자 걸음 가능"><span>혼자 걸음 가능</span></label>
+            <label class="opt"><input type="radio" name="mobility" value="지팡이·보행기 사용"><span>지팡이·보행기 사용</span></label>
+            <label class="opt"><input type="radio" name="mobility" value="휠체어 사용"><span>휠체어 사용</span></label>
+          </div>
+          <p class="err" id="e-mobility" hidden></p>
+        </fieldset>
+
+        <!-- 이용약관 동의 (필수). '이용약관' 링크 → 약관 팝업 → [동의하고 닫기] 로도 체크됩니다 -->
+        <fieldset class="field" id="f-terms">
+          <legend>이용약관 동의 <span class="req">*</span></legend>
+          <label class="consent-row">
+            <input type="checkbox" id="terms" name="terms">
+            <span><a href="terms.html" data-open-terms data-terms-agree="#terms">이용약관</a>에 동의합니다.</span>
+          </label>
+          <p class="consent-help">진료·간호 등 의료행위 없이 이동·행정 동행만 제공하는 서비스이며(<a href="terms.html" data-open-terms data-terms-article="3">제3조</a>), 취소·환불은 서비스 시작 시각을 기준으로 적용돼요(<a href="terms.html" data-open-terms data-terms-article="6">제6조</a>).</p>
+          <p class="err" id="e-terms" hidden></p>
+        </fieldset>
+
+        <fieldset class="field" id="f-consent">
+          <legend>개인정보 수집 동의 <span class="req">*</span></legend>
+          <label class="consent-row">
+            <input type="checkbox" id="consent" name="consent">
+            <span>개인정보 수집 및 이용에 동의합니다.</span>
+          </label>
+          <p class="consent-help">수집 항목·이용 목적 등 자세한 내용은 <a href="index.html#privacy">개인정보 처리방침</a>을 확인해 주세요.</p>
+          <p class="err" id="e-consent" hidden></p>
+        </fieldset>
+
+        <!-- 스팸 봇 함정: 사람은 볼 수 없고 건드리지 않음. 값이 채워져 있으면 전송하지 않고 조용히 무시 -->
+        <div class="hp" aria-hidden="true">
+          <label>웹사이트 <input type="text" id="website" name="website" tabindex="-1" autocomplete="off"></label>
+        </div>
+
+        <!-- 이용약관 동의 → 개인정보 수집 동의 → 제출 버튼 순서로 이어집니다. 구분선으로 '동의 구간'과 '제출' 을 분리해
+             버튼이 체크박스 위로 겹치거나 카드 끝에 잘려 보이지 않게 합니다 (여백은 #applyCard padding-bottom 참고) -->
+        <div class="submit-area">
+          <div class="form-error" id="formError" role="alert" hidden></div>
+          <button type="submit" class="submit" id="submitBtn">신청서 제출하기</button>
+        </div>
+        </form>
+      </div><!-- /#applyCard -->
+
+      <!-- ================================================================ -->
+      <!-- 03. 접수 완료 -->
+      <!-- ================================================================ -->
+      <section class="card done" id="doneCard" hidden aria-live="polite">
+        <div class="done-icon" aria-hidden="true">✓</div>
+        <h2 id="doneTitle" tabindex="-1">신청서가 접수되었습니다</h2>
+        <p>신청서 작성 후 2시간 이내에 담당 매니저가 확인 전화를 드립니다.</p>
+        <p>급하신 경우 위드브릿지 고객센터(<a href="tel:01058745760">010-5874-5760</a>)로 문의해 주세요.</p>
+        <div class="who" id="doneService"></div>
+        <div class="who" id="doneContact"></div>
+        <!-- 비로그인(또는 계정 연결 없이) 접수된 경우에만 표시: 로그인하면 이 신청이 마이페이지에 자동 연결됩니다 -->
+        <p class="done-login" id="doneLoginHint" hidden>로그인하지 않고 신청하셨어요. <a href="login.html">카카오로 로그인</a>하시면 이 신청이 마이페이지에 자동으로 연결돼요.</p>
+        <div class="done-actions">
+          <a class="btn" href="index.html">홈으로</a>
+          <a class="btn btn-ghost" id="doneMypage" href="mypage.html" hidden>마이페이지</a>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+<!--
+====================================================================
+11. 하단 푸터 (Footer)
+====================================================================
+-->
+<footer style="background-color: #1A1D21 !important; color: #E5E7EB !important; padding: 64px 32px 48px 32px !important; font-family: 'Noto Sans KR', sans-serif !important;">
+  <div style="max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; gap: 48px;">
+    
+    <!-- 상단: 로고 / 약관 / SNS -->
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 24px; padding-bottom: 0px;">
+      <div style="display: flex; align-items: baseline; gap: 12px;">
+        <strong style="font-size: 20px; font-weight: 700; color: #ffffff !important;">위드브릿지</strong>
+        <span style="font-size: 14px; color: #a1a1aa !important;">WithBridge</span>
+      </div>
+      
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 24px;">
+        <nav style="display: flex; align-items: center; gap: 16px; font-size: 14px;">
+          <a href="terms.html" data-open-terms style="color: #d4d4d8 !important; text-decoration: underline; text-underline-offset: 4px;">이용약관</a>
+          <span style="width: 1px; height: 12px; background-color: rgba(255,255,255,0.2);"></span>
+          <a href="index.html#privacy" style="color: #ffffff !important; font-weight: 700; text-decoration: underline; text-underline-offset: 4px;">개인정보 처리방침</a>
+        </nav>
+        
+        <!-- SNS 버튼 영역 (SVG 로고 제거 완료) -->
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
+          <a href="#instagram" style="display: inline-flex; align-items: center; justify-content: center; padding: 8px 18px; border-radius: 9999px; background-color: #ffffff !important; color: #18181b !important; font-size: 14px; font-weight: 700; text-decoration: none;">
+            <span>인스타그램</span>
+          </a>
+          <a href="#youtube" style="display: inline-flex; align-items: center; justify-content: center; padding: 8px 18px; border-radius: 9999px; background-color: #ffffff !important; color: #18181b !important; font-size: 14px; font-weight: 700; text-decoration: none;">
+            <span>유튜브</span>
+          </a>
+          <a href="#tiktok" style="display: inline-flex; align-items: center; justify-content: center; padding: 8px 18px; border-radius: 9999px; background-color: #ffffff !important; color: #18181b !important; font-size: 14px; font-weight: 700; text-decoration: none;">
+            <span>틱톡</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 중간: 회사 정보 & 고객센터 -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 48px;">
+      <!-- 회사 정보 -->
+      <div style="display: flex; flex-direction: column;">
+        <h3 style="margin-bottom: 12px; font-size: 16px; font-weight: 700; color: #ffffff !important;">회사 정보</h3>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+          <span style="font-weight: 700; color: #ffffff !important;">상호명</span>
+          <span style="color: #f4f4f5 !important;">위드브릿지</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+          <span style="font-weight: 700; color: #ffffff !important;">대표자</span>
+          <span style="color: #f4f4f5 !important;">강승수</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+          <span style="font-weight: 700; color: #ffffff !important;">사업자등록번호</span>
+          <span style="color: #f4f4f5 !important;">등록 예정</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+          <span style="font-weight: 700; color: #ffffff !important;">통신판매업 신고번호</span>
+          <span style="color: #f4f4f5 !important;">등록 예정</span>
+        </div>
+      </div>
+
+      <!-- 연락처 & 고객센터 -->
+      <div style="display: flex; flex-direction: column;">
+        <h3 style="margin-bottom: 12px; font-size: 16px; font-weight: 700; color: #ffffff !important;">연락처 &amp; 고객센터</h3>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+          <span style="font-weight: 700; color: #ffffff !important;">주소</span>
+          <span style="color: #f4f4f5 !important;">인천광역시 남동구 소래역로 93 (906-201)</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+          <span style="font-weight: 700; color: #ffffff !important;">전화번호</span>
+          <a href="tel:01058745760" style="color: #ffffff !important; font-weight: 500; text-decoration: none;">010-5874-5760</a>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+          <span style="font-weight: 700; color: #ffffff !important;">이메일</span>
+          <a href="mailto:withbridge.care@gmail.com" style="color: #ffffff !important; font-weight: 500; text-decoration: none;">withbridge.care@gmail.com</a>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+          <span style="font-weight: 700; color: #ffffff !important;">운영시간</span>
+          <span style="color: #f4f4f5 !important;">평일 08:00 ~ 18:00 <span style="color: #a1a1aa !important;">(주말·공휴일 휴무)</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 하단: 카피라이트 -->
+    <div style="padding-top: 32px; border-top: 1px solid rgba(255,255,255,0.1);">
+      <p style="margin: 0; font-size: 14px; color: #e4e4e7 !important;">© 2026 WithBridge. All rights reserved.</p>
+    </div>
+
+  </div>
+</footer>
+
+  <script>
+    // Supabase 클라이언트는 auth-header.js 가 만든 하나를 공유합니다 (URL: https://layvjisfeivkzowopkco.supabase.co)
+    const supabaseClient = window.WBAuth ? window.WBAuth.client : null;
+
+    // 접수에 문제가 있을 때 안내할 기존 신청서(구글폼)
+    const FALLBACK_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSfgRiyXruggtZuztlkBsgHGt9akDqo5zZpr0gnf-bUsLGsIGw/viewform';
+
+    // ---------- 카카오 로컬(지오코딩) API: 주소 → 좌표 (mypage.html/mypage-manager.html 과 같은 키·엔드포인트) ----------
+    // 신청서의 출발지/목적지 주소를 접수 시점에 미리 좌표로 바꿔 service_applications 에 함께 저장해 둡니다
+    // (Task B) — 매니저가 나중에 위치 인증(GPS)할 때 이 좌표를 그대로 쓰면 되므로, 주소가 'test'처럼 실제
+    // 존재하지 않는 값이라도 그때 가서 엉뚱한 기본 좌표로 계산되는 일 없이 여기서 이미 null 로 저장됩니다.
+    // 이 조회가 실패해도(카카오 키 미설정, 네트워크 오류, 검색 결과 없음) 신청서 제출 자체는 막지 않습니다 —
+    // 주소 유효성 검증은 매니저가 실제 인증할 때(mypage-manager.html, 문구: "위치 정보를 찾을 수 없습니다")
+    // 이뤄지고, 그때 담당자가 보호자에게 정확한 주소를 다시 확인하면 됩니다.
+    const KAKAO_REST_API_KEY = '4e94e702177afc63f2f05c3abfffdf3c';
+    async function kakaoLocalGet(url) {
+      const res = await fetch(url, { headers: { Authorization: 'KakaoAK ' + KAKAO_REST_API_KEY } });
+      if (!res.ok) throw new Error('kakao local api ' + res.status);
+      return res.json();
+    }
+    // 주소/장소명 텍스트 → 좌표. 지번·도로명 주소 검색이 안 되면 키워드(장소명) 검색으로 한 번 더 시도.
+    // 검색 결과가 없거나 API 호출 자체가 실패하면 기본 좌표를 임의로 만들어 내지 않고 그대로 null 을 반환합니다.
+    async function geocodeAddress(text) {
+      if (!KAKAO_REST_API_KEY || !String(text || '').trim()) return null;
+      const q = encodeURIComponent(text.trim());
+      const tryUrl = async (url) => {
+        try {
+          const data = await kakaoLocalGet(url);
+          const doc = data.documents && data.documents[0];
+          return doc ? { lat: Number(doc.y), lng: Number(doc.x) } : null;
+        } catch (e) { return null; }
+      };
+      return (await tryUrl(`https://dapi.kakao.com/v2/local/search/address.json?query=${q}`))
+          || (await tryUrl(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${q}`));
+    }
+
+    const RELATIONSHIPS = ['어르신 본인', '자녀', '사위·며느리', '기타'];
+    const MOBILITIES = ['혼자 걸음 가능', '지팡이·보행기 사용', '휠체어 사용'];
+
+    // 서비스별 설정: 기본 요금(2시간 기준)과, 선택에 따라 바뀌는 입력 안내 문구
+    //  * 서비스 이름 = DB 의 service_type 값 (supabase-manager-schema.sql 의 check 와 같아야 함)
+    //  * 요금은 index.html 의 '이용 요금 안내'와 같은 값. 화면 안내용일 뿐 DB 에 저장하지 않습니다
+    const SERVICES = {
+      '시니어 병원 동행': {
+        price: 44000,
+        originPlaceholder: '도로명 주소 또는 동/건물명을 입력해 주세요',
+        destLabel: '목적지 (병원명)',
+        destPlaceholder: '예: 길병원',
+        routeHint: '방문하실 병원의 정확한 이름을 적어 주시면 매칭에 도움이 돼요.',
+        detailsPlaceholder: '예: 진료과(내과), 진료 예약 시간, 검사·수납·약 수령 등 도움이 필요한 부분'
+      },
+      '생활 편의 대행': {
+        price: 36000,
+        originPlaceholder: '도로명 주소 또는 동/건물명을 입력해 주세요',
+        destLabel: '목적지 (방문 장소·업무)',
+        destPlaceholder: '방문할 병원, 관공서, 은행명을 입력해 주세요',
+        routeHint: '방문 장소(관공서·은행·마트 등)와 간단한 업무를 적어 주세요. 자세한 내용은 아래 ‘요청 상세 내용’에 적어 주셔도 좋아요.',
+        detailsPlaceholder: '예: 은행 통장 재발급, 주민센터 서류 발급, 장보기 목록(우유 2개, 두부 1모 등)'
+      },
+      '복합 매칭 서비스 (동행 + 생활편의)': {
+        price: 50000,
+        originPlaceholder: '도로명 주소 또는 동/건물명을 입력해 주세요',
+        destLabel: '목적지 (병원 → 이후 방문 장소)',
+        destPlaceholder: '예: 길병원 → 약국 → 우리은행',
+        routeHint: '병원 진료 후 들르실 곳(약국·은행·마트 등)을 순서대로 적어 주세요.',
+        detailsPlaceholder: '예: 진료과 + 진료 후 처리할 업무(약국 약 수령, 은행 업무, 장보기 목록 등)'
+      }
+    };
+    const SERVICE_NAMES = Object.keys(SERVICES);
+    const DEFAULT_TEXT = {
+      originPlaceholder: '도로명 주소 또는 동/건물명을 입력해 주세요',
+      destLabel: '목적지 / 방문 장소',
+      destPlaceholder: '예: 방문하실 병원명 또는 장소',
+      detailsPlaceholder: '예: 진료과, 장보기 목록, 은행 업무 등 구체적인 요청을 적어 주세요.'
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const form = $('applyForm');
+    const won = (n) => Number(n).toLocaleString('ko-KR');
+
+    // 신청자 연락처: 숫자만 남긴 뒤 3-4-4(휴대폰) 자리로 하이픈을 자동으로 넣어 줍니다. (예: 01012345678 → 010-1234-5678)
+    function formatPhoneDigits(digits) {
+      if (digits.length < 4) return digits;
+      if (digits.length < 8) return digits.slice(0, 3) + '-' + digits.slice(3);
+      if (digits.length <= 10) return digits.slice(0, 3) + '-' + digits.slice(3, 6) + '-' + digits.slice(6);
+      return digits.slice(0, 3) + '-' + digits.slice(3, 7) + '-' + digits.slice(7, 11);
+    }
+    $('contactPhone').addEventListener('input', (e) => {
+      const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+      e.target.value = formatPhoneDigits(digits);
+    });
+
+    // 선택한 서비스에 맞게 '기본 요금'과 입력 안내(라벨·예시·힌트)를 갱신
+    function applyService(name) {
+      const svc = SERVICES[name];
+      const fee = $('feeBox');
+      fee.textContent = '';
+      if (!svc) { // 아직 선택 전 (또는 알 수 없는 값)
+        fee.className = 'fee-box is-empty';
+        fee.textContent = '서비스를 선택하시면 총 예상 금액이 표시됩니다.';
+        $('routeOrigin').placeholder = DEFAULT_TEXT.originPlaceholder;
+        $('routeDestLabel').textContent = DEFAULT_TEXT.destLabel;
+        $('routeDestination').placeholder = DEFAULT_TEXT.destPlaceholder;
+        $('details').placeholder = DEFAULT_TEXT.detailsPlaceholder;
+        $('routeHint').hidden = true;
+        return;
+      }
+      fee.className = 'fee-box';
+      // "총 예상 금액: 44,000원 (기본 2시간)" — 금액만 크고 굵게 강조
+      const main = document.createElement('div');
+      main.className = 'fee-main';
+      const label = document.createElement('span'); label.className = 'fee-label'; label.textContent = '총 예상 금액:';
+      const amount = document.createElement('span'); amount.className = 'fee-amount'; amount.textContent = won(svc.price) + '원';
+      const unit = document.createElement('span'); unit.className = 'fee-unit'; unit.textContent = '(기본 2시간)';
+      main.append(label, ' ', amount, ' ', unit);
+      const note = document.createElement('p');
+      note.className = 'fee-note';
+      note.textContent = '* 시간 초과, 주말·야간 할증, 교통비 등 실비는 별도이며 확정 요금은 확인 전화에서 안내드립니다.';
+      fee.append(main, note);
+
+      $('routeOrigin').placeholder = svc.originPlaceholder;
+      $('routeDestLabel').textContent = svc.destLabel;
+      $('routeDestination').placeholder = svc.destPlaceholder;
+      $('details').placeholder = svc.detailsPlaceholder;
+      $('routeHint').textContent = svc.routeHint;
+      $('routeHint').hidden = false;
+    }
+
+    // 희망 시간: <input type="time"> 이 1분 단위 자유 입력/선택을 그대로 지원하므로 옵션을 채워 둘 필요가
+    // 없습니다. 운영시간(평일 08:00~18:00) 밖 이른/늦은 시간도 야간 할증 대상으로 신청 자체는 막지 않고
+    // 확인 전화에서 조정합니다 — min/max 를 걸지 않는 이유입니다.
+    // 과거 날짜를 고를 수 없도록 오늘 날짜를 최소값으로 지정
+    $('datetimeDate').min = (() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); })();
+
+    // 날짜(YYYY-MM-DD) + 시간(HH:mm) → '9월 24일 (목) 오전 10시 30분' 형태의 정형화된 문장.
+    // 매니저 마이페이지(guessDateTime)가 그대로 다시 읽을 수 있는 '~월 ~일 … ~시' 패턴을 유지합니다.
+    function formatDesiredDateTime(dateStr, timeStr) {
+      if (!dateStr || !timeStr) return '';
+      const [y, mo, d] = dateStr.split('-').map(Number);
+      const [h, mi] = timeStr.split(':').map(Number);
+      const ampm = h < 12 ? '오전' : '오후';
+      const h12 = (h % 12) || 12;
+      const weekday = '일월화수목금토'[new Date(y, mo - 1, d).getDay()];
+      return mo + '월 ' + d + '일 (' + weekday + ') ' + ampm + ' ' + h12 + '시' + (mi ? ' ' + mi + '분' : '');
+    }
+
+    // 화면의 입력값 (검증·완료 화면에 쓰는 '화면 기준' 이름).
+    // (요금은 화면 안내용이라 저장하지 않습니다 — 서비스 이름만 저장하고 요금은 확인 전화에서 확정)
+    function readForm() {
+      const radio = (name) => { const el = form.querySelector('input[name="' + name + '"]:checked'); return el ? el.value : ''; };
+      const desiredDate = $('datetimeDate').value;
+      const desiredTime = $('datetimeTime').value;
+      return {
+        service_type: radio('service'),
+        relationship: radio('relationship'),
+        applicant_name: $('contactName').value.trim(),
+        applicant_phone: $('contactPhone').value.trim(),
+        desired_date: desiredDate,
+        desired_time: desiredTime,
+        desired_datetime: formatDesiredDateTime(desiredDate, desiredTime),
+        route_origin: $('routeOrigin').value.trim(),
+        route_destination: $('routeDestination').value.trim(),
+        request_details: $('details').value.trim() || null,
+        mobility: radio('mobility'),
+        privacy_consent: $('consent').checked,
+        terms_agreement: $('terms').checked   // 이용약관 동의: 필수 입력으로 검증만 함 (DB 에는 별도 컬럼이 없어 저장하지 않음 → toDbRow 참고)
+      };
+    }
+
+    // 화면 입력 → 실제 Supabase 테이블 public.service_applications 의 컬럼 (테이블에 있는 컬럼만 보냅니다)
+    //   service_type    ← 서비스 선택
+    //   user_relation   ← 신청자분과 어르신의 관계
+    //   user_contact    ← 신청자 성함 · 연락처. 테이블에는 이 두 값을 담을 별도 컬럼이 없어서, 화면에서는
+    //                     성함/연락처를 분리된 두 입력칸으로 받고 저장할 때 '성함 / 연락처' 형식으로 합칩니다.
+    //                     마이페이지(mypage-manager.html 의 applicationToRequest)가 같은 구분자(' / ')와
+    //                     전화번호 패턴으로 다시 나눠 읽으므로, 이 형식을 바꾸면 그쪽 파싱도 함께 손봐야 합니다.
+    //   address         ← 출발지 / 목적지 를 ' / ' 로 합친 값 (마이페이지가 이 구분자로 다시 나눠 읽습니다).
+    //                     이제 두 칸으로 입력받으므로 구분자가 항상 정확히 들어갑니다
+    //   request_details ← 요청 상세 내용. 테이블에 전용 컬럼이 없는 '희망 날짜 및 시간'과 '어르신 거동 상태'도
+    //                     여기에 줄을 나눠 함께 저장합니다 (운영자가 한 칸에서 모두 확인)
+    //   privacy_agreed  ← 개인정보 수집 동의
+    //   origin_lat/origin_lng/destination_lat/destination_lng ← 출발지/목적지 주소를 접수 시점에 미리
+    //     지오코딩한 좌표(Task B, supabase-address-coordinates.sql 실행 필요). 지오코딩에 실패하면(주소가
+    //     'test'처럼 실제로 없는 값 등) 억지로 기본 좌표를 채우지 않고 그대로 null 로 둡니다 — 매니저가
+    //     나중에 위치 인증을 시도하면 그 자리에서 실시간 지오코딩을 한 번 더 시도하고, 그마저 실패하면
+    //     "위치 정보를 찾을 수 없습니다"로 명확히 안내되고 인증이 차단됩니다(mypage-manager.html).
+    //   created_at / status 는 보내지 않습니다 → 테이블의 기본값(서버)이 채움
+    //   user_id(로그인한 경우) 또는 id(비로그인 → 나중에 로그인하면 계정에 연결)는 제출 함수에서 덧붙입니다 (아래 submit 처리 참고)
+    function toDbRow(v, originPoint, destPoint) {
+      const address = v.route_origin && v.route_destination ? v.route_origin + ' / ' + v.route_destination
+        : (v.route_origin || v.route_destination);
+      const lines = ['희망 일시: ' + v.desired_datetime, '어르신 거동 상태: ' + v.mobility];
+      if (v.request_details) lines.push('요청 상세: ' + v.request_details);
+      return {
+        service_type: v.service_type,
+        user_relation: v.relationship,
+        user_contact: v.applicant_name + ' / ' + v.applicant_phone,
+        address: address,
+        request_details: lines.join('\n'),
+        origin_lat: originPoint ? originPoint.lat : null,
+        origin_lng: originPoint ? originPoint.lng : null,
+        destination_lat: destPoint ? destPoint.lat : null,
+        destination_lng: destPoint ? destPoint.lng : null,
+        privacy_agreed: v.privacy_consent
+      };
+    }
+
+    // 항목별 검증. 문제가 있으면 { 필드키: 메시지 } 반환
+    function validate(v) {
+      const errors = {};
+      if (!SERVICE_NAMES.includes(v.service_type)) errors.service = '신청하실 서비스를 선택해 주세요.';
+      if (!RELATIONSHIPS.includes(v.relationship)) errors.relationship = '어르신과의 관계를 선택해 주세요.';
+      const phoneDigits = v.applicant_phone.replace(/\D/g, '').length;
+      if (!v.applicant_name) errors.contact = '신청자 성함을 입력해 주세요.';
+      else if (!v.applicant_phone || phoneDigits < 9) errors.contact = '연락처를 정확히 입력해 주세요. (예: 010-1234-5678)';
+      if (!v.desired_date) errors.datetime = '희망 날짜를 선택해 주세요.';
+      else if (!v.desired_time) errors.datetime = '희망 시간을 선택해 주세요.';
+      else {
+        const chosen = new Date(v.desired_date + 'T00:00:00');
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        if (chosen < today) errors.datetime = '오늘 이후의 날짜를 선택해 주세요.';
+      }
+      if (!v.route_origin) errors.route = '출발지(자택 등)를 입력해 주세요.';
+      else if (!v.route_destination) errors.route = '목적지(방문하실 병원·장소)를 입력해 주세요.';
+      if (!MOBILITIES.includes(v.mobility)) errors.mobility = '어르신의 거동 상태를 선택해 주세요.';
+      if (!v.terms_agreement) errors.terms = '이용약관에 동의해 주셔야 신청할 수 있어요.';
+      if (!v.privacy_consent) errors.consent = '개인정보 수집 및 이용에 동의해 주셔야 신청할 수 있어요.';
+      return errors;
+    }
+
+    const FIELD_KEYS = ['service', 'relationship', 'contact', 'datetime', 'route', 'mobility', 'terms', 'consent'];
+
+    function showErrors(errors) {
+      FIELD_KEYS.forEach((key) => {
+        const box = $('f-' + key), msg = $('e-' + key);
+        const text = errors[key];
+        box.classList.toggle('has-error', !!text);
+        msg.hidden = !text;
+        msg.textContent = text || '';
+      });
+      const first = FIELD_KEYS.find((k) => errors[k]);
+      if (first) {
+        const box = $('f-' + first);
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const focusable = box.querySelector('input');
+        if (focusable) focusable.focus({ preventScroll: true });
+      }
+    }
+
+    // 사용자가 값을 고치면 해당 항목의 오류 표시를 바로 지움
+    FIELD_KEYS.forEach((key) => {
+      $('f-' + key).addEventListener('input', () => { $('f-' + key).classList.remove('has-error'); $('e-' + key).hidden = true; });
+      $('f-' + key).addEventListener('change', () => { $('f-' + key).classList.remove('has-error'); $('e-' + key).hidden = true; });
+    });
+
+    // 이전 제출 시도의 빨간 오류 안내는, 사용자가 입력을 고치기 시작하면 바로 숨김 (낡은 안내가 남아 있지 않도록)
+    ['input', 'change'].forEach((evt) => form.addEventListener(evt, () => { $('formError').hidden = true; }));
+
+    // 서비스를 고르면 기본 요금과 입력 안내(라벨·예시)가 바로 바뀜
+    $('f-service').addEventListener('change', (e) => {
+      if (e.target && e.target.name === 'service') applyService(e.target.value);
+    });
+
+    // 제출 실패 시 안내 문구 (원인은 콘솔에 남기고, 사용자에게는 이해하기 쉬운 말로)
+    const NOT_READY_CODES = ['PGRST205', '42P01', 'PGRST204', '42703']; // 테이블/컬럼이 DB 에 없음 (테이블 이름·컬럼 이름 불일치 포함)
+    const BAD_INPUT_CODES = ['23514', '23502', '22001', '22P02'];       // 값이 DB 규칙(체크/필수/길이/형식)에 맞지 않음
+    function submitErrorMessage(error) {
+      if (!error) return '';
+      if (NOT_READY_CODES.includes(error.code)) return '신청서 접수 준비가 아직 끝나지 않았어요.';
+      if (BAD_INPUT_CODES.includes(error.code)) return '입력하신 내용을 다시 확인해 주세요.';
+      return '신청서를 접수하지 못했어요. 잠시 후 다시 시도해 주세요.';
+    }
+
+    function showFormError(message, code) {
+      const box = $('formError');
+      box.textContent = '';
+      box.append(message + ' 문제가 계속되면 고객센터(');
+      const tel = document.createElement('a'); tel.href = 'tel:01058745760'; tel.textContent = '010-5874-5760';
+      box.append(tel, ') 또는 카카오톡 채널로 문의하시거나, ');
+      const gf = document.createElement('a'); gf.href = FALLBACK_FORM_URL; gf.target = '_blank'; gf.rel = 'noopener noreferrer'; gf.textContent = '기존 신청서(구글폼)';
+      box.append(gf, '로 신청해 주세요.');
+      if (code) { // 문의할 때 원인을 바로 알 수 있도록 작게 표시 (개인정보 없음)
+        const small = document.createElement('small');
+        small.style.cssText = 'display:block;margin-top:6px;opacity:.75;';
+        small.textContent = '오류 코드: ' + code;
+        box.appendChild(small);
+      }
+      box.hidden = false;
+      box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    let submitting = false;
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (submitting) return; // 더블 클릭으로 같은 신청이 두 번 들어가는 것 방지
+      $('formError').hidden = true;
+
+      const values = readForm();
+      const errors = validate(values);
+      showErrors(errors);
+      if (Object.keys(errors).length) return;
+
+      // 스팸 봇 함정에 값이 있으면 전송하지 않고 성공한 것처럼 처리
+      if ($('website').value) { showDone(values); return; }
+
+      if (!supabaseClient) { showFormError('신청 모듈을 불러오지 못했어요.'); return; }
+
+      submitting = true;
+      const btn = $('submitBtn');
+      btn.disabled = true;
+      btn.textContent = '제출 중…';
+
+      // 테이블의 실제 컬럼 이름으로 바꿔 저장. insert 결과를 다시 읽지 않습니다 (신청 내용은 보안상 조회 권한이 없음)
+      //
+      // ★ user_id 연결 (마이페이지 '케어 현황'에 내 신청이 나타나려면 필요):
+      //  * 로그인한 상태면 서버가 확인한 사용자(auth.getUser())의 id 를 user_id 에 담아 저장합니다. 보내는 값은 '본인 id'뿐입니다.
+      //  * 비로그인이면 신청서 id 를 이 브라우저가 미리 만들어 함께 저장하고, 그 id 를 기억해 둡니다(localStorage).
+      //    나중에 카카오 로그인/회원가입을 하면 auth-header.js 가 그 id 로 claim_service_applications() 를 호출해 내 계정에 연결합니다.
+      //  * DB 가 user_id 지정을 막으면(42501) 신청을 잃지 않도록 user_id 없이 한 번 더 저장하되, 위와 같이 id 를 기억해 두었다가
+      //    연결합니다. 이 경우 콘솔에 경고를 남깁니다 (→ supabase-claim-applications.sql 실행).
+      // 출발지/목적지를 미리 지오코딩(Task B) — 실패해도(주소가 'test'처럼 실제로 없는 값 등) null 로만
+      // 남고 신청 제출 자체는 막지 않습니다. 매니저가 나중에 위치 인증을 시도할 때 다시 한번 시도됩니다.
+      const [originPoint, destPoint] = await Promise.all([
+        geocodeAddress(values.route_origin), geocodeAddress(values.route_destination)
+      ]);
+      const row = toDbRow(values, originPoint, destPoint);
+      const userId = await resolveUserId();
+      const applicationId = newUuid();
+      const insertRow = (r) => supabaseClient.from('service_applications').insert([r]);
+      let linkedToAccount = !!userId;
+      let { error } = await insertRow(userId ? { ...row, user_id: userId } : { ...row, id: applicationId });
+      if (error && userId && error.code === '42501') {
+        console.warn('[신청] user_id 를 포함한 저장이 DB 권한(42501)으로 거부되어 user_id 없이 저장합니다. 로그인 후 자동 연결로 보완됩니다. ' +
+                     '→ supabase-claim-applications.sql 을 실행하세요. 오류:', error.message);
+        linkedToAccount = false;
+        ({ error } = await insertRow({ ...row, id: applicationId }));
+      }
+      if (error && NOT_READY_CODES.includes(error.code)) {
+        // origin_lat/origin_lng/destination_lat/destination_lng 컬럼이 아직 DB 에 없는 경우(Task B 마이그레이션
+        // 미실행) — 신청 자체를 막지 않도록 그 4개 필드를 빼고 한 번 더 시도합니다.
+        console.warn('[신청] 좌표 컬럼이 DB 에 없어(42703/PGRST204) 좌표 없이 다시 저장합니다. → supabase-address-coordinates.sql 을 실행하세요. 오류:', error.message);
+        const { origin_lat, origin_lng, destination_lat, destination_lng, ...rowWithoutCoords } = row;
+        ({ error } = await insertRow(linkedToAccount ? { ...rowWithoutCoords, user_id: userId } : { ...rowWithoutCoords, id: applicationId }));
+      }
+      if (!error) {
+        console.log('[신청] 저장됨:', { application_id: linkedToAccount ? '(서버 생성)' : applicationId, user_id: linkedToAccount ? userId : null });
+        if (!linkedToAccount) {
+          rememberPendingApplication(applicationId); // 로그인하면 내 계정에 연결
+          // 이미 로그인한 상태(DB 가 user_id 저장을 거부한 경우)라면 기다리지 않고 지금 바로 연결
+          if (userId && window.WBAuth && window.WBAuth.claimPendingApplications) window.WBAuth.claimPendingApplications();
+        }
+      }
+
+      submitting = false;
+      btn.disabled = false;
+      btn.textContent = '신청서 제출하기';
+
+      if (error) {
+        console.error('신청서 저장 실패:', error.code, error.message);
+        if (NOT_READY_CODES.includes(error.code)) {
+          // 방문자에게는 쉬운 말로만 안내하고, 운영자가 원인을 바로 알 수 있도록 콘솔에 남김
+          console.error('[운영자용 안내] Supabase 의 service_applications 테이블에 이 화면이 보내는 컬럼이 없습니다 ' +
+                        '(service_type, user_relation, user_contact, address, request_details, privacy_agreed). ' +
+                        '테이블의 컬럼 이름을 확인하거나 apply.html 의 toDbRow() 를 테이블에 맞게 고쳐 주세요. 상세: ' + error.message);
+        } else if (error.code === '42501') {
+          console.error('[운영자용 안내] 저장 권한(RLS 정책)이 막았습니다. service_applications 에 anon/authenticated 의 INSERT 정책이 있는지 확인해 주세요.');
+        }
+        showFormError(submitErrorMessage(error), error.code);
+        return;
+      }
+      showDone(values, linkedToAccount ? 'linked' : (userId ? 'linking' : 'anonymous'));
+    });
+
+    // ---------- 로그인 확인 · 비로그인 신청 기억 ----------
+    // 로그인한 사용자 id. getUser() 는 서버에 토큰을 확인하므로 만료·무효 세션은 '비로그인'으로 걸러지고,
+    // 네트워크 문제로 확인이 안 될 때만 저장된 세션(getSession)으로 대신합니다.
+    async function resolveUserId() {
+      try {
+        const { data: { user }, error } = await supabaseClient.auth.getUser();
+        if (user && user.id) return user.id;
+        if (!error || error.name !== 'AuthRetryableFetchError') return null; // 로그인하지 않았거나 세션이 무효
+      } catch (e) { /* 아래에서 저장된 세션으로 대체 */ }
+      try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        return (session && session.user && session.user.id) || null;
+      } catch (e) { return null; }
+    }
+
+    // 브라우저에서 미리 만드는 신청서 id (서버 기본값과 같은 UUID 형식). 비로그인 신청을 나중에 계정에 연결할 때 사용
+    function newUuid() {
+      if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+      const b = crypto.getRandomValues(new Uint8Array(16));
+      b[6] = (b[6] & 0x0f) | 0x40; b[8] = (b[8] & 0x3f) | 0x80; // UUID v4 표식
+      const hex = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+      return hex.slice(0, 8) + '-' + hex.slice(8, 12) + '-' + hex.slice(12, 16) + '-' + hex.slice(16, 20) + '-' + hex.slice(20);
+    }
+
+    // 계정에 연결되지 않은 채 접수된 신청의 id 를 이 브라우저에 14일간(최대 10건) 기억 → auth-header.js 가 로그인 직후 연결
+    const PENDING_KEY = 'wb_pending_applications';
+    function rememberPendingApplication(id) {
+      try {
+        const now = Date.now();
+        const list = JSON.parse(localStorage.getItem(PENDING_KEY) || '[]').filter((x) => x && x.id && now - x.at < 14 * 864e5);
+        list.push({ id, at: now });
+        localStorage.setItem(PENDING_KEY, JSON.stringify(list.slice(-10)));
+      } catch (e) { /* 저장소를 쓸 수 없으면(사생활 보호 모드 등) 자동 연결만 못 할 뿐, 신청은 이미 접수됨 */ }
+    }
+
+    // mode: 'linked'(로그인 계정에 바로 연결됨 · 안내 없음) | 'anonymous'(비로그인 → 로그인하면 연결) | 'linking'(로그인 상태인데 연결을 한 번 더 진행 중)
+    const ANON_HINT_HTML = $('doneLoginHint').innerHTML;
+    function showDone(values, mode) {
+      const svc = SERVICES[values.service_type];
+      $('doneService').textContent = '신청 서비스: ' + values.service_type + (svc ? ' · 총 예상 금액 ' + won(svc.price) + '원 (기본 2시간)' : '');
+      $('doneContact').textContent = values.applicant_name + ' (' + values.applicant_phone + ')';
+      const hint = $('doneLoginHint');
+      if (mode === 'anonymous') { hint.innerHTML = ANON_HINT_HTML; hint.hidden = false; }
+      else if (mode === 'linking') { hint.textContent = '신청을 내 계정에 연결하고 있어요. 잠시 후 마이페이지에서 확인하실 수 있어요.'; hint.hidden = false; }
+      else hint.hidden = true;
+
+      // 접수가 끝났으니 카드 전체(안내 + 입력 양식)를 숨기고(hidden → display: none) 완료 카드만 남김
+      $('applyCard').hidden = true;   // 안내 배너 + 입력 양식이 들어 있는 하나의 카드를 통째로 숨김
+      form.hidden = true;
+      $('doneCard').hidden = false;
+
+      // 내용이 줄어든 뒤 맨 위로 이동 (완료 카드가 화면 맨 위에 보이도록).
+      // 이 페이지는 html { scroll-behavior: smooth } 라서 그대로 scrollTo 하면 '부드럽게 이동하는 도중'에 페이지 길이가 줄어
+      // 중간에 멈출 수 있습니다. 화면 내용이 통째로 바뀌었으니 이 한 번만 즉시 이동하고 원래 설정으로 되돌립니다.
+      const root = document.documentElement;
+      const prevBehavior = root.style.scrollBehavior;
+      root.style.scrollBehavior = 'auto';
+      void getComputedStyle(root).scrollBehavior; // 바꾼 값이 '지금' 적용되도록 스타일을 강제 반영 (안 하면 브라우저가 옛 smooth 값으로 스크롤을 시작해 중간에 멈출 수 있음)
+      window.scrollTo(0, 0);
+      root.style.scrollBehavior = prevBehavior;
+      $('doneTitle').focus({ preventScroll: true }); // 스크린리더가 '신청서가 접수되었습니다'를 읽도록 (화면은 움직이지 않음)
+    }
+
+    // 뒤로 가기/새로고침으로 브라우저가 이미 선택된 서비스를 복원했다면 요금·안내도 그에 맞게 표시
+    (function restoreSelection() {
+      const checked = form.querySelector('input[name="service"]:checked');
+      if (checked) applyService(checked.value);
+    })();
+
+    // 로그인한 경우: 계정과 자동 연결된다는 안내 + 완료 화면의 '마이페이지' 버튼
+    (async function init() {
+      if (!supabaseClient) return;
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      const note = $('loginNote');
+      if (!session) {
+        // 비로그인: 그대로 신청할 수 있고, 나중에 로그인하면 이 브라우저에서 낸 신청이 마이페이지에 자동으로 연결된다는 안내
+        note.textContent = '로그인하지 않고 신청하셔도 돼요. 신청 후 카카오로 로그인하시면 이 신청이 마이페이지에 자동으로 연결됩니다.';
+        note.hidden = false;
+        return;
+      }
+      note.textContent = '로그인한 계정' + (session.user.email ? '(' + session.user.email + ')' : '') + '과 연결되어 접수됩니다.';
+      note.hidden = false;
+      $('doneMypage').hidden = false;
+    })();
+  </script>
+</body>
+</html>

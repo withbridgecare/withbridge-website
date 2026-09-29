@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>이용약관 | 위드브릿지</title>
+  <meta name="description" content="위드브릿지 서비스 이용약관 — 시니어 병원 동행 등 케어 서비스의 온라인 플랫폼 및 오프라인 동행 서비스 이용 조건">
+  <!-- ?embed=1 : 이용약관 팝업(terms-modal.js)의 iframe 안에서 열릴 때 → 사이트 머리글/바닥글 없이 본문만 표시.
+       화면이 그려지기 전에 표시해야 깜빡임이 없으므로 <head> 안에서 바로 실행합니다. -->
+  <script>
+    (function () {
+      var q = new URLSearchParams(location.search);
+      if (q.has('embed')) document.documentElement.classList.add('embed');
+    })();
+  </script>
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- 사이트 머리글의 로그인 상태 표시용 (embed 모드에서는 머리글이 숨겨짐) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="auth-header.js?v=1.0" charset="utf-8"></script>
+  <style>
+    :root {
+      --brand: #78866B; --brand-dark: #3B4B3C; --brand-soft: #F1F6F0; --brand-line: #E2ECE0;
+      --accent: #556B2F; --accent-dark: #455822;
+      --ink: #1A1D21; --ink-sub: #555555; --bg: #FAF8F5; --line: #EBE7E0; --danger: #C0392B;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0; background: #ffffff; color: var(--ink);
+      font-family: 'Pretendard Variable', Pretendard, 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+      font-size: 15.5px; line-height: 1.75; letter-spacing: -0.01em; -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; }
+    button { font-family: inherit; }
+    [hidden] { display: none !important; }
+    .site-chrome, .site-footer { display: contents; }   /* 감싸는 상자 없이 그대로 배치 (sticky 머리글 유지) */
+
+    /* ---------- 본문 ---------- */
+    /* 카드 상자 없이 흰 배경 위에 바로 배치. 글이 너무 길게 늘어나지 않도록 가운데 900px 폭 + 좌우 여백 */
+    .tm-main { padding: 48px 0 112px; }
+    .tm-wrap { max-width: 900px; margin: 0 auto; padding: 0 28px; }
+
+    .tm-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap; margin-bottom: 8px; }
+    .tm-title { margin: 0 0 6px; font-size: 30px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.35; }
+    .tm-meta { margin: 0; font-size: 14px; color: var(--ink-sub); }
+    .tm-meta b { color: var(--ink); }
+    .tm-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .tm-btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border: 1.5px solid var(--accent); border-radius: 9999px; background: #fff; color: var(--accent-dark); font-size: 14px; font-weight: 700; cursor: pointer; transition: background .15s, color .15s; }
+    .tm-btn:hover { background: var(--accent); color: #fff; }
+    .tm-btn.is-plain { border-color: #9AA3AF; color: #374151; }
+    .tm-btn.is-plain:hover { background: #374151; border-color: #374151; color: #fff; }
+    .tm-btn:focus-visible { outline: 3px solid rgba(85,107,47,.5); outline-offset: 2px; }
+
+    .tm-intro { margin: 22px 0 26px; padding: 18px 22px; background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: 14px; font-size: 14.5px; color: #33402f; word-break: keep-all; }
+
+    /* 목차 */
+    .toc { margin: 0 0 12px; padding: 22px 24px; background: #FBFCFA; border: 1px solid var(--brand-line); border-radius: 14px; }
+    .toc h2 { margin: 0 0 12px; font-size: 16px; font-weight: 800; }
+    .toc ol { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 28px; }
+    .toc a { display: flex; gap: 8px; padding: 5px 0; color: #2b3327; text-decoration: none; font-size: 14.5px; }
+    .toc a:hover { color: var(--accent); text-decoration: underline; }
+    .toc .n { flex: 0 0 auto; min-width: 44px; font-weight: 700; color: var(--accent-dark); }
+    .toc .star { color: #B7791F; font-weight: 800; }
+
+    /* 조문 */
+    .art { margin-top: 38px; scroll-margin-top: 110px; }
+    .art h2 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0 0 14px; padding-bottom: 10px; border-bottom: 2px solid var(--brand-line); font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
+    .art h2 .no { color: var(--accent-dark); }
+    .badge-key { display: inline-block; padding: 2px 10px; border-radius: 9999px; background: #FFF1CC; color: #7A5600; font-size: 12.5px; font-weight: 800; letter-spacing: 0; }
+    .art.is-key { padding: 22px 24px 8px; background: #FFFDF5; border: 1px solid #F1E2B5; border-radius: 16px; }
+    .art.is-key h2 { border-bottom-color: #F1E2B5; }
+    .cl { margin: 0 0 10px; padding-left: 26px; text-indent: -26px; word-break: keep-all; overflow-wrap: anywhere; }
+    .cl .no { display: inline-block; width: 26px; text-indent: 0; font-weight: 700; }
+    .sub { margin: 0 0 12px 26px; padding-left: 20px; word-break: keep-all; overflow-wrap: anywhere; }
+    .sub li { margin: 3px 0; }
+    .note { margin: 0 0 10px 26px; font-size: 14px; color: var(--ink-sub); word-break: keep-all; }
+    .must { padding: 14px 18px; margin: 0 0 14px; border-left: 5px solid #C9A227; background: #FFF8E1; border-radius: 0 10px 10px 0; font-weight: 700; word-break: keep-all; }
+
+    .tbl-wrap { margin: 6px 0 14px 26px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 14.5px; min-width: 520px; }
+    th, td { padding: 10px 12px; border: 1px solid #D9DED5; text-align: left; vertical-align: top; word-break: keep-all; }
+    th { background: #F1F6F0; font-weight: 800; white-space: nowrap; }
+    td.num, th.num { text-align: right; white-space: nowrap; }
+    table.info th { width: 170px; }
+
+    .tm-end { margin-top: 44px; padding-top: 22px; border-top: 1px solid var(--line); font-size: 14.5px; color: #333; }
+    .tm-end h2 { margin: 0 0 8px; font-size: 17px; font-weight: 800; }
+
+    /* index.html 헤더/푸터와 동일하게 렌더링되도록 보정 (index 는 Tailwind preflight 적용) */
+    header, footer { letter-spacing: normal; line-height: 1.5; }
+    footer h3 { margin-top: 0; }
+
+    @media (max-width: 720px) {
+      .tm-main { padding: 28px 0 80px; }
+      .tm-wrap { padding: 0 20px; }
+      .tm-title { font-size: 24px; }
+      .toc ol { grid-template-columns: minmax(0, 1fr); }
+      .art.is-key { padding: 16px 14px 4px; }
+      .tbl-wrap, .note, .sub { margin-left: 0; }
+    }
+
+    /* ---------- 팝업(iframe) 안에서 열릴 때: 본문만 ---------- */
+    html.embed { scroll-behavior: auto; }   /* 팝업에서는 조문으로 '즉시' 이동 (부드러운 스크롤은 팝업 안에서 도착 전에 멈출 수 있음) */
+    html.embed body { background: #fff; }
+    html.embed .site-chrome, html.embed .site-footer, html.embed .tm-actions { display: none !important; }
+    html.embed .tm-main { padding: 20px 0 44px; }
+    html.embed .tm-wrap { max-width: none; padding: 0 24px; }
+    html.embed .art { scroll-margin-top: 12px; }
+
+    /* ---------- 인쇄 ---------- */
+    @media print {
+      @page { margin: 16mm 14mm; }
+      html { scroll-behavior: auto; }
+      body { background: #fff; font-size: 11.5pt; line-height: 1.6; }
+      .site-chrome, .site-footer, .tm-actions, .toc { display: none !important; }
+      .tm-main { padding: 0; }
+      .tm-wrap { max-width: none; padding: 0; }
+      .tm-intro, .art.is-key, .must { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .art { break-inside: avoid-page; margin-top: 22px; }
+      .art h2 { break-after: avoid; }
+      table, .tbl-wrap { break-inside: avoid; }
+      .tbl-wrap { overflow: visible; }
+      a { text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="site-chrome">
+<!-- ====================================================================
+00. 상단 롤링 띠배너 (폰트 12.5px / 높이 38px)
+==================================================================== -->
+<div style="background-color: #78866B; color: #ffffff; font-size: 12.5px; font-weight: 500; height: 38px; overflow: hidden; position: relative; font-family: 'Noto Sans KR', sans-serif;">
+  <div id="topBannerTrack" style="transition: transform 0.5s ease-in-out; width: 100%;">
+    
+    <!-- 문구 1 -->
+    <div style="height: 38px; display: flex; align-items: center; justify-content: center; text-align: center;">
+      <a href="index.html#contact" style="color: #ffffff; text-decoration: none; letter-spacing: -0.2px;">
+        첫 방문 고객 서비스 이용료 할인
+      </a>
+    </div>
+
+    <!-- 문구 2 -->
+    <div style="height: 38px; display: flex; align-items: center; justify-content: center; text-align: center;">
+      <a href="index.html#contact" style="color: #ffffff; text-decoration: none; letter-spacing: -0.2px;">
+        사람과 사람을 잇는 따뜻한 연결, 위드브릿지
+      </a>
+    </div>
+
+    <!-- 문구 3 -->
+    <div style="height: 38px; display: flex; align-items: center; justify-content: center; text-align: center;">
+      <a href="index.html#contact" style="color: #ffffff; text-decoration: none; letter-spacing: -0.2px;">
+        지금 문의하기로 간편하게 상담받기
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<!-- 롤링 동작 자바스크립트 -->
+<script>
+  (function() {
+    let currentIndex = 0;
+    const track = document.getElementById('topBannerTrack');
+    if (!track) return;
+    const totalItems = track.children.length;
+
+    setInterval(function() {
+      currentIndex = (currentIndex + 1) % totalItems;
+      track.style.transform = 'translateY(-' + (currentIndex * 38) + 'px)';
+    }, 3500); // 3.5초마다 롤링
+  })();
+</script>
+
+<!--
+====================================================================
+01. 상단 헤더 (Header)
+====================================================================
+-->
+<!-- 상단 네비게이션 헤더 (독립된 login.html 이동 적용본) -->
+<header style="width: 100%; background-color: #ffffff; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 50; font-family: 'Noto Sans KR', sans-serif;">
+  <div style="max-width: 1380px; margin: 0 auto; padding: 32px 40px; display: flex; align-items: center; justify-content: space-between;">
+    
+    <!-- 로고 영역 (클릭 시 메인 페이지로 이동하도록 index.html 적용) -->
+    <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
+      <img src="https://i.ibb.co/xqjbh2Hg/ab449647-1b1a-4b6d-8e17-71379d22e824.png" alt="위드브릿지 로고" style="height: 98px; width: auto; display: block; object-fit: contain;" />
+    </a>
+
+    <!-- 중앙 메뉴 링크 (소개 메뉴를 about.html로 연결) -->
+    <nav style="display: flex; align-items: center; gap: 44px; font-size: 19px; font-weight: 700;">
+      <a href="about.html" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">소개</a>
+      <a href="index.html#services" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">서비스</a>
+      <a href="index.html#notice" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">공지사항</a>
+      <a href="index.html#reviews" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">고객후기</a>
+      <a href="index.html#faq" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">자주 묻는 질문(FAQ)</a>
+    </nav>
+
+    <!-- 우측 버튼 및 링크 영역 -->
+    <div style="display: flex; align-items: center; gap: 20px;">
+      <!-- 💡 class="auth-buttons" 추가됨: 자바스크립트가 이 영역을 찾아 로그인 시 '로그아웃'으로 바꿉니다 -->
+      <div class="auth-buttons" style="display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 500; color: #1A1D21;">
+        <a href="login.html" style="text-decoration: none; font-weight: 500; color: #1A1D21; transition: color 0.2s;">
+          로그인
+        </a>
+        <span style="color: #d1d5db; font-size: 14px; font-weight: 400;">|</span>
+        <a href="login.html" style="text-decoration: none; font-weight: 500; color: #1A1D21; transition: color 0.2s;">
+          회원가입
+        </a>
+      </div>
+
+      <!-- 문의하기 버튼 (카카오톡 링크 연동) -->
+      <a href="https://accounts.kakao.com/login/?continue=https%3A%2F%2Fpf.kakao.com%2F_xjTdxaX%2Fchat#login" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 16px 36px; background-color: #000000; color: #ffffff; border-radius: 9999px; font-size: 18px; font-weight: 700; text-decoration: none; transition: background-color 0.2s;">
+        문의하기
+      </a>
+    </div>
+
+  </div>
+</header>
+</div>
+
+  <main class="tm-main">
+    <div class="tm-wrap">
+      
+
+        <div class="tm-head">
+          <div>
+            <h1 class="tm-title">위드브릿지 서비스 이용약관</h1>
+            <p class="tm-meta">시행일 <b id="tmEffective">2026년 9월 22일</b> · 약관 버전 <b id="tmVersion">2026-09-22</b></p>
+          </div>
+          <div class="tm-actions">
+            <button type="button" class="tm-btn is-plain" id="tmClose">✕ 닫기</button>
+          </div>
+        </div>
+
+        <p class="tm-intro">
+          이 약관은 위드브릿지가 운영하는 <b>온라인 플랫폼(정보통신서비스)</b>과 케어매니저가 현장에서 수행하는
+          <b>오프라인 동행 서비스</b>를 함께 이용하실 때 적용되는 조건을 12개 조문으로 정리한 것입니다.
+          ★ 표시가 있는 <b>제3조(비의료행위)</b>와 <b>제6조(취소 및 환불)</b>는 특히 중요하니 꼭 확인해 주세요.
+        </p>
+
+        <nav class="toc" aria-label="이용약관 목차">
+          <h2>목차</h2>
+          <ol>
+            <li><a href="#art-1"><span class="n">제1조</span> 목적</a></li>
+            <li><a href="#art-2"><span class="n">제2조</span> 정의</a></li>
+            <li><a href="#art-3"><span class="n">제3조</span> 비의료행위 명시 <span class="star">★</span></a></li>
+            <li><a href="#art-4"><span class="n">제4조</span> 예약 및 사전 고지 의무</a></li>
+            <li><a href="#art-5"><span class="n">제5조</span> 요금 및 결제</a></li>
+            <li><a href="#art-6"><span class="n">제6조</span> 취소 및 환불 규정 <span class="star">★</span></a></li>
+            <li><a href="#art-7"><span class="n">제7조</span> 서비스 제공 거부 및 중단</a></li>
+            <li><a href="#art-8"><span class="n">제8조</span> 손해배상 및 배상책임보험</a></li>
+            <li><a href="#art-9"><span class="n">제9조</span> 면책 조항</a></li>
+            <li><a href="#art-10"><span class="n">제10조</span> 개인정보 및 건강정보 보호</a></li>
+            <li><a href="#art-11"><span class="n">제11조</span> 분쟁 해결</a></li>
+            <li><a href="#art-12"><span class="n">제12조</span> 사업자 정보 고지</a></li>
+          </ol>
+        </nav>
+
+        <!-- ================= 제1조 ================= -->
+        <section class="art" id="art-1">
+          <h2><span class="no">제1조</span> 목적</h2>
+          <p class="cl"><span class="no">①</span>이 약관은 위드브릿지(이하 “회사”)가 운영하는 웹사이트 및 이에 딸린 온라인 서비스(이하 “플랫폼”)를 통하여 병원 동행 등 시니어 케어 서비스를 이용하려는 보호자·어르신과 서비스를 수행하는 케어매니저를 연결하고, 이에 따르는 신청 접수·매칭·결제·정산·상담 등 정보통신서비스와 오프라인 동행 서비스를 제공함에 있어 회사와 이용자 사이의 권리·의무 및 책임사항, 그 밖에 필요한 사항을 정함을 목적으로 합니다.</p>
+          <p class="cl"><span class="no">②</span>회사가 제공하는 서비스는 (가) 플랫폼을 통한 서비스 안내·신청 접수·매칭·결제 및 이용 내역 제공 등 <b>온라인 서비스</b>와, (나) 케어매니저가 현장에서 수행하는 동행·이동 보조·행정 보조 등 <b>오프라인 서비스</b>로 이루어집니다.</p>
+          <p class="cl"><span class="no">③</span>이 약관은 이용자가 회원가입 또는 서비스 신청 과정에서 동의함으로써 효력이 생깁니다. 회사는 「약관의 규제에 관한 법률」, 「전자상거래 등에서의 소비자보호에 관한 법률」 등 관계 법령을 위반하지 않는 범위에서 이 약관을 개정할 수 있으며, 개정 시 적용일 7일 전(이용자에게 불리한 변경은 30일 전)부터 플랫폼에 공지합니다.</p>
+          <p class="cl"><span class="no">④</span>이 약관에서 정하지 않은 사항은 관계 법령 및 일반적인 상관례에 따릅니다.</p>
+        </section>
+
+        <!-- ================= 제2조 ================= -->
+        <section class="art" id="art-2">
+          <h2><span class="no">제2조</span> 정의</h2>
+          <p class="cl"><span class="no">①</span>이 약관에서 사용하는 용어의 뜻은 다음과 같습니다.</p>
+          <ol class="sub">
+            <li><b>“플랫폼”</b>이란 회사가 서비스를 제공하기 위하여 운영하는 웹사이트 및 관련 온라인 시스템을 말합니다.</li>
+            <li><b>“이용자”</b>란 플랫폼에 접속하여 이 약관에 따라 서비스를 신청·이용하는 회원 및 비회원을 말하며, 그중 <b>“보호자”</b>란 어르신을 대신하거나 어르신과 함께 서비스를 신청하고 요금을 결제하는 가족·친지 등 이용자를 말합니다.</li>
+            <li><b>“어르신”</b>이란 서비스의 실제 수혜자로서 케어매니저의 동행을 받는 사람을 말합니다.</li>
+            <li><b>“케어매니저”</b>(버디)란 회사와 계약 관계에 있으며 회사가 정한 검증·교육 절차를 거쳐 현장에서 동행 서비스를 수행하는 사람을 말합니다.</li>
+            <li><b>“서비스”</b>란 회사가 제공하는 시니어 병원 동행, 생활 편의 대행, 복합 매칭 서비스(동행 + 생활편의) 및 이에 딸린 온라인 서비스 일체를 말합니다.</li>
+            <li><b>“예약”</b>이란 이용자가 서비스의 종류·일시·장소·내용을 정하여 신청하고, 회사가 이를 확인하여 확정한 것을 말합니다.</li>
+            <li><b>“건강정보”</b>란 어르신의 질환·기왕증, 거동 상태, 복용 약, 알레르기 등 건강 상태에 관한 정보를 말합니다.</li>
+          </ol>
+          <p class="cl"><span class="no">②</span>이 약관에서 정의하지 않은 용어는 관계 법령 및 일반적인 관례에 따릅니다.</p>
+        </section>
+
+        <!-- ================= 제3조 ★ ================= -->
+        <section class="art is-key" id="art-3">
+          <h2><span class="no">제3조</span> 비의료행위 명시 <span class="badge-key">★ 핵심 조항</span></h2>
+          <p class="must">케어매니저는 신체적·행정적 동행만 제공하며, 진료·간호 등 어떠한 의료행위도 하지 않습니다.</p>
+          <p class="cl"><span class="no">①</span>서비스는 이동 보조, 병원 접수·수납 보조, 진료 대기 및 진료실 동행, 약국 방문·처방약 수령 보조, 귀가 동행 등 <b>신체적·행정적 동행</b>에 한정됩니다.</p>
+          <p class="cl"><span class="no">②</span>케어매니저는 「의료법」 등 관계 법령에서 의료인만 할 수 있도록 정한 행위, 즉 <b>진단·처방·투약, 주사, 상처 처치, 검사, 의료기기 조작, 흡인·인공호흡 등 진료·간호·의료행위</b>를 하지 않으며, 의료 또는 간호 관련 자격을 가진 케어매니저라 하더라도 서비스 중에는 이를 제공하지 않습니다. 이용자는 케어매니저에게 이러한 행위를 요구할 수 없습니다.</p>
+          <p class="cl"><span class="no">③</span>진료 내용·처방·복약 등에 관한 판단과 지도는 의료인과 약사의 몫입니다. 케어매니저는 의료진의 설명을 들은 대로 보호자에게 전달하는 데 그치며, 그 내용을 해석하거나 별도로 조언하지 않습니다. 약의 복용은 어르신 본인 또는 보호자의 책임 아래 이루어집니다.</p>
+          <p class="cl"><span class="no">④</span>서비스 중 응급상황이 발생한 경우 케어매니저는 119 신고, 의료진에게 인계, 보호자 연락 등 <b>긴급 연락·인계 조치</b>를 하며, 의료적 응급처치를 수행할 의무를 지지 않습니다.</p>
+          <p class="cl"><span class="no">⑤</span>이용자가 의료행위 또는 이에 준하는 행위를 요구하는 경우 회사와 케어매니저는 이를 거절할 수 있으며, 반복되는 경우 제7조에 따라 서비스를 중단할 수 있습니다.</p>
+        </section>
+
+        <!-- ================= 제4조 ================= -->
+        <section class="art" id="art-4">
+          <h2><span class="no">제4조</span> 예약 및 사전 고지 의무</h2>
+          <p class="cl"><span class="no">①</span>이용자는 플랫폼이 정한 양식에 따라 서비스 종류, 희망 일시, 출발지 및 목적지(방문 병원·장소), 어르신과의 관계, 연락처 등을 정확히 기재하여 서비스를 신청합니다. 회사는 신청 접수 후 확인 연락(원칙적으로 2시간 이내)을 드리며, <b>서비스는 회사가 예약을 확정한 때 성립</b>합니다.</p>
+          <p class="cl"><span class="no">②</span>이용자는 신청 시 <b>안전한 동행에 필요한 다음 사항을 사실대로 알려야</b> 합니다.</p>
+          <ol class="sub">
+            <li>어르신의 연령 및 건강 상태, <b>기왕증</b>(치매, 뇌졸중, 심장·호흡기 질환, 당뇨, 낙상 경험, 투석, 산소치료 등 동행 중 위험이 될 수 있는 질환)</li>
+            <li><b>거동 상태</b>(혼자 걸음 가능 / 지팡이·보행기 사용 / 휠체어 사용 등) 및 보조기구 사용 여부</li>
+            <li>감염성 질환 여부 또는 의심 증상(발열, 기침, 설사 등)</li>
+            <li>의사소통의 어려움, 인지 저하, 배회·낙상 위험 등 특이사항</li>
+            <li>그 밖에 안전한 동행에 필요한 정보(진료과, 진료 예약 시간, 병원 접수 정보 등)</li>
+          </ol>
+          <p class="cl"><span class="no">③</span>신청 후 위 사항에 변경이 생긴 경우 이용자는 지체 없이 회사에 알려야 합니다.</p>
+          <p class="cl"><span class="no">④</span>회사는 고지받은 건강정보를 안전한 인력 배정과 현장 대응을 위한 목적으로만 이용하며, 그 처리는 제10조에 따릅니다.</p>
+          <p class="cl"><span class="no">⑤</span>이용자가 사전 고지를 하지 않거나 사실과 다르게 알려 발생한 결과에 대하여는 제9조를 따릅니다.</p>
+        </section>
+
+        <!-- ================= 제5조 ================= -->
+        <section class="art" id="art-5">
+          <h2><span class="no">제5조</span> 요금 및 결제</h2>
+          <!-- [요금표] index.html 의 '이용 요금 안내'와 같은 값입니다. 요금을 바꾸면 이 표도 함께 고쳐 주세요. -->
+          <p class="cl"><span class="no">①</span>서비스의 기본 요금(2시간 기준)과 초과 요금(30분당)은 플랫폼의 ‘이용 요금 안내’에 게시한 바에 따르며, 이 약관 시행일 현재 다음과 같습니다.</p>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>서비스</th><th class="num">기본 요금 (2시간)</th><th class="num">초과 요금 (30분당)</th></tr></thead>
+              <tbody>
+                <tr><td>시니어 병원 동행</td><td class="num">44,000원</td><td class="num">10,000원</td></tr>
+                <tr><td>생활 편의 대행</td><td class="num">36,000원</td><td class="num">8,500원</td></tr>
+                <tr><td>복합 매칭 서비스 (동행 + 생활편의)</td><td class="num">50,000원</td><td class="num">11,500원</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="cl"><span class="no">②</span><b>초과 요금</b>은 예약한 이용 시간을 넘긴 시간에 대하여 30분 단위로 계산하며, 30분에 미치지 못하는 시간은 30분으로 봅니다. 이용 시간은 케어매니저가 약속 장소에서 어르신을 만난 시각부터 모든 일정을 마치고 귀가 조치를 완료한 시각까지로 산정합니다. <!-- [검토 필요] 30분 미만 절상 여부는 실제 운영 방식과 맞는지 확인 --></p>
+          <p class="cl"><span class="no">③</span>다음의 경우 아래의 <b>추가 요금</b>이 붙을 수 있으며, 예약 확정 시 안내해 드립니다.</p>
+          <ol class="sub">
+            <li>평일 주간(09:00~18:00) 외 <b>주말·공휴일·야간</b>(18:00~익일 09:00) 이용: 기본 요금의 20% 할증</li>
+            <li><b>케어 난이도 할증</b>(와상·휠체어 밀착 보조 필수, 중증 치매 돌봄, 수면 내시경 후 회복 동행 등): 회당 10,000원</li>
+            <li><b>전문 매니저 지정</b>(간호사·사회복지사·요양보호사 등 자격 소지 매니저 전담 지정): 회당 15,000원</li>
+            <li><b>실비</b>: 택시·버스·지하철 등 교통비와 병원 주차비는 이용자가 부담합니다(실비 청구).</li>
+          </ol>
+          <p class="cl"><span class="no">④</span><b>결제 시기 및 방법</b>: 예약 확정 후 회사가 안내하는 결제 수단(계좌이체 등)으로 기본 요금을 서비스 시작 전까지 결제하며, 초과 요금·추가 요금·실비는 서비스 종료 후 3영업일 이내에 정산합니다. <!-- [검토 필요] 선결제/후정산 방식과 정산 기한은 실제 운영 방식으로 확정 --></p>
+          <p class="cl"><span class="no">⑤</span>회사는 이용자가 요청하는 경우 관계 법령에 따라 영수증 또는 현금영수증 등을 발급합니다. 플랫폼에 표시된 금액과 실제 청구 금액이 다른 경우 회사는 그 사유를 안내합니다.</p>
+        </section>
+
+        <!-- ================= 제6조 ★ ================= -->
+        <section class="art is-key" id="art-6">
+          <h2><span class="no">제6조</span> 취소 및 환불 규정 <span class="badge-key">★ 핵심 조항</span></h2>
+          <p class="cl"><span class="no">①</span>이용자는 서비스 시작 전까지 플랫폼 또는 고객센터를 통해 예약을 취소할 수 있습니다. 취소 시점은 <b>회사가 취소 요청을 접수한 시각</b>을 기준으로, 서비스 시작 예정 시각과의 간격으로 계산합니다.</p>
+          <p class="cl"><span class="no">②</span>취소 수수료와 환불 금액은 다음과 같습니다(‘이용요금’은 예약 시 확정된 기본 요금을 말하며, 추가 요금은 제외합니다).</p>
+          <!-- [검토 필요] 아래 취소 수수료 비율(30% / 50% / 100%)은 예시를 바탕으로 한 초안입니다. 사업자가 확정하고 법률 검토를 받으세요. -->
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>취소 시점 (서비스 시작 예정 시각 기준)</th><th class="num">취소 수수료</th><th class="num">환불 금액</th></tr></thead>
+              <tbody>
+                <tr><td>24시간 전까지</td><td class="num">없음</td><td class="num">이용요금 전액</td></tr>
+                <tr><td>24시간 미만 ~ 12시간 전까지</td><td class="num">이용요금의 30%</td><td class="num">이용요금의 70%</td></tr>
+                <tr><td>12시간 미만 ~ 서비스 시작 전 (당일 취소 포함)</td><td class="num">이용요금의 50%</td><td class="num">이용요금의 50%</td></tr>
+                <tr><td>서비스 시작 후 이용자 사정으로 중단하는 경우, 또는 약속 시각으로부터 30분이 지나도록 연락이 닿지 않는 경우(노쇼)</td><td class="num">이용요금의 100%</td><td class="num">환불 없음</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="cl"><span class="no">③</span>다음의 경우에는 취소 수수료 없이 <b>전액 환불</b>합니다.</p>
+          <ol class="sub">
+            <li>케어매니저를 배정하지 못하는 등 <b>회사의 사정</b>으로 서비스를 제공할 수 없거나, 회사의 귀책으로 예약이 취소된 경우</li>
+            <li>천재지변, 감염병 확산에 따른 이동 제한 등 <b>불가항력</b>으로 서비스를 제공할 수 없는 경우</li>
+            <li>어르신의 입원·응급상황·사망 등 <b>불가피한 사유</b>가 있고 이를 확인할 수 있는 자료를 제출한 경우 <!-- [검토 필요] 불가피 사유 면제는 고객 보호 성격의 조항입니다. 운영 방침에 맞는지 확인 --></li>
+          </ol>
+          <p class="cl"><span class="no">④</span>환불은 취소가 확정된 날부터 <b>3영업일 이내</b>에 결제하신 수단으로 진행합니다. 카드 결제는 승인 취소로 처리되며, 카드사 사정에 따라 반영이 늦어질 수 있습니다.</p>
+          <p class="cl"><span class="no">⑤</span>이 조의 취소 수수료는 「전자상거래 등에서의 소비자보호에 관한 법률」 등 관계 법령이 이용자에게 보장한 <b>청약철회권을 제한하지 않으며</b>, 법령에 따라 청약철회가 가능한 경우에는 법령이 우선합니다. 다만, 서비스 제공이 이미 시작된 부분에 대하여는 법령이 허용하는 범위에서 청약철회가 제한될 수 있습니다.</p>
+          <p class="cl"><span class="no">⑥</span>회사의 귀책 사유로 서비스가 제대로 이행되지 않은 경우 회사는 이용자와 협의하여 서비스를 다시 제공하거나 해당 부분의 요금을 환불합니다.</p>
+        </section>
+
+        <!-- ================= 제7조 ================= -->
+        <section class="art" id="art-7">
+          <h2><span class="no">제7조</span> 서비스 제공 거부 및 중단</h2>
+          <p class="cl"><span class="no">①</span>회사 및 케어매니저는 어르신과 케어매니저의 안전을 위하여 다음 각 호의 경우 서비스 제공을 <b>거부하거나 중단</b>할 수 있습니다.</p>
+          <ol class="sub">
+            <li>제4조의 사전 고지가 없었거나 사실과 달라 안전한 동행이 어려운 경우, 특히 <b>고지되지 않은 감염성 질환</b>으로 다른 사람에게 전파될 우려가 있는 경우</li>
+            <li>서비스 도중 <b>응급상황</b>이 발생하는 등 의료적 판단이 필요하거나 동행을 계속하기에 적절하지 않다고 판단되는 경우</li>
+            <li>케어매니저에 대한 <b>폭언·욕설·협박·모욕·성희롱·폭행</b> 등 부당한 행위가 있는 경우</li>
+            <li>의료행위 요구, 개인적 금전 거래 요구, 약속된 범위를 벗어난 부당한 요구 등 서비스의 성격에 맞지 않는 요구를 반복하는 경우</li>
+            <li>기상 악화, 재난 등으로 안전을 확보하기 어려운 경우</li>
+          </ol>
+          <p class="cl"><span class="no">②</span>서비스를 중단하는 경우 회사는 어르신의 안전한 귀가 또는 보호자·의료진 인계 등 <b>필요한 조치를 먼저 다합니다</b>. 요금은 <b>이용자의 귀책 사유</b>(제1항 제1호·제3호·제4호)에 의한 중단이면 이미 제공된 서비스 시간분을 정산하고 제6조 제2항의 ‘서비스 시작 후 중단’ 기준을 따르며, 회사의 사정이나 불가항력(제1항 제2호·제5호 포함)에 의한 중단이면 제공하지 못한 부분을 환불합니다.</p>
+          <p class="cl"><span class="no">③</span>제1항의 사유가 반복되거나 중대한 경우 회사는 이용자에게 알린 뒤 이용을 제한하거나 계약을 해지할 수 있습니다. 긴급한 경우에는 먼저 조치하고 사후에 알릴 수 있으며, 이용자는 이에 대하여 고객센터를 통해 이의를 제기할 수 있습니다.</p>
+        </section>
+
+        <!-- ================= 제8조 ================= -->
+        <section class="art" id="art-8">
+          <h2><span class="no">제8조</span> 손해배상 및 배상책임보험</h2>
+          <p class="cl"><span class="no">①</span>회사 또는 케어매니저의 고의·과실로 이용자(어르신 포함)에게 손해가 발생한 경우 회사는 관계 법령과 이 약관에 따라 그 손해를 배상합니다.</p>
+          <!-- [검토 필요·중요] 아래 ②항은 회사가 실제로 배상책임보험에 가입해 있다는 전제입니다. 가입하지 않았다면 게시 전에 가입하거나 문구를 고치세요. 보험사·보장 한도를 확정해 고객센터 안내 자료를 준비하세요. -->
+          <p class="cl"><span class="no">②</span>회사는 동행 서비스 중 발생할 수 있는 사고에 대비하여 <b>배상책임보험에 가입</b>하고 이를 유지합니다. 가입 내용(보험사, 보장 범위 등)은 이용자가 고객센터에 문의하시면 안내해 드립니다.</p>
+          <p class="cl"><span class="no">③</span>사고가 발생한 경우 이용자는 즉시 회사에 알려야 하며, 회사는 사고 경위를 확인하고 보험 접수 등 필요한 절차를 지원합니다. 배상 범위와 금액은 사고의 경위, 과실의 정도, 보험 약관 등에 따라 정합니다. 다만, <b>회사의 고의 또는 중대한 과실로 발생한 손해</b>에 대하여는 보험 보장 한도와 관계없이 회사가 법령에 따라 책임을 집니다.</p>
+          <p class="cl"><span class="no">④</span>이용자 또는 어르신의 고의·과실로 케어매니저나 제3자에게 손해가 발생한 경우 이용자는 그 손해를 배상할 책임이 있습니다.</p>
+        </section>
+
+        <!-- ================= 제9조 ================= -->
+        <section class="art" id="art-9">
+          <h2><span class="no">제9조</span> 면책 조항</h2>
+          <p class="cl"><span class="no">①</span>회사는 다음 각 호의 사유로 발생한 손해에 대하여 책임을 지지 않습니다. 다만, 회사 또는 케어매니저에게 고의 또는 중대한 과실이 있는 경우에는 그러하지 않습니다.</p>
+          <ol class="sub">
+            <li>이용자가 제4조의 사항을 <b>알리지 않았거나 사실과 다르게 알려</b> 발생한 사고(기왕증·건강 상태의 악화, 감염 전파 등)</li>
+            <li>천재지변, 전쟁, 감염병 확산, 교통 통제, 정전·통신 장애 등 <b>불가항력</b>으로 인한 손해</li>
+            <li>의료기관의 사정(진료·검사 지연 또는 변경 등)과 <b>진료 행위 및 그 결과</b>로 인한 손해 — 진료의 책임은 해당 의료기관에 있습니다.</li>
+            <li>이용자 또는 어르신이 케어매니저의 안전 안내를 따르지 않고 <b>임의로 행동</b>하여 발생한 손해</li>
+            <li>이용자가 제공한 정보의 오류나 제3자의 귀책으로 발생한 손해, 그리고 이용자·어르신이 직접 보관한 현금·귀중품의 분실</li>
+          </ol>
+          <p class="cl"><span class="no">②</span>회사는 시스템 점검, 설비 장애 등 부득이한 사유로 플랫폼의 온라인 서비스를 일시 중단할 수 있으며, 이 경우 미리 공지합니다. 미리 알릴 수 없는 사정이 있는 경우에는 사후에 알립니다.</p>
+        </section>
+
+        <!-- ================= 제10조 ================= -->
+        <section class="art" id="art-10">
+          <h2><span class="no">제10조</span> 개인정보 및 건강정보 보호</h2>
+          <p class="cl"><span class="no">①</span>회사는 「개인정보 보호법」 등 관계 법령을 지키며, 개인정보의 수집·이용·보관·파기 등에 관한 사항을 별도의 <b>개인정보 처리방침</b>으로 정하여 공개합니다.</p>
+          <p class="cl"><span class="no">②</span>회사는 서비스 제공을 위하여 다음의 정보를 필요한 최소한의 범위에서 수집·이용합니다. 이용 목적은 예약·매칭, 서비스 제공, 요금 정산, 고객 응대, 사고 대응입니다.</p>
+          <ol class="sub">
+            <li>이용자(보호자): 성명, 연락처, 이메일, 소셜 로그인(카카오) 계정 정보</li>
+            <li>어르신: 성명, 생년월일, 주소, 거동 상태 등 <b>건강정보</b></li>
+            <li>서비스 이용 기록 및 결제 관련 정보</li>
+          </ol>
+          <p class="cl"><span class="no">③</span>건강정보는 「개인정보 보호법」상 <b>민감정보</b>에 해당할 수 있으므로, 회사는 법령이 정한 바에 따라 별도의 동의를 받거나 법령상 근거가 있는 경우에 한하여 수집·이용하며, 서비스 제공 목적 밖으로 이용하지 않습니다.</p>
+          <p class="cl"><span class="no">④</span>보호자가 어르신의 개인정보를 제공하는 경우, 보호자는 어르신 본인(또는 법정대리인)에게 필요한 설명을 하고 정당한 동의를 받았음을 보증합니다.</p>
+          <p class="cl"><span class="no">⑤</span>회사는 동행 수행에 꼭 필요한 최소한의 정보만 케어매니저에게 제공하고, 사고 처리를 위한 보험사 제공 등 법령상 근거나 이용자의 동의가 있는 경우를 제외하고는 개인정보를 제3자에게 제공하지 않습니다.</p>
+          <p class="cl"><span class="no">⑥</span>이용자는 언제든지 자신의 개인정보(어르신 정보 포함)에 대하여 열람·정정·삭제·처리정지를 요구할 수 있으며, 회사는 지체 없이 필요한 조치를 합니다. 개인정보는 수집 목적을 이룬 후 지체 없이 파기하며, 관계 법령에서 보존하도록 정한 정보는 그 기간 동안 분리하여 보관합니다.</p>
+          <p class="cl"><span class="no">⑦</span>회사는 개인정보의 분실·도난·유출·변조를 막기 위하여 접근 권한 관리 등 기술적·관리적 보호조치를 시행합니다. 개인정보와 관련한 문의는 제12조의 고객센터로 해 주세요.</p>
+        </section>
+
+        <!-- ================= 제11조 ================= -->
+        <section class="art" id="art-11">
+          <h2><span class="no">제11조</span> 분쟁 해결</h2>
+          <p class="cl"><span class="no">①</span>회사는 이용자가 제기하는 정당한 의견이나 불만을 접수하고 처리하기 위하여 고객센터를 운영합니다. 신속한 처리가 어려운 경우 이용자에게 그 사유와 처리 일정을 알려 드립니다.</p>
+          <p class="cl"><span class="no">②</span>회사와 이용자 사이에 발생한 분쟁은 이용자가 <b>한국소비자원 소비자분쟁조정위원회</b> 등 관계 기관에 조정을 신청할 수 있으며, 「소비자분쟁해결기준」(공정거래위원회 고시)에 따라 처리할 수 있습니다.</p>
+          <p class="cl"><span class="no">③</span>이 약관은 대한민국 법령에 따라 해석하고 적용합니다.</p>
+          <!-- [검토 필요] 관할 조항은 전자상거래 표준약관의 형식입니다. 특정 법원을 전속관할로 정하려면 약관법상 불리한 조항이 될 수 있으니 법률 검토를 받으세요. -->
+          <p class="cl"><span class="no">④</span>회사와 이용자 사이에 제기된 소송은 <b>제소 당시 이용자의 주소</b>를 관할하는 지방법원의 관할로 하고, 주소가 없는 경우에는 거소를 관할하는 지방법원으로 합니다. 다만, 제소 당시 이용자의 주소 또는 거소가 분명하지 않거나 외국에 있는 경우에는 「민사소송법」에 따른 관할법원에 제기합니다.</p>
+        </section>
+
+        <!-- ================= 제12조 ================= -->
+        <section class="art" id="art-12">
+          <h2><span class="no">제12조</span> 사업자 정보 고지</h2>
+          <p class="cl"><span class="no">①</span>회사의 사업자 정보와 고객센터는 다음과 같습니다. 사업자등록 및 통신판매업 신고가 완료되면 지체 없이 이 내용을 갱신합니다.</p>
+          <!-- [검토 필요] 사업자등록번호·통신판매업 신고번호가 나오면 아래 '등록 예정'을 실제 번호로 바꾸세요. (사이트 하단 정보와 동일하게 유지) -->
+          <div class="tbl-wrap">
+            <table class="info">
+              <tbody>
+                <tr><th>상호</th><td>위드브릿지 (WithBridge)</td></tr>
+                <tr><th>대표자</th><td>강승수</td></tr>
+                <tr><th>사업자등록번호</th><td>등록 예정</td></tr>
+                <tr><th>통신판매업 신고번호</th><td>등록 예정</td></tr>
+                <tr><th>주소</th><td>인천광역시 남동구 소래역로 93 (906-201)</td></tr>
+                <tr><th>고객센터 전화</th><td><a href="tel:01058745760">010-5874-5760</a></td></tr>
+                <tr><th>카카오톡 채널</th><td>@위드브릿지</td></tr>
+                <tr><th>이메일</th><td><a href="mailto:withbridge.care@gmail.com">withbridge.care@gmail.com</a></td></tr>
+                <tr><th>운영시간</th><td>평일 08:00 ~ 18:00 (주말·공휴일 휴무)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <div class="tm-end">
+          <h2>부칙</h2>
+          <p style="margin:0">이 약관은 <b id="tmEffective2">2026년 9월 22일</b>부터 시행합니다.</p>
+        </div>
+
+      
+    </div>
+  </main>
+
+<div class="site-footer">
+<!--
+====================================================================
+11. 하단 푸터 (Footer)
+====================================================================
+-->
+<footer style="background-color: #1A1D21 !important; color: #E5E7EB !important; padding: 64px 32px 48px 32px !important; font-family: 'Noto Sans KR', sans-serif !important;">
+  <div style="max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; gap: 48px;">
+    
+    <!-- 상단: 로고 / 약관 / SNS -->
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 24px; padding-bottom: 0px;">
+      <div style="display: flex; align-items: baseline; gap: 12px;">
+        <strong style="font-size: 20px; font-weight: 700; color: #ffffff !important;">위드브릿지</strong>
+        <span style="font-size: 14px; color: #a1a1aa !important;">WithBridge</span>
+      </div>
+      
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 24px;">
+        <nav style="display: flex; align-items: center; gap: 16px; font-size: 14px;">
+          <a href="terms.html" data-open-terms style="color: #d4d4d8 !important; text-decoration: underline; text-underline-offset: 4px;">이용약관</a>
+          <span style="width: 1px; height: 12px; background-color: rgba(255,255,255,0.2);"></span>
+          <a href="index.html#privacy" style="color: #ffffff !important; font-weight: 700; text-decoration: underline; text-underline-offset: 4px;">개인정보 처리방침</a>
+        </nav>
+        
+        <!-- SNS 버튼 영역 (SVG 로고 제거 완료) -->
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
+          <a href="#instagram" style="display: inline-flex; align-items: center; justify-content: center; padding: 8px 18px; border-radius: 9999px; background-color: #ffffff !important; color: #18181b !important; font-size: 14px; font-weight: 700; text-decoration: none;">
+            <span>인스타그램</span>
+          </a>
+          <a href="#youtube" style="display: inline-flex; align-items: center; justify-content: center; padding: 8px 18px; border-radius: 9999px; background-color: #ffffff !important; color: #18181b !important; font-size: 14px; font-weight: 700; text-decoration: none;">
+            <span>유튜브</span>
+          </a>
+          <a href="#tiktok" style="display: inline-flex; align-items: center; justify-content: center; padding: 8px 18px; border-radius: 9999px; background-color: #ffffff !important; color: #18181b !important; font-size: 14px; font-weight: 700; text-decoration: none;">
+            <span>틱톡</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 중간: 회사 정보 & 고객센터 -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 48px;">
+      <!-- 회사 정보 -->
+      <div style="display: flex; flex-direction: column;">
+        <h3 style="margin-bottom: 12px; font-size: 16px; font-weight: 700; color: #ffffff !important;">회사 정보</h3>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+          <span style="font-weight: 700; color: #ffffff !important;">상호명</span>
+          <span style="color: #f4f4f5 !important;">위드브릿지</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+          <span style="font-weight: 700; color: #ffffff !important;">대표자</span>
+          <span style="color: #f4f4f5 !important;">강승수</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+          <span style="font-weight: 700; color: #ffffff !important;">사업자등록번호</span>
+          <span style="color: #f4f4f5 !important;">등록 예정</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+          <span style="font-weight: 700; color: #ffffff !important;">통신판매업 신고번호</span>
+          <span style="color: #f4f4f5 !important;">등록 예정</span>
+        </div>
+      </div>
+
+      <!-- 연락처 & 고객센터 -->
+      <div style="display: flex; flex-direction: column;">
+        <h3 style="margin-bottom: 12px; font-size: 16px; font-weight: 700; color: #ffffff !important;">연락처 &amp; 고객센터</h3>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+          <span style="font-weight: 700; color: #ffffff !important;">주소</span>
+          <span style="color: #f4f4f5 !important;">인천광역시 남동구 소래역로 93 (906-201)</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+          <span style="font-weight: 700; color: #ffffff !important;">전화번호</span>
+          <a href="tel:01058745760" style="color: #ffffff !important; font-weight: 500; text-decoration: none;">010-5874-5760</a>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+          <span style="font-weight: 700; color: #ffffff !important;">이메일</span>
+          <a href="mailto:withbridge.care@gmail.com" style="color: #ffffff !important; font-weight: 500; text-decoration: none;">withbridge.care@gmail.com</a>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+          <span style="font-weight: 700; color: #ffffff !important;">운영시간</span>
+          <span style="color: #f4f4f5 !important;">평일 08:00 ~ 18:00 <span style="color: #a1a1aa !important;">(주말·공휴일 휴무)</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 하단: 카피라이트 -->
+    <div style="padding-top: 32px; border-top: 1px solid rgba(255,255,255,0.1);">
+      <p style="margin: 0; font-size: 14px; color: #e4e4e7 !important;">© 2026 WithBridge. All rights reserved.</p>
+    </div>
+
+  </div>
+</footer>
+</div>
+
+  <script>
+    // 닫기 (팝업 안에서는 이 버튼이 숨겨지고, 팝업 자체의 닫기 버튼을 씁니다)
+    document.getElementById('tmClose').addEventListener('click', function () {
+      if (window.history.length > 1) window.history.back(); else window.location.href = 'index.html';
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>로그인 | 위드브릿지</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS SDK -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase SDK 로드 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- 공통 인증 헤더 (로그인 상태 감지 · 프로필 아바타/드롭다운). Supabase SDK 뒤에 로드해야 합니다 -->
+  <script src="auth-header.js?v=1.0" charset="utf-8"></script>
+<script src="terms-modal.js?v=1.0" charset="utf-8" defer></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Noto Sans KR', sans-serif;
+      background-color: #ffffff;
+      color: #1A1D21;
+    }
+    /* 로그인 버튼 아래 약관 안내 문구의 링크 */
+    .login-terms a { color: #455822; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
+    .login-terms a:hover { color: #2F3D18; }
+    .login-terms a:focus-visible { outline: 3px solid rgba(85,107,47,.5); outline-offset: 2px; border-radius: 2px; }
+  </style>
+</head>
+<body>
+
+  <!-- ==================================================================== -->
+  <!-- 00. 상단 롤링 띠배너 (폰트 12.5px / 높이 38px) -->
+  <!-- ==================================================================== -->
+  <div style="background-color: #78866B; color: #ffffff; font-size: 12.5px; font-weight: 500; height: 38px; overflow: hidden; position: relative; font-family: 'Noto Sans KR', sans-serif;">
+    <div id="topBannerTrack" style="transition: transform 0.5s ease-in-out; width: 100%;">
+      
+      <!-- 문구 1 -->
+      <div style="height: 38px; display: flex; align-items: center; justify-content: center; text-align: center;">
+        <a href="index.html#contact" style="color: #ffffff; text-decoration: none; letter-spacing: -0.2px;">
+          첫 방문 고객 서비스 이용료 할인
+        </a>
+      </div>
+
+      <!-- 문구 2 -->
+      <div style="height: 38px; display: flex; align-items: center; justify-content: center; text-align: center;">
+        <a href="index.html#contact" style="color: #ffffff; text-decoration: none; letter-spacing: -0.2px;">
+          사람과 사람을 잇는 따뜻한 연결, 위드브릿지
+        </a>
+      </div>
+
+      <!-- 문구 3 -->
+      <div style="height: 38px; display: flex; align-items: center; justify-content: center; text-align: center;">
+        <a href="index.html#contact" style="color: #ffffff; text-decoration: none; letter-spacing: -0.2px;">
+          지금 문의하기로 간편하게 상담받기
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 롤링 동작 자바스크립트 -->
+  <script>
+    (function() {
+      let currentIndex = 0;
+      const track = document.getElementById('topBannerTrack');
+      if (!track) return;
+      const totalItems = track.children.length;
+
+      setInterval(function() {
+        currentIndex = (currentIndex + 1) % totalItems;
+        track.style.transform = 'translateY(-' + (currentIndex * 38) + 'px)';
+      }, 3500); // 3.5초마다 롤링
+    })();
+  </script>
+
+  <!-- ==================================================================== -->
+  <!-- 01. 상단 네비게이션 헤더 -->
+  <!-- ==================================================================== -->
+  <header style="width: 100%; background-color: #ffffff; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 50; font-family: 'Noto Sans KR', sans-serif;">
+    <div style="max-width: 1380px; margin: 0 auto; padding: 32px 40px; display: flex; align-items: center; justify-content: space-between;">
+      
+      <!-- 로고 영역 -->
+      <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
+        <img src="https://i.ibb.co/xqjbh2Hg/ab449647-1b1a-4b6d-8e17-71379d22e824.png" alt="위드브릿지 로고" style="height: 98px; width: auto; display: block; object-fit: contain;" />
+      </a>
+
+      <!-- 중앙 메뉴 링크 -->
+      <nav style="display: flex; align-items: center; gap: 44px; font-size: 19px; font-weight: 700;">
+        <a href="about.html" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">소개</a>
+        <a href="index.html#services" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">서비스</a>
+        <a href="index.html#notice" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">공지사항</a>
+        <a href="index.html#reviews" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">고객후기</a>
+        <a href="index.html#faq" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">자주 묻는 질문(FAQ)</a>
+      </nav>
+
+      <!-- 우측 버튼 영역 -->
+      <div style="display: flex; align-items: center; gap: 20px;">
+        <div class="auth-buttons" style="display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 500; color: #1A1D21;">
+          <a href="login.html" style="text-decoration: none; font-weight: 700; color: #8FA482; transition: color 0.2s;">
+            로그인
+          </a>
+          <span style="color: #d1d5db; font-size: 14px; font-weight: 400;">|</span>
+          <a href="login.html" style="text-decoration: none; font-weight: 500; color: #1A1D21; transition: color 0.2s;">
+            회원가입
+          </a>
+        </div>
+
+        <!-- 문의하기 버튼 -->
+        <a href="https://accounts.kakao.com/login/?continue=https%3A%2F%2Fpf.kakao.com%2F_xjTdxaX%2Fchat#login" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 16px 36px; background-color: #000000; color: #ffffff; border-radius: 9999px; font-size: 18px; font-weight: 700; text-decoration: none; transition: background-color 0.2s;">
+          문의하기
+        </a>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ==================================================================== -->
+  <!-- 02. 로그인 중앙 메인 영역 -->
+  <!-- ==================================================================== -->
+  <main style="max-width: 380px; margin: 70px auto; padding: 0 20px; text-align: center;">
+    
+    <!-- 카카오 1초 로그인 안내 텍스트 (색상/두께/행간 정돈) -->
+    <p style="font-size: 13.5px; color: #666666; font-weight: 400; line-height: 1.6; margin-bottom: 16px;">
+      아이디와 비밀번호 입력하기 귀찮으시죠?<br>
+      1초 회원가입으로 입력없이 간편하게 로그인하세요.
+    </p>
+
+    <button onclick="loginWithKakao()" style="width: 100%; height: 50px; background-color: #FEE500; color: #000000; border: none; padding: 0; border-radius: 0px; font-size: 15px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 14px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="#000000" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 3C6.477 3 2 6.48 2 10.772c0 2.766 1.812 5.19 4.582 6.577l-.936 3.422c-.083.303.255.553.518.378l4.082-2.72c.575.086 1.162.131 1.754.131 5.523 0 10-3.48 10-7.772C22 6.48 17.523 3 12 3z"/>
+      </svg>
+      <span>카카오 1초 로그인 / 회원가입</span>
+    </button>
+
+    <!-- 약관 안내 (별도 동의 체크 없이, 로그인하면 동의한 것으로 봅니다).
+         '이용약관' 은 팝업으로 열리고(JS 가 꺼져 있으면 terms.html 로 이동), '개인정보 처리방침' 은 사이트 전체가 쓰는 같은 주소로 연결됩니다. -->
+    <p class="login-terms" style="margin: 0 0 24px; font-size: 12px; line-height: 1.6; color: #6B7280; word-break: keep-all; text-wrap: balance;">
+      로그인 시 위드브릿지의 <a href="terms.html" data-open-terms>이용약관</a> 및 <a href="index.html#privacy">개인정보 처리방침</a>에 동의하게 됩니다.
+    </p>
+
+    <!-- 펼치기/접기 토글 버튼 (SVG 둥근 화살표 적용) -->
+    <button onclick="toggleOtherLogin()" style="background: none; border: none; font-size: 13.5px; color: #333333; font-weight: 500; cursor: pointer; margin-bottom: 24px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 12px; font-family: inherit;">
+      <span>다른 방식으로 로그인</span>
+      <svg id="toggleArrowSvg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#333333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.2s ease; display: inline-block;">
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    </button>
+
+    <!-- 다른 로그인 영역 (초기 상태: 숨김) -->
+    <div id="otherLoginArea" style="display: none;">
+      <!-- 이메일/비밀번호 폼 -->
+      <form onsubmit="return false;" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px;">
+        <input type="email" placeholder="아이디" style="width: 100%; height: 48px; padding: 0 14px; border: 1px solid #E0E0E0; border-radius: 0px; font-size: 14px; outline: none; background-color: #ffffff; color: #1A1D21;">
+        <input type="password" placeholder="비밀번호" style="width: 100%; height: 48px; padding: 0 14px; border: 1px solid #E0E0E0; border-radius: 0px; font-size: 14px; outline: none; background-color: #ffffff; color: #1A1D21;">
+      </form>
+
+      <!-- 아이디/비밀번호 찾기 링크 -->
+      <div style="display: flex; justify-content: flex-end; gap: 10px; font-size: 12px; color: #999999; margin-bottom: 20px;">
+        <a href="#" onclick="alert('카카오 소셜 로그인을 이용해 주세요.'); return false;" style="color: #999999; text-decoration: none;">아이디 찾기</a>
+        <span>|</span>
+        <a href="#" onclick="alert('카카오 소셜 로그인을 이용해 주세요.'); return false;" style="color: #999999; text-decoration: none;">비밀번호 찾기</a>
+      </div>
+
+      <!-- 각진 형태의 로그인 버튼들 -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <!-- 기존 회원 로그인 (Sage Green 직각 버튼) -->
+        <button onclick="alert('소셜 로그인(카카오)을 이용해 주세요.')" style="width: 100%; height: 48px; background-color: #8FA482; color: #ffffff; border: none; padding: 0; border-radius: 0px; font-size: 14px; font-weight: 700; cursor: pointer;">
+          기존 회원 로그인
+        </button>
+
+        <!-- 회원가입 (각진 테두리 버튼) -->
+        <button onclick="loginWithKakao()" style="width: 100%; height: 48px; background-color: #ffffff; color: #1A1D21; border: 1px solid #1A1D21; padding: 0; border-radius: 0px; font-size: 14px; font-weight: 500; cursor: pointer;">
+          회원가입
+        </button>
+
+        <!-- 비회원 문의하기 (각진 테두리 버튼) -->
+        <a href="https://accounts.kakao.com/login/?continue=https%3A%2F%2Fpf.kakao.com%2F_xjTdxaX%2Fchat#login" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; justify-content: center; width: 100%; height: 48px; background-color: #ffffff; color: #1A1D21; border: 1px solid #E0E0E0; padding: 0; border-radius: 0px; font-size: 14px; font-weight: 500; text-decoration: none;">
+          비회원 문의하기
+        </a>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ==================================================================== -->
+  <!-- 03. 어르신 정보 입력 팝업창 (각진 모달 형태) -->
+  <!-- ==================================================================== -->
+  <div id="seniorModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:99999;">
+    <div style="background:#F9F9F7; padding:32px; border-radius:0px; width:90%; max-width:420px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 1px solid #1A1D21;">
+      <h3 style="color:#2C2C2C; margin-top:0; font-size:20px; font-weight: 700;">돌봄을 받으실 어르신 정보</h3>
+      <p style="color:#666; font-size:13px; margin-bottom: 20px;">원활한 병원 동행 예약을 위해 필수 정보를 입력해 주세요.</p>
+      
+      <label style="font-size:13px; font-weight:bold; display:block; margin-bottom:4px; text-align:left;">어르신 성함 *</label>
+      <input type="text" id="seniorName" placeholder="예: 홍길동" style="width:100%; margin-bottom: 15px; padding:12px; border:1px solid #ccc; border-radius:0px; box-sizing:border-box;">
+      
+      <label style="font-size:13px; font-weight:bold; display:block; margin-bottom:4px; text-align:left;">생년월일</label>
+      <input type="date" id="seniorBirth" style="width:100%; margin-bottom: 15px; padding:12px; border:1px solid #ccc; border-radius:0px; box-sizing:border-box;">
+      
+      <label style="font-size:13px; font-weight:bold; display:block; margin-bottom:4px; text-align:left;">거주지 주소 *</label>
+      <input type="text" id="seniorAddress" placeholder="예: 서울시 종로구 ..." style="width:100%; margin-bottom: 15px; padding:12px; border:1px solid #ccc; border-radius:0px; box-sizing:border-box;">
+      
+      <label style="font-size:13px; font-weight:bold; display:block; margin-bottom:4px; text-align:left;">주의사항 (선택)</label>
+      <textarea id="healthNote" placeholder="예: 휠체어 이용 필요" style="width:100%; margin-bottom: 20px; padding:12px; border:1px solid #ccc; border-radius:0px; height:80px; box-sizing:border-box;"></textarea>
+      
+      <button onclick="saveSeniorInfo()" style="width:100%; background:#8FA482; color:#fff; border:none; padding:15px; border-radius:0px; font-weight:bold; font-size:15px; cursor:pointer;">저장하고 메인으로 이동</button>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- 11. 하단 푸터 (Footer) -->
+  <!-- ==================================================================== -->
+<footer style="background-color: #1A1D21 !important; color: #E5E7EB !important; padding: 64px 32px 48px 32px !important; font-family: 'Noto Sans KR', sans-serif !important;">
+  <div style="max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; gap: 48px;">
+    
+    <!-- 상단: 로고 / 약관 / SNS -->
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 24px; padding-bottom: 0px;">
+      <div style="display: flex; align-items: baseline; gap: 12px;">
+        <strong style="font-size: 20px; font-weight: 700; color: #ffffff !important;">위드브릿지</strong>
+        <span style="font-size: 14px; color: #a1a1aa !important;">WithBridge</span>
+      </div>
+      
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 24px;">
+        <nav style="display: flex; align-items: center; gap: 16px; font-size: 14px;">
+          <a href="terms.html" data-open-terms style="color: #d4d4d8 !important; text-decoration: underline; text-underline-offset: 4px;">이용약관</a>
+          <span style="width: 1px; height: 12px; background-color: rgba(255,255,255,0.2);"></span>
+          <a href="index.html#privacy" style="color: #ffffff !important; font-weight: 700; text-decoration: underline; text-underline-offset: 4px;">개인정보 처리방침</a>
+        </nav>
+        
+        <!-- SNS 버튼 영역 (SVG 로고 제거 완료) -->
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
+          <a href="#instagram" style="display: inline-flex; align-items: center; justify-content: center; padding: 8px 18px; border-radius: 9999px; background-color: #ffffff !important; color: #18181b !important; font-size: 14px; font-weight: 700; text-decoration: none;">
+            <span>인스타그램</span>
+          </a>
+          <a href="#youtube" style="display: inline-flex; align-items: center; justify-content: center; padding: 8px 18px; border-radius: 9999px; background-color: #ffffff !important; color: #18181b !important; font-size: 14px; font-weight: 700; text-decoration: none;">
+            <span>유튜브</span>
+          </a>
+          <a href="#tiktok" style="display: inline-flex; align-items: center; justify-content: center; padding: 8px 18px; border-radius: 9999px; background-color: #ffffff !important; color: #18181b !important; font-size: 14px; font-weight: 700; text-decoration: none;">
+            <span>틱톡</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 중간: 회사 정보 & 고객센터 -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 48px;">
+      <!-- 회사 정보 -->
+      <div style="display: flex; flex-direction: column;">
+        <h3 style="margin-bottom: 12px; font-size: 16px; font-weight: 700; color: #ffffff !important;">회사 정보</h3>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+          <span style="font-weight: 700; color: #ffffff !important;">상호명</span>
+          <span style="color: #f4f4f5 !important;">위드브릿지</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+          <span style="font-weight: 700; color: #ffffff !important;">대표자</span>
+          <span style="color: #f4f4f5 !important;">강승수</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+          <span style="font-weight: 700; color: #ffffff !important;">사업자등록번호</span>
+          <span style="color: #f4f4f5 !important;">등록 예정</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+          <span style="font-weight: 700; color: #ffffff !important;">통신판매업 신고번호</span>
+          <span style="color: #f4f4f5 !important;">등록 예정</span>
+        </div>
+      </div>
+
+      <!-- 연락처 & 고객센터 -->
+      <div style="display: flex; flex-direction: column;">
+        <h3 style="margin-bottom: 12px; font-size: 16px; font-weight: 700; color: #ffffff !important;">연락처 &amp; 고객센터</h3>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+          <span style="font-weight: 700; color: #ffffff !important;">주소</span>
+          <span style="color: #f4f4f5 !important;">인천광역시 남동구 소래역로 93 (906-201)</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+          <span style="font-weight: 700; color: #ffffff !important;">전화번호</span>
+          <a href="tel:01058745760" style="color: #ffffff !important; font-weight: 500; text-decoration: none;">010-5874-5760</a>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+          <span style="font-weight: 700; color: #ffffff !important;">이메일</span>
+          <a href="mailto:withbridge.care@gmail.com" style="color: #ffffff !important; font-weight: 500; text-decoration: none;">withbridge.care@gmail.com</a>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+          <span style="font-weight: 700; color: #ffffff !important;">운영시간</span>
+          <span style="color: #f4f4f5 !important;">평일 08:00 ~ 18:00 <span style="color: #a1a1aa !important;">(주말·공휴일 휴무)</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 하단: 카피라이트 -->
+    <div style="padding-top: 32px; border-top: 1px solid rgba(255,255,255,0.1);">
+      <p style="margin: 0; font-size: 14px; color: #e4e4e7 !important;">© 2026 WithBridge. All rights reserved.</p>
+    </div>
+
+  </div>
+</footer>
+
+  <!-- ==================================================================== -->
+  <!-- 04. 자바스크립트 (토글 및 Supabase 연동) -->
+  <!-- ==================================================================== -->
+  <script>
+    // 다른 방식으로 로그인 토글 (SVG 회전 애니메이션 적용)
+    function toggleOtherLogin() {
+      const area = document.getElementById('otherLoginArea');
+      const arrowSvg = document.getElementById('toggleArrowSvg');
+      
+      if (area.style.display === 'none' || area.style.display === '') {
+        area.style.display = 'block';
+        arrowSvg.style.transform = 'rotate(180deg)'; // 180도 회전
+      } else {
+        area.style.display = 'none';
+        arrowSvg.style.transform = 'rotate(0deg)'; // 원위치
+      }
+    }
+
+    // Supabase 클라이언트는 auth-header.js 가 만든 하나를 공유합니다 (헤더 상태와 항상 같은 세션을 봄)
+    function getSupabase() {
+      return window.WBAuth ? window.WBAuth.client : null;
+    }
+
+    // 카카오 로그인 · 회원가입 (버튼 위치와 상관없이 모두 이 함수를 거칩니다)
+    async function loginWithKakao() {
+      // 버튼 아래 안내 문구대로 '로그인 = 이용약관 동의'. 이 브라우저에 동의한 약관 버전만 기록합니다 (terms-modal.js)
+      if (window.WBTerms) window.WBTerms.recordAgreement();
+
+      const client = getSupabase();
+      if (!client) {
+        alert("Supabase SDK 로딩 중입니다. 잠시 후 다시 시도해 주세요.");
+        return;
+      }
+      const redirectUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/')) + '/index.html';
+      const { data, error } = await client.auth.signInWithOAuth({
+        provider: 'kakao',
+        options: { 
+          redirectTo: redirectUrl
+        }
+      });
+      if (error) alert("로그인 오류: " + error.message);
+    }
+
+    // 어르신 정보 등록 여부 확인
+    async function checkSeniorInfo(user) {
+      const client = getSupabase();
+      if (!user || !client) return;
+
+      const { data: seniors, error } = await client
+        .from('seniors')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error("어르신 정보 조회 에러:", error.message);
+        return;
+      }
+
+      if (!seniors || seniors.length === 0) {
+        // 어르신 정보가 없으면 등록 모달 표시
+        const seniorModal = document.getElementById('seniorModal');
+        if (seniorModal) seniorModal.style.display = 'flex';
+      } else {
+        // 이미 정보가 등록된 회원이면 메인 페이지로 이동
+        window.location.href = "index.html";
+      }
+    }
+
+    // 페이지 진입 시 로그인 세션 체크
+    window.addEventListener('DOMContentLoaded', async () => {
+      const client = getSupabase();
+      if (!client) return;
+
+      const { data: { session } } = await client.auth.getSession();
+      if (session) {
+        await checkSeniorInfo(session.user);
+      }
+
+      client.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          // 콜백 안에서 바로 await 하면 교착될 수 있어 setTimeout 으로 분리
+          setTimeout(() => checkSeniorInfo(session.user), 0);
+        } else if (event === 'SIGNED_OUT') {
+          // 로그아웃하면 어르신 정보 입력 팝업도 닫기
+          const seniorModal = document.getElementById('seniorModal');
+          if (seniorModal) seniorModal.style.display = 'none';
+        }
+      });
+    });
+
+    // 어르신 정보 DB 저장 후 메인 페이지 이동
+    async function saveSeniorInfo() {
+      const client = getSupabase();
+      const { data: { session } } = await client.auth.getSession();
+      if (!session) return alert("로그인이 필요합니다.");
+
+      const seniorName = document.getElementById('seniorName').value;
+      const seniorBirth = document.getElementById('seniorBirth').value;
+      const seniorAddress = document.getElementById('seniorAddress').value;
+      const healthNote = document.getElementById('healthNote').value;
+
+      if (!seniorName || !seniorAddress) {
+        return alert("성함과 주소는 필수 입력 항목입니다.");
+      }
+
+      const { error } = await client.from('seniors').insert([
+        {
+          user_id: session.user.id,
+          senior_name: seniorName,
+          senior_birth: seniorBirth || null,
+          address: seniorAddress,
+          health_note: healthNote
+        }
+      ]);
+
+      if (error) {
+        alert("저장 에러: " + error.message);
+      } else {
+        alert("어르신 정보가 성공적으로 저장되었습니다!");
+        window.location.href = "index.html";
+      }
+    }
+  </script>
+</body>
+</html>

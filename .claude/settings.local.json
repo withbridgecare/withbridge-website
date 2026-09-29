@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(node *)",
+      "Bash(grep *)",
+      "Bash(python3 *)",
+      "Bash(sed -n '520,603p' mypage-manager.html)",
+      "Bash(sed -n '2418,2501p' index.html)",
+      "Read(//tmp/**)"
+    ]
+  }
+}
