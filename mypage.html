@@ -2631,7 +2631,7 @@
 
       if (apps.length) {
         // 신청 건수는 아래 '진행 중인 신청 · N건' 에 이미 나오므로, 오른쪽 위에 같은 숫자의 배지('신청 N건')는 두지 않음
-        if (!s) badge.hidden = true;
+        badge.hidden = true;
 
         if (activeApps.length) {
           body.appendChild(h('p', 'app-label', '진행 중인 신청 · ' + activeApps.length + '건'));
@@ -2699,7 +2699,7 @@
           emptyActive.appendChild(h('span', '', '완료된 케어 내역은 아래 달력에서 확인하실 수 있어요. 새로운 병원 진료·외출 동행이 필요하시면 언제든 신청해 주세요.'));
           body.appendChild(emptyActive);
         }
-      } else if (!s) {
+      } else {
         badge.textContent = '예정된 케어 없음';
         badge.className = 'badge';
         const empty = h('div', 'empty');
