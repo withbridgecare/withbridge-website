@@ -1353,7 +1353,7 @@
       const hasKo = (...words) => words.some((w) => s.includes(w));
       let st;
       if (isEn('cancelled', 'canceled', 'cancel') || hasKo('취소')) st = { label: '취소됨', tone: 'cancel' };
-      else if (!s || isEn('pending', 'new', 'received', 'submitted', 'waiting', 'requested') || hasKo('접수', '대기', '신청')) st = { label: '접수 완료', tone: 'wait' };
+      else if (!s || isEn('pending', 'new', 'received', 'submitted', 'waiting', 'requested') || hasKo('접수', '대기', '신청')) st = { label: '신청 완료 (매니저 배정 대기 중)', tone: 'wait' };
       else if (isEn('contacted', 'confirmed') || hasKo('상담', '확인')) st = { label: '상담·확인 완료', tone: 'info' };
       else if (isEn('matched', 'assigned') || hasKo('배정', '매칭')) st = { label: '배정 완료', tone: 'live', assigned: true };
       else if (isEn('in_progress', 'ongoing', 'progress', 'processing') || hasKo('진행')) st = { label: '진행 중', tone: 'live', assigned: true };
@@ -1880,7 +1880,7 @@
         //  * manager_id · accepted_at 컬럼은 supabase-applications-to-manager.sql 이 추가합니다. 아직 없으면(42703) 그 컬럼 없이 다시 조회합니다.
         //  * ?debug 테스트 모드: user_id 조건 없이 조회 (그래도 DB 의 RLS 는 적용되어, 내가 볼 권한이 있는 행만 옵니다)
         const uid = currentUser.id;
-        const BASE = 'id, created_at, user_id, service_type, address, request_details, status';
+        const BASE = 'id, created_at, user_id, service_type, user_relation, address, request_details, status';
         const buildQuery = (cols) => {
           let q = supabaseClient.from('service_applications').select(cols);
           if (!DEBUG_ALL) q = q.eq('user_id', uid);
@@ -2402,6 +2402,9 @@
       const whenValue = confirmedWhen || actualWhen || req.when || '확인 전화 시 협의';
       row(svgCalendarIcon, (confirmedWhen || actualWhen) ? '확정 일시' : '희망 일시', whenValue);
       row(svgMapPinIcon, '출발지·목적지', a.address || '-');
+      // 신청 단계에는 어르신 성함을 따로 받지 않아(매니저가 수락해야 '어르신' 스냅샷이 생김), 신청자와
+      // 어르신의 관계(예: 본인/자녀)를 대신 보여줘 누구를 위한 신청인지 한눈에 알 수 있게 합니다.
+      if (a.user_relation) row(svgActivityIcon, '어르신과의 관계', a.user_relation);
       if (req.mobility) row(svgActivityIcon, '거동 상태', req.mobility);
       if (req.note) row(svgNoteIcon, '요청 사항', req.note, 'note');
       card.appendChild(dl);
