@@ -153,6 +153,15 @@
     .summary-title { margin: 0 0 6px; font-size: 24px; font-weight: 800; letter-spacing: -0.03em; color: var(--ink); word-break: keep-all; }
     .summary-email { margin: 0; font-size: 13.5px; color: var(--ink-sub); word-break: break-all; }
     .summary-email:empty { display: none; }
+    /* 우측 '누적 이용 N회' 뱃지: 박스 오른쪽 끝(justify-content:space-between)에 붙어 요약 카드의 빈 공간을 채우면서,
+       지금까지 몇 번 이용했는지를 실용적으로 바로 알려줍니다 */
+    .summary-usage {
+      flex: none; display: flex; align-items: baseline; gap: 6px;
+      padding: 12px 22px; background: var(--brand-soft); border-radius: 9999px; color: var(--brand-dark);
+    }
+    .summary-usage-label { font-size: 13px; font-weight: 700; }
+    .summary-usage-count { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+    .summary-usage-unit { font-size: 13px; font-weight: 700; }
 
     .head-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
 
@@ -690,6 +699,12 @@
           <p class="summary-hello">보호자님, 안녕하세요</p>
           <h1 class="summary-title" id="welcomeTitle"></h1>
           <p class="summary-email" id="welcomeEmail"></p>
+        </div>
+        <!-- 완료된 케어가 1건 이상일 때만 보여줍니다(0회 뱃지는 오히려 빈 느낌을 줘서) — updateUsageBadge() 참고 -->
+        <div class="summary-usage" id="summaryUsageBadge" hidden>
+          <span class="summary-usage-label">누적 이용</span>
+          <b class="summary-usage-count" id="summaryUsageCount">0</b>
+          <span class="summary-usage-unit">회</span>
         </div>
       </section>
 
@@ -2362,6 +2377,18 @@
       }
     }
 
+    // 상단 요약 박스 우측의 '누적 이용 N회' 뱃지: 지금까지 '완료'로 확인된 신청 건수만 셉니다(로딩/조회 실패로
+    // apps 가 비어 있는 순간에 0으로 깜빡이지 않도록, renderCare() 가 실제 목록을 받았을 때만 갱신합니다).
+    function updateUsageBadge(apps) {
+      const badge = document.getElementById('summaryUsageBadge');
+      const countEl = document.getElementById('summaryUsageCount');
+      // 'done'(케어 완료, 아직 보호자 확인 전)과 'confirmed'(보호자가 이용 완료까지 확인) 둘 다 '실제로 이용한
+      // 건'입니다 — 달력 쪽 monthDoneCount 와 같은 기준(effectiveStatusInfo().tone)을 씁니다.
+      const count = apps.filter((a) => ['done', 'confirmed'].includes(effectiveStatusInfo(a).tone)).length;
+      countEl.textContent = count;
+      badge.hidden = count === 0; // 아직 완료된 이용이 없으면 빈 느낌만 주므로 숨김
+    }
+
     // 신청 내역이 있으면 카드 목록, 없을 때만 '동행 서비스 신청하기' 빈 상태를 보여줌
     function renderCare(applications) {
       const body = document.getElementById('careBody');
@@ -2370,6 +2397,7 @@
       const apps = applications || [];
       console.log('Final Render Data:', apps); // 화면에 실제로 그려지는 신청 목록 (담당 매니저 정보 포함)
       lastCareApps = apps;
+      updateUsageBadge(apps);
       body.textContent = '';
       moreBtn.hidden = apps.length === 0;
       badge.hidden = false; // 아래에서 필요할 때만 숨김 (다시 그릴 때 숨김 상태가 남지 않도록)
