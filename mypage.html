@@ -40,15 +40,15 @@
       --ink-body: #4B5563;  /* gray-600: 본문 · 라벨 */
       --ink-sub: #6B7280;   /* 보조 · 안내 문구 (gray-500) — 기존 #8B95A1 은 명도비가 낮아 gray-500 이상으로 상향 */
       --ink-muted: #B0B8C1;
-      --bg: #F2F4F6;
+      --bg: #F4F5F7;       /* 토스 스타일: 부드러운 연회색 배경 — 흰 카드가 도드라져 보이게 */
       --card: #FFFFFF;
-      --card-border: #EEF1F4;
+      --card-border: #F1F2F4; /* 테두리보다 그림자로 카드 경계를 표현(토스 감성) — 거의 안 보이는 헤어라인만 남김 */
       --line: #EEF1F4;
       --danger: #D64545;
       --radius: 24px;      /* rounded-3xl */
-      --radius-sm: 16px;   /* rounded-2xl */
-      --shadow-card: 0 2px 14px rgba(15, 23, 42, .05);
-      --shadow-card-hover: 0 6px 20px rgba(15, 23, 42, .08);
+      --radius-sm: 18px;   /* rounded-2xl */
+      --shadow-card: 0 4px 20px rgba(0, 0, 0, .04);
+      --shadow-card-hover: 0 10px 28px rgba(0, 0, 0, .07);
 
       /* 주요 CTA 버튼(전체 사이트 공통): 톤다운된 시그니처 그린 하나로 통일 */
       --cta: #047857;        /* emerald-700 */
@@ -93,30 +93,34 @@
     [hidden] { display: none !important; }
 
     /* ---------- 레이아웃 (mypage-manager.html 과 동일한 폭 · 패딩 · 배경) ---------- */
-    .mp-main { max-width: 1100px; margin: 0 auto; padding: 32px 24px 72px; }
+    .mp-main { max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; }
     .mp-loading { padding: 120px 0; text-align: center; color: var(--ink-sub); }
-    .mp-stack { display: flex; flex-direction: column; gap: 24px; }
+    .mp-stack { display: flex; flex-direction: column; gap: 28px; }
     /* 케어 현황(Main 5) : 어르신 프로필 관리(Sidebar 3) — 데스크톱 2컬럼 대시보드 그리드 (약 62.5% : 37.5%) */
     .dash-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 3fr); gap: 24px; align-items: start; }
     .dash-main, .dash-side { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
 
     .card {
       background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius);
-      padding: 24px; box-shadow: var(--shadow-card);
+      padding: 28px; box-shadow: var(--shadow-card);
     }
-    .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
-    .card-title { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
+    .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
+    .card-title { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -0.03em; }
     .badge {
       display: inline-block; padding: 4px 12px; border-radius: 9999px;
       background: var(--neutral-badge-bg); color: var(--neutral-badge-fg); font-size: 12.5px; font-weight: 500; white-space: nowrap;
     }
     /* '진행 중'(예정된 케어가 실제로 진행 중일 때)만 유일하게 활성 그린 — 나머지 뱃지는 모두 위 무채색 기본값 */
-    .badge.is-live { background: var(--active-badge-bg); color: var(--active-badge-fg); border: 1px solid var(--active-badge-border); font-weight: 700; }
+    .badge.is-live {
+      display: inline-flex; align-items: center; gap: 5px; padding-left: 10px;
+      background: var(--active-badge-bg); color: var(--active-badge-fg); border: 1px solid var(--active-badge-border); font-weight: 700;
+    }
+    .badge.is-live::before { content: ''; flex: none; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
     .badge.is-demo { background: var(--earth-bg); color: var(--earth-fg); }
 
     .btn {
       display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-      padding: 13px 22px; border: none; border-radius: 9999px;
+      padding: 13px 22px; border: none; border-radius: 14px;
       background: var(--cta); color: #fff; font-size: 14.5px; font-weight: 700;
       text-decoration: none; cursor: pointer; box-shadow: var(--cta-shadow);
       transition: background .15s, transform .15s, box-shadow .15s;
@@ -129,7 +133,7 @@
     /* 케어 완료 카드의 [확인 및 이용 완료]: 다른 카드 안 버튼(리포트 확인 등)과 확실히 구분되는 진한 그린 CTA */
     .btn-confirm {
       background: #2B593A; color: #fff; font-weight: 700; padding: 10px 20px;
-      border-radius: 8px; box-shadow: none;
+      border-radius: 12px; box-shadow: none;
     }
     .btn-confirm:hover { background: #35704A; box-shadow: 0 6px 16px rgba(43, 89, 58, .32); }
 
@@ -179,8 +183,8 @@
     .app-more-btn.is-open .chevron { transform: rotate(180deg); }
     /* 이전엔 그림자 한 겹만 있어 입체감이 희미했습니다 — 테두리를 살짝 또렷하게 하고, 가장자리를 잡아주는
        얇은 1px 그림자와 은은하게 퍼지는 넓은 그림자를 겹쳐 카드가 배경 위에 확실히 떠 보이게 합니다. */
-    .app-card { padding: 24px; background: #fff; border: 1px solid #E5E7EB; border-radius: var(--radius); box-shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 8px 20px rgba(15, 23, 42, .06); transition: box-shadow .15s ease; }
-    .app-card:hover { box-shadow: 0 1px 2px rgba(15, 23, 42, .06), 0 12px 28px rgba(15, 23, 42, .09); }
+    .app-card { padding: 26px; background: #fff; border: 1px solid var(--card-border); border-radius: var(--radius); box-shadow: var(--shadow-card); transition: box-shadow .15s ease; }
+    .app-card:hover { box-shadow: var(--shadow-card-hover); }
     .app-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
     .app-title { display: flex; align-items: center; gap: 10px; min-width: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.02em; word-break: keep-all; color: var(--ink); } /* 서비스명이 카드에서 가장 먼저 눈에 띄도록 한 단계 더 크고 진하게 */
     /* 서비스 카테고리 뱃지: 대괄호 텍스트('[병원]') 대신 SVG 아이콘 + 라벨을 담은 독립된 pill 뱃지로 분리합니다.
@@ -192,7 +196,12 @@
       font-size: 12px; font-weight: 500; letter-spacing: -0.01em; white-space: nowrap;
     }
     .app-icon svg { flex: 0 0 auto; }
-    .app-tag { flex: 0 0 auto; padding: 5px 13px; border-radius: 9999px; font-size: 12.5px; font-weight: 500; white-space: nowrap; }
+    .app-tag {
+      flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; padding: 5px 13px 5px 11px;
+      border-radius: 9999px; font-size: 12.5px; font-weight: 500; white-space: nowrap;
+    }
+    /* 상태 도트: 뱃지 텍스트와 같은 색(currentColor)을 그대로 써서 톤별로 따로 지정할 필요가 없습니다 */
+    .app-tag::before { content: ''; flex: none; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
     /* 접수 대기 · 상담 완료 · 케어 완료 · 최종 확인 · 취소 — 지금 당장 진행 중은 아닌 상태는 모두 같은 무채색 뱃지로 */
     .app-tag.tone-wait, .app-tag.tone-info, .app-tag.tone-done, .app-tag.tone-confirmed, .app-tag.tone-cancel {
       background: var(--neutral-badge-bg); color: var(--neutral-badge-fg);
@@ -248,7 +257,7 @@
     .progress-text.is-pending { color: var(--ink-sub); font-weight: 500; }
     .progress-view-btn {
       flex-shrink: 0; border: 1px solid var(--brand-line); color: var(--brand-dark); background: #fff;
-      padding: 5px 12px; border-radius: 9999px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: background-color .15s;
+      padding: 5px 12px; border-radius: 10px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: background-color .15s;
     }
     .progress-view-btn:hover { background: var(--brand-soft); }
 
@@ -330,11 +339,11 @@
     .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
     /* 좌측 '케어 현황'의 .app-card 와 여백·모서리 곡률·그림자를 그대로 맞춰 사이드바도 같은 무게의 카드로 보이게 함 */
     .list-item {
-      padding: 24px; background: #fff; border: 1px solid #E5E7EB; border-radius: var(--radius);
-      box-shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 8px 20px rgba(15, 23, 42, .06);
+      padding: 26px; background: #fff; border: 1px solid var(--card-border); border-radius: var(--radius);
+      box-shadow: var(--shadow-card);
       transition: box-shadow .15s ease;
     }
-    .list-item:hover { box-shadow: 0 1px 2px rgba(15, 23, 42, .06), 0 12px 28px rgba(15, 23, 42, .09); }
+    .list-item:hover { box-shadow: var(--shadow-card-hover); }
     .senior-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
     .senior-name { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); margin-right: auto; } /* 카드에서 가장 먼저 눈에 띄도록 app-title 과 같은 무게로 */
     .senior-age { font-size: 12.5px; font-weight: 500; color: var(--neutral-badge-fg); background: var(--neutral-badge-bg); padding: 3px 11px; border-radius: 9999px; white-space: nowrap; }
@@ -470,7 +479,7 @@
     .receipt-link:hover { color: var(--ink); }
     .btn-outline-emerald {
       display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--brand-line); color: var(--brand-dark); background: #fff;
-      padding: 6px 12px; border-radius: 6px; font-size: 13.5px; font-weight: 500; cursor: pointer; transition: background-color .15s;
+      padding: 6px 12px; border-radius: 10px; font-size: 13.5px; font-weight: 500; cursor: pointer; transition: background-color .15s;
     }
     .btn-outline-emerald:hover { background: var(--brand-soft); }
     @media (max-width: 860px) {
