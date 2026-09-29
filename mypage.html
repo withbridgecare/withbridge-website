@@ -207,10 +207,11 @@
     /* 보호자의 확인·결정이 필요한 제안 상태만 예외적으로 경고색(earth) 유지 — 아래 .propose-box 와 짝을 이루는
        의도적 알림 색상이라, 무채색으로 묻히면 놓치기 쉬워 그대로 둡니다. */
     .app-tag.tone-propose { background: var(--earth-bg); color: var(--earth-fg); }
-    .app-kv { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 9px 14px; margin: 0 0 16px; font-size: 14.5px; }
+    /* 라벨 칸 너비는 가장 긴 라벨인 '어르신과의 관계'(아이콘 포함)가 줄바꿈 없이 한 줄에 들어가는 기준(136px)으로 잡습니다 */
+    .app-kv { display: grid; grid-template-columns: 136px minmax(0, 1fr); gap: 9px 14px; margin: 0 0 16px; font-size: 14.5px; }
     /* 라벨(dt)은 또렷한 회색(gray-600) + medium, 아이콘은 그보다 한 톤 연한 gray-500 — 값(dd)은 gray-900 +
        semibold 로 확실히 대비를 줘서 실제 데이터가 먼저 눈에 들어오게 합니다 */
-    .app-kv dt { display: flex; align-items: center; gap: 6px; color: #4B5563; font-weight: 500; }
+    .app-kv dt { display: flex; align-items: center; gap: 6px; color: #4B5563; font-weight: 500; white-space: nowrap; }
     .app-kv dt svg { flex: 0 0 auto; color: #6B7280; }
     .app-kv dd { margin: 0; color: #111827; font-weight: 600; word-break: keep-all; overflow-wrap: anywhere; }
     .app-kv dd.note { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; color: #4B5563; font-weight: 500; }
@@ -568,7 +569,6 @@
       .dash-grid, .dash-main, .dash-side { gap: 16px; }
       .summary-title { font-size: 22px; }
       .app-card { padding: 18px 16px; }
-      .app-kv { grid-template-columns: 100px minmax(0, 1fr); }
       /* 라벨 텍스트 상태 바: 좁은 화면에서는 두 줄로 자연스럽게 접히도록 글자만 살짝 줄입니다
          (레이아웃 자체는 기본 .stepper 의 flex-wrap 이 그대로 처리) */
       .step { font-size: 12.5px; padding: 10px 4px 9px; min-width: 72px; }
