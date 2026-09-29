@@ -13,6 +13,8 @@
   <!-- 공통 Supabase 클라이언트 + 헤더 로그인 상태. SDK 뒤에 로드해야 합니다 -->
   <script src="/js/auth-header.js?v=1.0" charset="utf-8"></script>
 <script src="/js/terms-modal.js?v=1.0" charset="utf-8" defer></script>
+  <!-- 카카오(다음) 우편번호 서비스: 출발지/목적지 주소를 자유 입력 대신 정식 도로명·지번 주소로 선택하게 함 -->
+  <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
   <style>
     :root {
       --brand: #78866B;
@@ -174,6 +176,17 @@
     .route-row { display: flex; gap: 10px; flex-wrap: wrap; }
     .sub-field { flex: 1 1 220px; min-width: 0; }
     .sub-label { display: block; margin: 0 0 6px; font-size: 13px; font-weight: 700; color: var(--ink-sub); }
+    /* 주소 검색(카카오 우편번호) 행: 읽기 전용 기본 주소 input + [주소 검색] 버튼 */
+    .addr-search-row { display: flex; gap: 8px; }
+    .addr-search-row .text-input { flex: 1 1 auto; min-width: 0; background: #F7F8F5; cursor: pointer; }
+    .addr-search-row .text-input::placeholder { color: var(--ink-sub); }
+    .addr-search-btn {
+      flex: none; padding: 0 18px; min-height: 48px; border: 1px solid var(--accent); border-radius: 12px;
+      background: var(--brand-soft); color: var(--brand-dark); font-size: 14px; font-weight: 700;
+      cursor: pointer; white-space: nowrap; transition: background-color .15s;
+    }
+    .addr-search-btn:hover { background: var(--brand-line); }
+    .route-detail { margin-top: 8px; }
 
     .err { margin: 8px 2px 0; font-size: 13.5px; color: var(--danger); }
     .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; } /* 스팸 봇 함정 (사람에게는 안 보임) */
@@ -436,11 +449,21 @@
           <div class="route-row">
             <div class="sub-field">
               <label class="sub-label" for="routeOrigin">출발지 (자택 등)</label>
-              <input class="text-input" type="text" id="routeOrigin" name="routeOrigin" maxlength="120" autocomplete="off" placeholder="도로명 주소 또는 동/건물명을 입력해 주세요">
+              <div class="addr-search-row">
+                <input class="text-input" type="text" id="routeOrigin" name="routeOrigin" readonly autocomplete="off" placeholder="주소 검색 버튼을 눌러 주소를 선택해 주세요">
+                <button type="button" class="addr-search-btn" id="btnSearchOrigin">주소 검색</button>
+              </div>
+              <input class="text-input route-detail" type="text" id="routeOriginDetail" name="routeOriginDetail" maxlength="60" autocomplete="off" placeholder="상세 주소 (동/호수 등)">
+              <input type="hidden" id="routeOriginZip" name="routeOriginZip">
             </div>
             <div class="sub-field">
               <label class="sub-label" for="routeDestination" id="routeDestLabel">목적지 (병원명)</label>
-              <input class="text-input" type="text" id="routeDestination" name="routeDestination" maxlength="120" autocomplete="off" placeholder="예: 길병원">
+              <div class="addr-search-row">
+                <input class="text-input" type="text" id="routeDestination" name="routeDestination" readonly autocomplete="off" placeholder="예: 길병원">
+                <button type="button" class="addr-search-btn" id="btnSearchDestination">병원/목적지 검색</button>
+              </div>
+              <input class="text-input route-detail" type="text" id="routeDestinationDetail" name="routeDestinationDetail" maxlength="60" autocomplete="off" placeholder="상세 위치 (진료과, 층수 등)">
+              <input type="hidden" id="routeDestinationZip" name="routeDestinationZip">
             </div>
           </div>
           <p class="hint" id="routeHint" hidden></p>
@@ -653,7 +676,6 @@
     const SERVICES = {
       '시니어 병원 동행': {
         price: 44000,
-        originPlaceholder: '도로명 주소 또는 동/건물명을 입력해 주세요',
         destLabel: '목적지 (병원명)',
         destPlaceholder: '예: 길병원',
         routeHint: '방문하실 병원의 정확한 이름을 적어 주시면 매칭에 도움이 돼요.',
@@ -661,7 +683,6 @@
       },
       '생활 편의 대행': {
         price: 36000,
-        originPlaceholder: '도로명 주소 또는 동/건물명을 입력해 주세요',
         destLabel: '목적지 (방문 장소·업무)',
         destPlaceholder: '방문할 병원, 관공서, 은행명을 입력해 주세요',
         routeHint: '방문 장소(관공서·은행·마트 등)와 간단한 업무를 적어 주세요. 자세한 내용은 아래 ‘요청 상세 내용’에 적어 주셔도 좋아요.',
@@ -669,7 +690,6 @@
       },
       '복합 매칭 서비스 (동행 + 생활편의)': {
         price: 50000,
-        originPlaceholder: '도로명 주소 또는 동/건물명을 입력해 주세요',
         destLabel: '목적지 (병원 → 이후 방문 장소)',
         destPlaceholder: '예: 길병원 → 약국 → 우리은행',
         routeHint: '병원 진료 후 들르실 곳(약국·은행·마트 등)을 순서대로 적어 주세요.',
@@ -678,7 +698,6 @@
     };
     const SERVICE_NAMES = Object.keys(SERVICES);
     const DEFAULT_TEXT = {
-      originPlaceholder: '도로명 주소 또는 동/건물명을 입력해 주세요',
       destLabel: '목적지 / 방문 장소',
       destPlaceholder: '예: 방문하실 병원명 또는 장소',
       detailsPlaceholder: '예: 진료과, 장보기 목록, 은행 업무 등 구체적인 요청을 적어 주세요.'
@@ -708,7 +727,6 @@
       if (!svc) { // 아직 선택 전 (또는 알 수 없는 값)
         fee.className = 'fee-box is-empty';
         fee.textContent = '서비스를 선택하시면 총 예상 금액이 표시됩니다.';
-        $('routeOrigin').placeholder = DEFAULT_TEXT.originPlaceholder;
         $('routeDestLabel').textContent = DEFAULT_TEXT.destLabel;
         $('routeDestination').placeholder = DEFAULT_TEXT.destPlaceholder;
         $('details').placeholder = DEFAULT_TEXT.detailsPlaceholder;
@@ -728,7 +746,6 @@
       note.textContent = '* 시간 초과, 주말·야간 할증, 교통비 등 실비는 별도이며 확정 요금은 확인 전화에서 안내드립니다.';
       fee.append(main, note);
 
-      $('routeOrigin').placeholder = svc.originPlaceholder;
       $('routeDestLabel').textContent = svc.destLabel;
       $('routeDestination').placeholder = svc.destPlaceholder;
       $('details').placeholder = svc.detailsPlaceholder;
@@ -756,6 +773,40 @@
 
     // 화면의 입력값 (검증·완료 화면에 쓰는 '화면 기준' 이름).
     // (요금은 화면 안내용이라 저장하지 않습니다 — 서비스 이름만 저장하고 요금은 확인 전화에서 확정)
+    // ---------- 카카오(다음) 우편번호 서비스: 출발지/목적지 주소 검색 ----------
+    // 기본 주소 input 은 readonly 라 이 팝업을 통해서만 채워집니다 — 사용자가 임의로 고치거나 장난 값을
+    // 넣을 수 없고, 매니저가 나중에 이 주소로 실시간 GPS 거리 비교(지오펜싱)를 하므로 정식 주소여야 합니다.
+    function combineAddress(base, detail) {
+      const b = String(base || '').trim();
+      const d = String(detail || '').trim();
+      return d ? (b ? b + ' ' + d : d) : b;
+    }
+    // kind: 'origin' | 'destination' — 각각 base/detail/zip input id 접두어가 다르므로 설정만 다르게 받습니다.
+    function openAddressSearch(kind) {
+      if (typeof daum === 'undefined' || !daum.Postcode) {
+        alert('주소 검색 서비스를 불러오지 못했어요. 네트워크 상태를 확인하고 새로고침 후 다시 시도해 주세요.');
+        return;
+      }
+      const baseId = kind === 'origin' ? 'routeOrigin' : 'routeDestination';
+      new daum.Postcode({
+        oncomplete: function (data) {
+          // roadAddress(도로명 주소)를 우선 쓰고, 도로명 주소가 없는 예전 건물이면 jibunAddress(지번 주소)로 대체
+          const address = data.roadAddress || data.jibunAddress || '';
+          $(baseId).value = address;
+          $(baseId + 'Zip').value = data.zonecode || '';
+          $('f-route').classList.remove('has-error');
+          $('e-route').hidden = true;
+          // 주소를 고르고 나면 바로 상세 주소(동/호수, 진료과 등)를 입력할 수 있게 커서를 옮겨 줍니다
+          $(baseId + 'Detail').focus();
+        }
+      }).open();
+    }
+    $('btnSearchOrigin').addEventListener('click', () => openAddressSearch('origin'));
+    $('btnSearchDestination').addEventListener('click', () => openAddressSearch('destination'));
+    // 기본 주소 input 자체를 클릭해도(버튼을 안 눌러도) 같은 팝업이 뜨도록 — readonly 라 텍스트 커서 대신 바로 검색으로 연결
+    $('routeOrigin').addEventListener('click', () => openAddressSearch('origin'));
+    $('routeDestination').addEventListener('click', () => openAddressSearch('destination'));
+
     function readForm() {
       const radio = (name) => { const el = form.querySelector('input[name="' + name + '"]:checked'); return el ? el.value : ''; };
       const desiredDate = $('datetimeDate').value;
@@ -768,8 +819,13 @@
         desired_date: desiredDate,
         desired_time: desiredTime,
         desired_datetime: formatDesiredDateTime(desiredDate, desiredTime),
-        route_origin: $('routeOrigin').value.trim(),
-        route_destination: $('routeDestination').value.trim(),
+        // route_origin_base/route_destination_base: 카카오 우편번호 팝업으로 선택한 정식 주소만 담깁니다
+        // (input 이 readonly 라 직접 타이핑으로는 채울 수 없음) — validate() 가 이 값으로 '정식 주소 선택 여부'를 확인합니다.
+        route_origin_base: $('routeOrigin').value.trim(),
+        route_destination_base: $('routeDestination').value.trim(),
+        // route_origin/route_destination: 실제 저장에 쓰는 합쳐진 주소(기본 주소 + 상세 주소)
+        route_origin: combineAddress($('routeOrigin').value, $('routeOriginDetail').value),
+        route_destination: combineAddress($('routeDestination').value, $('routeDestinationDetail').value),
         request_details: $('details').value.trim() || null,
         mobility: radio('mobility'),
         privacy_consent: $('consent').checked,
@@ -830,8 +886,9 @@
         const today = new Date(); today.setHours(0, 0, 0, 0);
         if (chosen < today) errors.datetime = '오늘 이후의 날짜를 선택해 주세요.';
       }
-      if (!v.route_origin) errors.route = '출발지(자택 등)를 입력해 주세요.';
-      else if (!v.route_destination) errors.route = '목적지(방문하실 병원·장소)를 입력해 주세요.';
+      // 기본 주소는 readonly(카카오 우편번호 팝업으로만 채워짐)이므로, 비어 있다는 것은 검색을 아직
+      // 안 했다는 뜻입니다 — 상세 주소만 적고 기본 주소를 건너뛰는 것을 막습니다.
+      if (!v.route_origin_base || !v.route_destination_base) errors.route = '주소 검색 버튼을 통해 정식 주소를 입력해주세요.';
       if (!MOBILITIES.includes(v.mobility)) errors.mobility = '어르신의 거동 상태를 선택해 주세요.';
       if (!v.terms_agreement) errors.terms = '이용약관에 동의해 주셔야 신청할 수 있어요.';
       if (!v.privacy_consent) errors.consent = '개인정보 수집 및 이용에 동의해 주셔야 신청할 수 있어요.';
@@ -908,6 +965,7 @@
       const values = readForm();
       const errors = validate(values);
       showErrors(errors);
+      if (errors.route) alert(errors.route); // 주소 검색을 건너뛴 경우: 인라인 안내와 별도로 경고창도 띄워 확실히 알림
       if (Object.keys(errors).length) return;
 
       // 스팸 봇 함정에 값이 있으면 전송하지 않고 성공한 것처럼 처리
