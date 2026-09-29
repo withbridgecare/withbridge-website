@@ -992,23 +992,29 @@
         geocodeAddress(values.route_origin), geocodeAddress(values.route_destination)
       ]);
       const row = toDbRow(values, originPoint, destPoint);
-      const userId = await resolveUserId();
+      // applicant_email: user_id 와 같은 getUser() 호출에서 나온, 서버가 아는 로그인 계정의 이메일입니다.
+      // user_id 연결이 이런저런 이유로 끊겨도(아래 42501 폴백, 또는 이후 어떤 원인으로든) 마이페이지가
+      // '인증된 이메일 일치'로 이 신청을 다시 찾을 수 있는 보조 경로입니다(service_applications_select_own
+      // 정책 참고). 인증 여부는 서버(my_verified_email())가 조회 시점에 다시 확인하므로 여기서는 그대로 보냅니다.
+      const { id: userId, email: applicantEmail } = await resolveIdentity();
       const applicationId = newUuid();
       const insertRow = (r) => supabaseClient.from('service_applications').insert([r]);
       let linkedToAccount = !!userId;
-      let { error } = await insertRow(userId ? { ...row, user_id: userId } : { ...row, id: applicationId });
+      let { error } = await insertRow(Object.assign({}, row, { applicant_email: applicantEmail },
+        userId ? { user_id: userId } : { id: applicationId }));
       if (error && userId && error.code === '42501') {
         console.warn('[신청] user_id 를 포함한 저장이 DB 권한(42501)으로 거부되어 user_id 없이 저장합니다. 로그인 후 자동 연결로 보완됩니다. ' +
                      '→ supabase-claim-applications.sql 을 실행하세요. 오류:', error.message);
         linkedToAccount = false;
-        ({ error } = await insertRow({ ...row, id: applicationId }));
+        ({ error } = await insertRow(Object.assign({}, row, { applicant_email: applicantEmail, id: applicationId })));
       }
       if (error && NOT_READY_CODES.includes(error.code)) {
-        // origin_lat/origin_lng/destination_lat/destination_lng 컬럼이 아직 DB 에 없는 경우(Task B 마이그레이션
-        // 미실행) — 신청 자체를 막지 않도록 그 4개 필드를 빼고 한 번 더 시도합니다.
-        console.warn('[신청] 좌표 컬럼이 DB 에 없어(42703/PGRST204) 좌표 없이 다시 저장합니다. → supabase-address-coordinates.sql 을 실행하세요. 오류:', error.message);
+        // origin_lat/origin_lng/destination_lat/destination_lng, applicant_email 컬럼이 아직 DB 에 없는 경우
+        // (최신 마이그레이션 미실행) — 신청 자체를 막지 않도록 그 필드들을 빼고 한 번 더 시도합니다.
+        console.warn('[신청] 좌표/이메일 컬럼이 DB 에 없어(42703/PGRST204) 그 컬럼들 없이 다시 저장합니다. → sql/supabase_schema_latest.sql 을 실행하세요. 오류:', error.message);
         const { origin_lat, origin_lng, destination_lat, destination_lng, ...rowWithoutCoords } = row;
-        ({ error } = await insertRow(linkedToAccount ? { ...rowWithoutCoords, user_id: userId } : { ...rowWithoutCoords, id: applicationId }));
+        ({ error } = await insertRow(Object.assign({}, rowWithoutCoords,
+          linkedToAccount ? { user_id: userId } : { id: applicationId })));
       }
       if (!error) {
         console.log('[신청] 저장됨:', { application_id: linkedToAccount ? '(서버 생성)' : applicationId, user_id: linkedToAccount ? userId : null });
@@ -1040,18 +1046,22 @@
     });
 
     // ---------- 로그인 확인 · 비로그인 신청 기억 ----------
-    // 로그인한 사용자 id. getUser() 는 서버에 토큰을 확인하므로 만료·무효 세션은 '비로그인'으로 걸러지고,
+    // 로그인한 사용자 id + 이메일. getUser() 는 서버에 토큰을 확인하므로 만료·무효 세션은 '비로그인'으로 걸러지고,
     // 네트워크 문제로 확인이 안 될 때만 저장된 세션(getSession)으로 대신합니다.
-    async function resolveUserId() {
+    //  * email 은 여기서 '인증됨' 여부를 따지지 않고 그대로 돌려줍니다 — service_applications.applicant_email 에
+    //    저장해 두면, 나중에 마이페이지가 조회할 때 서버(my_verified_email(), auth.users.email_confirmed_at 기준)가
+    //    실제로 인증된 이메일인지 다시 확인하므로 여기서 다시 검증할 필요가 없습니다.
+    async function resolveIdentity() {
       try {
         const { data: { user }, error } = await supabaseClient.auth.getUser();
-        if (user && user.id) return user.id;
-        if (!error || error.name !== 'AuthRetryableFetchError') return null; // 로그인하지 않았거나 세션이 무효
+        if (user && user.id) return { id: user.id, email: user.email || null };
+        if (!error || error.name !== 'AuthRetryableFetchError') return { id: null, email: null }; // 로그인하지 않았거나 세션이 무효
       } catch (e) { /* 아래에서 저장된 세션으로 대체 */ }
       try {
         const { data: { session } } = await supabaseClient.auth.getSession();
-        return (session && session.user && session.user.id) || null;
-      } catch (e) { return null; }
+        const u = session && session.user;
+        return { id: (u && u.id) || null, email: (u && u.email) || null };
+      } catch (e) { return { id: null, email: null }; }
     }
 
     // 브라우저에서 미리 만드는 신청서 id (서버 기본값과 같은 UUID 형식). 비로그인 신청을 나중에 계정에 연결할 때 사용

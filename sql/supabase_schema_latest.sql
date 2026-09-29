@@ -478,6 +478,12 @@ language sql stable security definer set search_path = public as $$
   where u.id = auth.uid() and u.email is not null and u.email_confirmed_at is not null
 $$;
 revoke all on function public.my_verified_email() from public, anon, authenticated;
+-- ★ 원래는 다른 SECURITY DEFINER 함수(is_my_care_schedule 등) 안에서만 호출돼 함수 소유자 권한으로
+-- 실행됐지만, 이제 service_applications 의 RLS 정책 식에서 '조회하는 로그인 사용자' 권한으로 직접 호출하므로
+-- EXECUTE 를 authenticated 에 다시 열어야 합니다 — 안 열면 모든 보호자 조회가
+-- "permission denied for function my_verified_email" 로 막힙니다(is_my_care_schedule 때 겪었던 것과 같은
+-- 종류의 문제, supabase-fix-is-my-care-schedule-grant.sql 참고). auth.uid() 로만 판단하는 함수라 열어도 안전합니다.
+grant execute on function public.my_verified_email() to authenticated;
 
 -- (A)/(B) 경로만 확인하는 원래 헬퍼 — mark_care_report_read() 등 다른 곳에서도 쓰이므로 시그니처 유지
 create or replace function public.is_my_care_schedule(p_guardian_id uuid, p_guardian_email text)
@@ -580,15 +586,25 @@ alter table public.service_applications add column if not exists origin_lng doub
 alter table public.service_applications add column if not exists destination_lat double precision;
 alter table public.service_applications add column if not exists destination_lng double precision;
 
+-- 신청자 이메일 스냅샷: user_id 연결이 어떤 이유로든 끊긴 신청(예: DB 권한 문제로 user_id 없이 저장된
+-- 폴백 경로)도 로그인한 계정의 '인증된' 이메일로 다시 찾을 수 있도록 하는 보조 식별자입니다.
+-- care_schedules.guardian_email 과 같은 목적의 같은 패턴이며, is_my_care_schedule() 이 이미 쓰는
+-- my_verified_email() 을 그대로 재사용합니다. apply.html 은 로그인 상태에서만(서버가 확인한 이메일만)
+-- 이 값을 채우고, 사용자가 직접 입력한 이메일은 절대 신뢰하지 않습니다.
+alter table public.service_applications add column if not exists applicant_email text;
+
 create index if not exists service_applications_open_idx
   on public.service_applications (created_at) where manager_id is null;
 
 alter table public.service_applications enable row level security;
 
--- 보호자: 내 신청만
+-- 보호자: 내 신청(user_id) + 인증된 이메일이 일치하는 신청(user_id 연결이 끊긴 경우의 보조 경로)
 drop policy if exists service_applications_select_own on public.service_applications;
 create policy service_applications_select_own on public.service_applications
-  for select to authenticated using (auth.uid() = user_id);
+  for select to authenticated using (
+    auth.uid() = user_id
+    or (applicant_email is not null and lower(btrim(applicant_email)) = public.my_verified_email())
+  );
 
 -- 매니저: 아직 아무도 수락하지 않은 접수 대기 신청만 (인증된 매니저 한정)
 create or replace function public.is_pending_application_status(p_status text) returns boolean
