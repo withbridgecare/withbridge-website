@@ -13,62 +13,6 @@
   <!-- 공통 Supabase 클라이언트 + 매니저 자격 확인(checkIsManager). SDK 뒤에 로드해야 합니다 -->
   <script src="/js/auth-header.js?v=1.0" charset="utf-8"></script>
 <script src="/js/terms-modal.js?v=1.0" charset="utf-8" defer></script>
-  <!-- 카카오지도 JS SDK: 출발/도착 위치 인증 모달의 미니 지도(현재 위치·출발지/목적지 마커 + 연결선)에 씁니다.
-       ⚠ 이 아래 KAKAO_JS_KEY 는 REST API 키(geocodeAddress 등에 쓰는 KAKAO_REST_API_KEY)와 완전히 다른
-       키입니다 — https://developers.kakao.com → 내 애플리케이션 → [앱 키]의 'JavaScript 키'를 복사해서
-       아래 KAKAO_JS_KEY 에 붙여넣고, [플랫폼] → [Web] 에 이 사이트 도메인을 등록해야 지도가 뜹니다
-       (등록하지 않으면 콘솔에 도메인 오류가 뜨고, 아래 지도 영역은 자동으로 숨겨진 채 나머지 인증 흐름은
-       그대로 동작합니다 — GPS 인증 자체는 지도 없이도 할 수 있어서 지도는 '있으면 좋은' 보조 기능입니다).
-       autoload=false 로 불러오고 kakao.maps.load() 로 필요한 시점에만 초기화합니다. -->
-  <script>
-    const KAKAO_JS_KEY = 'd4e5f004fe7750dd67ce15da3863f06c'; // 카카오 개발자 콘솔의 'JavaScript 키' (REST 키와 다름)
-    // window.kakaoMapSdkReady: SDK 로드 성공 여부(boolean)로 resolve 되는 공용 Promise.
-    // ⚠ 예전에는 본문 스크립트(waitForKakaoMaps)가 window.kakao 가 생겼는지 100ms 마다 최대 5초까지 '추측'
-    // 으로 폴링했는데, 그 방식은 스크립트 로드가 느리거나(느린 회선·확장 프로그램 간섭 등) 5초를 넘기면
-    // 실제로는 잠시 후 정상 로드되더라도 이미 '실패'로 확정해 대체 문구를 띄워버리는 구조적 문제가 있었습니다.
-    // 이 스크립트 태그 자체의 onload/onerror 이벤트로 성공/실패를 직접 감지하도록 바꿔서, 임의의 타임아웃 없이
-    // 실제로 로드가 끝나는 시점에 정확히 resolve 되게 했습니다.
-    window.kakaoMapSdkReady = new Promise((resolve) => {
-      if (!KAKAO_JS_KEY) { resolve(false); return; }
-      // 일시적인 네트워크 오류(광고 차단 확장 프로그램의 일회성 차단, 느린 회선 등)로 스크립트 로드가
-      // 실패하는 경우를 구제하기 위해 onerror 시 지수 백오프로 최대 KAKAO_SDK_MAX_RETRIES 번 재시도합니다.
-      // 재시도 시마다 쿼리에 _retry 값을 붙여 캐시된 실패 응답을 재사용하지 않도록 합니다.
-      const KAKAO_SDK_MAX_RETRIES = 2; // 최초 시도 포함 최대 3회 요청
-      const KAKAO_SDK_RETRY_BASE_DELAY_MS = 1000;
-      let attempt = 0;
-
-      function loadKakaoMapScript() {
-        const kakaoMapScript = document.createElement('script');
-        // protocol 을 'https:' 로 명시(프로토콜 상대 '//' URL 사용 금지) — 페이지가 file:// 등
-        // 비-https 컨텍스트에서 열리거나 프록시를 거칠 때도 항상 https 로만 SDK를 요청하게 합니다.
-        kakaoMapScript.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=' + KAKAO_JS_KEY + '&autoload=false'
-          + (attempt > 0 ? '&_retry=' + attempt : '');
-        kakaoMapScript.onload = () => {
-          if (window.kakao && window.kakao.maps && window.kakao.maps.load) {
-            window.kakao.maps.load(() => resolve(true));
-          } else {
-            console.error('[카카오지도] SDK 스크립트는 로드됐지만 kakao.maps.load 를 찾을 수 없습니다 — appkey/버전을 확인해 주세요.');
-            resolve(false);
-          }
-        };
-        kakaoMapScript.onerror = () => {
-          kakaoMapScript.remove();
-          if (attempt < KAKAO_SDK_MAX_RETRIES) {
-            attempt += 1;
-            const delay = KAKAO_SDK_RETRY_BASE_DELAY_MS * attempt;
-            console.warn(`[카카오지도] SDK 스크립트 로드 실패 — ${delay}ms 후 재시도합니다 (${attempt}/${KAKAO_SDK_MAX_RETRIES}).`);
-            setTimeout(loadKakaoMapScript, delay);
-          } else {
-            console.error('[카카오지도] SDK 스크립트를 불러오지 못했습니다(네트워크 차단·광고 차단 확장 프로그램 등을 확인해 주세요). URL:', kakaoMapScript.src);
-            resolve(false);
-          }
-        };
-        document.head.appendChild(kakaoMapScript);
-      }
-
-      loadKakaoMapScript();
-    });
-  </script>
   <style>
     :root {
       /* 위드브릿지 브랜드 컬러(#78866B, 세이지/올리브 그린) 단일 축을 중심으로 한 디자인 토큰.
@@ -757,23 +701,6 @@
     .dep-error { margin: 0; font-size: 12px; color: var(--danger); }
     .dep-photo-guide { margin: 6px 2px 0; font-size: 12px; color: var(--ink-soft, var(--ink-body)); line-height: 1.5; }
 
-    /* GPS 위치 인증 미니 지도 — 현재 위치(🔵)·출발지/목적지(🔴) 두 점과 그 사이 거리를 눈으로 바로 확인.
-       width/height 를 반드시 명시적 px 로 고정합니다 — 카카오맵 SDK 는 컨테이너가 생성되는 순간의 실제
-       크기(getBoundingClientRect)를 기준으로 타일을 그리는데, %/auto 처럼 부모 레이아웃에 따라 달라지는
-       값이면 모달이 아직 자리 잡기 전(0px)에 지도가 만들어져 회색 빈 박스로 굳어버릴 수 있습니다. */
-    .dep-map-box { margin-top: 10px; }
-    .dep-map {
-      width: 100%; height: 250px; min-height: 250px; border-radius: 12px; overflow: hidden;
-      border: 1px solid var(--card-border); background: var(--bg);
-      display: flex; align-items: center; justify-content: center; /* 지도 로드 실패 안내 문구용 */
-    }
-    .dep-map-fallback { padding: 0 16px; font-size: 12.5px; line-height: 1.6; color: var(--ink-sub); text-align: center; }
-    .dep-map-legend { display: flex; gap: 14px; margin: 6px 2px 0; font-size: 12px; color: var(--ink-sub); }
-    .dep-map-legend span { display: inline-flex; align-items: center; gap: 5px; }
-    .dep-map-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
-    .dep-map-dot.is-mine { background: #3B82F6; }   /* 파란색: 매니저 현재 GPS 위치 */
-    .dep-map-dot.is-target { background: #EF4444; } /* 빨간색: 출발지/목적지 좌표 */
-
     .dep-divider { position: relative; margin: 4px 0; text-align: center; }
     .dep-divider::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; border-top: 1px solid var(--card-border); }
     .dep-divider span { position: relative; background: #fff; padding: 0 10px; font-size: 11.5px; color: var(--ink-muted); }
@@ -1319,16 +1246,6 @@
             <span id="gps-address-text"></span>
           </div>
           <p id="gps-error-text" class="dep-error hidden"></p>
-          <!-- 카카오지도 미니 뷰: 모달이 열리면 바로 나타나는 높이 200px 지도 영역입니다(#map). '현재 위치
-               측정하기'로 위치 확인이 끝나면 파란 마커(현재 위치)·빨간 마커(출발지/목적지)와 연결선이 여기에
-               그려집니다 — 그 전에는 목적지만이라도 먼저 보여줍니다. -->
-          <div id="gps-map-box" class="dep-map-box">
-            <div id="gps-map" class="dep-map"></div>
-            <div class="dep-map-legend">
-              <span><span class="dep-map-dot is-mine"></span>현재 위치</span>
-              <span><span class="dep-map-dot is-target"></span><span id="gps-map-target-label"></span></span>
-            </div>
-          </div>
         </div>
 
         <!-- 구분선 -->
@@ -1668,127 +1585,6 @@
       return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
     }
 
-    // ---------- 출발/도착 인증 모달의 미니 지도 (카카오지도 JS SDK) ----------
-    // 현재 위치(🔵)·출발지/목적지 좌표(🔴)를 마커로, 그 사이를 Polyline 으로 이어서 거리를 눈으로 바로
-    // 확인할 수 있게 합니다. KAKAO_JS_KEY 가 비어 있거나 SDK 로드가 막혀 있으면(도메인 미등록 등) 지도
-    // 영역만 숨기고 나머지 GPS/사진 인증 흐름은 그대로 동작합니다 — 지도는 어디까지나 보조 시각화입니다.
-    // <head> 스크립트가 만들어 둔 window.kakaoMapSdkReady(로드 성공 시 true 로 resolve)를 그대로 씁니다 —
-    // 이 값 하나로 SDK 준비 여부를 판단하므로, 여기서 다시 폴링/타임아웃을 두지 않습니다.
-    function waitForKakaoMaps() {
-      if (!window.kakaoMapSdkReady) {
-        console.warn('[카카오지도] window.kakaoMapSdkReady 가 없습니다 — <head> 의 SDK 로더 스크립트가 이 스크립트보다 먼저 실행됐는지 확인해 주세요.');
-        return Promise.resolve(false);
-      }
-      return window.kakaoMapSdkReady.then((ok) => {
-        if (!ok) console.warn('[카카오지도] SDK 를 사용할 수 없습니다 — 지도 없이 GPS 인증은 계속 진행됩니다.');
-        return ok;
-      });
-    }
-
-    let depMap = null; // kakao.maps.Map 인스턴스(모달을 새로 열 때마다 다시 만들지 않고 재사용)
-    let depMapMine = null, depMapTarget = null, depMapLine = null; // 마커/선 — 새로 그릴 때마다 이전 것을 지웁니다
-    function dotMarkerImage(hexColor) {
-      const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22">' +
-        '<circle cx="11" cy="11" r="8" fill="' + hexColor + '" stroke="#fff" stroke-width="3"/></svg>';
-      return new kakao.maps.MarkerImage(
-        'data:image/svg+xml;base64,' + btoa(svg),
-        new kakao.maps.Size(22, 22),
-        { offset: new kakao.maps.Point(11, 11) }
-      );
-    }
-    // 지도를 아예 그릴 수 없을 때(KAKAO_JS_KEY 미설정, SDK 로드 실패 등) #gps-map 을 조용히 빈 회색 박스로
-    // 남겨두지 않고, 원인을 바로 알 수 있는 안내 문구를 넣어 둡니다. 실제로 키를 설정하면 이 문구 대신
-    // 지도가 그려집니다(initDepMapOnOpen/renderDepMap 이 매번 이 함수를 먼저 지워 줍니다).
-    function showDepMapFallback(message) {
-      const el = $('gps-map');
-      if (el) el.innerHTML = '<p class="dep-map-fallback">' + message + '</p>';
-    }
-    function clearDepMapFallback() {
-      const el = $('gps-map');
-      if (el && el.querySelector('.dep-map-fallback')) el.innerHTML = '';
-    }
-    // 모달이 열릴 때(openDepartureModal) 호출 — #gps-map(250px) 은 항상 보이는 요소라 GPS 측정 전에도 이미
-    // 지도가 그려져 있어야 합니다. DB에 미리 저장된 좌표(origin_lat/lng 또는 destination_lat/lng, Task B)가
-    // 있으면 그 자리에 목적지(빨간) 마커를 바로 찍어 두고, 아직 GPS 를 측정 전이라 현재 위치(파란 마커)는
-    // 없으므로 그 지점을 중심으로만 잡습니다. 여기서는 실시간 지오코딩을 하지 않습니다(모달이 열리자마자
-    // 네트워크 호출로 지연되지 않도록) — 좌표가 없으면 실제 GPS 인증 시점(btn-get-gps)에 한 번 더 시도합니다.
-    async function initDepMapOnOpen(schedule, step) {
-      const ready = await waitForKakaoMaps();
-      if (!ready) { showDepMapFallback('지도를 표시할 수 없어요.<br>(콘솔의 [카카오지도] 로그로 원인을 확인해 주세요)'); return; }
-      clearDepMapFallback();
-      const isDeparted = step.key === 'departed';
-      const stored = isDeparted
-        ? { lat: schedule.origin_lat, lng: schedule.origin_lng }
-        : { lat: schedule.destination_lat, lng: schedule.destination_lng };
-      const hasStored = typeof stored.lat === 'number' && typeof stored.lng === 'number';
-      // 좌표를 아직 모를 때의 중립적인 초기 중심(서울시청) — 인증 판정과는 무관하고 지도가 빈 화면으로
-      // 뜨지 않게 하기 위한 기본값일 뿐입니다.
-      const center = hasStored ? new kakao.maps.LatLng(stored.lat, stored.lng) : new kakao.maps.LatLng(37.5665, 126.9780);
-
-      if (!depMap) depMap = new kakao.maps.Map($('gps-map'), { center, level: 5 });
-      else depMap.setCenter(center);
-
-      if (depMapMine) { depMapMine.setMap(null); depMapMine = null; }
-      if (depMapLine) { depMapLine.setMap(null); depMapLine = null; }
-      if (depMapTarget) depMapTarget.setMap(null);
-      depMapTarget = hasStored
-        ? new kakao.maps.Marker({ map: depMap, position: center, image: dotMarkerImage('#EF4444'), title: isDeparted ? '출발지' : '목적지', zIndex: 2 })
-        : null;
-      $('gps-map-target-label').textContent = isDeparted ? '출발지' : '목적지';
-
-      // 모달이 display:none 에서 열리는(activation) 과정에서는 SDK 가 컨테이너의 실제 크기를 아직 못 읽어
-      // 회색 빈 지도로 굳는 경우가 흔합니다 — 모달이 화면에 완전히 자리 잡은 뒤(CSS 전환 포함) relayout() +
-      // setCenter() 를 다시 걸어주기 위해 setTimeout 으로 150ms 늦춥니다(한 애니메이션 프레임보다 넉넉하게).
-      setTimeout(() => {
-        if (!depMap) return;
-        depMap.relayout();
-        depMap.setCenter(center);
-      }, 150);
-    }
-    // GPS 인증 모달에 현재 위치·목표 좌표·둘 사이 거리를 지도로 그립니다(위치 확인 완료 시점, btn-get-gps).
-    async function renderDepMap(myLat, myLng, targetLat, targetLng, targetLabel, distanceM) {
-      const ready = await waitForKakaoMaps();
-      if (!ready) { showDepMapFallback('지도를 표시할 수 없어요.<br>(콘솔의 [카카오지도] 로그로 원인을 확인해 주세요)'); return; }
-      clearDepMapFallback();
-      $('gps-map-target-label').textContent = targetLabel + (typeof distanceM === 'number' ? ' (약 ' + distanceM.toLocaleString() + 'm)' : '');
-
-      const myPos = new kakao.maps.LatLng(myLat, myLng);
-      const targetPos = new kakao.maps.LatLng(targetLat, targetLng);
-      if (!depMap) depMap = new kakao.maps.Map($('gps-map'), { center: myPos, level: 5 });
-
-      if (depMapMine) depMapMine.setMap(null);
-      if (depMapTarget) depMapTarget.setMap(null);
-      if (depMapLine) depMapLine.setMap(null);
-      // 현재 확인된 위경도(myLat, myLng) 정확히 그 위치에 파란 마커를 찍습니다.
-      depMapMine = new kakao.maps.Marker({ map: depMap, position: myPos, image: dotMarkerImage('#3B82F6'), title: '현재 위치', zIndex: 2 });
-      depMapTarget = new kakao.maps.Marker({ map: depMap, position: targetPos, image: dotMarkerImage('#EF4444'), title: targetLabel, zIndex: 2 });
-      depMapLine = new kakao.maps.Polyline({
-        map: depMap, path: [myPos, targetPos], strokeWeight: 3, strokeColor: '#78866B', strokeOpacity: 0.9, strokeStyle: 'solid'
-      });
-
-      // 두 지점(현재 위치·목적지)이 한눈에 보이도록 지도 중심/레벨을 두 마커에 맞춰 자동으로 잡습니다.
-      const bounds = new kakao.maps.LatLngBounds();
-      bounds.extend(myPos); bounds.extend(targetPos);
-      depMap.setCenter(myPos); // 우선 방금 측정된 현재 위치를 중심에 놓고
-      depMap.setBounds(bounds, 36, 36, 36, 36); // 그다음 목적지까지 함께 보이도록 범위를 넓힘
-
-      // 위치 확인이 막 완료된 시점(=지도가 처음 눈에 보이는 시점)엔 컨테이너 크기를 잘못 계산해 타일이
-      // 깨질 수 있어(흔한 카카오지도 이슈), 화면이 실제로 자리 잡은 뒤 relayout() + 중심/범위를 다시
-      // 적용하기 위해 setTimeout 으로 150ms 늦춥니다.
-      setTimeout(() => {
-        if (!depMap) return;
-        depMap.relayout();
-        depMap.setCenter(myPos);
-        depMap.setBounds(bounds, 36, 36, 36, 36);
-      }, 150);
-    }
-    // 위치를 전혀 확인할 수 없는 경우(주소 미등록·지오코딩 실패)에 마커/선만 지우고, 지도 자체는 계속 보여
-    // 줍니다(#gps-map 은 항상 떠 있는 영역이라 통째로 숨기지 않습니다).
-    function clearDepMapMarkers() {
-      if (depMapMine) { depMapMine.setMap(null); depMapMine = null; }
-      if (depMapTarget) { depMapTarget.setMap(null); depMapTarget = null; }
-      if (depMapLine) { depMapLine.setMap(null); depMapLine = null; }
-    }
     function acceptRemainMs(createdIso) {
       if (!createdIso || isNaN(new Date(createdIso).getTime())) return null;
       return new Date(createdIso).getTime() + ACCEPT_WINDOW_HOURS * 3600e3 - Date.now();
@@ -2071,12 +1867,6 @@
             physician_notes: physicianNotes, senior_condition: seniorCondition
           }]));
         },
-        // 실시간 위치 추적(이동 중일 때 15초마다): DB에도 '마지막 위치'를 남겨 둡니다(새로고침 직후에도 보호자
-        // 화면이 초기 위치를 바로 보여줄 수 있도록). 실시간 스트리밍 자체는 Realtime Broadcast 채널이 담당합니다
-        // (startLocationTracking() 참고) — 이 호출이 실패해도(RPC 미배포 등) 추적 자체는 계속됩니다.
-        async updateManagerLocation(scheduleId, lat, lng) {
-          must(await supabaseClient.rpc('update_manager_location', { p_schedule_id: scheduleId, p_lat: lat, p_lng: lng }));
-        },
         // 병원 도착 인증 1건의 감사 로그 (supabase-arrival-verification-logs.sql). 실패해도 호출부(best-effort)가
         // 도착 처리 자체는 막지 않으므로, 여기서는 그대로 던지기만 합니다.
         async logArrivalVerification({ scheduleId, verificationType, status, lat, lng, accuracy, distance, watermarkedPhoto, rawPhoto }) {
@@ -2202,10 +1992,6 @@
           const s = completed.find((x) => x.id === scheduleId);
           reports.unshift({ id: 'r' + Date.now(), schedule_id: scheduleId, physician_notes: physicianNotes, senior_condition: seniorCondition, created_at: new Date().toISOString(),
             care_schedules: { senior_name: s.senior_name, destination: s.destination, scheduled_at: s.scheduled_at } });
-        },
-        async updateManagerLocation(scheduleId, lat, lng) {
-          const s = assigned.find((x) => x.id === scheduleId);
-          if (s) { s.manager_lat = lat; s.manager_lng = lng; s.manager_location_at = new Date().toISOString(); }
         }
       };
     }
@@ -2688,67 +2474,12 @@
       });
     }
 
-    // ---------- 실시간 위치 추적 (상태가 '이동 중'인 일정마다, 15초 간격으로 위치를 DB + Realtime Broadcast 로 전송) ----------
-    // 보호자 화면(mypage.html)이 채널 'care-location:' + <care_schedules.id> 를 구독해 지도 마커를 움직입니다.
-    // 추적 시작/중지는 렌더링될 '오늘의 배정 케어 일정' 목록에서 상태가 'departed'인 건과 항상 일치하도록,
-    // 개별 버튼 클릭 지점이 아니라 renderToday() 끝에서 한 번에 동기화합니다(새로고침·다른 탭 반영도 자동으로 맞음).
-    const LOCATION_SEND_MS = 15000;
-    const locationTrackers = {}; // scheduleId -> { watchId, timerId, channel, lastPos }
-
-    function startLocationTracking(scheduleId) {
-      if (locationTrackers[scheduleId]) return; // 이미 추적 중
-      if (!('geolocation' in navigator)) return; // 위치 API 미지원 기기는 조용히 건너뜀 (DB 기록 없이도 상태 진행은 계속 가능)
-
-      const channel = (supabaseClient && !DEMO)
-        ? supabaseClient.channel('care-location:' + scheduleId, { config: { broadcast: { self: false } } })
-        : null;
-      if (channel) channel.subscribe();
-
-      const tracker = { watchId: null, timerId: null, channel, lastPos: null };
-      tracker.watchId = navigator.geolocation.watchPosition(
-        (pos) => { tracker.lastPos = pos; },
-        (err) => console.warn('[위치 추적] watchPosition 오류(' + scheduleId + '):', err.message),
-        { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
-      );
-      const send = () => {
-        if (!tracker.lastPos) return; // 아직 첫 위치를 못 받았으면 이번 주기는 건너뜀
-        const { latitude: lat, longitude: lng } = tracker.lastPos.coords;
-        if (tracker.channel) tracker.channel.send({ type: 'broadcast', event: 'location', payload: { lat, lng, at: new Date().toISOString() } });
-        if (api.updateManagerLocation) {
-          api.updateManagerLocation(scheduleId, lat, lng).catch((err) => console.warn('[위치 추적] DB 저장 실패(' + scheduleId + '):', err.message || err));
-        }
-      };
-      tracker.timerId = setInterval(send, LOCATION_SEND_MS);
-      locationTrackers[scheduleId] = tracker;
-    }
-
-    function stopLocationTracking(scheduleId) {
-      const t = locationTrackers[scheduleId];
-      if (!t) return;
-      if (t.watchId != null) navigator.geolocation.clearWatch(t.watchId);
-      clearInterval(t.timerId);
-      if (t.channel) supabaseClient.removeChannel(t.channel);
-      delete locationTrackers[scheduleId];
-    }
-
-    // 렌더링되는 일정 목록과 추적 상태를 항상 일치시킵니다: '이동 중'인 실제 일정만 추적을 켜고, 그 밖(아직 출발
-    // 전 · 이미 도착 · 로컬로만 확정된 합성 일정 등)은 추적을 끕니다.
-    function syncLocationTracking(assignedList) {
-      const departedIds = new Set((assignedList || [])
-        .filter((s) => s.status === 'departed' && !s._isLocalProposal)
-        .map((s) => s.id));
-      departedIds.forEach((id) => startLocationTracking(id));
-      Object.keys(locationTrackers).forEach((id) => { if (!departedIds.has(id)) stopLocationTracking(id); });
-    }
-    window.addEventListener('beforeunload', () => { Object.keys(locationTrackers).forEach(stopLocationTracking); });
-
     function renderToday() {
       const box = $('todayList');
       $('todayBadge').textContent = fmtDay(new Date());
       if (data.assigned.error) { errorBox(box, data.assigned.error, loadAll); return; }
 
       const all = data.assigned.value;
-      syncLocationTracking(all);
       if (all.length === 0) {
         emptyBox(box, '배정된 케어 일정이 없습니다', '위 「배정 신청 대기」 탭에서 신청을 수락하면 이곳에 바로 나타나요.');
         return;
@@ -3296,9 +3027,6 @@
       $('dep-photo-guide').hidden = step.key !== 'arrived'; // 병원 도착 인증에서만 촬영 가이드(간판·접수처·층수 안내판) 노출
       updateDepSubmitState();
       departureModal.classList.remove('hidden');
-      // 모달이 실제로 화면에 보인 다음(위 remove('hidden') 이후)에 지도를 초기화해야 컨테이너 크기를
-      // 제대로 잡고 relayout() 이 의미가 있습니다.
-      initDepMapOnOpen(schedule, step);
     }
     function closeDepartureModal() { departureModal.classList.add('hidden'); depState = null; }
 
@@ -3408,7 +3136,6 @@
         box.classList.add('is-warn');
         setGpsStatusIcon('warn');
         $('gps-address-text').textContent = targetLabel + ' 위치 정보가 등록되지 않은 건입니다.';
-        clearDepMapMarkers(); // 지도에 찍을 좌표 자체가 없음 — 지도 영역은 그대로 두고 마커/선만 지움
       } else if (!targetPoint) {
         // Task A: 주소는 있지만(DB 저장 좌표도 없고) 지금 지오코딩도 실패 — 기본 좌표(예: 서울시청)로 대충
         // 계산하지 않고, 여기서 바로 인증 진행을 막습니다. '거리 X m' 같은 그럴듯하지만 틀린 숫자를 보여주는
@@ -3418,12 +3145,10 @@
         box.classList.add('is-warn');
         setGpsStatusIcon('warn');
         $('gps-address-text').textContent = targetLabel + ' 주소의 위치 정보를 찾을 수 없습니다. (올바른 주소인지 확인해주세요)';
-        clearDepMapMarkers(); // 지도에 찍을 좌표 자체가 없음 — 지도 영역은 그대로 두고 마커/선만 지움
       } else {
         // 출발지/목적지 좌표를 확보 → 실제 거리(m)를 계산해 일치 여부까지 안내
         const dist = Math.round(distanceMeters(lat, lng, targetPoint.lat, targetPoint.lng));
         depState.distance = dist;
-        renderDepMap(lat, lng, targetPoint.lat, targetPoint.lng, targetLabel, dist); // 미니 지도에 현재 위치·목표 좌표·거리 표시
         const accuracyOk = accuracy <= ARRIVAL_ACCURACY_DEGRADED_M;
         if (dist <= radius && (isDeparted || accuracyOk)) {
           depState.gpsStrongOk = !isDeparted; // 도착 인증에서만 이 값으로 SUCCESS/PENDING_REVIEW 를 가릅니다
