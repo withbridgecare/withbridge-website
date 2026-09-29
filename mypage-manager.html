@@ -188,7 +188,6 @@
     .card-note { margin: 14px 0 0; font-size: 12.5px; color: var(--ink-sub); }
     .card-lead { margin: -8px 0 18px; font-size: 14px; color: var(--ink-sub); }
     .card-lead strong { color: var(--brand-dark); }
-    .head-actions { display: flex; align-items: center; gap: 10px; }
     .title-group { display: flex; align-items: center; gap: 10px; min-width: 0; }
     .badge { display: inline-block; padding: 4px 12px; border-radius: 9999px; background: var(--brand-soft); color: var(--brand-dark); font-size: 12.5px; font-weight: 700; white-space: nowrap; transition: background-color .2s ease, color .2s ease; }
     .badge.is-live { background: var(--chip-brand-bg); color: var(--chip-brand-fg); }
@@ -211,7 +210,6 @@
       padding: 40px 16px; text-align: center; color: var(--ink-sub); background: var(--bg); border: 1px solid var(--card-border);
       border-radius: var(--radius-sm); display: flex; flex-direction: column; align-items: center; gap: 4px;
     }
-    .empty-icon { font-size: 30px; line-height: 1; margin-bottom: 6px; }
     .empty strong { display: block; margin-bottom: 4px; color: var(--ink); font-size: 15.5px; }
     .error-box { padding: 16px; border-radius: 12px; background: #FDF1EF; color: var(--danger); font-size: 14px; }
     .error-box small { display: block; margin: 6px 0 10px; color: #7a2f26; }
@@ -418,7 +416,6 @@
     .req-card .font-semibold { font-weight: 600; }
     .req-card .font-medium { font-weight: 500; }
     .req-card .font-normal { font-weight: 400; }
-    .req-card .text-center { text-align: center; }
     .req-card .text-lg { font-size: 18px; line-height: 1.4; }
     .req-card .text-sm { font-size: 13.5px; line-height: 1.5; }
     .req-card .text-xs { font-size: 12px; line-height: 1.4; }
@@ -451,7 +448,6 @@
     .req-card .py-1 { padding-top: 4px; padding-bottom: 4px; }
     .req-card .py-2\.5 { padding-top: 10px; padding-bottom: 10px; }
     .req-card .p-3 { padding: 12px; }
-    .req-card .pt-3 { padding-top: 12px; }
     .req-card .pt-6 { padding-top: 24px; } /* 추가요청 박스 ↔ 버튼 그룹 사이 여백 확대용 */
     /* 서비스명 옆 '기본 2시간 · 44,000원' 보조 정보 */
     .req-card .svc-meta { font-size: 12px; font-weight: 700; color: var(--brand-dark); background: var(--chip-brand-bg); padding: 2px 9px; border-radius: 9999px; white-space: nowrap; }
@@ -472,17 +468,10 @@
     .btn-outline-emerald:hover { background: var(--brand-soft); }
 
     /* ---------- 리포트 ---------- */
-    .list-item { padding: 16px 18px; background: var(--bg); border: 1px solid var(--card-border); border-radius: var(--radius-sm); transition: box-shadow .15s ease; }
-    .list-item:hover { box-shadow: var(--shadow-card-hover); }
-    .item-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-    .item-date { font-size: 12.5px; color: var(--ink-sub); }
-    .item-title { font-weight: 700; word-break: keep-all; }
-    .item-sub { font-size: 13.5px; color: var(--ink-body); }
     .report-detail { margin: 14px 0 0; padding-top: 14px; border-top: 1px dashed var(--brand-line); font-size: 14px; color: var(--ink-body); }
     .report-detail h4 { margin: 0 0 2px; font-size: 12.5px; color: var(--brand-dark); }
     .report-detail p { margin: 0 0 12px; white-space: pre-line; word-break: break-all; }
     .report-detail p:last-child { margin-bottom: 0; }
-    .section-label { margin: 0 0 12px; font-size: 13px; font-weight: 700; color: var(--ink-sub); }
 
     /* 동행/수행 타임라인 (제출한 케어 리포트 보기 모달 전용) — mypage.html 의 .rv-timeline 과 같은 구조/스타일로
        맞춰서 보호자 화면에서 본 것과 매니저 화면에서 본 것이 완전히 같아 보이게 합니다. */
@@ -560,7 +549,6 @@
     }
     .cal-nav-btn:hover { background: var(--brand-soft); border-color: var(--brand-line); }
     .cal-month { min-width: 108px; text-align: center; font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
-    .cal-summary { display: flex; gap: 10px; flex-wrap: wrap; }
     .cal-stat { padding: 8px 14px; border-radius: 12px; background: var(--bg); border: 1px solid var(--card-border); font-size: 13px; color: var(--ink-sub); white-space: nowrap; }
     .cal-stat b { margin-left: 4px; font-size: 15px; color: var(--ink); font-variant-numeric: tabular-nums; }
 
@@ -697,7 +685,6 @@
       transition: background-color .15s ease;
     }
     .complete-proof-drop:hover { background: var(--brand-soft); }
-    .complete-proof-filename { margin: 8px 2px 0; font-size: 12.5px; color: var(--ink-body); font-weight: 600; word-break: break-all; }
     .complete-proof-hint { margin: 10px 2px 0; font-size: 12px; color: var(--ink-sub); }
     .complete-footnote { margin: 24px 0 0; font-size: 12px; color: var(--ink-sub); line-height: 1.5; } /* mt-6: 증빙 첨부 영역과 분리 (버튼과의 mt-4 는 .modal-actions 쪽에서) */
     /* 정산 요청을 보낸 완료 건: 중립 회색(st-completed) 대신 앰버 톤으로 '정산 대기 중'임을 눈에 띄게 표시 */
@@ -1364,63 +1351,6 @@
     </div>
   </div>
 
-  <!-- ==================================================================== -->
-  <!-- 06-3. 현장 체크포인트 인증 모달 ('진료 완료' · '귀가 이동' — GPS/사진, 지오펜싱 없이 간단히 기록) -->
-  <!-- ==================================================================== -->
-  <div id="checkpoint-modal" class="dep-backdrop hidden">
-    <div class="dep-modal" role="dialog" aria-modal="true" aria-labelledby="checkpointModalTitle">
-
-      <div class="dep-head">
-        <h3 id="checkpointModalTitle" class="dep-title">단계 인증</h3>
-        <button type="button" id="btn-close-checkpoint-modal" class="dep-close" aria-label="닫기">
-          <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-        </button>
-      </div>
-
-      <div class="dep-body">
-        <div class="dep-target">
-          <div class="dep-target-row">
-            <span>오늘의 케어 일정</span>
-            <span id="checkpointTargetTime" class="dep-target-time"></span>
-          </div>
-          <p class="dep-target-name" id="checkpointTargetName"></p>
-        </div>
-
-        <p class="dep-hint">이 단계를 수행한 <strong>현재 위치</strong>를 인증해 주세요. GPS 또는 사진 중 하나만 있어도 됩니다.</p>
-
-        <div class="dep-section">
-          <label class="dep-label">방법 1. GPS 위치 인증</label>
-          <button type="button" id="btn-get-gps-checkpoint" class="dep-gps-btn">
-            <svg id="checkpoint-gps-icon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-            <span id="checkpoint-gps-btn-text">현재 위치 측정하기</span>
-          </button>
-          <div id="checkpoint-gps-success-box" class="dep-success hidden">
-            <span class="dep-status-icon"><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg></span>
-            <span id="checkpoint-gps-address-text"></span>
-          </div>
-          <p id="checkpoint-gps-error-text" class="dep-error hidden"></p>
-        </div>
-
-        <div class="dep-divider"><span>또는</span></div>
-
-        <div class="dep-section">
-          <label class="dep-label">방법 2. 현장 사진 실시간 촬영</label>
-          <label class="dep-photo-drop" id="checkpoint-photo-drop">
-            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h0.93a2 2 0 001.664-.89l0.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l0.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-            <p id="checkpoint-photo-status-text"><strong>터치하여 카메라로 촬영</strong> (실시간 촬영 전용)</p>
-            <input type="file" id="checkpoint-input-camera" accept="image/*" capture="environment" class="hidden">
-          </label>
-        </div>
-      </div>
-
-      <div class="dep-foot">
-        <button type="button" id="btn-cancel-checkpoint-modal" class="dep-btn-cancel">취소</button>
-        <button type="button" id="btn-submit-checkpoint" class="dep-btn-submit" disabled>인증 완료</button>
-      </div>
-
-    </div>
-  </div>
-
   <div class="toast" id="toast" role="status" hidden></div>
 
   <script>
@@ -1583,12 +1513,6 @@
       return k ? k.getUTCFullYear() + '.' + String(k.getUTCMonth() + 1).padStart(2, '0') + '.' + String(k.getUTCDate()).padStart(2, '0') : '';
     };
     const fmtDay = (d) => (d.getMonth() + 1) + '월 ' + d.getDate() + '일 (' + '일월화수목금토'[d.getDay()] + ')';
-    const fmtDateTime = (iso) => { // 'YYYY-MM-DD HH:mm'
-      const k = toKst(iso);
-      if (!k) return '';
-      const p = (n) => String(n).padStart(2, '0');
-      return k.getUTCFullYear() + '-' + p(k.getUTCMonth() + 1) + '-' + p(k.getUTCDate()) + ' ' + p(k.getUTCHours()) + ':' + p(k.getUTCMinutes());
-    };
     const ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
     const escapeHtml = (str) => String(str == null ? '' : str).replace(/[&<>"']/g, (c) => ESC_MAP[c]); // innerHTML 템플릿에 사용자 입력을 넣기 전 XSS 방지용 이스케이프
 
@@ -3637,114 +3561,6 @@
     });
 
     // ---------- 현장 체크포인트 인증 모달 ('진료 완료' · '귀가 이동' 전용, 지오펜싱 없이 GPS/사진만) ----------
-    // 출발/병원 도착 인증 모달(departure-modal)과 같은 GPS/사진 캡처 유틸(getCurrentPositionAsync,
-    // buildVerificationPhoto)을 그대로 재사용하되, 목적지 거리 비교(geofencing)는 하지 않는 더 가벼운 버전입니다 —
-    // '진료 완료'·'귀가 이동'은 병원/집처럼 비교할 고정 좌표가 없어 방법 1(GPS) 또는 방법 2(사진) 중 하나만
-    // 있으면 그대로 인증 완료로 인정합니다.
-    const checkpointModal = $('checkpoint-modal');
-    let checkpointState = null; // { schedule, stepKey, label, location, photo }
-
-    function updateCheckpointSubmitState() {
-      $('btn-submit-checkpoint').disabled = !(checkpointState && (checkpointState.location || checkpointState.photo));
-    }
-    function openCheckpointModal(schedule, stepKey, label) {
-      checkpointState = { schedule, stepKey, label, location: null, photo: null };
-      $('checkpointModalTitle').textContent = label + ' 인증';
-      $('checkpointTargetTime').textContent = fmtTime(schedule.scheduled_at) + ' 방문 예정';
-      $('checkpointTargetName').textContent = (schedule.senior_name || '어르신') + ' (' + (schedule.guardian_name || '보호자') + ')';
-      $('checkpoint-gps-icon').classList.remove('spin');
-      $('checkpoint-gps-btn-text').textContent = '현재 위치 측정하기';
-      $('btn-get-gps-checkpoint').disabled = false;
-      $('checkpoint-gps-success-box').classList.add('hidden');
-      $('checkpoint-gps-error-text').classList.add('hidden');
-      $('checkpoint-input-camera').value = '';
-      $('checkpoint-photo-status-text').innerHTML = '<strong>터치하여 카메라로 촬영</strong> (실시간 촬영 전용)';
-      updateCheckpointSubmitState();
-      checkpointModal.classList.remove('hidden');
-    }
-    function closeCheckpointModal() { checkpointModal.classList.add('hidden'); checkpointState = null; }
-
-    $('btn-close-checkpoint-modal').addEventListener('click', closeCheckpointModal);
-    $('btn-cancel-checkpoint-modal').addEventListener('click', closeCheckpointModal);
-    checkpointModal.addEventListener('mousedown', (e) => { if (e.target === checkpointModal) closeCheckpointModal(); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !checkpointModal.classList.contains('hidden')) closeCheckpointModal(); });
-
-    $('btn-get-gps-checkpoint').addEventListener('click', async () => {
-      if (!checkpointState) return;
-      const btn = $('btn-get-gps-checkpoint');
-      const errEl = $('checkpoint-gps-error-text');
-      errEl.classList.add('hidden');
-      if (!('geolocation' in navigator)) {
-        errEl.textContent = '이 기기·브라우저는 위치 확인을 지원하지 않아요. 아래 사진 촬영으로 인증해 주세요.';
-        errEl.classList.remove('hidden');
-        return;
-      }
-      btn.disabled = true;
-      $('checkpoint-gps-icon').classList.add('spin');
-      $('checkpoint-gps-btn-text').textContent = '위치 수신 중...';
-      let pos;
-      try {
-        pos = await getCurrentPositionAsync({ enableHighAccuracy: false, timeout: 15000, maximumAge: 30000 });
-      } catch (err) {
-        if (IS_LOCAL_DEV) {
-          console.warn('[GPS] localhost 개발 환경 → 위치 확인 실패를 무시하고 테스트 기본 좌표(서울시청)로 진행합니다:', err.message || err);
-          pos = { coords: DEV_FALLBACK_COORDS };
-        } else {
-          btn.disabled = false;
-          $('checkpoint-gps-icon').classList.remove('spin');
-          $('checkpoint-gps-btn-text').textContent = '현재 위치 측정하기';
-          errEl.textContent = '위치를 확인하지 못했어요. 아래 사진 촬영으로 인증해 주세요.';
-          errEl.classList.remove('hidden');
-          return;
-        }
-      }
-      checkpointState.location = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: Math.round(pos.coords.accuracy || 0) };
-      $('checkpoint-gps-icon').classList.remove('spin');
-      $('checkpoint-gps-btn-text').textContent = '위치 측정 완료';
-      btn.disabled = false;
-      $('checkpoint-gps-address-text').textContent =
-        '위도 ' + checkpointState.location.lat.toFixed(5) + ', 경도 ' + checkpointState.location.lng.toFixed(5) + ' (오차 약 ' + checkpointState.location.accuracy + 'm)';
-      $('checkpoint-gps-success-box').classList.remove('hidden');
-      updateCheckpointSubmitState();
-    });
-
-    $('checkpoint-input-camera').addEventListener('change', async () => {
-      if (!checkpointState) return;
-      const file = $('checkpoint-input-camera').files && $('checkpoint-input-camera').files[0];
-      if (!file) { checkpointState.photo = null; updateCheckpointSubmitState(); return; }
-      $('checkpoint-photo-status-text').innerHTML = '사진을 처리하는 중…';
-      try {
-        const { watermarkedDataUrl } = await buildVerificationPhoto(file, checkpointState.location);
-        checkpointState.photo = watermarkedDataUrl;
-        $('checkpoint-photo-status-text').innerHTML = '<strong>✓ 촬영 완료</strong> (다시 누르면 재촬영)';
-      } catch (err) {
-        console.error('[체크포인트 사진] 처리 실패:', err);
-        checkpointState.photo = null;
-        $('checkpoint-photo-status-text').innerHTML = '사진을 불러오지 못했어요. 다시 시도해 주세요.';
-      }
-      updateCheckpointSubmitState();
-    });
-
-    $('btn-submit-checkpoint').addEventListener('click', async () => {
-      if (!checkpointState) return;
-      const btn = $('btn-submit-checkpoint');
-      btn.disabled = true;
-      const { schedule, stepKey, label } = checkpointState;
-      try {
-        // recordCheckpoint() 는 DB 저장이 실패해도 예외를 던지지 않고 boolean 으로만 알려줍니다(로컬 동기화는
-        // 계속 진행하기 위함) — 그래서 성공/실패를 이 반환값으로 정확히 구분해서 알려줘야, 실패했는데도
-        // "저장했습니다" 토스트가 뜨는 일이 없습니다.
-        const saved = await recordCheckpoint(schedule, stepKey, checkpointState.location, checkpointState.photo);
-        showToast(saved ? (label + ' 인증을 저장했습니다.') : (label + ' 인증을 서버에 저장하지 못했어요. 콘솔 로그를 확인해 주세요.'));
-        closeCheckpointModal();
-        renderToday();
-      } catch (err) {
-        console.error('[체크포인트] 저장 실패:', err);
-        alert('인증 정보를 저장하지 못했습니다: ' + (err.message || err));
-        btn.disabled = false;
-      }
-    });
-
     // ---------- 리포트 작성 대기 ----------
     // 예전에 여기 있던 별도 '리포트 작성 대기' 카드는 삭제했습니다 — 오늘 완료된 건은 '오늘의 케어' 탭의
     // 스케줄 카드 4단계 버튼(케어 리포트 작성 및 제출)에서, 지난 날짜에 완료된 건은 '지난 케어 기록' 탭
