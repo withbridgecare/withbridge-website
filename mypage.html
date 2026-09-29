@@ -1362,7 +1362,7 @@
       const hasKo = (...words) => words.some((w) => s.includes(w));
       let st;
       if (isEn('cancelled', 'canceled', 'cancel') || hasKo('취소')) st = { label: '취소됨', tone: 'cancel' };
-      else if (!s || isEn('pending', 'new', 'received', 'submitted', 'waiting', 'requested') || hasKo('접수', '대기', '신청')) st = { label: '신청 완료 (매니저 배정 대기 중)', tone: 'wait' };
+      else if (!s || isEn('pending', 'new', 'received', 'submitted', 'waiting', 'requested') || hasKo('접수', '대기', '신청')) st = { label: '매칭 대기 중', tone: 'wait' };
       else if (isEn('contacted', 'confirmed') || hasKo('상담', '확인')) st = { label: '상담·확인 완료', tone: 'info' };
       else if (isEn('matched', 'assigned') || hasKo('배정', '매칭')) st = { label: '배정 완료', tone: 'live', assigned: true };
       else if (isEn('in_progress', 'ongoing', 'progress', 'processing') || hasKo('진행')) st = { label: '진행 중', tone: 'live', assigned: true };
@@ -2151,6 +2151,21 @@
       return stepper;
     }
 
+    // 배정 전(매칭 대기 중) 카드에 보여줄 축소판 2단계 타임라인: 신청 완료(완료) → 매니저 배정(대기 중).
+    // 5단계 careProgressBar 와 같은 .stepper/.step 스타일을 그대로 재사용해 배정 전/후가 하나의 톤앤매너로 이어집니다.
+    function pendingTimeline() {
+      const stepper = h('ol', 'stepper app-stepper pending-stepper');
+      stepper.setAttribute('aria-label', '신청 진행 단계');
+      const step1 = h('li', 'step is-done');
+      step1.appendChild(h('span', 'step-check', '✓'));
+      step1.appendChild(h('span', 'step-label', '신청 완료'));
+      const step2 = h('li', 'step is-current');
+      step2.setAttribute('aria-current', 'step');
+      step2.appendChild(h('span', 'step-label', '매니저 배정 대기 중'));
+      stepper.append(step1, step2);
+      return stepper;
+    }
+
     // ---------- 실시간 케어 트래킹 지도 (Leaflet + 카카오 지오코딩 + Supabase Realtime Broadcast) ----------
     // careMaps: applicationId -> { map, originMarker, destMarker, managerMarker } — renderCare() 가 다시 그릴 때마다
     // DOM 카드가 통째로 교체되므로, 이전 Leaflet 인스턴스를 먼저 정리(destroyCareMaps)한 뒤 새로 만듭니다.
@@ -2418,9 +2433,13 @@
       if (req.note) row(svgNoteIcon, '요청 사항', req.note, 'note');
       card.appendChild(dl);
 
-      // 케어 진행 단계 프로그레스 바: 아직 배정 전(대기·취소·제안 대기)에는 의미가 없어 배정 이후에만 보여줍니다
+      // 케어 진행 단계: 배정 이후에는 5단계 상세 타임라인, 매칭 대기 중에는 '신청 완료 → 매니저 배정 대기 중'
+      // 2단계 축소판을 보여줘 지금이 정확히 어느 단계인지 배정 전에도 바로 알 수 있게 합니다. 취소·제안 대기 등
+      // 예외 상태에는 진행 표시 자체가 의미가 없어 표시하지 않습니다.
       if (st.assigned || st.tone === 'done') {
         card.appendChild(careProgressBar(a, st));
+      } else if (st.tone === 'wait') {
+        card.appendChild(pendingTimeline());
       }
 
       // 매니저가 보낸 일정 변경 제안이 아직 보호자 확인 전이면, 제안 일시와 수락/거절 버튼을 눈에 띄게 보여줍니다
