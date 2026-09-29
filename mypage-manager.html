@@ -93,15 +93,15 @@
       --ink-body: #4B5563;  /* gray-600: 본문 · 라벨 */
       --ink-sub: #8B95A1;   /* 보조 · 안내 문구 (gray-400 상당) */
       --ink-muted: #B0B8C1;
-      --bg: #F2F4F6;
+      --bg: #F4F5F7;       /* 토스 스타일: 부드러운 연회색 배경 — 흰 카드가 도드라져 보이게 */
       --card: #FFFFFF;
-      --card-border: #EEF1F4;
+      --card-border: #F1F2F4; /* 테두리보다 그림자로 카드 경계를 표현(토스 감성) — 거의 안 보이는 헤어라인만 남김 */
       --line: #EEF1F4;
       --danger: #D64545;
       --radius: 24px;      /* rounded-3xl */
-      --radius-sm: 16px;   /* rounded-2xl */
-      --shadow-card: 0 2px 14px rgba(15, 23, 42, .05);
-      --shadow-card-hover: 0 6px 20px rgba(15, 23, 42, .08);
+      --radius-sm: 18px;   /* rounded-2xl */
+      --shadow-card: 0 4px 20px rgba(0, 0, 0, .04);
+      --shadow-card-hover: 0 10px 28px rgba(0, 0, 0, .07);
 
       /* 메인 CTA(수락하기 · 출발하기 · 병원 도착 · 케어 완료): 브랜드 컬러 단일 톤으로 통일 */
       --cta: var(--sage-500);
@@ -148,7 +148,7 @@
     .mgr-emergency-btn {
       position: fixed; right: 20px; bottom: 20px; z-index: 120;
       display: inline-flex; align-items: center; justify-content: center; min-height: 52px; padding: 0 22px;
-      border: none; border-radius: 9999px; background: var(--danger); color: #fff; font-size: 14.5px; font-weight: 800;
+      border: none; border-radius: 16px; background: var(--danger); color: #fff; font-size: 14.5px; font-weight: 800;
       box-shadow: 0 8px 20px rgba(214, 69, 69, .35); cursor: pointer; transition: background-color .15s ease, transform .15s ease;
     }
     .mgr-emergency-btn:hover { background: #B8342F; transform: translateY(-1px); }
@@ -157,9 +157,9 @@
     }
 
     /* ---------- 레이아웃 / 공통 ---------- */
-    .mp-main { max-width: 1100px; margin: 0 auto; padding: 32px 24px 72px; }
+    .mp-main { max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; }
     .mp-loading { padding: 120px 0; text-align: center; color: var(--ink-sub); }
-    .mp-stack { display: flex; flex-direction: column; gap: 24px; }
+    .mp-stack { display: flex; flex-direction: column; gap: 28px; }
     /* MVP 후순위 항목(수익·활동 요약)을 화면에서만 숨깁니다 — 데이터 로딩 로직은 그대로 둡니다 */
     .is-hidden-mvp { display: none !important; }
 
@@ -180,22 +180,24 @@
     }
     .mgr-tab-panel { display: flex; flex-direction: column; }
     .card {
-      background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 24px;
+      background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 28px;
       box-shadow: var(--shadow-card);
     }
-    .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
-    .card-title { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
+    .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
+    .card-title { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -0.03em; }
     .card-note { margin: 14px 0 0; font-size: 12.5px; color: var(--ink-sub); }
     .card-lead { margin: -8px 0 18px; font-size: 14px; color: var(--ink-sub); }
     .card-lead strong { color: var(--brand-dark); }
     .title-group { display: flex; align-items: center; gap: 10px; min-width: 0; }
     .badge { display: inline-block; padding: 4px 12px; border-radius: 9999px; background: var(--brand-soft); color: var(--brand-dark); font-size: 12.5px; font-weight: 700; white-space: nowrap; transition: background-color .2s ease, color .2s ease; }
+    .badge.is-live, .badge.is-warn { display: inline-flex; align-items: center; gap: 5px; padding-left: 10px; }
+    .badge.is-live::before, .badge.is-warn::before { content: ''; flex: none; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
     .badge.is-live { background: var(--chip-brand-bg); color: var(--chip-brand-fg); }
     .badge.is-warn { background: var(--brand); color: #fff; } /* 행동이 필요한 상태: 색상 대신 명도(솔리드 브랜드톤)로 강조 */
     .badge.is-demo { background: var(--earth-bg); color: var(--earth-fg); } /* 샘플 데이터 안내는 예외적으로 어스톤 사용 */
 
     .btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 13px 22px; border: none; border-radius: 9999px;
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 13px 22px; border: none; border-radius: 14px;
       background: var(--cta); color: #fff; font-size: 14.5px; font-weight: 700; text-decoration: none; cursor: pointer;
       box-shadow: var(--cta-shadow); transition: background .15s, transform .15s, box-shadow .15s;
       min-height: 48px; /* 현장에서 장갑을 끼거나 한 손으로도 정확히 누를 수 있게 최소 터치 영역 확보 */
@@ -227,7 +229,7 @@
     }
     .profile-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .profile-role { margin: 0 0 2px; font-size: 12.5px; color: var(--ink-sub); font-weight: 600; }
-    .profile-name { margin: 0 0 6px; font-size: 19px; font-weight: 800; letter-spacing: -0.02em; word-break: keep-all; }
+    .profile-name { margin: 0 0 6px; font-size: 22px; font-weight: 800; letter-spacing: -0.03em; word-break: keep-all; }
     .profile-tags { display: flex; flex-wrap: wrap; gap: 6px; }
     .tag { padding: 3px 10px; border-radius: 9999px; background: var(--brand-soft); color: var(--brand-dark); font-size: 12px; font-weight: 700; }
     .tag.is-verified { background: var(--brand); color: #fff; } /* 완료 상태: 솔리드 브랜드톤으로 강조 */
@@ -292,11 +294,11 @@
        내용은 세로로 쌓이고, 상태 뱃지·액션 버튼은 항상 카드 맨 아래(.sched-action)에 옵니다. */
     .sched-compact {
       display: flex; flex-direction: column; gap: 10px;
-      padding: 24px; background: #fff; border: 1px solid #E5E7EB; border-radius: var(--radius);
-      box-shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 8px 20px rgba(15, 23, 42, .06);
+      padding: 26px; background: #fff; border: 1px solid var(--card-border); border-radius: var(--radius);
+      box-shadow: var(--shadow-card);
       transition: opacity .2s ease, box-shadow .15s ease;
     }
-    .sched-compact:hover { box-shadow: 0 1px 2px rgba(15, 23, 42, .06), 0 12px 28px rgba(15, 23, 42, .09); }
+    .sched-compact:hover { box-shadow: var(--shadow-card-hover); }
     .sched-compact.is-completed { opacity: .6; }
     .sched-head { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
     .sched-time-lg { flex: none; font-size: 19px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); }
@@ -313,7 +315,7 @@
     .sched-route-value { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
     .sched-nav-btn {
       flex: none; display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 16px;
-      border: 1px solid var(--brand-line); border-radius: 9999px; background: var(--brand-soft); color: var(--brand-dark);
+      border: 1px solid var(--brand-line); border-radius: 12px; background: var(--brand-soft); color: var(--brand-dark);
       font-size: 13px; font-weight: 700; text-decoration: none; cursor: pointer; transition: background-color .15s ease;
     }
     .sched-nav-btn:hover { background: var(--brand-line); }
@@ -335,7 +337,7 @@
     .sched-foot-value { flex: 1 1 auto; min-width: 0; font-weight: 700; color: var(--ink-body); }
     .sched-tel-btn {
       flex: none; display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 16px;
-      border: 1px solid var(--brand-line); border-radius: 9999px; background: var(--brand-soft); color: var(--brand-dark);
+      border: 1px solid var(--brand-line); border-radius: 12px; background: var(--brand-soft); color: var(--brand-dark);
       font-size: 13px; font-weight: 700; text-decoration: none; cursor: pointer; transition: background-color .15s ease;
     }
     .sched-tel-btn:hover { background: var(--brand-line); }
@@ -346,9 +348,11 @@
       margin-top: 4px; padding-top: 14px; border-top: 1px dashed var(--card-border);
     }
     .status-tag {
-      display: inline-flex; align-items: center; padding: 4px 11px; border-radius: 9999px;
+      display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px 4px 9px; border-radius: 9999px;
       font-size: 12px; font-weight: 700; white-space: nowrap;
     }
+    /* 상태 도트: 뱃지 텍스트와 같은 색(currentColor)을 그대로 써서 톤별로 따로 지정할 필요가 없습니다 */
+    .status-tag::before { content: ''; flex: none; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
     /* 진행 상태 4단계를 다른 색상이 아니라, 같은 브랜드 톤의 명도 단계로만 표현합니다: 배정됨(옅음) → 이동 중(중간) → 병원 도착(진하게 강조) → 완료(중립 회색으로 톤다운) */
     .status-tag.st-assigned  { background: var(--sage-100); color: var(--sage-700); }
     .status-tag.st-departed  { background: var(--sage-200); color: var(--sage-800); font-weight: 800; }
@@ -390,11 +394,11 @@
 
     /* ---------- 신청 대기 카드 (mypage.html .app-card 와 같은 흰 배경·라운딩·레이어드 그림자·24px 패딩) ---------- */
     .req-card {
-      display: flex; flex-direction: column; gap: 16px; padding: 24px; background: #fff; border: 1px solid #E5E7EB;
-      border-radius: var(--radius); box-shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 8px 20px rgba(15, 23, 42, .06);
+      display: flex; flex-direction: column; gap: 16px; padding: 26px; background: #fff; border: 1px solid var(--card-border);
+      border-radius: var(--radius); box-shadow: var(--shadow-card);
       transition: box-shadow .15s ease;
     }
-    .req-card:hover { box-shadow: 0 1px 2px rgba(15, 23, 42, .06), 0 12px 28px rgba(15, 23, 42, .09); }
+    .req-card:hover { box-shadow: var(--shadow-card-hover); }
     .req-card h3 { margin: 0; } /* 브라우저 기본 h3 여백을 지워야 카드 padding 만큼만 제목 위 여백이 생김 */
     .req-card button { border: none; cursor: pointer; width: 100%; font-family: inherit; transition: background-color .15s; }
     .req-card button:disabled { opacity: .55; cursor: not-allowed; }
