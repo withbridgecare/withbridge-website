@@ -507,8 +507,10 @@
     .rv-lightbox-close:hover { background: rgba(255,255,255,.28); }
 
     /* ---------- 제출한 케어 리포트: 월간 캘린더 (토스 스타일, 좌우 스플릿) ---------- */
-    /* 좌: 달력 / 우: 이번 달 요약. 선택한 날짜의 내역 리스트는 두 컬럼 아래에 전체 너비로 펼칩니다 */
-    .cal-split { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 28px; align-items: stretch; }
+    /* 좌: 달력 / 우: 이번 달 요약. 선택한 날짜의 내역 리스트는 두 컬럼 아래에 전체 너비로 펼칩니다.
+       비율은 mypage.html 쪽 캘린더와 완전히 동일하게 8:4(2:1)로 맞춥니다 — '월 요약' 박스 크기가
+       두 페이지에서 정확히 같아야 하므로 이 비율이 달라지면 안 됩니다. */
+    .cal-split { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 28px; align-items: stretch; }
     .cal-left, .cal-right { min-width: 0; }
     /* mypage.html '이용 내역 & 케어 리포트' 캘린더의 요약 카드와 동일한 구조: 제목 아래 구분선 + 옅은 회색
        박스로 묶은 요약 항목, 달력(왼쪽) 전체 높이와 같아지도록 grid stretch + height:100% */
