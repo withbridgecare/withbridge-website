@@ -148,11 +148,11 @@
     }
 
     /* ---------- 프로필 요약 (텍스트만으로 완성도를 주는 인사 카드) ----------
-       버튼·뱃지 등 다른 기능을 더하지 않고, 넉넉한 여백과 타이포 위계만으로 정돈합니다:
-       작은 인사말 → 크고 굵은 이름(헤드라인) → 옅은 이메일, 세 줄이 넓은 세로 리듬으로 읽히게 합니다. */
-    .summary { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding: 40px 36px; }
-    .summary-hello { font-size: 14.5px; color: var(--ink-sub); font-weight: 600; letter-spacing: -0.01em; margin: 0 0 10px; }
-    .summary-title { margin: 0 0 12px; font-size: 29px; font-weight: 800; letter-spacing: -0.035em; line-height: 1.25; color: var(--ink); word-break: keep-all; }
+       버튼·뱃지 등 다른 기능은 더하지 않고, 타이포 위계만으로 정돈합니다. 토스 앱 상단 카드처럼 상하
+       여백은 슬림하게(좌우보다 얇게) 잡아 텍스트 3줄이 딱 맞게 담기는 높이로 유지합니다. */
+    .summary { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding: 22px 28px; }
+    .summary-hello { font-size: 14.5px; color: var(--ink-sub); font-weight: 600; letter-spacing: -0.01em; margin: 0 0 5px; }
+    .summary-title { margin: 0 0 5px; font-size: 25px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.25; color: var(--ink); word-break: keep-all; }
     .summary-email { margin: 0; font-size: 13.5px; color: var(--ink-sub); font-weight: 500; word-break: break-all; }
     .summary-email:empty { display: none; }
 
@@ -569,8 +569,8 @@
       .card { padding: 20px 16px; }
       .card-head { margin-bottom: 16px; }
       .dash-grid, .dash-main, .dash-side { gap: 16px; }
-      .summary { padding: 28px 22px; }
-      .summary-title { font-size: 24px; }
+      .summary { padding: 18px 20px; }
+      .summary-title { font-size: 21px; }
       .app-card { padding: 18px 16px; }
       /* 라벨 텍스트 상태 바: 좁은 화면에서는 두 줄로 자연스럽게 접히도록 글자만 살짝 줄입니다
          (레이아웃 자체는 기본 .stepper 의 flex-wrap 이 그대로 처리) */
