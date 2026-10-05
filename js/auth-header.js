@@ -32,29 +32,45 @@
   // 클라이언트는 스크립트 실행 즉시 생성 (OAuth 리다이렉트의 #access_token 을 SDK 가 바로 세션으로 처리)
   var client = sdk.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // ---------- 스타일 (드롭다운 항목 + 로그인 헤더 깜빡임 방지) ----------
+  // ---------- 스타일 (카드형 드롭다운 + 로그인 헤더 깜빡임 방지) ----------
+  // 레퍼런스 디자인(둥근 카드 안에 카드가 겹친 구조 · backdrop-blur · 모드 전환 뱃지 · 레드 로그아웃)을
+  // React/shadcn 없이 순수 CSS 클래스로 재현합니다. 색상은 이 사이트의 기존 브랜드 그린(#556B2F 계열)을 그대로 씁니다.
   var style = document.createElement('style');
   style.textContent =
-    '.wb-profile-item{display:block;width:100%;box-sizing:border-box;padding:10px 14px;border:none;border-radius:8px;' +
-    'background:transparent;font-family:"Noto Sans KR",sans-serif;font-size:15px;font-weight:500;color:#1A1D21;' +
-    'text-align:left;text-decoration:none;cursor:pointer}' +
-    '.wb-profile-item:hover{background-color:#F1F5F0}' +
-    // 모드 전환 항목: 박스/테두리 없이 일반 메뉴 항목과 같은 톤(hover 색만 살짝 다르게)으로 자연스럽게 어우러지도록
-    '.wb-mode-sec{padding:0 0 6px;margin-bottom:6px;border-bottom:1px solid #F3F4F6}' +
-    '.wb-mode-item{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;padding:10px 14px;' +
-    'border:none;border-radius:8px;background:transparent;font-family:"Noto Sans KR",sans-serif;' +
-    'text-align:left;text-decoration:none;cursor:pointer;transition:background .15s}' +
-    '.wb-mode-item:hover{background:#F8FAFC}' +
-    '.wb-mode-item:focus-visible,.wb-profile-item:focus-visible{outline:3px solid rgba(85,107,47,.45);outline-offset:1px}' +
-    // 전환 아이콘: 칩/원형 배경 없이 옅은 그레이 선(line) 아이콘만 (w-4 h-4 상당)
-    '.wb-mode-item .wb-mode-icon{flex:none;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;color:#6B7280}' +
-    '.wb-mode-item .wb-mode-icon svg{display:block;width:16px;height:16px}' +
-    '.wb-mode-item .wb-mode-label{flex:1 1 auto;min-width:0;font-size:14px;font-weight:600;color:#1F2937;' +
-    'line-height:1.3;word-break:keep-all;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
-    // 우측 미니 뱃지: 지금 어느 모드인지 (보호자=블루, 매니저=브랜드 그린)
-    '.wb-mode-item .wb-mode-badge{flex:none;font-size:11px;font-weight:500;padding:2px 8px;border-radius:9999px;white-space:nowrap}' +
-    '.wb-mode-item .wb-mode-badge.is-guardian{color:#2563EB;background:#EFF6FF}' +
-    '.wb-mode-item .wb-mode-badge.is-manager{color:#556B2F;background:#F1F5F0}' +
+    // 바깥 패널: rounded-3xl + backdrop-blur 카드
+    '.wb-dd-panel{position:absolute;top:calc(100% + 12px);right:0;width:310px;max-width:calc(100vw - 32px);' +
+    'padding:6px;background:rgba(249,250,251,.92);border:1px solid #F1F1F1;border-radius:24px;' +
+    'box-shadow:0 20px 45px rgba(15,23,42,.16);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:100}' +
+    // 안쪽 섹션 카드(프로필 / 메뉴 / 로그아웃) 3장이 겹쳐 보이는 구조
+    '.wb-dd-card{background:#fff;border:1px solid #F1F1F1;border-radius:16px;box-shadow:0 1px 2px rgba(15,23,42,.04);padding:10px}' +
+    '.wb-dd-card + .wb-dd-card{margin-top:6px}' +
+    // 프로필 카드 상단: 아바타 + 이름/역할
+    '.wb-dd-profile-top{display:flex;align-items:center;gap:10px;padding:2px 2px 10px;min-width:0}' +
+    '.wb-dd-avatar{flex:none;width:40px;height:40px;border-radius:50%;overflow:hidden;border:1px solid #F1F1F1;background:#F3F4F6}' +
+    '.wb-dd-avatar img{width:100%;height:100%;object-fit:cover;display:block}' +
+    '.wb-dd-name{margin:0;font-size:14px;font-weight:700;color:#111827;word-break:keep-all}' +
+    '.wb-dd-role{margin:2px 0 0;font-size:12px;color:#8B95A1}' +
+    // 모드 전환 버튼: 은은한 그린 배경 카드 + 좌측 아이콘/라벨, 우측 솔리드 뱃지
+    '.wb-mode-item{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;box-sizing:border-box;' +
+    'padding:9px 10px;border:1px solid #E4EBDF;border-radius:12px;background:#F1F5F0;cursor:pointer;transition:background-color .15s}' +
+    '.wb-mode-item:hover{background:#E5EBDD}' +
+    '.wb-mode-item:focus-visible,.wb-dd-item:focus-visible{outline:3px solid rgba(85,107,47,.45);outline-offset:1px}' +
+    '.wb-mode-left{display:flex;align-items:center;gap:8px;min-width:0;font-size:12.5px;font-weight:700;color:#3F4B36}' +
+    '.wb-mode-left span:last-child{word-break:keep-all}' +
+    '.wb-mode-icon{flex:none;display:inline-flex;color:#5B7052}' +
+    '.wb-mode-icon svg{display:block;width:16px;height:16px}' +
+    '.wb-mode-badge{flex:none;padding:3px 9px;border-radius:9999px;font-size:10.5px;font-weight:700;color:#fff;white-space:nowrap}' +
+    '.wb-mode-badge.is-manager{background:#556B2F}' +
+    '.wb-mode-badge.is-guardian{background:#2563EB}' +
+    // 메뉴/로그아웃 항목 공통: 아이콘 + 라벨, 로그아웃만 is-danger 로 레드 포인트
+    '.wb-dd-item{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;padding:10px;border:none;' +
+    'border-radius:12px;background:transparent;font-family:"Noto Sans KR",sans-serif;font-size:13px;font-weight:600;' +
+    'color:#374151;text-align:left;text-decoration:none;cursor:pointer;transition:background-color .15s}' +
+    '.wb-dd-item:hover{background:#F9FAFB}' +
+    '.wb-dd-item svg{flex:none;display:block;width:16px;height:16px;color:#6B7280}' +
+    '.wb-dd-item.is-danger{color:#DC2626}' +
+    '.wb-dd-item.is-danger svg{color:#EF4444}' +
+    '.wb-dd-item.is-danger:hover{background:#FEF2F2}' +
     'html.wb-auth-pending .auth-buttons{visibility:hidden}';
   document.head.appendChild(style);
 
@@ -97,12 +113,98 @@
     });
   }
 
+  // 어드민 콘솔 링크: profiles.role = 'admin' 인 계정에만 노출 (매니저 확인과 같은 재시도 패턴)
+  var ADMIN_PAGE = '/admin.html';
+  var knownIsAdmin = null; // null = 아직 모름(확인 중/실패), true = 관리자, false = 관리자 아님
+  var ADMIN_CHECK_RETRIES = 3;
+  function startAdminCheck(userId, key, attempt) {
+    lookupAdmin(userId).then(function (state) {
+      if (renderedKey !== key) return; // 그 사이 로그아웃했거나 다른 사용자로 바뀜
+      if (state === 'error') {
+        if (attempt < ADMIN_CHECK_RETRIES) {
+          setTimeout(function () { startAdminCheck(userId, key, attempt + 1); }, 1500 * (attempt + 1));
+        }
+        return; // knownIsAdmin 은 null 그대로 → 항목을 그리지 않음 (fail closed)
+      }
+      knownIsAdmin = state === 'yes';
+      fillAdminLink();
+    });
+  }
+
+  // lookupAdmin: 'yes'(profiles.role === 'admin') | 'no' | 'error'(조회 자체가 실패 — 아직 모름)
+  // DB 값과 비교하기 전에 trim + 소문자로 바꿔서 비교합니다 — Supabase 대시보드 Table Editor 에서
+  // 손으로 값을 고치다 보면 ' admin'/'Admin' 처럼 공백·대소문자가 섞여 들어가기 쉽고, 그러면 코드의
+  // 완전 일치(===) 비교만으로는 DB 에 'admin' 이 들어 있어도 'no' 로 오판하기 때문입니다.
+  async function lookupAdmin(userId) {
+    try {
+      var res = await client.from('profiles').select('role').eq('id', userId).maybeSingle();
+      // profiles.role 조회 결과를 항상 콘솔에 남깁니다 — "DB 는 admin인데 화면은 아니다" 라는 보고가
+      // 반복됐을 때, 코드가 실제로 어떤 값을 받았는지 바로 확인할 수 있어야 진단이 끝납니다.
+      console.log('[WBAuth] profiles.role 조회 결과 (userId=' + userId + '):', res.error ? res.error : res.data);
+      if (res.error) {
+        console.error('[WBAuth] profiles.role 조회 실패(RLS 정책 또는 네트워크) → 관리자 아님으로 처리(fail closed):',
+          res.error.code, res.error.message,
+          '→ sql/supabase_schema_latest.sql 의 profiles_select_own 정책이 있는지, 세션이 유효한지 확인하세요.');
+        return 'error';
+      }
+      var role = String((res.data && res.data.role) || '').trim().toLowerCase();
+      if (role !== 'admin' && res.data) {
+        console.warn('[WBAuth] profiles.role 이 "admin" 이 아닙니다 (실제 값: ' + JSON.stringify(res.data.role) + ') → 어드민 콘솔 링크를 숨깁니다.');
+      }
+      return role === 'admin' ? 'yes' : 'no';
+    } catch (e) {
+      console.error('[WBAuth] profiles.role 조회 중 예외:', e);
+      return 'error';
+    }
+  }
+
+  // 드롭다운의 '어드민 콘솔' 항목을 보이거나 숨김 (확인이 끝난 뒤 호출)
+  function fillAdminLink() {
+    var link = document.getElementById('wbAdminLink');
+    if (!link || knownIsAdmin === null) return;
+    link.hidden = !knownIsAdmin;
+  }
+
   // 모드 전환 항목의 아이콘: 서로 맞물린 두 화살표(repeat) 선 아이콘. 색은 부모의 color(브랜드 그린)를 따라갑니다.
   var SWITCH_ICON_SVG =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true">' +
     '<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/>' +
     '<path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>' +
     '</svg>';
+
+  // 드롭다운 메뉴 항목 아이콘 (마이페이지 / 어드민 콘솔 / 로그아웃) — 고정된 정적 SVG 문자열, 사용자 입력 없음
+  var USER_ICON_SVG =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true">' +
+    '<circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 0 0-16 0"/>' +
+    '</svg>';
+  var SHIELD_ICON_SVG =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true">' +
+    '<path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/>' +
+    '</svg>';
+  var LOGOUT_ICON_SVG =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true">' +
+    '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>' +
+    '</svg>';
+
+  // 드롭다운 메뉴 한 줄(아이콘 + 라벨)을 만드는 공통 헬퍼 — a 태그(링크)와 button(액션) 둘 다 지원
+  function buildDdItem(tag, opts) {
+    var el = document.createElement(tag);
+    if (tag === 'a') el.href = opts.href || '#';
+    else el.type = 'button';
+    if (opts.id) el.id = opts.id;
+    el.className = 'wb-dd-item' + (opts.danger ? ' is-danger' : '');
+    el.setAttribute('role', 'menuitem');
+    if (opts.hidden) el.hidden = true;
+    var icon = document.createElement('span');
+    icon.setAttribute('aria-hidden', 'true');
+    icon.innerHTML = opts.icon;
+    var label = document.createElement('span');
+    label.textContent = opts.label;
+    el.appendChild(icon);
+    el.appendChild(label);
+    if (opts.onClick) el.addEventListener('click', opts.onClick);
+    return el;
+  }
 
   // 화면 이동 (테스트에서 바꿔 끼울 수 있도록 한 곳으로 모음)
   function navigate(url) { window.location.href = url; }
@@ -130,15 +232,18 @@
     if (!sec || knownIsManager === null) return;
     sec.textContent = '';
     var mp = document.getElementById('wbMyPageLink');
+    var roleEl = document.getElementById('wbDdRole');
 
     if (!knownIsManager) {
       sec.hidden = true;
       if (mp) mp.href = GUARDIAN_PAGE;
+      if (roleEl) roleEl.textContent = '보호자 계정';
       return;
     }
 
     var here = currentRole();
     var target = here === 'manager' ? 'guardian' : 'manager';
+    if (roleEl) roleEl.textContent = here === 'manager' ? '케어 매니저' : '보호자 모드';
 
     var el = document.createElement('button');
     el.type = 'button';
@@ -146,18 +251,22 @@
     el.setAttribute('role', 'menuitem');
     el.addEventListener('click', function () { switchMode(target); });
 
+    var left = document.createElement('span');
+    left.className = 'wb-mode-left';
     var iconEl = document.createElement('span');
     iconEl.className = 'wb-mode-icon';
     iconEl.setAttribute('aria-hidden', 'true');
     iconEl.innerHTML = SWITCH_ICON_SVG; // 고정된 정적 SVG 문자열 (사용자 입력이 들어가지 않음)
     var labelEl = document.createElement('span');
-    labelEl.className = 'wb-mode-label';
     labelEl.textContent = target === 'manager' ? '케어 매니저 모드로 전환' : '보호자 모드로 전환';
+    left.appendChild(iconEl);
+    left.appendChild(labelEl);
+
     var badgeEl = document.createElement('span');
     badgeEl.className = 'wb-mode-badge ' + (here === 'manager' ? 'is-manager' : 'is-guardian');
     badgeEl.textContent = here === 'manager' ? '현재 매니저 모드' : '현재 보호자 모드';
-    el.appendChild(iconEl);
-    el.appendChild(labelEl);
+
+    el.appendChild(left);
     el.appendChild(badgeEl);
     sec.appendChild(el);
     sec.hidden = false;
@@ -235,41 +344,70 @@
     img.src = avatarUrl;
     btn.appendChild(img);
 
+    // 드롭다운 패널: 카드 안에 카드가 겹친 구조 — [프로필+모드 전환] / [마이페이지·어드민 콘솔] / [로그아웃] 3장
     var menu = document.createElement('div');
     menu.id = 'profileMenu';
+    menu.className = 'wb-dd-panel';
+    menu.style.display = 'none';
     menu.setAttribute('role', 'menu');
-    menu.style.cssText = 'display:none;position:absolute;top:calc(100% + 12px);right:0;min-width:232px;max-width:calc(100vw - 32px);padding:6px;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,0.12);z-index:100;';
     menu.addEventListener('click', function (e) { e.stopPropagation(); });
 
-    // 드롭다운 상단: 로그인한 사용자 이름
-    var who = document.createElement('div');
-    who.style.cssText = 'padding:10px 14px 12px;margin-bottom:4px;border-bottom:1px solid #f1f1f1;font-size:14px;font-weight:700;color:#1A1D21;word-break:keep-all;';
-    who.textContent = name + '님';
-    menu.appendChild(who);
+    // ---- 1) 프로필 카드: 아바타 + 이름/역할, 그 아래 모드 전환 버튼 ----
+    var profileCard = document.createElement('section');
+    profileCard.className = 'wb-dd-card';
 
-    var myPage = document.createElement('a');
-    myPage.id = 'wbMyPageLink';
-    myPage.href = GUARDIAN_PAGE;
-    myPage.className = 'wb-profile-item';
-    myPage.setAttribute('role', 'menuitem');
-    myPage.textContent = '마이페이지';
+    var profileTop = document.createElement('div');
+    profileTop.className = 'wb-dd-profile-top';
 
-    var logoutBtn = document.createElement('button');
-    logoutBtn.type = 'button';
-    logoutBtn.className = 'wb-profile-item';
-    logoutBtn.setAttribute('role', 'menuitem');
-    logoutBtn.textContent = '로그아웃';
-    logoutBtn.addEventListener('click', logout);
+    var ddAvatar = document.createElement('div');
+    ddAvatar.className = 'wb-dd-avatar';
+    var ddAvatarImg = document.createElement('img');
+    ddAvatarImg.alt = '프로필 이미지';
+    ddAvatarImg.referrerPolicy = 'no-referrer';
+    ddAvatarImg.onerror = function () { ddAvatarImg.onerror = null; ddAvatarImg.src = DEFAULT_AVATAR; };
+    ddAvatarImg.src = avatarUrl;
+    ddAvatar.appendChild(ddAvatarImg);
 
-    // 모드 전환 영역(사용자 이름 바로 아래, '마이페이지' 위): managers 조회가 끝나기 전에는 숨겨 두었다가, 매니저로 확인되면 채웁니다
+    var nameBlock = document.createElement('div');
+    nameBlock.style.minWidth = '0';
+    var nameEl = document.createElement('p');
+    nameEl.className = 'wb-dd-name';
+    nameEl.textContent = name + '님';
+    var roleEl = document.createElement('p');
+    roleEl.className = 'wb-dd-role';
+    roleEl.id = 'wbDdRole';
+    roleEl.textContent = '회원';
+    nameBlock.appendChild(nameEl);
+    nameBlock.appendChild(roleEl);
+
+    profileTop.appendChild(ddAvatar);
+    profileTop.appendChild(nameBlock);
+    profileCard.appendChild(profileTop);
+
+    // 모드 전환 영역: managers 조회가 끝나기 전에는 숨겨 두었다가, 매니저로 확인되면 fillModeSection() 이 채웁니다
     var modeSec = document.createElement('div');
     modeSec.id = 'wbModeSection';
-    modeSec.className = 'wb-mode-sec';
     modeSec.hidden = true;
+    profileCard.appendChild(modeSec);
 
-    menu.appendChild(modeSec);
-    menu.appendChild(myPage);
-    menu.appendChild(logoutBtn);
+    // ---- 2) 메뉴 카드: 마이페이지 / 어드민 콘솔(관리자만) ----
+    var menuCard = document.createElement('section');
+    menuCard.className = 'wb-dd-card';
+    var myPage = buildDdItem('a', { id: 'wbMyPageLink', href: GUARDIAN_PAGE, icon: USER_ICON_SVG, label: '마이페이지' });
+    // 어드민 콘솔: profiles.role 조회가 끝나기 전에는 숨겨 두었다가, 관리자로 확인되면 보입니다
+    var adminLink = buildDdItem('a', { id: 'wbAdminLink', href: ADMIN_PAGE, icon: SHIELD_ICON_SVG, label: '어드민 콘솔', hidden: true });
+    menuCard.appendChild(myPage);
+    menuCard.appendChild(adminLink);
+
+    // ---- 3) 로그아웃 카드: 위험 상태를 레드 포인트로 구분 ----
+    var logoutCard = document.createElement('section');
+    logoutCard.className = 'wb-dd-card';
+    var logoutBtn = buildDdItem('button', { icon: LOGOUT_ICON_SVG, label: '로그아웃', danger: true, onClick: logout });
+    logoutCard.appendChild(logoutBtn);
+
+    menu.appendChild(profileCard);
+    menu.appendChild(menuCard);
+    menu.appendChild(logoutCard);
     wrap.appendChild(btn);
     wrap.appendChild(menu);
     container.appendChild(wrap);
@@ -277,6 +415,10 @@
     // managers 등록 여부 확인(서버) → 등록된 매니저면 '케어 매니저 모드로 전환' / '보호자 모드로 전환' 표시
     knownIsManager = null;
     startManagerCheck(user.id, key, 0);
+
+    // profiles.role 확인(서버) → 'admin' 이면 '어드민 콘솔' 링크 표시
+    knownIsAdmin = null;
+    startAdminCheck(user.id, key, 0);
   }
 
   function renderLoggedOut() {
@@ -287,6 +429,7 @@
     }
     renderedKey = null;
     knownIsManager = null;        // 다음에 로그인하는 사람은 새로 확인
+    knownIsAdmin = null;
   }
 
   // 세션 유무에 맞춰 헤더 갱신 (DOM 준비 전에 호출돼도 준비 후 반영)
@@ -348,15 +491,19 @@
     applySession(session);
   });
 
-  // ---------- 매니저 자격 확인 (mypage.html / mypage-manager.html 공용) ----------
-  // 기준은 '서버(DB)'입니다: managers 테이블에 내 행(id = 로그인 UUID)이 있는가. (자격 인증 여부와는 무관)
-  // (RLS 가 '내 행'만 돌려주므로 브라우저에서 조작할 수 없습니다. 행은 운영자만 추가할 수 있습니다)
+  // ---------- 매니저 자격 확인 (mypage.html / mypage-manager.html / manager-apply.html 공용) ----------
+  // 기준은 '서버(DB)'입니다: managers 테이블에 내 행이 있고(id = 로그인 UUID) certification_verified 가
+  // true 인가 — SQL 쪽 is_manager() 와 정확히 같은 기준입니다.
+  // (RLS 가 '내 행'만 돌려주므로 브라우저에서 조작할 수 없습니다. 행은 approve_manager_application() 를
+  //  통해서만 만들어지고, revoke_manager() 는 행을 지우지 않고 certification_verified 만 false 로 내립니다
+  //  — sql/manager_applications.sql 참고. 그래서 '행이 있는가'만으로 판단하면 권한을 해제한 뒤에도
+  //  여전히 매니저로 취급되는 버그가 생깁니다. certification_verified 까지 같이 봐야 정확합니다.)
   //  * user_metadata / localStorage 는 사용자가 브라우저에서 직접 고칠 수 있으므로 권한 판단에 쓰지 않습니다.
-  //  * 두 마이페이지와 드롭다운이 서로 다른 기준을 쓰면 사용자가 두 페이지를 끝없이 오가게 됩니다.
+  //  * 두 마이페이지와 드롭다운, manager-apply.html 이 서로 다른 기준을 쓰면 화면마다 판정이 어긋납니다.
   //    반드시 이 함수(또는 lookupManager) 하나만 사용하세요.
   //  * 이 함수는 화면을 보여줄지/막을지 결정하는 용도이고, 실제 데이터 보호는 DB 규칙(RLS·is_manager())이 담당합니다.
   //  * 확인에 실패하면(네트워크 오류 등) '매니저 아님'으로 처리합니다 (fail closed).
-  // lookupManager: 'yes'(managers 에 내 행이 있음) | 'no'(행이 없음) | 'error'(조회 자체가 실패 — 아직 모름)
+  // lookupManager: 'yes'(managers 에 내 행이 있고 certification_verified = true) | 'no'(행이 없거나 인증 전/해제됨) | 'error'(조회 자체가 실패 — 아직 모름)
   // 'no' 와 'error' 를 구분하는 이유: 일시적인 네트워크 오류를 '매니저 아님'으로 굳혀 버리면 메뉴가 계속 안 보이기 때문입니다.
   async function lookupManager(userId) {
     try {
@@ -369,14 +516,13 @@
       }
       if (!res.data) {
         console.info('[WBAuth] managers 에 이 계정(' + userId + ')의 행이 없습니다 → 매니저 아님. ' +
-                     '매니저로 쓰려면 managers 에 id = 이 UUID 인 행을 추가하세요.');
+                     '매니저 승인은 admin.html 의 [승인] 버튼(approve_manager_application) 으로만 이뤄집니다.');
         return 'no';
       }
       if (res.data.certification_verified !== true) {
-        // 행이 있으면 매니저로 취급(전환 메뉴 표시). 인증 전이면 매니저 화면에 '자격 확인 중'으로 표시되고,
-        // 배정 데이터는 DB 규칙(is_manager())상 인증 완료 후에 보입니다.
-        console.info('[WBAuth] managers 에 행이 있으나 certification_verified 가 아직 true 가 아닙니다. 인증을 마치려면: ' +
-                     "update public.managers set certification_verified = true where id = '" + userId + "';");
+        console.info('[WBAuth] managers 에 행이 있으나 certification_verified 가 true 가 아닙니다(인증 전이거나 ' +
+                     '관리자가 권한을 해제한 상태) → 매니저 아님으로 처리합니다: ' + userId);
+        return 'no';
       }
       return 'yes';
     } catch (e) {
@@ -386,6 +532,9 @@
   }
   async function checkIsManager(userId) {
     return (await lookupManager(userId)) === 'yes'; // 실패('error')는 매니저 아님으로 처리 (fail closed)
+  }
+  async function checkIsAdmin(userId) {
+    return (await lookupAdmin(userId)) === 'yes'; // 실패('error')는 관리자 아님으로 처리 (fail closed)
   }
 
   // ---------- 화면 모드 (보호자 ↔ 매니저) ----------
@@ -467,7 +616,7 @@
   });
 
   window.WBAuth = {
-    client: client, logout: logout, checkIsManager: checkIsManager,
+    client: client, logout: logout, checkIsManager: checkIsManager, checkIsAdmin: checkIsAdmin,
     getUserMode: getUserMode, setUserMode: setUserMode, navigate: navigate, claimPendingApplications: claimPendingApplications, loggingOut: false
   };
 })();

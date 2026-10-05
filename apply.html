@@ -11,12 +11,14 @@
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- 공통 Supabase 클라이언트 + 헤더 로그인 상태. SDK 뒤에 로드해야 합니다 -->
-  <script src="/js/auth-header.js?v=1.0" charset="utf-8"></script>
+  <script src="/js/auth-header.js?v=1.1" charset="utf-8"></script>
 <script src="/js/terms-modal.js?v=1.0" charset="utf-8" defer></script>
   <!-- 카카오(다음) 우편번호 서비스: 출발지/목적지 주소를 자유 입력 대신 정식 도로명·지번 주소로 선택하게 함 -->
   <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
   <!-- 브라우저 기본 날짜/시간 피커 대신 쓰는 공통 커스텀 피커 (wb-datepicker.js 참고) -->
   <script src="/js/wb-datepicker.js?v=1.0"></script>
+  <!-- 포트원 V2 결제창(가상계좌 발급) SDK -->
+  <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
   <style>
     :root {
       --brand: #78866B;
@@ -214,6 +216,14 @@
     .done h2:focus { outline: none; }   /* 접수 후 스크린리더용으로 제목에 포커스를 주는데, 눈에 보이는 테두리는 필요 없음 */
     .done p { margin: 0 0 6px; color: #475569; word-break: keep-all; }
     .done .who { margin: 16px auto 0; padding: 12px 16px; max-width: 420px; border-radius: 12px; background: var(--brand-soft); color: var(--brand-dark); font-weight: 700; word-break: break-all; }
+    /* 가상계좌 입금 안내 (결제창에서 계좌 발급이 끝난 뒤 표시) */
+    .va-box { margin: 18px auto 0; padding: 18px 20px; max-width: 420px; border-radius: 14px; background: #EEF3E6; border: 2px solid var(--accent); text-align: left; }
+    .va-box h3 { margin: 0 0 12px; font-size: 15px; font-weight: 800; color: var(--accent-dark); }
+    .va-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin: 0 0 6px; font-size: 14.5px; }
+    .va-row:last-of-type { margin-bottom: 0; }
+    .va-row .va-label { color: var(--ink-sub); flex: none; }
+    .va-row .va-value { font-weight: 800; color: #1f2937; text-align: right; word-break: break-all; }
+    .va-deadline { margin: 12px 0 0; font-size: 12.5px; font-weight: 700; color: #B45309; }
     /* 비로그인 신청 안내: 나중에 로그인하면 이 신청이 마이페이지에 연결됨 */
     .done .done-login { margin: 18px auto 0; max-width: 420px; font-size: 13.5px; line-height: 1.6; color: #475569; }
     .done .done-login a { color: var(--brand-dark); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
@@ -297,39 +307,41 @@
 -->
 <!-- 상단 네비게이션 헤더 (독립된 login.html 이동 적용본) -->
 <header style="width: 100%; background-color: #ffffff; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 50; font-family: 'Noto Sans KR', sans-serif;">
-  <div style="max-width: 1380px; margin: 0 auto; padding: 32px 40px; display: flex; align-items: center; justify-content: space-between;">
-    
+  <div style="max-width: 1380px; margin: 0 auto; padding: 12px 40px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: 24px;">
+
     <!-- 로고 영역 (클릭 시 메인 페이지로 이동하도록 index.html 적용) -->
-    <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
-      <img src="https://i.ibb.co/xqjbh2Hg/ab449647-1b1a-4b6d-8e17-71379d22e824.png" alt="위드브릿지 로고" style="height: 98px; width: auto; display: block; object-fit: contain;" />
+    <a href="index.html" style="justify-self: start; display: flex; align-items: center; text-decoration: none; flex: none;">
+      <img src="/images/withbridge-logo.png" alt="위드브릿지 로고" style="height: 38px; width: auto; display: block; object-fit: contain;" />
     </a>
 
-    <!-- 중앙 메뉴 링크 (소개 메뉴를 about.html로 연결) -->
-    <nav style="display: flex; align-items: center; gap: 44px; font-size: 19px; font-weight: 700;">
+    <!-- 중앙 메뉴 링크 (소개 메뉴를 about.html로 연결) : 가운데 auto 칸에 놓여 좌우 1fr 칸이 같은 폭이라 항상 화면 정중앙에 옵니다 -->
+    <nav style="display: flex; align-items: center; gap: 18px; font-size: 14.5px; font-weight: 600; white-space: nowrap; flex-wrap: nowrap;">
       <a href="about.html" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">소개</a>
+      <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
       <a href="index.html#services" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">서비스</a>
+      <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
       <a href="index.html#notice" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">공지사항</a>
+      <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
       <a href="index.html#reviews" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">고객후기</a>
+      <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
       <a href="index.html#faq" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">자주 묻는 질문(FAQ)</a>
     </nav>
 
-    <!-- 우측 버튼 및 링크 영역 -->
-    <div style="display: flex; align-items: center; gap: 20px;">
-      <!-- 💡 class="auth-buttons" 추가됨: 자바스크립트가 이 영역을 찾아 로그인 시 '로그아웃'으로 바꿉니다 -->
-      <div class="auth-buttons" style="display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 500; color: #1A1D21;">
-        <a href="login.html" style="text-decoration: none; font-weight: 500; color: #1A1D21; transition: color 0.2s;">
-          로그인
-        </a>
-        <span style="color: #d1d5db; font-size: 14px; font-weight: 400;">|</span>
-        <a href="login.html" style="text-decoration: none; font-weight: 500; color: #1A1D21; transition: color 0.2s;">
-          회원가입
-        </a>
+    <!-- 우측 버튼 및 링크 영역 : 로그인/마이페이지 등은 옅은 회색 텍스트로, '예약하기'만 브랜드 컬러 버튼으로 강조해 위계를 대비 -->
+    <div style="justify-self: end; display: flex; align-items: center; gap: 18px; white-space: nowrap; flex-wrap: nowrap;">
+      <div style="display: flex; align-items: center; gap: 12px; font-size: 13.5px; font-weight: 500; color: #6B7280;">
+        <a href="https://pf.kakao.com/_xjTdxaX/chat" target="_blank" rel="noopener noreferrer" style="color: #6B7280; text-decoration: none; transition: color 0.2s;">문의하기</a>
+        <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 12px; background-color: #E2E4E8;"></span>
+        <!-- 💡 class="auth-buttons" 추가됨: 자바스크립트가 이 영역을 찾아 로그인 시 '로그아웃'으로 바꿉니다 -->
+        <div class="auth-buttons" style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 500; color: #6B7280; white-space: nowrap;">
+          <a href="login.html" style="text-decoration: none; font-weight: 500; color: #6B7280; transition: color 0.2s;">로그인</a>
+          <span style="color: #d1d5db; font-size: 13.5px; font-weight: 400;">|</span>
+          <a href="login.html" style="text-decoration: none; font-weight: 500; color: #6B7280; transition: color 0.2s;">회원가입</a>
+        </div>
       </div>
 
-      <!-- 문의하기 버튼 (카카오톡 링크 연동) -->
-      <a href="https://accounts.kakao.com/login/?continue=https%3A%2F%2Fpf.kakao.com%2F_xjTdxaX%2Fchat#login" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 16px 36px; background-color: #000000; color: #ffffff; border-radius: 9999px; font-size: 18px; font-weight: 700; text-decoration: none; transition: background-color 0.2s;">
-        문의하기
-      </a>
+      <!-- 예약하기 버튼 (핵심 액션, 브랜드 세이지그린으로 강조) -->
+      <a href="apply.html" style="flex: none; display: inline-block; padding: 10px 22px; background-color: #8FA482; color: #ffffff; border-radius: 9999px; font-size: 14.5px; font-weight: 700; text-decoration: none; box-shadow: 0 4px 14px rgba(143, 164, 130, 0.35); transition: background-color 0.2s, transform 0.2s;">예약하기</a>
     </div>
 
   </div>
@@ -531,6 +543,14 @@
         <p>급하신 경우 위드브릿지 고객센터(<a href="tel:01058745760">010-5874-5760</a>)로 문의해 주세요.</p>
         <div class="who" id="doneService"></div>
         <div class="who" id="doneContact"></div>
+        <!-- 결제창에서 가상계좌 발급이 끝난 뒤에만 채워짐 (showDone 참고) -->
+        <div class="va-box" id="doneVirtualAccount" hidden>
+          <h3>아래 가상계좌로 입금해 주세요</h3>
+          <div class="va-row"><span class="va-label">은행</span><span class="va-value" id="vaBankName"></span></div>
+          <div class="va-row"><span class="va-label">계좌번호</span><span class="va-value" id="vaAccountNumber"></span></div>
+          <div class="va-row"><span class="va-label">입금 금액</span><span class="va-value" id="vaAmount"></span></div>
+          <p class="va-deadline" id="vaDeadline"></p>
+        </div>
         <!-- 비로그인(또는 계정 연결 없이) 접수된 경우에만 표시: 로그인하면 이 신청이 마이페이지에 자동 연결됩니다 -->
         <p class="done-login" id="doneLoginHint" hidden>로그인하지 않고 신청하셨어요. <a href="login.html">카카오로 로그인</a>하시면 이 신청이 마이페이지에 자동으로 연결돼요.</p>
         <div class="done-actions">
@@ -698,6 +718,13 @@
       }
     };
     const SERVICE_NAMES = Object.keys(SERVICES);
+
+    // 포트원 V2 결제창(가상계좌) 설정. storeId/channelKey 는 js/auth-header.js 의 Supabase anon key 처럼
+    // 브라우저에 그대로 노출돼도 안전한 "공개 식별자"입니다 — 실제 인증은 서버에만 있는
+    // PORTONE_API_SECRET(.env, Supabase secrets)으로 이뤄지고, 여기서는 결코 다루지 않습니다.
+    const PORTONE_STORE_ID = 'store-d049e114-625d-4a7d-9202-b38f9072f3bc';
+    const PORTONE_VIRTUAL_ACCOUNT_CHANNEL_KEY = 'channel-key-b0db73ea-9a01-4e1d-9d28-64d3d2f7e232';
+
     const DEFAULT_TEXT = {
       destLabel: '목적지 / 방문 장소',
       destPlaceholder: '예: 방문하실 병원명 또는 장소',
@@ -1007,8 +1034,11 @@
       const applicationId = newUuid();
       const insertRow = (r) => supabaseClient.from('service_applications').insert([r]);
       let linkedToAccount = !!userId;
-      let { error } = await insertRow(Object.assign({}, row, { applicant_email: applicantEmail },
-        userId ? { user_id: userId } : { id: applicationId }));
+      // id 는 로그인 여부와 무관하게 항상 명시적으로 지정합니다 — 이후 포트원 결제창의 paymentId 로 그대로
+      // 쓰기 때문에 insert 직후 반드시 이 값을 알고 있어야 합니다(로그인 상태에서도 서버가 대신 채우게
+      // 두면 응답을 다시 읽어야 해서 더 번거롭고, 비로그인 경로가 이미 이렇게 하고 있어 안전합니다).
+      let { error } = await insertRow(Object.assign({}, row, { id: applicationId, applicant_email: applicantEmail },
+        userId ? { user_id: userId } : {}));
       if (error && userId && error.code === '42501') {
         console.warn('[신청] user_id 를 포함한 저장이 DB 권한(42501)으로 거부되어 user_id 없이 저장합니다. 로그인 후 자동 연결로 보완됩니다. ' +
                      '→ supabase-claim-applications.sql 을 실행하세요. 오류:', error.message);
@@ -1020,11 +1050,11 @@
         // (최신 마이그레이션 미실행) — 신청 자체를 막지 않도록 그 필드들을 빼고 한 번 더 시도합니다.
         console.warn('[신청] 좌표/이메일 컬럼이 DB 에 없어(42703/PGRST204) 그 컬럼들 없이 다시 저장합니다. → sql/supabase_schema_latest.sql 을 실행하세요. 오류:', error.message);
         const { origin_lat, origin_lng, destination_lat, destination_lng, ...rowWithoutCoords } = row;
-        ({ error } = await insertRow(Object.assign({}, rowWithoutCoords,
-          linkedToAccount ? { user_id: userId } : { id: applicationId })));
+        ({ error } = await insertRow(Object.assign({}, rowWithoutCoords, { id: applicationId },
+          linkedToAccount ? { user_id: userId } : {})));
       }
       if (!error) {
-        console.log('[신청] 저장됨:', { application_id: linkedToAccount ? '(서버 생성)' : applicationId, user_id: linkedToAccount ? userId : null });
+        console.log('[신청] 저장됨:', { application_id: applicationId, user_id: linkedToAccount ? userId : null });
         if (!linkedToAccount) {
           rememberPendingApplication(applicationId); // 로그인하면 내 계정에 연결
           // 이미 로그인한 상태(DB 가 user_id 저장을 거부한 경우)라면 기다리지 않고 지금 바로 연결
@@ -1032,11 +1062,10 @@
         }
       }
 
-      submitting = false;
-      btn.disabled = false;
-      btn.textContent = '신청서 제출하기';
-
       if (error) {
+        submitting = false;
+        btn.disabled = false;
+        btn.textContent = '신청서 제출하기';
         console.error('신청서 저장 실패:', error.code, error.message);
         if (NOT_READY_CODES.includes(error.code)) {
           // 방문자에게는 쉬운 말로만 안내하고, 운영자가 원인을 바로 알 수 있도록 콘솔에 남김
@@ -1049,7 +1078,82 @@
         showFormError(submitErrorMessage(error), error.code);
         return;
       }
-      showDone(values, linkedToAccount ? 'linked' : (userId ? 'linking' : 'anonymous'));
+
+      // ---- 신청서 저장 완료 → 완료 화면으로 넘어가기 전에 포트원 V2 결제창(가상계좌 발급)을 띄움 ----
+      // 결제창 응답은 참고용일 뿐 그대로 신뢰하지 않습니다 — 실제 계좌번호/금액은 Edge Function
+      // (issue-virtual-account)이 포트원 API를 서버에서 다시 조회해 확인한 값만 화면에 표시합니다
+      // (supabase/functions/issue-virtual-account, sql/payment_confirmation_functions.sql 참고).
+      btn.textContent = '결제창 여는 중…';
+
+      if (!window.PortOne) {
+        submitting = false;
+        btn.disabled = false;
+        btn.textContent = '신청서 제출하기';
+        console.error('[결제] 포트원 SDK(cdn.portone.io/v2/browser-sdk.js)를 불러오지 못했습니다.');
+        showFormError('결제 모듈을 불러오지 못했어요. 신청 내용은 이미 접수되었으니, 새로고침 후 다시 시도하거나 고객센터로 문의해 주세요.');
+        return;
+      }
+
+      let payment;
+      try {
+        payment = await PortOne.requestPayment({
+          storeId: PORTONE_STORE_ID,
+          channelKey: PORTONE_VIRTUAL_ACCOUNT_CHANNEL_KEY,
+          paymentId: applicationId, // issue-virtual-account/portone-webhook 이 이 값으로 application_id 를 역추적합니다
+          orderName: values.service_type,
+          totalAmount: SERVICES[values.service_type].price,
+          currency: 'CURRENCY_KRW',
+          payMethod: 'VIRTUAL_ACCOUNT',
+          customer: {
+            fullName: values.applicant_name,
+            phoneNumber: values.applicant_phone.replace(/\D/g, ''),
+            email: applicantEmail || undefined
+          },
+          virtualAccount: { accountExpiry: { validHours: 2 } }, // 은행 선택은 결제창 UI 안에서 고객이 직접 고릅니다
+          customData: { application_id: applicationId }
+        });
+      } catch (e) {
+        console.error('[결제] PortOne.requestPayment 호출 자체가 실패했습니다:', e);
+        payment = { code: 'CLIENT_ERROR', message: '결제창을 여는 중 오류가 발생했어요.' };
+      }
+
+      if (payment && payment.code !== undefined) {
+        // 결제창 취소/실패. 신청서(service_applications)는 이미 'PAYMENT_PENDING' 으로 접수돼 있어 잃어버리지
+        // 않습니다 — 다만 지금은 "결제만 다시 시도"하는 버튼이 따로 없어 이 화면에서 다시 제출하면 신청서가
+        // 하나 더 생깁니다. 결제 재시도 전용 버튼은 추후 과제로 남겨 둡니다.
+        submitting = false;
+        btn.disabled = false;
+        btn.textContent = '신청서 제출하기';
+        console.warn('[결제] 가상계좌 발급이 완료되지 않았습니다:', payment.code, payment.message);
+        showFormError('가상계좌 발급이 완료되지 않았어요. (' + (payment.message || payment.code) +
+          ') 신청 내용은 저장되어 있으니, 고객센터(010-5874-5760)로 문의해 주시면 결제를 도와드릴게요.');
+        return;
+      }
+
+      // 결제창에서는 성공했지만, 실제 계좌 정보는 서버가 포트원 API로 재확인한 뒤 virtual_accounts 에
+      // 저장한 값만 신뢰합니다(issue-virtual-account 내부에서 GET /payments/{paymentId} 로 재조회).
+      btn.textContent = '결제 확인 중…';
+      const { data: vaData, error: vaError } = await supabaseClient.functions.invoke('issue-virtual-account', {
+        body: { application_id: applicationId }
+      });
+
+      submitting = false;
+      btn.disabled = false;
+      btn.textContent = '신청서 제출하기';
+
+      let virtualAccount = 'ERROR';
+      if (vaError) {
+        console.error('[결제] issue-virtual-account 호출 실패:', vaError);
+        if (vaError.context && typeof vaError.context.json === 'function') {
+          vaError.context.json().then((body) => console.error('[결제] 서버 응답:', body)).catch(() => {});
+        }
+      } else if (vaData && vaData.status === 'PAID') {
+        virtualAccount = null; // 즉시 승인 완료 — 입금 안내 박스가 필요 없음
+      } else if (vaData && vaData.virtual_account) {
+        virtualAccount = vaData.virtual_account;
+      }
+
+      showDone(values, linkedToAccount ? 'linked' : (userId ? 'linking' : 'anonymous'), virtualAccount);
     });
 
     // ---------- 로그인 확인 · 비로그인 신청 기억 ----------
@@ -1092,11 +1196,34 @@
     }
 
     // mode: 'linked'(로그인 계정에 바로 연결됨 · 안내 없음) | 'anonymous'(비로그인 → 로그인하면 연결) | 'linking'(로그인 상태인데 연결을 한 번 더 진행 중)
+    // virtualAccount: issue-virtual-account 가 돌려준 { bank_name, account_number, amount, expired_at } 객체면 입금 안내를 보여주고,
+    //   'ERROR'(결제창은 성공했지만 서버 확인이 실패) 면 계좌 정보 대신 문의 안내를, 그 외(스팸 함정 등 결제 자체를 안 한 경우)엔 박스를 숨깁니다.
     const ANON_HINT_HTML = $('doneLoginHint').innerHTML;
-    function showDone(values, mode) {
+    function showDone(values, mode, virtualAccount) {
       const svc = SERVICES[values.service_type];
       $('doneService').textContent = '신청 서비스: ' + values.service_type + (svc ? ' · 총 예상 금액 ' + won(svc.price) + '원 (기본 2시간)' : '');
       $('doneContact').textContent = values.applicant_name + ' (' + values.applicant_phone + ')';
+
+      const vaBox = $('doneVirtualAccount');
+      if (virtualAccount && typeof virtualAccount === 'object') {
+        $('vaBankName').textContent = virtualAccount.bank_name || '-';
+        $('vaAccountNumber').textContent = virtualAccount.account_number || '-';
+        $('vaAmount').textContent = virtualAccount.amount ? won(virtualAccount.amount) + '원' : '-';
+        const deadline = virtualAccount.expired_at ? new Date(virtualAccount.expired_at) : null;
+        $('vaDeadline').textContent = (deadline && !isNaN(deadline.getTime()))
+          ? '입금 기한: ' + deadline.toLocaleString('ko-KR', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + '까지 (미입금 시 자동 취소될 수 있어요)'
+          : '입금 기한: 발급 후 2시간 이내';
+        vaBox.hidden = false;
+      } else if (virtualAccount === 'ERROR') {
+        $('vaBankName').textContent = '-';
+        $('vaAccountNumber').textContent = '-';
+        $('vaAmount').textContent = '-';
+        $('vaDeadline').textContent = '계좌 정보를 불러오지 못했어요. 고객센터(010-5874-5760)로 문의해 주시면 안내해 드릴게요.';
+        vaBox.hidden = false;
+      } else {
+        vaBox.hidden = true;
+      }
+
       const hint = $('doneLoginHint');
       if (mode === 'anonymous') { hint.innerHTML = ANON_HINT_HTML; hint.hidden = false; }
       else if (mode === 'linking') { hint.textContent = '신청을 내 계정에 연결하고 있어요. 잠시 후 마이페이지에서 확인하실 수 있어요.'; hint.hidden = false; }

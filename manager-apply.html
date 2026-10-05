@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>케어 매니저 지원하기</title>
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- 공통 Supabase 클라이언트 + 헤더 로그인 상태. SDK 뒤에 로드해야 합니다 -->
+  <script src="/js/auth-header.js?v=1.1" charset="utf-8"></script>
+  <!-- 카카오(다음) 우편번호 서비스: 거주지 주소를 자유 입력 대신 정식 도로명·지번 주소로 선택하게 함 -->
+  <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+  <!-- 브라우저 기본 날짜 피커 대신 쓰는 공통 커스텀 피커 (wb-datepicker.js 참고) -->
+  <script src="/js/wb-datepicker.js?v=1.0"></script>
+  <style>
+    :root {
+      --brand: #78866B;
+      --brand-dark: #3B4B3C;
+      --brand-soft: #F1F6F0;
+      --brand-line: #E2ECE0;
+      --ink: #1A1D21;
+      --ink-sub: #555555;
+      --accent: #556B2F;
+      --accent-dark: #455822;
+      --control-border: #858E9C;
+      --bg: #FAF8F5;
+      --card: #FFFFFF;
+      --line: #EBE7E0;
+      --danger: #C0392B;
+      --earth-bg: #FFFBEB;
+      --earth-fg: #B45309;
+      --radius: 20px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0; background: var(--bg); color: var(--ink);
+      font-family: 'Pretendard Variable', Pretendard, 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+      font-size: 15px; line-height: 1.6; letter-spacing: -0.01em; -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; }
+    button, input, textarea, select { font-family: inherit; }
+    [hidden] { display: none !important; }
+
+    .ap-main { padding: 40px 24px 80px; }
+    .ap-wrap { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 32px; box-shadow: 0 4px 16px rgba(0,0,0,.02); }
+
+    .ap-title { margin: 0 0 12px; font-size: 26px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.35; word-break: keep-all; }
+    .ap-lead { margin: 0 0 24px; font-size: 15.5px; color: #475569; word-break: keep-all; }
+
+    .notice {
+      margin: 0 0 28px; padding: 14px 18px; background: var(--brand-soft); border: 1px solid var(--brand-line); border-left: 5px solid var(--brand);
+      border-radius: 12px; font-size: 13.5px; line-height: 1.6; color: #374151; word-break: keep-all;
+    }
+    .notice strong { color: var(--brand-dark); }
+
+    .reject-notice {
+      margin: 0 0 28px; padding: 14px 18px; background: #FDF1EF; border: 1px solid #F3D3CB; border-left: 5px solid var(--danger);
+      border-radius: 12px; font-size: 13.5px; line-height: 1.6; color: #7a2f26; word-break: keep-all;
+    }
+
+    /* ---------- 진행 상황(프로그레스 바) ---------- */
+    .wizard-head { margin-bottom: 26px; }
+    .wizard-steps-label { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+    .wizard-steps-label .current { font-size: 13.5px; font-weight: 800; color: var(--accent-dark); }
+    .wizard-steps-label .names { font-size: 12.5px; font-weight: 600; color: var(--ink-sub); }
+    .wizard-track { height: 8px; border-radius: 9999px; background: var(--line); overflow: hidden; }
+    .wizard-fill { height: 100%; border-radius: 9999px; background: var(--accent); transition: width .3s ease; width: 25%; }
+
+    .step-title { margin: 0 0 4px; font-size: 19px; font-weight: 800; letter-spacing: -0.02em; word-break: keep-all; }
+    .step-desc { margin: 0 0 24px; font-size: 13.5px; color: var(--ink-sub); word-break: keep-all; }
+
+    .field { border: none; margin: 0 0 24px; padding: 0; min-width: 0; }
+    .field:last-of-type { margin-bottom: 0; }
+    .field > label, .field > legend { display: block; margin: 0 0 10px; padding: 0; font-size: 15.5px; font-weight: 700; letter-spacing: -0.02em; word-break: keep-all; }
+    .req { color: var(--danger); margin-left: 2px; }
+    .opt-tag { margin-left: 6px; font-size: 13px; font-weight: 500; color: var(--ink-sub); }
+    .text-input {
+      width: 100%; padding: 14px 16px; border: 1px solid var(--control-border); border-radius: 12px; background: #fff; color: var(--ink);
+      font-size: 15.5px; outline: none; transition: border-color .15s, box-shadow .15s;
+    }
+    .text-input::placeholder { color: #666666; opacity: 1; }
+    .text-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(85,107,47,.22); }
+    .field.has-error .text-input { border-color: var(--danger); }
+    .field.has-error .wbdp-trigger { border-color: var(--danger); }
+    select.text-input { appearance: auto; background-color: #fff; cursor: pointer; }
+    textarea.text-input { display: block; min-height: 110px; resize: vertical; line-height: 1.6; }
+    .err { margin: 8px 2px 0; font-size: 13.5px; color: var(--danger); }
+    .hint { margin: 6px 2px 0; font-size: 13px; color: var(--ink-sub); word-break: keep-all; }
+
+    .row2 { display: flex; gap: 10px; flex-wrap: wrap; }
+    .row2 > .field { flex: 1 1 220px; margin-bottom: 24px; }
+
+    /* 거주지 주소 검색 */
+    .addr-search-row { display: flex; gap: 8px; }
+    .addr-search-row .text-input { flex: 1 1 auto; min-width: 0; background: #F7F8F5; cursor: pointer; }
+    .addr-search-row .text-input::placeholder { color: var(--ink-sub); }
+    .addr-search-btn {
+      flex: none; padding: 0 18px; min-height: 48px; border: 1px solid var(--accent); border-radius: 12px;
+      background: var(--brand-soft); color: var(--brand-dark); font-size: 14px; font-weight: 700;
+      cursor: pointer; white-space: nowrap; transition: background-color .15s;
+    }
+    .addr-search-btn:hover { background: var(--brand-line); }
+    .addr-detail { margin-top: 8px; }
+
+    /* 신분증 사본 업로드 */
+    .file-drop {
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+      border: 1.5px solid #E5E7EB; border-radius: 16px; padding: 36px 24px; text-align: center;
+      background: #F9FAFB; cursor: pointer; transition: border-color .15s, background-color .15s, box-shadow .15s;
+    }
+    .file-drop:hover { border-color: var(--accent); background: var(--brand-soft); box-shadow: 0 2px 10px rgba(85,107,47,.08); }
+    .file-drop input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+    .file-drop-icon {
+      display: flex; align-items: center; justify-content: center; color: var(--accent);
+    }
+    .file-drop-icon svg { width: 24px; height: 24px; display: block; }
+    .file-drop-text { font-size: 14px; font-weight: 600; color: var(--ink-sub); }
+    .field.has-error .file-drop { border-color: var(--danger); }
+    .file-chip {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 13px 16px;
+      border: 1px solid var(--brand-line); border-radius: 12px; background: var(--brand-soft);
+      font-size: 13.5px; font-weight: 700; color: var(--brand-dark);
+    }
+    .file-chip .fc-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-chip button { flex: none; border: none; background: transparent; color: var(--danger); font-weight: 700; font-size: 13px; cursor: pointer; padding: 4px 6px; }
+    .file-status { margin-top: 8px; font-size: 13px; color: var(--ink-sub); }
+    .id-mask-hint { margin: 10px 2px 0; padding: 10px 12px; background: var(--earth-bg); color: var(--earth-fg); border-radius: 10px; font-size: 12.5px; line-height: 1.55; word-break: keep-all; }
+
+    /* 체크박스 알약 그룹 (지역/요일·시간대/자격증 다중 선택) */
+    .options { display: flex; flex-wrap: wrap; gap: 10px; }
+    .opt { position: relative; cursor: pointer; }
+    .opt input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+    .opt span {
+      display: inline-flex; align-items: center; gap: 8px; padding: 11px 16px; border: 2px solid var(--control-border); border-radius: 9999px;
+      background: #fff; color: var(--ink); font-size: 14.5px; font-weight: 500; transition: all .15s; user-select: none;
+    }
+    .opt span::before { content: ''; width: 15px; height: 15px; border-radius: 5px; border: 2px solid var(--control-border); background: #fff; flex: 0 0 auto; transition: all .15s; }
+    .opt:hover span { border-color: var(--accent); }
+    .opt input:checked + span { border-color: var(--accent); background: var(--accent); color: #fff; font-weight: 700; }
+    .opt input:checked + span::before { border-color: #fff; background: #fff; box-shadow: inset 0 0 0 3px var(--accent); }
+    .opt input:focus-visible + span { outline: 3px solid rgba(85,107,47,.5); outline-offset: 2px; }
+    .opt input:disabled + span { opacity: .4; cursor: not-allowed; }
+    .field.has-error .options .opt span { border-color: #D98E85; }
+    .other-area-input { margin-top: 10px; max-width: 320px; }
+
+    /* 개인정보/안전 서약 동의 체크박스 (apply.html 과 동일한 언어) */
+    .consent-card { padding: 16px 16px 16px 14px; border: 1px solid var(--line); border-radius: 14px; margin-bottom: 14px; }
+    .consent-card:last-of-type { margin-bottom: 0; }
+    label.consent-row { display: flex; align-items: flex-start; gap: 10px; margin: 0; padding: 0; font-size: 15px; font-weight: 700; letter-spacing: normal; cursor: pointer; }
+    .consent-row input {
+      -webkit-appearance: none; appearance: none; margin-top: 2px;
+      width: 20px; height: 20px; flex: 0 0 auto;
+      border: 1.5px solid #d1d5db; border-radius: 6px; background-color: #ffffff; cursor: pointer;
+      background-repeat: no-repeat; background-position: center; background-size: 14px 14px;
+      transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease;
+    }
+    .consent-row input:checked {
+      background-color: #556B2F; border-color: #556B2F;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ffffff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3.5 8.6 6.6 11.6 12.5 4.6'/%3E%3C/svg%3E");
+    }
+    .consent-row:hover input { border-color: #556B2F; box-shadow: 0 0 0 3px rgba(85,107,47,.14); }
+    .consent-row:hover input:checked { background-color: #455822; border-color: #455822; }
+    .consent-row input:focus-visible { outline: 3px solid rgba(85,107,47,.5); outline-offset: 2px; }
+    .consent-row span.ct { word-break: keep-all; }
+    .consent-detail { margin: 8px 0 0 30px; font-size: 13px; line-height: 1.6; color: var(--ink-sub); word-break: keep-all; }
+    @media (forced-colors: active) {
+      .consent-row input { -webkit-appearance: checkbox; appearance: auto; }
+    }
+
+    .step-nav { display: flex; gap: 10px; margin-top: 8px; padding-top: 20px; border-top: 1px solid var(--line); }
+    .step-nav .nav-btn {
+      display: flex; align-items: center; justify-content: center; padding: 16px 20px; border-radius: 9999px;
+      font-size: 16px; font-weight: 700; cursor: pointer; transition: background .2s, transform .2s; border: none;
+    }
+    .step-nav .nav-next, .step-nav .nav-submit { flex: 1; background: var(--accent); color: #fff; }
+    .step-nav .nav-next:hover, .step-nav .nav-submit:hover { background: var(--accent-dark); transform: translateY(-1px); }
+    .step-nav .nav-next:disabled, .step-nav .nav-submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+    .step-nav .nav-prev { flex: 0 0 110px; background: var(--brand-soft); color: var(--brand-dark); }
+    .step-nav .nav-prev:hover { background: var(--brand-line); }
+
+    .form-error { margin: 0 0 16px; padding: 14px 16px; border-radius: 12px; background: #FDF1EF; color: #7a2f26; font-size: 14px; word-break: keep-all; }
+
+    /* 상태 카드 (이미 매니저 / 심사 중 / 접수 완료) — apply.html 의 .done 과 같은 언어 */
+    .status-card { text-align: center; padding: 48px 32px; }
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 6px; margin: 0 0 16px; padding: 5px 14px; border-radius: 9999px;
+      font-size: 12.5px; font-weight: 700;
+    }
+    .status-badge.is-pending { background: var(--earth-bg); color: var(--earth-fg); }
+    .status-badge.is-approved { background: #ECFDF5; color: #047857; }
+    .status-badge.is-rejected { background: #FDF1EF; color: var(--danger); }
+    .status-card h2 { margin: 0 0 10px; font-size: 22px; font-weight: 800; letter-spacing: -0.03em; }
+    .status-card p { margin: 0 0 6px; color: #475569; word-break: keep-all; }
+    .status-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; padding: 13px 26px; border-radius: 9999px; background: var(--accent); color: #fff; font-size: 15px; font-weight: 700; text-decoration: none; border: none; cursor: pointer; }
+    .btn:hover { background: var(--accent-dark); }
+    .btn-ghost { background: var(--brand-soft); color: var(--brand-dark); }
+    .btn-ghost:hover { background: var(--brand-line); }
+
+    .done-icon { display: flex; align-items: center; justify-content: center; width: 64px; height: 64px; margin: 0 auto 18px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 30px; font-weight: 700; }
+
+    header, footer { letter-spacing: normal; line-height: 1.5; }
+    footer h3 { margin-top: 0; }
+
+    @media (max-width: 640px) {
+      .ap-main { padding: 24px 16px 72px; }
+      .card { padding: 24px 20px; }
+      .ap-title { font-size: 22px; }
+      .status-card { padding: 36px 20px; }
+      .step-nav .nav-prev { flex-basis: 96px; padding: 16px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ====================================================================
+00. 상단 롤링 띠배너
+==================================================================== -->
+<div style="background-color: #78866B; color: #ffffff; font-size: 12.5px; font-weight: 500; height: 38px; overflow: hidden; position: relative; font-family: 'Noto Sans KR', sans-serif;">
+  <div id="topBannerTrack" style="transition: transform 0.5s ease-in-out; width: 100%;">
+    <div style="height: 38px; display: flex; align-items: center; justify-content: center; text-align: center;">
+      <a href="index.html#contact" style="color: #ffffff; text-decoration: none; letter-spacing: -0.2px;">첫 방문 고객 서비스 이용료 할인</a>
+    </div>
+    <div style="height: 38px; display: flex; align-items: center; justify-content: center; text-align: center;">
+      <a href="index.html#contact" style="color: #ffffff; text-decoration: none; letter-spacing: -0.2px;">사람과 사람을 잇는 따뜻한 연결, 위드브릿지</a>
+    </div>
+    <div style="height: 38px; display: flex; align-items: center; justify-content: center; text-align: center;">
+      <a href="index.html#contact" style="color: #ffffff; text-decoration: none; letter-spacing: -0.2px;">지금 문의하기로 간편하게 상담받기</a>
+    </div>
+  </div>
+</div>
+<script>
+  (function() {
+    let currentIndex = 0;
+    const track = document.getElementById('topBannerTrack');
+    if (!track) return;
+    const totalItems = track.children.length;
+    setInterval(function() {
+      currentIndex = (currentIndex + 1) % totalItems;
+      track.style.transform = 'translateY(-' + (currentIndex * 38) + 'px)';
+    }, 3500);
+  })();
+</script>
+
+<!-- 상단 네비게이션 헤더 (apply.html 과 동일) -->
+<header style="width: 100%; background-color: #ffffff; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 50; font-family: 'Noto Sans KR', sans-serif;">
+  <div style="max-width: 1380px; margin: 0 auto; padding: 12px 40px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: 24px;">
+    <a href="index.html" style="justify-self: start; display: flex; align-items: center; text-decoration: none; flex: none;">
+      <img src="/images/withbridge-logo.png" alt="위드브릿지 로고" style="height: 38px; width: auto; display: block; object-fit: contain;" />
+    </a>
+    <nav style="display: flex; align-items: center; gap: 18px; font-size: 14.5px; font-weight: 600; white-space: nowrap; flex-wrap: nowrap;">
+      <a href="about.html" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">소개</a>
+      <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
+      <a href="index.html#services" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">서비스</a>
+      <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
+      <a href="index.html#notice" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">공지사항</a>
+      <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
+      <a href="index.html#reviews" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">고객후기</a>
+      <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
+      <a href="index.html#faq" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">자주 묻는 질문(FAQ)</a>
+    </nav>
+    <div style="justify-self: end; display: flex; align-items: center; gap: 18px; white-space: nowrap; flex-wrap: nowrap;">
+      <div style="display: flex; align-items: center; gap: 12px; font-size: 13.5px; font-weight: 500; color: #6B7280;">
+        <a href="https://pf.kakao.com/_xjTdxaX/chat" target="_blank" rel="noopener noreferrer" style="color: #6B7280; text-decoration: none; transition: color 0.2s;">문의하기</a>
+        <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 12px; background-color: #E2E4E8;"></span>
+        <div class="auth-buttons" style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 500; color: #6B7280; white-space: nowrap;">
+          <a href="login.html" style="text-decoration: none; font-weight: 500; color: #6B7280; transition: color 0.2s;">로그인</a>
+          <span style="color: #d1d5db; font-size: 13.5px; font-weight: 400;">|</span>
+          <a href="login.html" style="text-decoration: none; font-weight: 500; color: #6B7280; transition: color 0.2s;">회원가입</a>
+        </div>
+      </div>
+      <a href="apply.html" style="flex: none; display: inline-block; padding: 10px 22px; background-color: #8FA482; color: #ffffff; border-radius: 9999px; font-size: 14.5px; font-weight: 700; text-decoration: none; box-shadow: 0 4px 14px rgba(143, 164, 130, 0.35); transition: background-color 0.2s, transform 0.2s;">예약하기</a>
+    </div>
+  </div>
+</header>
+
+  <main class="ap-main">
+    <div class="ap-wrap">
+
+      <!-- ================================================================ -->
+      <!-- 01. 로딩 중 -->
+      <!-- ================================================================ -->
+      <div class="card" id="loadingCard">
+        <p style="margin:0;text-align:center;color:var(--ink-sub);">불러오는 중…</p>
+      </div>
+
+      <!-- ================================================================ -->
+      <!-- 02. 신청서 (4단계 멀티 스텝) -->
+      <!-- ================================================================ -->
+      <div class="card" id="applyCard" hidden>
+        <h1 class="ap-title">케어 매니저 지원하기</h1>
+        <p class="ap-lead">위드브릿지 케어 매니저로 어르신들의 병원 동행과 일상 케어를 함께해 주세요. 4단계로 나누어 차근차근 작성할 수 있어요.</p>
+
+        <aside class="notice" id="reapplyNotice" hidden></aside>
+
+        <div class="wizard-head">
+          <div class="wizard-steps-label">
+            <span class="current" id="stepCurrentLabel">STEP 1 / 4</span>
+            <span class="names" id="stepNameLabel">기본 정보</span>
+          </div>
+          <div class="wizard-track"><div class="wizard-fill" id="wizardFill"></div></div>
+        </div>
+
+        <form id="applyForm" novalidate aria-label="케어 매니저 지원서">
+
+          <!-- ============== STEP 1. 기본 정보 ============== -->
+          <section class="wizard-step" id="step1">
+            <h2 class="step-title">기본 정보</h2>
+            <p class="step-desc">본인 확인을 위한 기본 정보를 입력해 주세요.</p>
+
+            <div class="row2">
+              <div class="field" id="f-name">
+                <label for="mgrName">이름 <span class="req">*</span></label>
+                <input class="text-input" type="text" id="mgrName" name="mgrName" maxlength="30" autocomplete="name" placeholder="예: 홍길동">
+                <p class="err" id="e-name" hidden></p>
+              </div>
+              <div class="field" id="f-phone">
+                <label for="mgrPhone">연락처 <span class="req">*</span></label>
+                <input class="text-input" type="tel" id="mgrPhone" name="mgrPhone" maxlength="13" autocomplete="tel" inputmode="numeric" placeholder="예: 010-1234-5678">
+                <p class="err" id="e-phone" hidden></p>
+              </div>
+            </div>
+
+            <div class="field" id="f-birth">
+              <label for="mgrBirth">생년월일 <span class="req">*</span></label>
+              <input class="text-input" type="date" id="mgrBirth" name="mgrBirth" autocomplete="bday">
+              <p class="err" id="e-birth" hidden></p>
+            </div>
+
+            <div class="field" id="f-address">
+              <label for="mgrAddressBase">거주지 주소 <span class="req">*</span></label>
+              <div class="addr-search-row">
+                <input class="text-input" type="text" id="mgrAddressBase" readonly autocomplete="off" placeholder="주소 검색 버튼을 눌러 주소를 선택해 주세요">
+                <button type="button" class="addr-search-btn" id="btnSearchAddress">주소 검색</button>
+              </div>
+              <input class="text-input addr-detail" type="text" id="mgrAddressDetail" maxlength="80" placeholder="상세 주소 (동/호수 등)">
+              <p class="err" id="e-address" hidden></p>
+            </div>
+
+            <div class="field" id="f-idfile">
+              <label for="mgrIdFile">신분증 사본 첨부 <span class="req">*</span></label>
+              <label class="file-drop" id="fileDropLabel" for="mgrIdFile" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:36px 24px; border-radius:16px;">
+                <div class="file-drop-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                  </svg>
+                </div>
+                <div class="file-drop-text" id="fileDropText">신분증(주민등록증/운전면허증) 사진 또는 스캔 파일을 선택해 주세요</div>
+                <input type="file" id="mgrIdFile" accept="image/jpeg,image/png,image/webp,application/pdf">
+              </label>
+              <div class="file-chip" id="fileChip" hidden>
+                <span class="fc-name" id="fileChipName"></span>
+                <button type="button" id="fileRemoveBtn">삭제</button>
+              </div>
+              <p class="file-status" id="fileStatus" hidden></p>
+              <p class="id-mask-hint">신분증 뒷자리(주민등록번호 뒤 7자리)는 가려서 올려 주세요. 승인 심사 용도로만 사용되며, 심사 외 목적으로 사용되지 않습니다.</p>
+              <p class="err" id="e-idfile" hidden></p>
+            </div>
+
+            <div class="step-nav">
+              <button type="button" class="nav-btn nav-next" id="toStep2">다음</button>
+            </div>
+          </section>
+
+          <!-- ============== STEP 2. 활동 조건 및 경력 사항 ============== -->
+          <section class="wizard-step" id="step2" hidden>
+            <h2 class="step-title">활동 조건 및 경력 사항</h2>
+            <p class="step-desc">활동 가능한 지역과 시간, 보유 자격증과 경력을 알려 주세요.</p>
+
+            <fieldset class="field" id="f-areas">
+              <legend>주요 활동 가능 지역 <span class="req">*</span><span class="opt-tag">(중복 선택 가능)</span></legend>
+              <div class="options" id="areaOptions">
+                <label class="opt"><input type="checkbox" name="area" value="인천 남동구 A"><span>인천 남동구 A</span></label>
+                <label class="opt"><input type="checkbox" name="area" value="인천 남동구 B"><span>인천 남동구 B</span></label>
+                <label class="opt"><input type="checkbox" name="area" value="인천 연수구"><span>인천 연수구</span></label>
+                <label class="opt"><input type="checkbox" name="area" value="인천 미추홀구"><span>인천 미추홀구</span></label>
+                <label class="opt"><input type="checkbox" name="area" value="인천 부평구/계양구"><span>인천 부평구/계양구</span></label>
+                <label class="opt"><input type="checkbox" name="area" value="인천 서구 일부"><span>인천 서구 일부</span></label>
+                <label class="opt"><input type="checkbox" name="area" value="경기 시흥시"><span>경기 시흥시</span></label>
+                <label class="opt"><input type="checkbox" name="area" value="경기 부천시"><span>경기 부천시</span></label>
+                <label class="opt"><input type="checkbox" name="area" value="경기 안산시"><span>경기 안산시</span></label>
+                <label class="opt"><input type="checkbox" id="areaOtherCheck" value="기타"><span>기타</span></label>
+              </div>
+              <input class="text-input other-area-input" type="text" id="areaOtherText" maxlength="40" placeholder="그 외 활동 가능 지역을 입력해 주세요" hidden>
+              <p class="err" id="e-areas" hidden></p>
+            </fieldset>
+
+            <fieldset class="field" id="f-schedule">
+              <legend>활동 가능 요일 및 시간대 <span class="req">*</span><span class="opt-tag">(중복 선택 가능)</span></legend>
+              <div class="options">
+                <label class="opt"><input type="checkbox" name="schedule" value="평일 오전"><span>평일 오전</span></label>
+                <label class="opt"><input type="checkbox" name="schedule" value="평일 오후"><span>평일 오후</span></label>
+                <label class="opt"><input type="checkbox" name="schedule" value="주말 오전"><span>주말 오전</span></label>
+                <label class="opt"><input type="checkbox" name="schedule" value="주말 오후"><span>주말 오후</span></label>
+                <label class="opt"><input type="checkbox" name="schedule" value="시간 조율 가능"><span>시간 조율 가능</span></label>
+              </div>
+              <p class="err" id="e-schedule" hidden></p>
+            </fieldset>
+
+            <fieldset class="field" id="f-certs">
+              <legend>보유 자격증<span class="opt-tag">(중복 선택 가능, 없으면 '해당 없음')</span></legend>
+              <div class="options">
+                <label class="opt"><input type="checkbox" name="cert" value="요양보호사"><span>요양보호사</span></label>
+                <label class="opt"><input type="checkbox" name="cert" value="사회복지사"><span>사회복지사</span></label>
+                <label class="opt"><input type="checkbox" name="cert" value="간호사/간호조무사"><span>간호사/간호조무사</span></label>
+                <label class="opt"><input type="checkbox" name="cert" value="운전면허증"><span>운전면허증</span></label>
+                <label class="opt"><input type="checkbox" id="certNoneCheck" value="해당 없음"><span>해당 없음</span></label>
+              </div>
+              <p class="err" id="e-certs" hidden></p>
+            </fieldset>
+
+            <div class="field" id="f-career">
+              <label for="mgrCareer">관련 경력 및 경험 <span class="req">*</span></label>
+              <textarea class="text-input" id="mgrCareer" maxlength="1000" rows="4" placeholder="요양 보호, 병원 동행, 돌봄 경험 등을 자유롭게 적어 주세요. 경험이 없다면 '없음'이라고 적어 주세요."></textarea>
+              <p class="err" id="e-career" hidden></p>
+            </div>
+
+            <div class="step-nav">
+              <button type="button" class="nav-btn nav-prev" id="toStep1FromStep2">이전</button>
+              <button type="button" class="nav-btn nav-next" id="toStep3">다음</button>
+            </div>
+          </section>
+
+          <!-- ============== STEP 3. 정산 계좌 정보 ============== -->
+          <section class="wizard-step" id="step3" hidden>
+            <h2 class="step-title">정산 계좌 정보</h2>
+            <p class="step-desc">케어 활동 정산금을 받으실 계좌 정보를 입력해 주세요.</p>
+
+            <div class="field" id="f-bank">
+              <label for="mgrBank">정산 은행명 <span class="req">*</span></label>
+              <select class="text-input" id="mgrBank">
+                <option value="">은행을 선택해 주세요</option>
+                <option>국민은행</option>
+                <option>신한은행</option>
+                <option>우리은행</option>
+                <option>하나은행</option>
+                <option>농협은행</option>
+                <option>IBK기업은행</option>
+                <option>카카오뱅크</option>
+                <option>토스뱅크</option>
+                <option>새마을금고</option>
+                <option>우체국</option>
+                <option value="기타">기타(직접 입력)</option>
+              </select>
+              <input class="text-input other-area-input" type="text" id="mgrBankOther" maxlength="30" placeholder="은행명을 입력해 주세요" hidden>
+              <p class="err" id="e-bank" hidden></p>
+            </div>
+
+            <div class="field" id="f-account">
+              <label for="mgrAccount">계좌번호 <span class="req">*</span></label>
+              <input class="text-input" type="text" id="mgrAccount" inputmode="numeric" maxlength="30" placeholder="'-' 없이 숫자만 입력해 주세요">
+              <p class="err" id="e-account" hidden></p>
+            </div>
+
+            <div class="field" id="f-holder">
+              <label for="mgrHolder">예금주명 <span class="req">*</span></label>
+              <input class="text-input" type="text" id="mgrHolder" maxlength="30" placeholder="예: 홍길동">
+              <p class="hint">지원자 본인 성함과 일치해야 합니다.</p>
+              <p class="err" id="e-holder" hidden></p>
+            </div>
+
+            <div class="step-nav">
+              <button type="button" class="nav-btn nav-prev" id="toStep2FromStep3">이전</button>
+              <button type="button" class="nav-btn nav-next" id="toStep4">다음</button>
+            </div>
+          </section>
+
+          <!-- ============== STEP 4. 안전 서약 및 필수 약관 동의 ============== -->
+          <section class="wizard-step" id="step4" hidden>
+            <h2 class="step-title">안전 서약 및 필수 약관 동의</h2>
+            <p class="step-desc">아래 내용을 확인하고 모두 동의해 주셔야 지원할 수 있어요.</p>
+
+            <div class="consent-card">
+              <label class="consent-row">
+                <input type="checkbox" id="agreeSafety">
+                <span class="ct">성범죄, 아동·노인 학대 등 안전 관련 범죄 이력이 없음을 서약합니다. <span class="req">*</span></span>
+              </label>
+              <p class="consent-detail">허위 서약이 확인될 경우 즉시 지원이 취소되거나 매니저 자격이 박탈될 수 있습니다.</p>
+            </div>
+
+            <div class="consent-card">
+              <label class="consent-row">
+                <input type="checkbox" id="agreeNoDirectDeal">
+                <span class="ct">플랫폼을 거치지 않은 개인 간 직거래(우회 거래)를 하지 않을 것에 동의합니다. <span class="req">*</span></span>
+              </label>
+              <p class="consent-detail">직거래로 발생한 사고·분쟁은 위드브릿지가 책임지지 않으며, 적발 시 매니저 자격이 해지될 수 있습니다.</p>
+            </div>
+
+            <div class="consent-card">
+              <label class="consent-row">
+                <input type="checkbox" id="agreePrivacy">
+                <span class="ct">성명, 연락처, 신분증 사본, 계좌정보의 수집 및 이용에 동의합니다. <span class="req">*</span></span>
+              </label>
+              <p class="consent-detail">수집한 정보는 매니저 자격 심사 및 정산 목적으로만 사용되며, <a href="terms.html" data-open-terms>이용약관</a>에 따라 관리됩니다.</p>
+            </div>
+
+            <p class="err" id="e-agree" hidden></p>
+
+            <div class="step-nav">
+              <div class="form-error" id="formError" role="alert" hidden style="flex:1 1 100%; margin:0 0 -6px;"></div>
+            </div>
+            <div class="step-nav">
+              <button type="button" class="nav-btn nav-prev" id="toStep3FromStep4">이전</button>
+              <button type="submit" class="nav-btn nav-submit" id="submitBtn">제출하기</button>
+            </div>
+          </section>
+
+        </form>
+      </div>
+
+      <!-- ================================================================ -->
+      <!-- 03. 상태 카드: 이미 매니저 / 심사 중 / 접수 완료 (하나만 노출) -->
+      <!-- ================================================================ -->
+      <section class="card status-card" id="alreadyManagerCard" hidden aria-live="polite">
+        <span class="status-badge is-approved">활동 중</span>
+        <h2>이미 케어 매니저로 활동 중입니다</h2>
+        <p>매니저 마이페이지에서 오늘의 배정 케어와 신청 대기 목록을 확인해 주세요.</p>
+        <div class="status-actions">
+          <a class="btn" href="mypage-manager.html">매니저 마이페이지로 이동</a>
+        </div>
+      </section>
+
+      <section class="card status-card" id="pendingCard" hidden aria-live="polite">
+        <span class="status-badge is-pending">심사 중</span>
+        <h2>지원서를 검토 중입니다</h2>
+        <p>관리자 확인 후 승인 여부를 알려드려요. 잠시만 기다려 주세요.</p>
+        <div class="status-actions">
+          <a class="btn btn-ghost" href="mypage.html">마이페이지로 이동</a>
+        </div>
+      </section>
+
+      <section class="card status-card" id="doneCard" hidden aria-live="polite">
+        <div class="done-icon" aria-hidden="true">✓</div>
+        <h2 id="doneTitle" tabindex="-1">지원서가 접수되었습니다</h2>
+        <p>관리자 검토 후 승인 여부를 안내해 드립니다.</p>
+        <div class="status-actions">
+          <a class="btn" href="mypage.html">마이페이지로 이동</a>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+<footer style="background-color: #1A1D21 !important; color: #E5E7EB !important; padding: 64px 32px 48px 32px !important; font-family: 'Noto Sans KR', sans-serif !important;">
+  <div style="max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; gap: 48px;">
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 24px; padding-bottom: 0px;">
+      <div style="display: flex; align-items: baseline; gap: 12px;">
+        <strong style="font-size: 20px; font-weight: 700; color: #ffffff !important;">위드브릿지</strong>
+        <span style="font-size: 14px; color: #a1a1aa !important;">WithBridge</span>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 24px;">
+        <nav style="display: flex; align-items: center; gap: 16px; font-size: 14px;">
+          <a href="terms.html" data-open-terms style="color: #d4d4d8 !important; text-decoration: underline; text-underline-offset: 4px;">이용약관</a>
+          <span style="width: 1px; height: 12px; background-color: rgba(255,255,255,0.2);"></span>
+          <a href="index.html#privacy" style="color: #ffffff !important; font-weight: 700; text-decoration: underline; text-underline-offset: 4px;">개인정보 처리방침</a>
+        </nav>
+      </div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 48px;">
+      <div style="display: flex; flex-direction: column;">
+        <h3 style="margin-bottom: 12px; font-size: 16px; font-weight: 700; color: #ffffff !important;">회사 정보</h3>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+          <span style="font-weight: 700; color: #ffffff !important;">상호명</span>
+          <span style="color: #f4f4f5 !important;">위드브릿지</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+          <span style="font-weight: 700; color: #ffffff !important;">대표자</span>
+          <span style="color: #f4f4f5 !important;">강승수</span>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column;">
+        <h3 style="margin-bottom: 12px; font-size: 16px; font-weight: 700; color: #ffffff !important;">연락처 &amp; 고객센터</h3>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+          <span style="font-weight: 700; color: #ffffff !important;">전화번호</span>
+          <a href="tel:01058745760" style="color: #ffffff !important; font-weight: 500; text-decoration: none;">010-5874-5760</a>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+          <span style="font-weight: 700; color: #ffffff !important;">이메일</span>
+          <a href="mailto:withbridge.care@gmail.com" style="color: #ffffff !important; font-weight: 500; text-decoration: none;">withbridge.care@gmail.com</a>
+        </div>
+      </div>
+    </div>
+    <div style="padding-top: 32px; border-top: 1px solid rgba(255,255,255,0.1);">
+      <p style="margin: 0; font-size: 14px; color: #e4e4e7 !important;">© 2026 WithBridge. All rights reserved.</p>
+    </div>
+  </div>
+</footer>
+
+  <script>
+    // Supabase 클라이언트는 auth-header.js 가 만든 하나를 공유합니다
+    const supabaseClient = window.WBAuth ? window.WBAuth.client : null;
+    const ID_CARD_BUCKET = 'manager-id-cards';
+
+    const $ = (id) => document.getElementById(id);
+
+    function showOnly(id) {
+      ['loadingCard', 'applyCard', 'alreadyManagerCard', 'pendingCard', 'doneCard'].forEach((cardId) => {
+        $(cardId).hidden = cardId !== id;
+      });
+    }
+
+    function digitsOnly(str) { return (str || '').replace(/\D/g, ''); }
+
+    let currentUser = null;
+    const TOTAL_STEPS = 4;
+    let currentStep = 1;
+    const STEP_NAMES = { 1: '기본 정보', 2: '활동 조건 및 경력', 3: '정산 계좌 정보', 4: '서약 및 약관 동의' };
+    const idUpload = { path: null, uploading: false, fileName: null };
+
+    // ---------- 단계 전환 ----------
+    function showStep(n) {
+      currentStep = n;
+      for (let i = 1; i <= TOTAL_STEPS; i++) $('step' + i).hidden = i !== n;
+      $('stepCurrentLabel').textContent = 'STEP ' + n + ' / ' + TOTAL_STEPS;
+      $('stepNameLabel').textContent = STEP_NAMES[n];
+      $('wizardFill').style.width = (n / TOTAL_STEPS * 100) + '%';
+      $('applyCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function applyFieldErrors(keys, errors) {
+      keys.forEach((key) => {
+        const field = $('f-' + key);
+        const errEl = $('e-' + key);
+        if (!field || !errEl) return;
+        const has = !!errors[key];
+        field.classList.toggle('has-error', has);
+        errEl.textContent = errors[key] || '';
+        errEl.hidden = !has;
+      });
+    }
+
+    // ---------- STEP 1: 신분증 업로드 ----------
+    function renderFileUi() {
+      if (idUpload.uploading) {
+        $('fileDropLabel').hidden = true;
+        $('fileChip').hidden = true;
+        $('fileStatus').hidden = false;
+        $('fileStatus').textContent = '업로드 중…';
+        return;
+      }
+      if (idUpload.path) {
+        $('fileDropLabel').hidden = true;
+        $('fileChip').hidden = false;
+        $('fileChipName').textContent = idUpload.fileName || '첨부된 파일';
+        $('fileStatus').hidden = true;
+      } else {
+        $('fileDropLabel').hidden = false;
+        $('fileChip').hidden = true;
+        $('fileStatus').hidden = true;
+      }
+    }
+
+    async function removeIdFile() {
+      if (idUpload.path) {
+        try { await supabaseClient.storage.from(ID_CARD_BUCKET).remove([idUpload.path]); }
+        catch (e) { console.warn('[매니저 지원] 기존 신분증 파일 삭제 실패(무시):', e); }
+      }
+      idUpload.path = null;
+      idUpload.fileName = null;
+      $('mgrIdFile').value = '';
+      renderFileUi();
+    }
+
+    $('fileRemoveBtn').addEventListener('click', removeIdFile);
+
+    $('mgrIdFile').addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+      const MAX_BYTES = 10 * 1024 * 1024;
+      $('e-idfile').hidden = true;
+      $('f-idfile').classList.remove('has-error');
+
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        $('f-idfile').classList.add('has-error');
+        $('e-idfile').textContent = 'jpg, png, webp, pdf 파일만 첨부할 수 있습니다.';
+        $('e-idfile').hidden = false;
+        e.target.value = '';
+        return;
+      }
+      if (file.size > MAX_BYTES) {
+        $('f-idfile').classList.add('has-error');
+        $('e-idfile').textContent = '파일 크기는 10MB 이하여야 합니다.';
+        $('e-idfile').hidden = false;
+        e.target.value = '';
+        return;
+      }
+      if (!currentUser) {
+        $('e-idfile').textContent = '로그인 정보를 확인하지 못했습니다. 새로고침 후 다시 시도해 주세요.';
+        $('e-idfile').hidden = false;
+        e.target.value = '';
+        return;
+      }
+
+      if (idUpload.path) {
+        try { await supabaseClient.storage.from(ID_CARD_BUCKET).remove([idUpload.path]); }
+        catch (err) { console.warn('[매니저 지원] 이전 신분증 파일 삭제 실패(무시):', err); }
+      }
+
+      idUpload.uploading = true;
+      idUpload.path = null;
+      renderFileUi();
+
+      const ext = (file.name.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
+      const randomId = (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(16).slice(2));
+      const path = currentUser.id + '/' + randomId + '.' + ext;
+
+      const { data, error } = await supabaseClient.storage
+        .from(ID_CARD_BUCKET)
+        .upload(path, file, { contentType: file.type, upsert: false });
+
+      idUpload.uploading = false;
+
+      if (error) {
+        console.error('[매니저 지원] 신분증 업로드 실패:', error.message);
+        $('f-idfile').classList.add('has-error');
+        $('e-idfile').textContent = '업로드에 실패했습니다: ' + error.message;
+        $('e-idfile').hidden = false;
+        $('mgrIdFile').value = '';
+        renderFileUi();
+        return;
+      }
+
+      idUpload.path = data.path;
+      idUpload.fileName = file.name;
+      renderFileUi();
+    });
+
+    // ---------- STEP 1: 주소 검색 ----------
+    function openAddressSearch() {
+      if (typeof daum === 'undefined' || !daum.Postcode) {
+        alert('주소 검색 서비스를 불러오지 못했어요. 네트워크 상태를 확인하고 새로고침 후 다시 시도해 주세요.');
+        return;
+      }
+      new daum.Postcode({
+        oncomplete: function (data) {
+          const address = data.roadAddress || data.jibunAddress || '';
+          $('mgrAddressBase').value = address;
+          $('f-address').classList.remove('has-error');
+          $('e-address').hidden = true;
+          $('mgrAddressDetail').focus();
+        }
+      }).open();
+    }
+    $('btnSearchAddress').addEventListener('click', openAddressSearch);
+    $('mgrAddressBase').addEventListener('click', openAddressSearch);
+
+    // ---------- STEP 2: '기타'/'해당 없음' 배타 처리 ----------
+    $('areaOtherCheck').addEventListener('change', (e) => {
+      $('areaOtherText').hidden = !e.target.checked;
+      if (!e.target.checked) $('areaOtherText').value = '';
+    });
+
+    const certCheckboxes = Array.from(document.querySelectorAll('input[name="cert"]'));
+    $('certNoneCheck').addEventListener('change', (e) => {
+      if (e.target.checked) certCheckboxes.forEach((c) => { c.checked = false; });
+      certCheckboxes.forEach((c) => { c.disabled = e.target.checked; });
+    });
+    certCheckboxes.forEach((c) => {
+      c.addEventListener('change', () => {
+        if (c.checked) $('certNoneCheck').checked = false;
+      });
+    });
+
+    // ---------- STEP 3: 은행 '기타' 입력 노출 ----------
+    $('mgrBank').addEventListener('change', (e) => {
+      $('mgrBankOther').hidden = e.target.value !== '기타';
+      if (e.target.value !== '기타') $('mgrBankOther').value = '';
+    });
+
+    // ---------- 단계별 검증 ----------
+    function validateStep1() {
+      const errors = {};
+      if (!$('mgrName').value.trim()) errors.name = '이름을 입력해 주세요.';
+      const phoneDigits = digitsOnly($('mgrPhone').value).length;
+      if (!$('mgrPhone').value.trim() || phoneDigits < 9) errors.phone = '연락처를 정확히 입력해 주세요. (예: 010-1234-5678)';
+      if (!$('mgrBirth').value) errors.birth = '생년월일을 선택해 주세요.';
+      if (!$('mgrAddressBase').value.trim()) errors.address = '주소 검색을 통해 거주지 주소를 입력해 주세요.';
+      if (idUpload.uploading) errors.idfile = '신분증 사본 업로드가 끝날 때까지 잠시 기다려 주세요.';
+      else if (!idUpload.path) errors.idfile = '신분증 사본을 첨부해 주세요.';
+      return errors;
+    }
+
+    function getAreas() {
+      const areas = Array.from(document.querySelectorAll('input[name="area"]:checked')).map((el) => el.value);
+      if ($('areaOtherCheck').checked && $('areaOtherText').value.trim()) areas.push($('areaOtherText').value.trim());
+      return areas;
+    }
+    function getSchedule() {
+      return Array.from(document.querySelectorAll('input[name="schedule"]:checked')).map((el) => el.value);
+    }
+    function getCerts() {
+      if ($('certNoneCheck').checked) return ['해당 없음'];
+      return certCheckboxes.filter((c) => c.checked).map((c) => c.value);
+    }
+
+    function validateStep2() {
+      const errors = {};
+      const areas = getAreas();
+      if (!areas.length) errors.areas = '활동 가능 지역을 1개 이상 선택해 주세요.';
+      else if ($('areaOtherCheck').checked && !$('areaOtherText').value.trim()) errors.areas = '기타 지역을 입력해 주세요.';
+      if (!getSchedule().length) errors.schedule = '활동 가능 요일/시간대를 1개 이상 선택해 주세요.';
+      if (!getCerts().length) errors.certs = "보유 자격증이 없다면 '해당 없음'을 선택해 주세요.";
+      if (!$('mgrCareer').value.trim()) errors.career = "관련 경력이 없다면 '없음'이라고 입력해 주세요.";
+      return errors;
+    }
+
+    function resolveBankName() {
+      const v = $('mgrBank').value;
+      if (v === '기타') return $('mgrBankOther').value.trim();
+      return v;
+    }
+
+    function validateStep3() {
+      const errors = {};
+      if (!resolveBankName()) errors.bank = '정산 은행명을 선택하거나 입력해 주세요.';
+      const accountDigits = digitsOnly($('mgrAccount').value);
+      if (!accountDigits || accountDigits.length < 4) errors.account = '계좌번호를 정확히 입력해 주세요.';
+      if (!$('mgrHolder').value.trim()) errors.holder = '예금주명을 입력해 주세요.';
+      return errors;
+    }
+
+    function validateStep4() {
+      const errors = {};
+      if (!($('agreeSafety').checked && $('agreeNoDirectDeal').checked && $('agreePrivacy').checked)) {
+        errors.agree = '모든 서약 및 약관에 동의해야 지원할 수 있습니다.';
+      }
+      return errors;
+    }
+
+    function applyStep4Error(errors) {
+      $('e-agree').textContent = errors.agree || '';
+      $('e-agree').hidden = !errors.agree;
+    }
+
+    // ---------- 다음/이전 버튼 ----------
+    $('toStep2').addEventListener('click', () => {
+      const errors = validateStep1();
+      applyFieldErrors(['name', 'phone', 'birth', 'address', 'idfile'], errors);
+      if (Object.keys(errors).length) return;
+      showStep(2);
+    });
+    $('toStep1FromStep2').addEventListener('click', () => showStep(1));
+
+    $('toStep3').addEventListener('click', () => {
+      const errors = validateStep2();
+      applyFieldErrors(['areas', 'schedule', 'certs', 'career'], errors);
+      if (Object.keys(errors).length) return;
+      showStep(3);
+    });
+    $('toStep2FromStep3').addEventListener('click', () => showStep(2));
+
+    $('toStep4').addEventListener('click', () => {
+      const errors = validateStep3();
+      applyFieldErrors(['bank', 'account', 'holder'], errors);
+      if (Object.keys(errors).length) return;
+      showStep(4);
+    });
+    $('toStep3FromStep4').addEventListener('click', () => showStep(3));
+
+    // ---------- 초기화 ----------
+    async function init() {
+      if (!supabaseClient) {
+        $('loadingCard').querySelector('p').textContent = '로그인 모듈을 불러오지 못했습니다. 새로고침해 주세요.';
+        return;
+      }
+
+      const { data: sessionData } = await supabaseClient.auth.getSession();
+      const session = sessionData && sessionData.session;
+      if (!session) {
+        window.location.replace('login.html');
+        return;
+      }
+      currentUser = session.user;
+
+      // 1) 이미 인증된 매니저인지 (서버 기준, managers.certification_verified)
+      const isManager = window.WBAuth ? await window.WBAuth.checkIsManager(currentUser.id) : false;
+      if (isManager) {
+        showOnly('alreadyManagerCard');
+        return;
+      }
+
+      // 2) 기존 지원 내역 확인 (가장 최근 1건) — 중복 지원 방지
+      const { data: apps, error: appsError } = await supabaseClient
+        .from('manager_applications')
+        .select('id, status, reject_reason, created_at')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (appsError) {
+        console.error('[매니저 지원] 기존 내역 조회 실패:', appsError.code, appsError.message);
+      }
+
+      const latest = apps && apps[0];
+      if (latest && latest.status === 'pending') {
+        showOnly('pendingCard');
+        return;
+      }
+
+      // 3) 신청서 노출 (반려 이력이 있으면 사유를 배너로 안내하고 재작성하게 함)
+      const meta = currentUser.user_metadata || {};
+      const prefillName = meta.name || meta.full_name || meta.nickname || '';
+      if (prefillName) $('mgrName').value = prefillName;
+
+      if (latest && latest.status === 'rejected') {
+        const notice = $('reapplyNotice');
+        notice.hidden = false;
+        notice.className = 'reject-notice';
+        notice.textContent = latest.reject_reason
+          ? '이전 지원이 반려되었습니다. 사유: ' + latest.reject_reason + ' — 내용을 보완해 다시 지원해 주세요.'
+          : '이전 지원이 반려되었습니다. 내용을 보완해 다시 지원해 주세요.';
+      }
+
+      showStep(1);
+      showOnly('applyCard');
+    }
+
+    function combineAddress(base, detail) {
+      const b = String(base || '').trim();
+      const d = String(detail || '').trim();
+      return d ? (b ? b + ' ' + d : d) : b;
+    }
+
+    $('applyForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formError = $('formError');
+      formError.hidden = true;
+
+      // 제출 직전, 네 단계를 모두 다시 검증 (단계를 건너뛰었거나 뒤로 돌아가 값을 지운 경우 대비)
+      const errors1 = validateStep1();
+      const errors2 = validateStep2();
+      const errors3 = validateStep3();
+      const errors4 = validateStep4();
+
+      if (Object.keys(errors1).length) {
+        applyFieldErrors(['name', 'phone', 'birth', 'address', 'idfile'], errors1);
+        showStep(1);
+        return;
+      }
+      if (Object.keys(errors2).length) {
+        applyFieldErrors(['areas', 'schedule', 'certs', 'career'], errors2);
+        showStep(2);
+        return;
+      }
+      if (Object.keys(errors3).length) {
+        applyFieldErrors(['bank', 'account', 'holder'], errors3);
+        showStep(3);
+        return;
+      }
+      applyStep4Error(errors4);
+      if (Object.keys(errors4).length) {
+        showStep(4);
+        return;
+      }
+
+      const submitBtn = $('submitBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = '제출 중…';
+
+      const row = {
+        name: $('mgrName').value.trim(),
+        phone: $('mgrPhone').value.trim(),
+        birth_date: $('mgrBirth').value,
+        address: combineAddress($('mgrAddressBase').value, $('mgrAddressDetail').value),
+        id_image_path: idUpload.path,
+        activity_areas: getAreas(),
+        activity_schedule: getSchedule(),
+        certifications: getCerts(),
+        career_experience: $('mgrCareer').value.trim(),
+        bank_name: resolveBankName(),
+        account_number: digitsOnly($('mgrAccount').value),
+        account_holder: $('mgrHolder').value.trim(),
+        agree_safety: true,
+        agree_no_direct_deal: true,
+        agree_privacy: true
+      };
+
+      const { error } = await supabaseClient.from('manager_applications').insert([row]);
+
+      if (error) {
+        console.error('[매니저 지원] 제출 실패:', error.code, error.message);
+        formError.textContent = error.code === '23505'
+          ? '이미 심사 중인 지원서가 있습니다.'
+          : '제출 중 오류가 발생했습니다: ' + error.message;
+        formError.hidden = false;
+        submitBtn.disabled = false;
+        submitBtn.textContent = '제출하기';
+        showStep(4);
+        return;
+      }
+
+      showOnly('doneCard');
+      $('doneTitle').focus();
+    });
+
+    // 브라우저 기본 날짜 피커 대신 위드브릿지 커스텀 피커로 교체 (wb-datepicker.js)
+    if (window.WBDatePicker) {
+      const today = new Date().toISOString().slice(0, 10);
+      $('mgrBirth').max = today;
+      WBDatePicker.attach($('mgrBirth'));
+    }
+
+    init();
+  </script>
+</body>
+</html>

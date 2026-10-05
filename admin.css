@@ -1,0 +1,550 @@
+/* ============================================================================
+   위드브릿지 어드민 콘솔 — 대시보드 톤앤매너
+   사이트 전체에서 쓰는 세이지 그린(올리브 그린) 브랜드 축을 그대로 가져와, mypage-manager.html 과
+   같은 계열의 "깔끔한 화이트 카드 + 연회색 배경" 대시보드 느낌으로 맞춥니다.
+   Tailwind CDN 유틸리티 클래스와 함께 쓰는 걸 전제로, 여기서는 색상 토큰과 반복되는 컴포넌트
+   (헤더 · 카드 · 리스트 행 · 배지 · 버튼 · 안내 배너)만 정의합니다.
+============================================================================ */
+
+:root {
+  --sage-50:  #F5F6F1;
+  --sage-100: #E9EBE1;
+  --sage-200: #D2D7C2;
+  --sage-500: #78866B;
+  --sage-600: #626E58;
+  --sage-700: #4E5746;
+
+  --ink: #191F28;
+  --ink-body: #4E5968;
+  --ink-sub: #8B95A1;
+  --bg: #F2F4F6;
+  --card: #FFFFFF;
+  --card-border: #E5E7EB;
+  --danger: #D64545;
+  --earth-bg: #FFFBEB;
+  --earth-fg: #B45309;
+
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, .05);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Pretendard Variable', Pretendard, 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font-family: inherit; cursor: pointer; }
+
+/* ---------- 상단 헤더 ---------- */
+.admin-header {
+  background: #fff;
+  border-bottom: 1px solid var(--card-border);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.admin-header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.admin-title {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.admin-account {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.admin-account-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-body);
+}
+.admin-logout-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border: 1px solid var(--card-border);
+  border-radius: 9999px;
+  background: #fff;
+  color: var(--ink-body);
+  font-size: 13.5px;
+  font-weight: 600;
+  transition: background-color .15s ease, border-color .15s ease;
+}
+.admin-logout-btn:hover { background: var(--sage-50); border-color: var(--sage-200); }
+
+/* ---------- 본문 레이아웃 ---------- */
+.admin-main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+}
+
+.admin-notice {
+  margin: 0 0 28px;
+  padding: 14px 18px;
+  background: var(--earth-bg);
+  border: 1px solid #FDE68A;
+  border-radius: var(--radius-sm);
+  color: var(--earth-fg);
+  font-size: 13.5px;
+  line-height: 1.6;
+  word-break: keep-all;
+}
+.admin-notice code {
+  background: rgba(180, 83, 9, .1);
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 12.5px;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+  margin-bottom: 24px;
+}
+@media (max-width: 900px) {
+  .admin-grid { grid-template-columns: 1fr; }
+}
+
+/* ---------- 카드 ---------- */
+.admin-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 28px;
+}
+/* .admin-grid 안의 두 카드는 grid gap 으로 이미 간격이 있지만, 그 아래 단독으로 쌓이는 카드들
+   (배정 완료 현황 / 활동 중인 매니저 등)은 margin 이 없어 서로 딱 붙어 보였습니다 — 직계 자식만
+   선택해서 grid 내부 카드는 건드리지 않고 단독 카드 사이에만 여백을 둡니다. */
+.admin-main > .admin-card {
+  margin-bottom: 32px;
+}
+.admin-main > .admin-card:last-child {
+  margin-bottom: 0;
+}
+.admin-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.admin-card-head h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+/* 카드 제목 바로 아래, 어떤 건이 보이는지 한 줄로 명확히 — 서로 반대 기준(미배정/배정됨)인 카드를
+   옆 또는 바로 아래에 나란히 두면 멀리서 보고 "같은 목록에 뒤섞여 보인다"고 혼동하기 쉬워서 추가함 */
+.admin-card-desc {
+  margin: 0 0 20px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--ink-sub);
+  word-break: keep-all;
+}
+.admin-count {
+  flex: none;
+  padding: 3px 11px;
+  border-radius: 9999px;
+  background: var(--sage-100);
+  color: var(--sage-700);
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ---------- 리스트 / 행 ---------- */
+.admin-list { display: flex; flex-direction: column; gap: 12px; }
+
+/* '더보기' 로 펼쳐지는 나머지 행들을 하나의 래퍼로 묶어서 max-height 전환으로 부드럽게 열립니다
+   (행 하나하나에 max-height 를 거는 대신 래퍼 하나에만 걸어, flex gap 때문에 접었을 때 빈 틈이
+   여러 개 남는 것을 막습니다). */
+.admin-extra-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height .35s ease, opacity .25s ease;
+}
+.admin-extra-rows.is-expanded {
+  max-height: 2000px; /* 실제 내용보다 넉넉한 값 — 전환이 끝까지 자연스럽게 재생되도록 */
+  opacity: 1;
+}
+
+.admin-showmore-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 10px 0 0;
+  border: none;
+  background: transparent;
+  color: var(--sage-700);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: color .15s ease, transform .15s ease;
+}
+.admin-showmore-btn:hover,
+.admin-showmore-btn:focus-visible {
+  color: var(--sage-500);
+  transform: translateY(2px);
+}
+.admin-showmore-chevron {
+  flex: none;
+  transition: transform .2s ease;
+}
+.admin-showmore-btn[aria-expanded="true"] .admin-showmore-chevron { transform: rotate(180deg); }
+.admin-loading,
+.admin-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--ink-sub);
+  background: var(--bg);
+  border: 1px dashed var(--card-border);
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+}
+.admin-error {
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  background: #FDF1EF;
+  color: var(--danger);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+.admin-error button {
+  margin-top: 8px;
+  border: none;
+  background: none;
+  color: var(--danger);
+  font-weight: 700;
+  text-decoration: underline;
+  padding: 0;
+  font-size: 13px;
+}
+
+.admin-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+}
+.admin-row-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.admin-row-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  word-break: keep-all;
+}
+.admin-row-sub {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--ink-sub);
+  word-break: break-all;
+}
+.admin-row-meta {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  gap: 6px 10px;
+  font-size: 13px;
+  color: var(--ink-body);
+}
+.admin-row-meta dt { color: var(--ink-sub); font-weight: 500; }
+.admin-row-meta dd { margin: 0; font-weight: 600; color: var(--ink); word-break: keep-all; }
+
+/* 상태 배지: 파스텔 톤(연한 배경 + 진한 텍스트)으로 통일 */
+.admin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.admin-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.admin-badge.is-pending { background: var(--earth-bg); color: var(--earth-fg); }
+.admin-badge.is-verified { background: #ECFDF5; color: #047857; }
+.admin-badge.is-neutral { background: #F1F5F9; color: #334155; }
+/* 결제 상태 태그: 입금 대기(주의) / 결제 완료(완료) — '오늘의 케어 신청 · 수동 배정' 목록 */
+.admin-badge.is-payment-pending { background: #FEF3C7; color: #92400E; }
+.admin-badge.is-payment-done { background: #ECFDF5; color: #047857; }
+.admin-badge-group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex: none; }
+/* 배정 완료(진행 중) 케어 현황판의 단계 배지: 배정됨 → 출발 → 도착 순으로 진해짐 */
+.admin-badge.is-assigned { background: #EFF6FF; color: #1D4ED8; }
+.admin-badge.is-departed { background: #FFF7ED; color: #C2410C; }
+.admin-badge.is-arrived  { background: #F0FDF4; color: #15803D; }
+
+/* 행 안의 액션 영역(수동 배정 등) */
+.admin-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--card-border);
+}
+.admin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 9px 14px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  font-weight: 700;
+  transition: background-color .15s ease, transform .1s ease;
+}
+.admin-btn.is-primary { background: var(--sage-500); color: #fff; }
+.admin-btn.is-primary:hover { background: var(--sage-600); }
+.admin-btn.is-ghost { background: #F3F4F6; color: #374151; }
+.admin-btn.is-ghost:hover { background: #E5E7EB; }
+.admin-btn.is-danger { background: #FDF1EF; color: var(--danger); }
+.admin-btn.is-danger:hover { background: #FBE2DE; }
+.admin-btn:active { transform: scale(.98); }
+
+/* ---------- 모달 (신분증 사본 확인) ---------- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  padding: 16px;
+  background: rgba(15, 23, 42, .55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal {
+  width: 100%;
+  max-width: 480px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, .35);
+}
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.modal-head h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.modal-close-btn {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: #F3F4F6;
+  color: var(--ink-body);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color .15s ease;
+}
+.modal-close-btn:hover { background: #E5E7EB; }
+.modal-sub { margin: 2px 0 12px; font-size: 13px; font-weight: 600; color: var(--ink-body); }
+
+/* 모달 안의 셀렉트 폼 컨트롤 (매니저 배정 등) */
+.admin-field-label { display: block; margin: 0 0 8px; font-size: 13px; font-weight: 700; color: var(--ink-body); }
+.admin-select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  appearance: auto;
+}
+.admin-select:focus { outline: none; border-color: var(--sage-500); box-shadow: 0 0 0 3px rgba(120, 134, 107, .18); }
+.admin-select:disabled { opacity: .6; cursor: not-allowed; }
+.modal .admin-error { margin-top: 10px; }
+
+.idcard-mask-hint {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--earth-bg);
+  color: var(--earth-fg);
+  font-size: 12.5px;
+  line-height: 1.55;
+  word-break: keep-all;
+}
+
+.idcard-viewer {
+  height: 320px;
+  margin-bottom: 14px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  background: #15181D;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+}
+.idcard-viewer img {
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+  cursor: zoom-in;
+}
+.idcard-viewer img.is-zoomed { max-width: none; max-height: none; cursor: zoom-out; }
+.idcard-viewer .admin-loading, .idcard-viewer .admin-error {
+  background: transparent;
+  border: none;
+  color: #D1D5DB;
+}
+.idcard-viewer .admin-error { color: #FCA5A5; }
+
+.idcard-zoom-row { display: flex; gap: 8px; margin-bottom: 18px; }
+.idcard-zoom-row .admin-btn { flex: 1; }
+.idcard-zoom-row .admin-btn:disabled { opacity: .55; cursor: default; }
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--card-border);
+}
+.modal-actions .admin-btn { flex: 1; }
+
+/* ---------- 현장 인증 상세보기 (배정 완료 케어 현황 카드) ---------- */
+.admin-row-actions.is-verify { justify-content: space-between; }
+.admin-row-actions.is-verify .admin-btn { flex: none; }
+.admin-badge.is-done { background: #ECFDF5; color: #047857; }
+
+.verify-modal { max-width: 480px; }
+.verify-section { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--card-border); }
+.verify-section:first-of-type { margin-top: 4px; padding-top: 0; border-top: none; }
+/* '도착 인증' 콘텐츠(사진 박스 등) 바로 아래 [닫기] 버튼 구분선이 너무 붙어 보이지 않도록,
+   '출발 인증' 구분선과 대칭을 이루는 여백을 마지막 섹션 아래에도 둡니다. */
+.verify-section + .verify-section { margin-bottom: 20px; }
+.verify-modal .modal-actions { padding-top: 20px; }
+.verify-section-title { margin: 0 0 10px; font-size: 13.5px; font-weight: 800; color: var(--ink); }
+.verify-kv { display: grid; grid-template-columns: 76px 1fr; gap: 6px 10px; margin: 0 0 10px; font-size: 13px; color: var(--ink-body); }
+.verify-kv dt { color: var(--ink-sub); font-weight: 500; }
+.verify-kv dd { margin: 0; font-weight: 600; color: var(--ink); word-break: break-all; }
+.verify-photo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px 5px 5px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  cursor: pointer;
+  transition: background-color .15s ease;
+}
+.verify-photo-btn:hover { background: var(--sage-50); }
+.verify-photo-btn img { width: 40px; height: 40px; border-radius: var(--radius-sm); object-fit: cover; display: block; flex: none; }
+.verify-photo-btn span { font-size: 12.5px; font-weight: 700; color: var(--sage-700); }
+.verify-empty {
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  border: 1px dashed var(--card-border);
+  color: var(--ink-sub);
+  font-size: 13px;
+  text-align: center;
+}
+
+.verify-lightbox-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  padding: 16px;
+  background: rgba(15, 23, 42, .85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.verify-lightbox { position: relative; width: 100%; max-width: min(640px, 92vw); }
+.verify-lightbox img { width: 100%; border-radius: var(--radius-sm); display: block; box-shadow: 0 25px 60px rgba(0, 0, 0, .4); }
+.verify-lightbox-caption { margin: 12px 0 0; text-align: center; color: #fff; font-size: 13.5px; font-weight: 600; }
+.verify-lightbox-close {
+  position: absolute;
+  top: -42px;
+  right: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, .15);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color .15s;
+}
+.verify-lightbox-close:hover { background: rgba(255, 255, 255, .28); }
+
+/* ---------- 토스트 ---------- */
+.admin-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  z-index: 300;
+  padding: 12px 22px;
+  border-radius: 9999px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 14px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, .25);
+}

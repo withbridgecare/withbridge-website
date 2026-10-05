@@ -62,14 +62,18 @@
       line-height: 1.5;
     }
 
-    /* --- 2️⃣ 내부 서브 탭 네비게이션 --- */
+    /* --- 2️⃣ 내부 서브 탭 네비게이션 ---
+       top 값을 162px 로 고정해 두었더니, 헤더가 슬림한 높이로 바뀐 뒤에도 그대로 남아 있어 헤더 아래에
+       빈 틈이 뜨거나(데스크톱) 헤더와 겹치는(모바일, 아래 미디어쿼리의 top:0) 문제가 있었습니다.
+       --wb-header-h 는 실제 헤더 높이를 JS(하단 스크립트)가 매번 측정해 넣어 주므로, 헤더 크기가
+       앞으로 또 바뀌어도 서브 탭이 항상 헤더 바로 아래에 자연스럽게 붙습니다. */
     .wb-sub-nav {
       display: flex;
       justify-content: center;
       background: #FFFFFF;
       border-bottom: 1px solid #E2E8F0;
       position: sticky;
-      top: 162px;
+      top: var(--wb-header-h, 68px);
       z-index: 10;
     }
 
@@ -92,7 +96,7 @@
     /* --- 3️⃣ 브랜드 스토리 섹션 --- */
     .wb-story-section {
       margin-bottom: 120px;
-      scroll-margin-top: 240px;
+      scroll-margin-top: var(--wb-scroll-offset, 122px); /* 헤더 + 서브 탭 실제 높이(JS가 측정) + 여유 간격 */
     }
 
     .wb-story-title {
@@ -154,7 +158,7 @@
     /* --- 4️⃣ 신뢰 안내 섹션 --- */
     .wb-trust-section {
       margin-bottom: 120px;
-      scroll-margin-top: 240px;
+      scroll-margin-top: var(--wb-scroll-offset, 122px); /* 헤더 + 서브 탭 실제 높이(JS가 측정) + 여유 간격 */
     }
 
     .wb-section-heading {
@@ -252,7 +256,7 @@
 
     /* --- 5️⃣ 이런 분께 추천해요 --- */
     .wb-recommend-section {
-      scroll-margin-top: 240px;
+      scroll-margin-top: var(--wb-scroll-offset, 122px); /* 헤더 + 서브 탭 실제 높이(JS가 측정) + 여유 간격 */
     }
 
     .wb-recommend-grid {
@@ -288,7 +292,7 @@
       .wb-about-hero { padding: 48px 16px; }
       .wb-about-hero h1 { font-size: 24px !important; }
       .wb-about-hero p { font-size: 15px !important; }
-      .wb-sub-nav { top: 0; overflow-x: auto; justify-content: flex-start; }
+      .wb-sub-nav { overflow-x: auto; justify-content: flex-start; } /* top 은 데스크톱과 동일하게 var(--wb-header-h) 를 그대로 씀 — 예전 top:0 은 모바일에서도 sticky 인 헤더(z-index:50)와 같은 자리를 다퉈 서브 탭이 헤더 밑에 가려졌습니다 */
       .wb-sub-nav a { padding: 14px 16px; font-size: 14px; white-space: nowrap; }
       
       .wb-story-section { margin-bottom: 80px; }
@@ -313,7 +317,7 @@
   <!-- 💡 Supabase 라이브러리 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- 💡 공통 인증 헤더 (로그인 상태 감지 · 프로필 아바타/드롭다운). Supabase SDK 뒤에 로드해야 합니다 -->
-  <script src="/js/auth-header.js?v=1.0" charset="utf-8"></script>
+  <script src="/js/auth-header.js?v=1.1" charset="utf-8"></script>
   <script src="/js/terms-modal.js?v=1.0" charset="utf-8" defer></script>
 </head>
 <body>
@@ -367,40 +371,41 @@
        01. 상단 헤더 (Header - index.html과 100% 동일한 인라인 규격 적용)
   ==================================================================== -->
   <header style="width: 100%; background-color: #ffffff; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 50; font-family: 'Noto Sans KR', sans-serif;">
-    <div style="max-width: 1380px; margin: 0 auto; padding: 32px 40px; display: flex; align-items: center; justify-content: space-between;">
-      
+    <div style="max-width: 1380px; margin: 0 auto; padding: 12px 40px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: 24px;">
+
       <!-- 로고 영역 -->
-      <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
-        <img src="https://i.ibb.co/xqjbh2Hg/ab449647-1b1a-4b6d-8e17-71379d22e824.png" alt="위드브릿지 로고" style="height: 98px; width: auto; display: block; object-fit: contain;" />
+      <a href="index.html" style="justify-self: start; display: flex; align-items: center; text-decoration: none; flex: none;">
+        <img src="/images/withbridge-logo.png" alt="위드브릿지 로고" style="height: 38px; width: auto; display: block; object-fit: contain;" />
       </a>
 
-      <!-- 중앙 메뉴 링크 -->
-      <nav style="display: flex; align-items: center; gap: 44px; font-size: 19px; font-weight: 700;">
+      <!-- 중앙 메뉴 링크 : 가운데 auto 칸에 놓여 좌우 1fr 칸이 같은 폭이라 항상 화면 정중앙에 옵니다 -->
+      <nav style="display: flex; align-items: center; gap: 18px; font-size: 14.5px; font-weight: 600; white-space: nowrap; flex-wrap: nowrap;">
         <a href="about.html" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">소개</a>
+        <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
         <a href="index.html#services" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">서비스</a>
+        <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
         <a href="index.html#notice" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">공지사항</a>
+        <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
         <a href="index.html#reviews" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">고객후기</a>
+        <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
         <a href="index.html#faq" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">자주 묻는 질문(FAQ)</a>
       </nav>
 
-      <!-- 우측 버튼 및 링크 영역 -->
-      <div style="display: flex; align-items: center; gap: 20px;">
-        <!-- 텍스트형 로그인 / 회원가입 링크 -->
-        <!-- 💡 class="auth-buttons" 추가됨: 자바스크립트가 이 영역을 찾아 로그인 시 '로그아웃'으로 바꿉니다 -->
-        <div class="auth-buttons" style="display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 500; color: #1A1D21;">
-          <a href="login.html" style="text-decoration: none; font-weight: 500; color: #1A1D21; transition: color 0.2s;">
-            로그인
-          </a>
-          <span style="color: #d1d5db; font-size: 14px; font-weight: 400;">|</span>
-          <a href="login.html" style="text-decoration: none; font-weight: 500; color: #1A1D21; transition: color 0.2s;">
-            회원가입
-          </a>
+      <!-- 우측 버튼 및 링크 영역 : 로그인/마이페이지 등은 옅은 회색 텍스트로, '예약하기'만 브랜드 컬러 버튼으로 강조해 위계를 대비 -->
+      <div style="justify-self: end; display: flex; align-items: center; gap: 18px; white-space: nowrap; flex-wrap: nowrap;">
+        <div style="display: flex; align-items: center; gap: 12px; font-size: 13.5px; font-weight: 500; color: #6B7280;">
+          <a href="https://pf.kakao.com/_xjTdxaX/chat" target="_blank" rel="noopener noreferrer" style="color: #6B7280; text-decoration: none; transition: color 0.2s;">문의하기</a>
+          <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 12px; background-color: #E2E4E8;"></span>
+          <!-- 💡 class="auth-buttons" 추가됨: 자바스크립트가 이 영역을 찾아 로그인 시 '로그아웃'으로 바꿉니다 -->
+          <div class="auth-buttons" style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 500; color: #6B7280; white-space: nowrap;">
+            <a href="login.html" style="text-decoration: none; font-weight: 500; color: #6B7280; transition: color 0.2s;">로그인</a>
+            <span style="color: #d1d5db; font-size: 13.5px; font-weight: 400;">|</span>
+            <a href="login.html" style="text-decoration: none; font-weight: 500; color: #6B7280; transition: color 0.2s;">회원가입</a>
+          </div>
         </div>
 
-        <!-- 문의하기 버튼 -->
-        <a href="https://accounts.kakao.com/login/?continue=https%3A%2F%2Fpf.kakao.com%2F_xjTdxaX%2Fchat#login" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 16px 36px; background-color: #000000; color: #ffffff; border-radius: 9999px; font-size: 18px; font-weight: 700; text-decoration: none; transition: background-color 0.2s;">
-          문의하기
-        </a>
+        <!-- 예약하기 버튼 (핵심 액션, 브랜드 세이지그린으로 강조) -->
+        <a href="apply.html" style="flex: none; display: inline-block; padding: 10px 22px; background-color: #8FA482; color: #ffffff; border-radius: 9999px; font-size: 14.5px; font-weight: 700; text-decoration: none; box-shadow: 0 4px 14px rgba(143, 164, 130, 0.35); transition: background-color 0.2s, transform 0.2s;">예약하기</a>
       </div>
 
     </div>
@@ -648,7 +653,24 @@
        04. 서브 탭 클릭 및 스크롤 동적 반응 스크립트
   ==================================================================== -->
   <script>
+    // 헤더 높이를 하드코딩(예: top: 162px)해 두면 헤더 크기가 바뀔 때마다 서브 탭이 헤더 아래에 뜨거나
+    // (데스크톱) 헤더와 겹치는(모바일) 문제가 반복됩니다. 실제 헤더/서브 탭 높이를 매번 측정해
+    // --wb-header-h / --wb-scroll-offset 값으로 반영하면, 헤더 크기가 앞으로 또 바뀌어도 항상 맞습니다.
+    function syncStickyOffsets() {
+      const header = document.querySelector('header');
+      const subNav = document.querySelector('.wb-sub-nav');
+      if (!header || !subNav) return;
+      const headerH = header.offsetHeight;
+      const subNavH = subNav.offsetHeight;
+      document.documentElement.style.setProperty('--wb-header-h', headerH + 'px');
+      document.documentElement.style.setProperty('--wb-scroll-offset', (headerH + subNavH + 16) + 'px');
+    }
+    syncStickyOffsets();
+    window.addEventListener('load', syncStickyOffsets); // 폰트 로드 후 헤더 높이가 미세하게 바뀔 수 있어 한 번 더 측정
+    window.addEventListener('resize', syncStickyOffsets);
+
     document.addEventListener('DOMContentLoaded', () => {
+      syncStickyOffsets();
       const navLinks = document.querySelectorAll('.wb-sub-nav a');
       const sections = [
         document.getElementById('about-intro'),

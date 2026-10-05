@@ -19,7 +19,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
   <!-- 사이트 머리글의 로그인 상태 표시용 (embed 모드에서는 머리글이 숨겨짐) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/js/auth-header.js?v=1.0" charset="utf-8"></script>
+  <script src="/js/auth-header.js?v=1.1" charset="utf-8"></script>
   <style>
     :root {
       --brand: #78866B; --brand-dark: #3B4B3C; --brand-soft: #F1F6F0; --brand-line: #E2ECE0;
@@ -181,39 +181,41 @@
 -->
 <!-- 상단 네비게이션 헤더 (독립된 login.html 이동 적용본) -->
 <header style="width: 100%; background-color: #ffffff; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 50; font-family: 'Noto Sans KR', sans-serif;">
-  <div style="max-width: 1380px; margin: 0 auto; padding: 32px 40px; display: flex; align-items: center; justify-content: space-between;">
-    
+  <div style="max-width: 1380px; margin: 0 auto; padding: 12px 40px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: 24px;">
+
     <!-- 로고 영역 (클릭 시 메인 페이지로 이동하도록 index.html 적용) -->
-    <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
-      <img src="https://i.ibb.co/xqjbh2Hg/ab449647-1b1a-4b6d-8e17-71379d22e824.png" alt="위드브릿지 로고" style="height: 98px; width: auto; display: block; object-fit: contain;" />
+    <a href="index.html" style="justify-self: start; display: flex; align-items: center; text-decoration: none; flex: none;">
+      <img src="/images/withbridge-logo.png" alt="위드브릿지 로고" style="height: 38px; width: auto; display: block; object-fit: contain;" />
     </a>
 
-    <!-- 중앙 메뉴 링크 (소개 메뉴를 about.html로 연결) -->
-    <nav style="display: flex; align-items: center; gap: 44px; font-size: 19px; font-weight: 700;">
+    <!-- 중앙 메뉴 링크 (소개 메뉴를 about.html로 연결) : 가운데 auto 칸에 놓여 좌우 1fr 칸이 같은 폭이라 항상 화면 정중앙에 옵니다 -->
+    <nav style="display: flex; align-items: center; gap: 18px; font-size: 14.5px; font-weight: 600; white-space: nowrap; flex-wrap: nowrap;">
       <a href="about.html" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">소개</a>
+      <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
       <a href="index.html#services" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">서비스</a>
+      <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
       <a href="index.html#notice" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">공지사항</a>
+      <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
       <a href="index.html#reviews" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">고객후기</a>
+      <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
       <a href="index.html#faq" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">자주 묻는 질문(FAQ)</a>
     </nav>
 
-    <!-- 우측 버튼 및 링크 영역 -->
-    <div style="display: flex; align-items: center; gap: 20px;">
-      <!-- 💡 class="auth-buttons" 추가됨: 자바스크립트가 이 영역을 찾아 로그인 시 '로그아웃'으로 바꿉니다 -->
-      <div class="auth-buttons" style="display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 500; color: #1A1D21;">
-        <a href="login.html" style="text-decoration: none; font-weight: 500; color: #1A1D21; transition: color 0.2s;">
-          로그인
-        </a>
-        <span style="color: #d1d5db; font-size: 14px; font-weight: 400;">|</span>
-        <a href="login.html" style="text-decoration: none; font-weight: 500; color: #1A1D21; transition: color 0.2s;">
-          회원가입
-        </a>
+    <!-- 우측 버튼 및 링크 영역 : 로그인/마이페이지 등은 옅은 회색 텍스트로, '예약하기'만 브랜드 컬러 버튼으로 강조해 위계를 대비 -->
+    <div style="justify-self: end; display: flex; align-items: center; gap: 18px; white-space: nowrap; flex-wrap: nowrap;">
+      <div style="display: flex; align-items: center; gap: 12px; font-size: 13.5px; font-weight: 500; color: #6B7280;">
+        <a href="https://pf.kakao.com/_xjTdxaX/chat" target="_blank" rel="noopener noreferrer" style="color: #6B7280; text-decoration: none; transition: color 0.2s;">문의하기</a>
+        <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 12px; background-color: #E2E4E8;"></span>
+        <!-- 💡 class="auth-buttons" 추가됨: 자바스크립트가 이 영역을 찾아 로그인 시 '로그아웃'으로 바꿉니다 -->
+        <div class="auth-buttons" style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 500; color: #6B7280; white-space: nowrap;">
+          <a href="login.html" style="text-decoration: none; font-weight: 500; color: #6B7280; transition: color 0.2s;">로그인</a>
+          <span style="color: #d1d5db; font-size: 13.5px; font-weight: 400;">|</span>
+          <a href="login.html" style="text-decoration: none; font-weight: 500; color: #6B7280; transition: color 0.2s;">회원가입</a>
+        </div>
       </div>
 
-      <!-- 문의하기 버튼 (카카오톡 링크 연동) -->
-      <a href="https://accounts.kakao.com/login/?continue=https%3A%2F%2Fpf.kakao.com%2F_xjTdxaX%2Fchat#login" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 16px 36px; background-color: #000000; color: #ffffff; border-radius: 9999px; font-size: 18px; font-weight: 700; text-decoration: none; transition: background-color 0.2s;">
-        문의하기
-      </a>
+      <!-- 예약하기 버튼 (핵심 액션, 브랜드 세이지그린으로 강조) -->
+      <a href="apply.html" style="flex: none; display: inline-block; padding: 10px 22px; background-color: #8FA482; color: #ffffff; border-radius: 9999px; font-size: 14.5px; font-weight: 700; text-decoration: none; box-shadow: 0 4px 14px rgba(143, 164, 130, 0.35); transition: background-color 0.2s, transform 0.2s;">예약하기</a>
     </div>
 
   </div>

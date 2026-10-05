@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>위드브릿지 어드민 콘솔</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS SDK v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="/admin.css?v=1.5">
+</head>
+<body>
+
+  <!-- ==================================================================== -->
+  <!-- 01. 상단 헤더: 타이틀 + 로그인한 관리자 이름/로그아웃 -->
+  <!-- ==================================================================== -->
+  <header class="admin-header">
+    <div class="admin-header-inner">
+      <h1 class="admin-title">위드브릿지 어드민 콘솔</h1>
+      <div class="admin-account" id="adminAccount" hidden>
+        <span class="admin-account-name" id="adminName">관리자</span>
+        <button type="button" class="admin-logout-btn" id="logoutBtn">로그아웃</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="admin-main">
+
+    <!-- 관리자 전용 RLS/RPC(is_admin(), 매니저 승인/반려, 신청 배정)는 SQL로 준비돼 있지만 아직 실제 Supabase
+         프로젝트에 실행된 적은 없습니다. 아래 일곱 파일을 SQL Editor에서 순서대로 실행해야 이 화면이 동작합니다.
+         - protect_admin_role.sql 을 빼먹으면: 관리자 본인이 매니저로 승인될 때 profiles.role 이 'admin' →
+           'manager' 로 강등되고, 그 순간부터 is_admin() 이 false 가 되어 이 화면 자체에 접근이 막힙니다.
+         - admin_profiles_select.sql 을 빼먹으면: 승인은 되는데(managers insert 는 SECURITY DEFINER 라 RLS 무관)
+           '활동 중인 케어 매니저' 조회만 RLS 에 막혀 에러 없이 조용히 0건으로 보입니다.
+         - admin_service_applications_select.sql 을 빼먹으면: '오늘의 케어 신청 · 수동 배정' 목록이 관리자 계정이
+           마침 매니저이기도 한 경우에만 우연히 보이고, 매니저가 수락해도 이 화면은 실시간으로 갱신되지 않습니다.
+         - admin_care_schedules_select.sql 을 빼먹으면: '배정 완료(진행 중) 케어 현황' 이 관리자 본인에게
+           배정된 일정이 없는 한 계속 0건으로 보입니다.
+         - admin_care_checkpoints_select.sql 을 빼먹으면: '배정 완료(진행 중) 케어 현황' 카드의 [현장 인증
+           상세보기] 모달이 열리기는 해도, 관리자 본인이 담당 매니저/신청 보호자가 아닌 일정은 실제로
+           인증 기록이 있어도 전부 "미인증"으로만 보입니다(RLS 가 조용히 0행을 돌려줌).
+         일곱 파일 모두 실행을 마쳤다면 이 배너는 지워도 됩니다. -->
+    <div class="admin-notice" id="rlsNotice">
+      <strong>참고:</strong> 이 화면이 동작하려면 Supabase SQL Editor 에서
+      <code>sql/admin_rls_policies.sql</code> → <code>sql/manager_applications.sql</code> → <code>sql/protect_admin_role.sql</code> → <code>sql/admin_profiles_select.sql</code> → <code>sql/admin_service_applications_select.sql</code> → <code>sql/admin_care_schedules_select.sql</code> → <code>sql/admin_care_checkpoints_select.sql</code> 순서로 실행해야 합니다
+      (관리자 판정 <code>is_admin()</code>, 관리자 권한 강등 방지, 매니저 지원/승인/반려, 신청 수동 배정, 관리자가
+      다른 유저의 <code>profiles</code>/<code>managers</code>/<code>service_applications</code>/<code>care_schedules</code>/<code>care_checkpoints</code>
+      행을 조회·실시간 구독할 수 있게 하는 RLS·함수 정의).
+      <code>protect_admin_role.sql</code>을 빼먹으면 관리자 본인이 매니저 지원서를 승인받는 순간 admin 권한을
+      잃고, <code>admin_profiles_select.sql</code>을 빼먹으면 승인 자체는 성공해도 '활동 중인 케어 매니저' 목록은
+      에러 없이 계속 0건으로 보이고, <code>admin_service_applications_select.sql</code>을 빼먹으면 '오늘의 케어 신청 ·
+      수동 배정' 목록이 매니저가 수락해도 실시간으로 갱신되지 않고, <code>admin_care_schedules_select.sql</code>을
+      빼먹으면 '배정 완료(진행 중) 케어 현황'이 계속 0건으로 보이고, <code>admin_care_checkpoints_select.sql</code>을
+      빼먹으면 [현장 인증 상세보기] 모달이 실제 기록이 있어도 "미인증"으로만 보입니다 — 이런 증상이 보이면 이 파일들을 먼저 확인하세요.
+      아직 실행 전이라면 아래 목록은 비어 있거나 오류로 표시될 수 있습니다.
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- 02. 2열 카드 레이아웃 -->
+    <!-- ================================================================ -->
+    <div class="admin-grid">
+
+      <!-- 좌측: 가입 승인 대기 매니저 목록 -->
+      <section class="admin-card" aria-labelledby="pendingManagersTitle">
+        <div class="admin-card-head">
+          <h2 id="pendingManagersTitle">가입 승인 대기 매니저</h2>
+          <span class="admin-count" id="pendingManagersCount" hidden>0건</span>
+        </div>
+        <div id="pendingManagersList" class="admin-list">
+          <p class="admin-loading">불러오는 중…</p>
+        </div>
+      </section>
+
+      <!-- 우측: 오늘의 케어 신청 및 수동 배정 현황 -->
+      <section class="admin-card" aria-labelledby="applicationsTitle">
+        <div class="admin-card-head">
+          <h2 id="applicationsTitle">오늘의 케어 신청 · 수동 배정</h2>
+          <span class="admin-count" id="applicationsCount" hidden>0건</span>
+        </div>
+        <p class="admin-card-desc">아직 담당 매니저가 지정되지 않은 건만, 매니저 마이페이지의 '배정 신청 대기'와 정확히 같은 기준(접수 48시간 이내)으로 표시됩니다. 매니저가 수락하거나 여기서 배정하는 즉시 이 목록에서 빠집니다. (이미 배정되어 진행 중인 건은 아래 '배정 완료(진행 중) 케어 현황' 카드에서 확인하세요.)</p>
+        <div id="applicationsList" class="admin-list">
+          <p class="admin-loading">불러오는 중…</p>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- 03. 배정 완료(진행 중) 케어 현황판 — manager_id 가 채워진(배정 완료) care_schedules 중
+         status != 'completed' 인 건(배정됨/출발/도착)만 모아서 보여줍니다. -->
+    <!-- ================================================================ -->
+    <section class="admin-card" aria-labelledby="inProgressCareTitle">
+      <div class="admin-card-head">
+        <h2 id="inProgressCareTitle">배정 완료(진행 중) 케어 현황</h2>
+        <span class="admin-count" id="inProgressCareCount" hidden>0건</span>
+      </div>
+      <p class="admin-card-desc">이미 매니저가 배정되어 진행 중인 건만 모아서 보여줍니다(완료된 건은 제외). 위 '오늘의 케어 신청 · 수동 배정'과는 반대로, 여기 나오는 건들은 전부 담당 매니저가 이미 정해져 있는 상태입니다.</p>
+      <div id="inProgressCareList" class="admin-list">
+        <p class="admin-loading">불러오는 중…</p>
+      </div>
+      <button type="button" class="admin-showmore-btn" id="inProgressCareShowMoreBtn" hidden aria-expanded="false"></button>
+    </section>
+
+    <!-- ================================================================ -->
+    <!-- 04. 활동 중인 케어 매니저 관리 -->
+    <!-- ================================================================ -->
+    <section class="admin-card" aria-labelledby="activeManagersTitle">
+      <div class="admin-card-head">
+        <h2 id="activeManagersTitle">활동 중인 케어 매니저</h2>
+        <span class="admin-count" id="activeManagersCount" hidden>0건</span>
+      </div>
+      <div id="activeManagersList" class="admin-list">
+        <p class="admin-loading">불러오는 중…</p>
+      </div>
+    </section>
+  </main>
+
+  <div class="admin-toast" id="adminToast" hidden></div>
+
+  <!-- ================================================================ -->
+  <!-- 05. 신분증 사본 확인 모달 (가입 승인 대기 매니저 카드의 [신분증 보기] 버튼에서 열림) -->
+  <!-- ================================================================ -->
+  <div class="modal-backdrop" id="idCardModal" hidden>
+    <div class="modal idcard-modal" role="dialog" aria-modal="true" aria-labelledby="idCardModalTitle">
+      <div class="modal-head">
+        <h3 id="idCardModalTitle">신분증 사본 확인</h3>
+        <button type="button" class="modal-close-btn" id="idCardModalCloseBtn" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub" id="idCardModalSub"></p>
+      <p class="idcard-mask-hint">주민등록번호 뒷자리는 지원자가 직접 가려서 제출한 이미지입니다. 뒷자리가 그대로 노출되어 있거나 본인 확인이 어려우면 반려 후 재제출을 요청하세요.</p>
+
+      <div class="idcard-viewer" id="idCardViewer">
+        <p class="admin-loading" id="idCardStatus">불러오는 중…</p>
+        <img id="idCardImg" alt="신분증 사본" hidden>
+      </div>
+      <div class="idcard-zoom-row">
+        <button type="button" class="admin-btn is-ghost" id="idCardZoomOutBtn">축소 −</button>
+        <button type="button" class="admin-btn is-ghost" id="idCardZoomResetBtn" disabled>100%</button>
+        <button type="button" class="admin-btn is-ghost" id="idCardZoomInBtn">확대 +</button>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="admin-btn is-ghost" id="idCardRejectBtn">반려</button>
+        <button type="button" class="admin-btn is-primary" id="idCardApproveBtn">승인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- 06. 매니저 수동 배정 모달 (오늘의 케어 신청 · 수동 배정 카드의 [수동 배정] 버튼에서 열림) -->
+  <!-- ================================================================ -->
+  <div class="modal-backdrop" id="assignManagerModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="assignManagerModalTitle">
+      <div class="modal-head">
+        <h3 id="assignManagerModalTitle">매니저 배정</h3>
+        <button type="button" class="modal-close-btn" id="assignManagerCloseBtn" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub" id="assignManagerSub"></p>
+
+      <label class="admin-field-label" for="assignManagerSelect">배정할 매니저</label>
+      <select class="admin-select" id="assignManagerSelect"></select>
+      <p class="admin-error" id="assignManagerError" hidden></p>
+
+      <div class="modal-actions">
+        <button type="button" class="admin-btn is-ghost" id="assignManagerCancelBtn">취소</button>
+        <button type="button" class="admin-btn is-primary" id="assignManagerConfirmBtn">배정하기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- 07. 현장 인증 상세보기 모달 (배정 완료 케어 현황 카드의 [현장 인증 상세보기] 버튼에서 열림)
+       care_checkpoints 테이블의 departure/hospital_arrival 단계 기록을 보여줍니다. -->
+  <!-- ================================================================ -->
+  <div class="modal-backdrop" id="careVerifyModal" hidden>
+    <div class="modal verify-modal" role="dialog" aria-modal="true" aria-labelledby="careVerifyModalTitle">
+      <div class="modal-head">
+        <h3 id="careVerifyModalTitle">현장 인증 상세보기</h3>
+        <button type="button" class="modal-close-btn" id="careVerifyCloseBtn" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub" id="careVerifySub"></p>
+
+      <div class="verify-section">
+        <h4 class="verify-section-title">출발 인증</h4>
+        <div id="careVerifyDepartureBody"></div>
+      </div>
+
+      <div class="verify-section">
+        <h4 class="verify-section-title">도착 인증</h4>
+        <div id="careVerifyArrivalBody"></div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="admin-btn is-ghost" id="careVerifyCloseBtn2">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 인증 사진 원본 확대 라이트박스 (현장 인증 모달 위에 오버레이) -->
+  <div class="verify-lightbox-backdrop" id="careVerifyLightbox" hidden>
+    <div class="verify-lightbox">
+      <button type="button" class="verify-lightbox-close" id="careVerifyLightboxCloseBtn" aria-label="닫기">✕</button>
+      <img id="careVerifyLightboxImg" alt="">
+      <p class="verify-lightbox-caption" id="careVerifyLightboxCaption"></p>
+    </div>
+  </div>
+
+  <script src="/admin.js?v=2.3" defer></script>
+</body>
+</html>

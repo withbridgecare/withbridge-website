@@ -11,7 +11,7 @@
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- 공통 Supabase 클라이언트 (index.html / login.html 과 같은 세션 공유). SDK 뒤에 로드해야 합니다 -->
-  <script src="/js/auth-header.js?v=1.0" charset="utf-8"></script>
+  <script src="/js/auth-header.js?v=1.1" charset="utf-8"></script>
 <script src="/js/terms-modal.js?v=1.0" charset="utf-8" defer></script>
   <!-- 브라우저 기본 날짜/시간 피커 대신 쓰는 공통 커스텀 피커 (wb-datepicker.js 참고) -->
   <script src="/js/wb-datepicker.js?v=1.0"></script>
@@ -34,24 +34,26 @@
       --brand-hover: var(--sage-600);
       --brand-soft: var(--sage-100);
       --brand-line: var(--sage-200);
-      --ink: #191F28;
-      --ink-body: #4B5563;  /* gray-600: 본문 · 라벨 */
-      --ink-sub: #6B7280;   /* 보조 · 안내 문구 (gray-500) — 기존 #8B95A1 은 명도비가 낮아 gray-500 이상으로 상향 */
+      --ink: #191F28;       /* 메인 타이틀 */
+      --ink-section: #333D4B; /* 섹션 타이틀 */
+      --ink-body: #4E5968;  /* 본문 텍스트 */
+      --ink-sub: #8B95A1;   /* 서브 텍스트 · 라벨 (토스 그레이 400) — mypage-manager.html 과 동일한 톤으로 통일 */
       --ink-muted: #B0B8C1;
-      --bg: #F4F5F7;       /* 토스 스타일: 부드러운 연회색 배경 — 흰 카드가 도드라져 보이게 */
+      --bg: #F2F4F6;       /* mypage-manager.html 과 동일: 흰 카드와 대비되는 연회색 배경 */
       --card: #FFFFFF;
-      --card-border: #F1F2F4; /* 테두리보다 그림자로 카드 경계를 표현(토스 감성) — 거의 안 보이는 헤어라인만 남김 */
-      --line: #EEF1F4;
+      --card-border: #E5E7EB; /* 연한 회색 테두리로 카드 경계를 또렷하게 (mypage-manager.html 과 동일) */
+      --line: transparent; /* 카드 내부 구분선은 제거하고 여백만으로 항목을 나눔 */
+      --input-border: #D1D5DB;
       --danger: #D64545;
-      --radius: 24px;      /* rounded-3xl */
-      --radius-sm: 18px;   /* rounded-2xl */
-      --shadow-card: 0 4px 20px rgba(0, 0, 0, .04);
-      --shadow-card-hover: 0 10px 28px rgba(0, 0, 0, .07);
+      --radius: 16px;      /* 부드러운 모서리 둥글기 (카드·컨테이너) */
+      --radius-sm: 10px;   /* 버튼·인풋 등 작은 요소 */
+      --shadow-card: 0 4px 12px rgba(0, 0, 0, .05);
+      --shadow-card-hover: 0 6px 16px rgba(0, 0, 0, .08);
 
-      /* 주요 CTA 버튼(전체 사이트 공통): 톤다운된 시그니처 그린 하나로 통일 */
-      --cta: #047857;        /* emerald-700 */
-      --cta-hover: #065F46;  /* emerald-800 */
-      --cta-shadow: 0 6px 16px rgba(4, 120, 87, .28);
+      /* 주요 CTA 버튼(전체 사이트 공통): mypage-manager.html 과 동일한 세이지 그린 브랜드 컬러로 통일 */
+      --cta: var(--sage-500);
+      --cta-hover: var(--sage-600);
+      --cta-shadow: 0 6px 16px rgba(120, 134, 107, .28);
 
       --sec-bg: #F3F4F6;     /* gray-100 */
       --sec-bg-hover: #E5E7EB; /* gray-200 */
@@ -70,7 +72,6 @@
       --neutral-badge-fg: #334155;    /* slate-700 */
       --active-badge-bg: #ECFDF5;     /* emerald-50 */
       --active-badge-fg: #047857;     /* emerald-700 */
-      --active-badge-border: #A7F3D0; /* emerald-200 */
       /* 매니저 박스 · 요약 박스 등 보조 박스 배경: 칙칙한 회색 대신 밝은 슬레이트 톤 */
       --surface-soft: #F8FAFC; /* slate-50 */
     }
@@ -91,19 +92,16 @@
     [hidden] { display: none !important; }
 
     /* ---------- 레이아웃 (mypage-manager.html 과 동일한 폭 · 패딩 · 배경) ---------- */
-    .mp-main { max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; }
+    .mp-main { max-width: 1100px; margin: 0 auto; padding: 24px 24px 56px; }
     .mp-loading { padding: 120px 0; text-align: center; color: var(--ink-sub); }
-    .mp-stack { display: flex; flex-direction: column; gap: 28px; }
-    /* 케어 현황(Main 5) : 어르신 프로필 관리(Sidebar 3) — 데스크톱 2컬럼 대시보드 그리드 (약 62.5% : 37.5%) */
-    .dash-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 3fr); gap: 24px; align-items: start; }
-    .dash-main, .dash-side { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+    .mp-stack { display: flex; flex-direction: column; gap: 30px; }
 
     .card {
       background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius);
-      padding: 28px; box-shadow: var(--shadow-card);
+      padding: 24px; box-shadow: var(--shadow-card);
     }
-    .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
-    .card-title { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -0.03em; }
+    .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+    .card-title { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.02em; color: var(--ink-section); }
     .badge {
       display: inline-block; padding: 4px 12px; border-radius: 9999px;
       background: var(--neutral-badge-bg); color: var(--neutral-badge-fg); font-size: 12.5px; font-weight: 500; white-space: nowrap;
@@ -111,33 +109,41 @@
     /* '진행 중'(예정된 케어가 실제로 진행 중일 때)만 유일하게 활성 그린 — 나머지 뱃지는 모두 위 무채색 기본값 */
     .badge.is-live {
       display: inline-flex; align-items: center; gap: 5px; padding-left: 10px;
-      background: var(--active-badge-bg); color: var(--active-badge-fg); border: 1px solid var(--active-badge-border); font-weight: 700;
+      background: var(--active-badge-bg); color: var(--active-badge-fg); font-weight: 700;
     }
     .badge.is-live::before { content: ''; flex: none; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
     .badge.is-demo { background: var(--earth-bg); color: var(--earth-fg); }
 
     .btn {
       display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-      padding: 13px 22px; border: none; border-radius: 14px;
+      padding: 13px 22px; border: none; border-radius: var(--radius-sm);
       background: var(--cta); color: #fff; font-size: 14.5px; font-weight: 700;
       text-decoration: none; cursor: pointer; box-shadow: var(--cta-shadow);
       transition: background .15s, transform .15s, box-shadow .15s;
+      min-height: 48px;
     }
     .btn:hover { background: var(--cta-hover); transform: translateY(-1px); }
     .btn:disabled { opacity: .6; cursor: not-allowed; transform: none; box-shadow: none; }
     .btn-ghost { background: var(--sec-bg); color: var(--sec-fg); box-shadow: none; }
     .btn-ghost:hover { background: var(--sec-bg-hover); }
-    .btn-sm { padding: 8px 14px; font-size: 13px; }
-    /* 케어 완료 카드의 [확인 및 이용 완료]: 다른 카드 안 버튼(리포트 확인 등)과 확실히 구분되는 진한 그린 CTA */
-    .btn-confirm {
-      background: #2B593A; color: #fff; font-weight: 700; padding: 10px 20px;
-      border-radius: 12px; box-shadow: none;
+    .btn-sm { padding: 8px 14px; font-size: 13px; min-height: 40px; }
+    /* [+ 추가 신청]과 [+ 어르신 추가 등록]: 텍스트 길이가 달라도 두 버튼이 픽셀 단위로 완전히 같은
+       규격이 되도록, .btn/.btn-sm 의 패딩에 기대지 않고 너비·높이·패딩·폰트·줄간격을 이 규칙 하나에서
+       전부 확정합니다(box-sizing: border-box 이므로 height 에는 패딩이 이미 포함됨). */
+    .card-head-btn {
+      box-sizing: border-box; width: 150px; height: 40px; padding: 0 16px; min-height: 0;
+      font-size: 13px; line-height: 1; white-space: nowrap;
     }
-    .btn-confirm:hover { background: #35704A; box-shadow: 0 6px 16px rgba(43, 89, 58, .32); }
+    /* 케어 완료 카드의 [확인 및 이용 완료]: 다른 카드 안 버튼(리포트 확인 등)과 확실히 구분되는 진한 브랜드 CTA */
+    .btn-confirm {
+      background: var(--brand-dark); color: #fff; font-weight: 700; padding: 10px 20px; min-height: 0;
+      border-radius: var(--radius-sm); box-shadow: none;
+    }
+    .btn-confirm:hover { background: var(--sage-800); box-shadow: 0 6px 16px rgba(59, 66, 53, .28); }
 
     .empty {
       padding: 40px 16px; text-align: center; color: var(--ink-sub);
-      background: var(--bg); border: 1px solid var(--card-border); border-radius: var(--radius-sm);
+      background: var(--bg); border: 1px solid var(--card-border); border-radius: var(--radius);
       display: flex; flex-direction: column; align-items: center; gap: 4px;
     }
     .empty-icon { display: flex; align-items: center; justify-content: center; margin-bottom: 6px; color: var(--ink-muted); }
@@ -146,19 +152,78 @@
     .empty .btn { margin-top: 16px; }
     .empty small { display: block; margin-top: 14px; font-size: 12.5px; line-height: 1.5; word-break: keep-all; }
     .error-box {
-      padding: 16px; border-radius: 12px; background: #FDF1EF; color: var(--danger); font-size: 14px;
+      padding: 16px; border-radius: var(--radius); background: #FDF1EF; color: var(--danger); font-size: 14px;
     }
 
-    /* ---------- 프로필 요약 (텍스트만으로 완성도를 주는 인사 카드) ----------
-       버튼·뱃지 등 다른 기능은 더하지 않고, 타이포 위계만으로 정돈합니다. 토스 앱 상단 카드처럼 상하
-       여백은 슬림하게(좌우보다 얇게) 잡아 텍스트 3줄이 딱 맞게 담기는 높이로 유지합니다. */
-    .summary { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding: 22px 28px; }
-    .summary-hello { font-size: 14.5px; color: var(--ink-sub); font-weight: 600; letter-spacing: -0.01em; margin: 0 0 5px; }
-    .summary-title { margin: 0 0 5px; font-size: 25px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.25; color: var(--ink); word-break: keep-all; }
-    .summary-email { margin: 0; font-size: 13.5px; color: var(--ink-sub); font-weight: 500; word-break: break-all; }
-    .summary-email:empty { display: none; }
+    /* ---------- 프로필 헤더 카드 (mypage-manager.html 의 .profile 과 동일한 구조: 아바타 + 인사말/이름 + 상태 뱃지) ---------- */
+    @keyframes wb-profile-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .profile {
+      background: var(--card); color: var(--ink); border: 1px solid var(--card-border);
+      border-radius: var(--radius); box-shadow: var(--shadow-card); padding: 18px 32px;
+      display: flex; align-items: center; justify-content: space-between; gap: 20px 32px; flex-wrap: wrap;
+      animation: wb-profile-in .45s cubic-bezier(.4, 0, .2, 1);
+    }
+    .profile-main { display: flex; align-items: center; gap: 16px; min-width: 0; }
+    .profile-avatar {
+      width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0; overflow: hidden;
+      background: var(--brand-soft); color: var(--brand-dark); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800;
+      box-shadow: 0 4px 14px rgba(120, 134, 107, .28);
+    }
+    .profile-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .profile-role { margin: 0 0 2px; font-size: 12.5px; color: var(--ink-sub); font-weight: 600; }
+    .profile-name { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.03em; color: var(--ink); word-break: keep-all; }
+    .profile-email { margin: 4px 0 0; font-size: 13px; color: var(--ink-sub); font-weight: 500; word-break: break-all; }
+    .profile-email:empty { display: none; }
+    .status-box { flex: 0 0 auto; margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+    .status-hint { margin: 0; font-size: 12.5px; color: var(--ink-sub); max-width: 240px; text-align: right; }
+    .status-tag {
+      display: inline-flex; align-items: center; gap: 6px; padding: 5px 13px 5px 11px; border-radius: 9999px;
+      font-size: 12.5px; font-weight: 700; white-space: nowrap;
+    }
+    .status-tag::before { content: ''; flex: none; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .status-tag.st-assigned  { background: var(--sage-100); color: var(--sage-700); }
+    .status-tag.st-departed  { background: var(--sage-200); color: var(--sage-800); font-weight: 800; }
+    .status-tag.st-arrived   { background: #D1FAE5; color: #047857; font-weight: 800; }
+    .status-tag.st-completed { background: #F3F4F6; color: #9CA3AF; }
+    .status-tag.st-pending   { background: #ECFDF5; color: #047857; }
 
     .head-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+
+    /* ---------- 케어 매니저 지원 배너 (특정 탭에 속하지 않는 공통 영역 — 프로필 카드와 탭 사이) ---------- */
+    .manager-promo {
+      display: flex; align-items: center; justify-content: space-between; gap: 14px 24px; flex-wrap: wrap;
+      background: var(--brand-soft); border-color: var(--brand-line); padding: 18px 24px;
+    }
+    .manager-promo-text { min-width: 0; flex: 1 1 320px; }
+    .manager-promo-title { margin: 0 0 4px; font-size: 15px; font-weight: 700; color: var(--brand-dark); }
+    .manager-promo-text p { margin: 0; font-size: 13.5px; color: var(--brand-dark); line-height: 1.6; word-break: keep-all; }
+    .manager-promo .btn { flex: none; }
+
+    /* ---------- 업무 탭 메뉴 (mypage-manager.html 의 .mgr-tabs 와 동일한 구조·애니메이션) ---------- */
+    .mgr-tabs { display: flex; flex-direction: column; gap: 20px; }
+    .mgr-tab-list {
+      position: relative; display: flex; gap: 4px; padding: 5px;
+      background: var(--sec-bg); border: 1px solid var(--card-border); border-radius: 12px;
+    }
+    .mgr-tab-pill {
+      position: absolute; top: 5px; left: 0; height: calc(100% - 10px); width: 0;
+      background: #fff; border: 1px solid var(--card-border); border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(25, 31, 40, .1), 0 1px 2px rgba(25, 31, 40, .06);
+      transition: transform .35s cubic-bezier(.4, 0, .2, 1), width .35s cubic-bezier(.4, 0, .2, 1);
+      pointer-events: none; z-index: 0;
+    }
+    .mgr-tab {
+      position: relative; z-index: 1; flex: 1 1 0; min-height: 44px; padding: 10px 14px;
+      border: none; border-radius: 8px;
+      background: transparent; color: var(--ink-sub); font-size: 14px; font-weight: 600; white-space: nowrap;
+      display: flex; align-items: center; justify-content: center; text-align: center; gap: 8px; cursor: pointer;
+      transition: color .2s ease, transform .15s ease;
+    }
+    .mgr-tab:hover:not(.is-active) { color: var(--ink); transform: scale(1.02); }
+    .mgr-tab.is-active { color: var(--brand-dark); font-weight: 800; }
+    .mgr-tab:active { transform: scale(.98); }
+    .mgr-tab-label { position: relative; }
+    .mgr-tab-panel { display: flex; flex-direction: column; gap: 24px; }
 
     /* ---------- 케어 현황: 신청 내역 카드 (모듈형 카드로 통일, 색은 상태 뱃지에만) ---------- */
     .list.app-list { gap: 16px; }   /* 뒤에 나오는 일반 .list { gap: 12px } 보다 우선하도록 두 클래스를 함께 지정 */
@@ -207,7 +272,7 @@
       background: var(--neutral-badge-bg); color: var(--neutral-badge-fg);
     }
     /* '매니저 배정 / 이동 중 / 병원 도착' — 지금 실제로 진행 중인 단계만 유일하게 그린으로 시선을 집중시킵니다 */
-    .app-tag.tone-live { background: var(--active-badge-bg); color: var(--active-badge-fg); border: 1px solid var(--active-badge-border); font-weight: 700; }
+    .app-tag.tone-live { background: var(--active-badge-bg); color: var(--active-badge-fg); font-weight: 700; }
     /* 보호자의 확인·결정이 필요한 제안 상태만 예외적으로 경고색(earth) 유지 — 아래 .propose-box 와 짝을 이루는
        의도적 알림 색상이라, 무채색으로 묻히면 놓치기 쉬워 그대로 둡니다. */
     .app-tag.tone-propose { background: var(--earth-bg); color: var(--earth-fg); }
@@ -219,12 +284,17 @@
     .app-kv dt svg { flex: 0 0 auto; color: #6B7280; }
     .app-kv dd { margin: 0; color: #111827; font-weight: 600; word-break: keep-all; overflow-wrap: anywhere; }
     .app-kv dd.note { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; color: #4B5563; font-weight: 500; }
-    .app-foot { display: flex; align-items: baseline; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; padding-top: 14px; border-top: 1px dashed var(--card-border); }
+    .app-foot { display: flex; align-items: baseline; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; padding-top: 14px; border-top: 1px solid var(--card-border); }
     .app-price { font-size: 14px; color: var(--ink-body); }
     .app-price b { margin: 0 4px 0 6px; font-size: 20px; font-weight: 800; color: var(--brand-dark); }
     .app-price small { color: #6B7280; font-size: 12.5px; } /* '(기본 2시간)' — 기존 --ink-sub(회색 4단계)보다 한 톤 진하게 */
+    /* 카드 우측 상단: 총 예상 금액을 굵고 큼직하게 배치(핵심 정보를 첫눈에) */
+    .app-price-top { flex: none; display: flex; flex-direction: column; align-items: flex-end; text-align: right; gap: 2px; }
+    .app-price-top .app-price-label { font-size: 12px; font-weight: 600; color: var(--ink-sub); }
+    .app-price-top b { margin: 0; font-size: 24px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; }
+    .app-price-top small { color: var(--ink-sub); font-size: 12px; }
     /* ?debug 테스트 모드 안내 · 내 계정에 연결되지 않은 신청 표시 */
-    .app-debug { margin: 0 0 14px; padding: 9px 12px; border-radius: 10px; background: #F3F0FF; color: #4B3F8F; font-size: 13px; line-height: 1.5; word-break: keep-all; }
+    .app-debug { margin: 0 0 14px; padding: 9px 12px; border-radius: var(--radius-sm); background: #F3F0FF; color: #4B3F8F; font-size: 13px; line-height: 1.5; word-break: keep-all; }
     .app-debug-chip { display: inline-block; margin: -4px 0 12px; padding: 3px 10px; border-radius: 9999px; background: #FDECEA; color: #A32B1E; font-size: 12px; font-weight: 700; word-break: break-all; }
     .app-date { font-size: 12.5px; color: #6B7280; } /* '9월 24일 신청 ·' — 한 톤 진하게 */
     .app-date .app-rel { font-weight: 700; color: #374151; } /* '13시간 전' — 더 또렷하게 */
@@ -232,14 +302,14 @@
     .app-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; margin-left: auto; }
     .app-timer { display: inline-block; padding: 3px 10px; border-radius: 9999px; background: var(--neutral-badge-bg); color: var(--neutral-badge-fg); font-size: 12px; font-weight: 600; white-space: nowrap; }
     .app-timer.is-soon { background: var(--earth-bg); color: var(--earth-fg); } /* 마감 임박 — 의도적 경고색 예외 */
-    .app-hint { margin: 12px 0 0; padding: 9px 12px; border-radius: 10px; background: var(--bg); font-size: 13px; color: #374151; word-break: keep-all; } /* 하단 안내문구 — 기존 --ink-body보다 한 톤 진하게 */
+    .app-hint { margin: 12px 0 0; padding: 9px 12px; border-radius: var(--radius-sm); background: var(--bg); font-size: 13px; color: #374151; word-break: keep-all; } /* 하단 안내문구 — 기존 --ink-body보다 한 톤 진하게 */
     /* 케어 완료 카드 하단: 안내문/리포트 버튼 + [확인 및 이용 완료] 버튼을 세로로 쌓아서 보여줌 */
     .app-done-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
     .app-done-actions .app-hint { margin-top: 0; }
     .app-done-actions .btn { width: 100%; }
 
     /* ---------- 일정 변경 제안 (매니저가 mypage-manager.html 에서 보낸 제안을 보호자가 확인·수락/거절) ---------- */
-    .propose-box { margin: 0 0 16px; padding: 16px; background: var(--earth-bg); border: 1px solid var(--earth-line); border-radius: var(--radius-sm); }
+    .propose-box { margin: 0 0 16px; padding: 16px; background: var(--earth-bg); border: 1px solid var(--earth-line); border-radius: var(--radius); }
     .propose-label { font-size: 12px; font-weight: 700; color: var(--earth-fg); margin-bottom: 4px; }
     .propose-value { font-size: 16px; font-weight: 800; color: var(--ink); letter-spacing: -0.01em; word-break: keep-all; }
     .propose-hint { margin: 8px 0 0; font-size: 12.5px; color: var(--ink-body); line-height: 1.5; word-break: keep-all; }
@@ -269,7 +339,7 @@
     .stepper { display: flex; flex-wrap: wrap; list-style: none; margin: 0 0 28px; padding: 0; gap: 4px; }
     .step {
       flex: 1 1 auto; min-width: 84px; text-align: center; padding: 12px 6px 11px;
-      border-bottom: 4px solid var(--card-border); color: var(--ink-sub); font-size: 13.5px; font-weight: 600;
+      border-bottom: 4px solid #D1D5DB; color: var(--ink-sub); font-size: 13.5px; font-weight: 600; /* 아직 지나지 않은 단계: 카드 테두리(다크)와 구분되는 옅은 트랙 색 유지 */
       transition: color .15s ease, border-color .15s ease, background-color .15s ease;
     }
     .step-label { word-break: keep-all; }
@@ -280,12 +350,12 @@
     .step.is-done .step-check { color: var(--brand-dark); }
     .step.is-current {
       color: var(--brand-dark); font-weight: 800; border-color: var(--brand-dark);
-      background: var(--brand-soft); border-radius: 10px 10px 0 0;
+      background: var(--brand-soft); border-radius: var(--radius-sm);
     }
 
     .manager {
       display: flex; align-items: center; gap: 16px; padding: 16px 18px;
-      background: var(--surface-soft); border: 1px solid var(--card-border); border-radius: var(--radius-sm);
+      background: var(--surface-soft); border: 1px solid var(--card-border); border-radius: var(--radius);
     }
     .manager-avatar {
       width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0;
@@ -300,10 +370,13 @@
     .manager-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: none; }
     /* 신청 카드 안의 '담당 매니저' 영역 (배정 완료된 신청에만 표시): 부드러운 회색 배경으로 카드에 녹아들게 하고,
        아바타·이름을 카드 메인 타이틀(18px/700)보다 확실히 작게 잡아 시선이 제목보다 튀지 않게 합니다. */
-    .manager.app-manager { gap: 12px; margin: 0 0 16px; padding: 14px 16px; background: var(--surface-soft); border: 1px solid var(--card-border); }
+    .manager.app-manager { flex-wrap: wrap; gap: 12px; margin: 0 0 16px; padding: 16px; background: var(--surface-soft); border: 1px solid var(--card-border); }
     .app-manager .manager-avatar { width: 38px; height: 38px; font-size: 15px; }
     .app-manager .manager-name { font-size: 15px; }
     .app-manager .manager-meta a { color: var(--brand-dark); font-weight: 700; }
+    /* 단 하나의 핵심 행동 버튼을 카드 최하단에 눈에 띄게: 프로필 줄 아래로 줄바꿈해 전체 폭을 차지시킴 */
+    .app-manager .manager-actions { flex: 1 1 100%; width: 100%; }
+    .app-manager .manager-actions .manager-info-btn { width: 100%; justify-content: center; }
 
     /* ---------- 어르신 / 리포트 리스트 ---------- */
     .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
@@ -320,7 +393,7 @@
     .senior-actions { display: flex; align-items: center; gap: 2px; flex: none; }
     .senior-actions .icon-btn {
       display: inline-flex; align-items: center; justify-content: center;
-      width: 34px; height: 34px; border: none; border-radius: 9px; background: transparent; padding: 0;
+      width: 34px; height: 34px; border: none; border-radius: 50%; background: transparent; padding: 0;
       color: var(--ink-sub); cursor: pointer; transition: background .15s, color .15s, transform .15s;
     }
     .senior-actions .icon-btn svg { display: block; }
@@ -331,19 +404,19 @@
        (한 명뿐이면 탭 없이 카드만 보여줌 — renderSeniorTabsAndCard 참고) */
     .senior-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
     .senior-tab {
-      padding: 8px 14px; border: 1px solid var(--card-border); border-radius: 9999px; background: #fff;
+      padding: 8px 14px; border: 1px solid var(--card-border); border-radius: var(--radius-sm); background: #fff;
       color: var(--ink-sub); font-size: 13px; font-weight: 700; cursor: pointer;
       transition: background-color .15s ease, color .15s ease, border-color .15s ease;
     }
     .senior-tab:hover { background: var(--sec-bg); }
     .senior-tab.is-active { background: var(--brand-soft); border-color: var(--brand-line); color: var(--brand-dark); }
-    /* 특이사항(거동 상태·지팡이/휠체어 등)을 주소와 같은 무게의 kv 줄 대신, 눈에 먼저 들어오는 강조 태그로 분리 */
+    /* 특이사항(거동 상태·지팡이/휠체어 등): 배경 박스 대신 아래 '주소'와 같은 플랫한 텍스트 줄로 통일하고,
+       강조는 라벨의 굵기·색으로만 표현합니다 */
     .senior-health-tag {
-      display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; margin: 0 0 12px;
-      padding: 10px 12px; background: var(--brand-soft); border-radius: 10px; font-size: 13.5px;
+      display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; margin: 0 0 12px; font-size: 13.5px;
     }
     .senior-health-tag-label { flex: none; font-weight: 800; color: var(--brand-dark); }
-    .senior-health-tag-value { color: var(--ink-body); word-break: keep-all; }
+    .senior-health-tag-value { color: var(--ink-body); font-weight: 600; word-break: keep-all; }
     .senior-health-empty { margin: 0 0 12px; font-size: 13px; color: var(--ink-sub); }
     /* 주소: 라벨은 또렷한 회색(gray-600), 값은 gray-900 + semibold 로 대비를 줌(app-kv 와 같은 규칙) */
     .kv { display: grid; grid-template-columns: 72px 1fr; gap: 7px 12px; margin: 0; font-size: 14px; }
@@ -360,7 +433,7 @@
     }
     .modal {
       width: 100%; max-width: 440px; max-height: calc(100vh - 32px); overflow-y: auto;
-      background: #fff; border-radius: var(--radius); padding: 28px; box-shadow: 0 25px 50px -12px rgba(0,0,0,.35);
+      background: #fff; border: 1px solid var(--card-border); border-radius: var(--radius); padding: 28px; box-shadow: 0 25px 50px -12px rgba(0,0,0,.35);
     }
     .modal.modal-sm { max-width: 380px; } /* 확인/취소만 있는 짧은 확인 모달(네이티브 confirm() 대체용) */
     .modal h3 { margin: 0 0 4px; font-size: 20px; color: var(--ink); }
@@ -368,7 +441,7 @@
     .field { margin-bottom: 14px; }
     .field label { display: block; margin-bottom: 4px; font-size: 13px; font-weight: 700; color: var(--ink); }
     .field input, .field textarea {
-      width: 100%; padding: 12px 14px; border: 1px solid #CBD5E1; border-radius: 10px;
+      width: 100%; padding: 12px 14px; border: 1px solid var(--input-border); border-radius: var(--radius-sm);
       font: inherit; color: var(--ink); background: #fff; outline: none;
     }
     .field input:focus, .field textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(120,134,107,.18); }
@@ -377,7 +450,7 @@
     .modal-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
     .modal-actions .btn { flex: 1 1 140px; padding: 14px; }
     .form-error { margin: 0 0 12px; color: var(--danger); font-size: 13.5px; }
-    .target { margin-bottom: 18px; padding: 12px 14px; border-radius: 12px; background: var(--brand-soft); font-size: 14px; font-weight: 700; }
+    .target { margin-bottom: 18px; padding: 12px 14px; border-radius: var(--radius); background: var(--brand-soft); font-size: 14px; font-weight: 700; }
 
     /* ---------- 이용 내역 & 케어 리포트: 월간 캘린더 (mypage-manager.html 의 달력 모듈을 보호자용으로 이식) ---------- */
     /* 데스크톱 기준 캘린더:요약 = 8:4(2:1) 비율 */
@@ -393,10 +466,10 @@
     /* border-b border-slate-200 pb-3 font-bold text-slate-800 */
     .cal-right-title { margin: 0; padding-bottom: 12px; border-bottom: 1px solid var(--line); font-size: 14px; font-weight: 800; color: var(--ink); }
     /* bg-slate-50 p-4 rounded-xl: 캘린더 흰 셀과 대비되는 연한 회색 톤 박스로 3개 항목을 묶어 균형을 맞춤 */
-    .cal-summary-v { display: flex; flex-direction: column; background: var(--surface-soft); padding: 16px; border-radius: var(--radius-sm); }
+    .cal-summary-v { display: flex; flex-direction: column; background: var(--surface-soft); padding: 16px; border-radius: var(--radius); }
     .cal-summary-v .cal-stat {
       display: flex; align-items: center; justify-content: space-between; width: 100%;
-      background: transparent; border: none; border-radius: 0; padding: 8px 2px; /* py-2 */
+      background: transparent; border: none; border-radius: var(--radius); padding: 8px 2px; /* py-2 */
     }
     .cal-summary-v .cal-stat:not(:last-child) { border-bottom: 1px solid var(--card-border); }
     /* '210,000원' 등 핵심 숫자의 가독성을 높이기 위해 더 크고 진하게 */
@@ -410,7 +483,7 @@
     }
     .cal-nav-btn:hover { background: var(--brand-soft); border-color: var(--brand-line); }
     .cal-month { min-width: 108px; text-align: center; font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
-    .cal-stat { padding: 8px 14px; border-radius: 12px; background: var(--bg); border: 1px solid var(--card-border); font-size: 13px; color: var(--ink-sub); white-space: nowrap; }
+    .cal-stat { padding: 8px 14px; border-radius: var(--radius-sm); background: var(--bg); border: 1px solid var(--card-border); font-size: 13px; color: var(--ink-sub); white-space: nowrap; }
     .cal-stat b { margin-left: 4px; font-size: 15px; color: var(--ink); font-variant-numeric: tabular-nums; }
 
     .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
@@ -434,8 +507,8 @@
 
     .cal-detail { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--line); }
     .cal-detail-title { margin: 0 0 12px; font-size: 14px; font-weight: 700; color: var(--ink-sub); }
-    .cal-detail-empty { padding: 28px 16px; text-align: center; color: var(--ink-sub); background: var(--bg); border: 1px solid var(--card-border); border-radius: var(--radius-sm); font-size: 14px; }
-    .cal-case { padding: 16px 18px; background: var(--bg); border: 1px solid var(--card-border); border-radius: var(--radius-sm); }
+    .cal-detail-empty { padding: 28px 16px; text-align: center; color: var(--ink-sub); background: var(--bg); border: 1px solid var(--card-border); border-radius: var(--radius); font-size: 14px; }
+    .cal-case { padding: 16px 18px; background: var(--bg); border: 1px solid var(--card-border); border-radius: var(--radius); }
     .cal-case + .cal-case { margin-top: 10px; }
     .cal-case-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
     .cal-case-badges { display: flex; align-items: center; gap: 6px; flex: none; }
@@ -449,7 +522,7 @@
     .receipt-link:hover { color: var(--ink); }
     .btn-outline-emerald {
       display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--brand-line); color: var(--brand-dark); background: #fff;
-      padding: 6px 12px; border-radius: 10px; font-size: 13.5px; font-weight: 500; cursor: pointer; transition: background-color .15s;
+      padding: 6px 12px; border-radius: var(--radius-sm); font-size: 13.5px; font-weight: 500; cursor: pointer; transition: background-color .15s;
     }
     .btn-outline-emerald:hover { background: var(--brand-soft); }
     @media (max-width: 860px) {
@@ -466,7 +539,7 @@
     .rv-modal { max-width: 560px; }
     .rv-meta-card {
       display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px;
-      padding: 16px 18px; background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: var(--radius-sm);
+      padding: 16px 18px; background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: var(--radius);
     }
     .rv-meta-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 13.5px; }
     .rv-meta-label { flex: none; color: var(--brand-dark); font-weight: 600; }
@@ -475,7 +548,7 @@
     .rv-section { margin: 0 0 20px; }
     .rv-section-title { margin: 0 0 10px; font-size: 13px; font-weight: 700; color: var(--ink-sub); }
     .rv-text-box {
-      padding: 14px 16px; background: var(--bg); border: 1px solid var(--card-border); border-radius: 12px;
+      padding: 14px 16px; background: var(--bg); border: 1px solid var(--card-border); border-radius: var(--radius-sm);
       font-size: 14px; line-height: 1.6; color: var(--ink-body); white-space: pre-line; word-break: break-all;
     }
 
@@ -506,10 +579,10 @@
     .rv-tl-gps-badge { font-weight: 700; color: var(--brand-dark); } /* GPS 인증 완료 — 에메랄드 톤으로 강조 */
     .rv-tl-photo {
       margin-top: 8px; display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px 5px 5px;
-      border: 1px solid var(--card-border); border-radius: 10px; background: #fff; cursor: pointer; transition: background-color .15s ease;
+      border: 1px solid var(--card-border); border-radius: var(--radius-sm); background: #fff; cursor: pointer; transition: background-color .15s ease;
     }
     .rv-tl-photo:hover { background: var(--brand-soft); }
-    .rv-tl-photo img { width: 36px; height: 36px; border-radius: 7px; object-fit: cover; display: block; flex: none; }
+    .rv-tl-photo img { width: 36px; height: 36px; border-radius: var(--radius-sm); object-fit: cover; display: block; flex: none; }
     .rv-tl-photo span { font-size: 12.5px; font-weight: 700; color: var(--brand-dark); }
     /* is-none(슬레이트 톤): 실제 시각 기록이 없는 단계 — 번호·연결선·라벨·시간을 눈에 띄게 비활성화 처리 */
     .rv-tl-step.is-none .rv-tl-dot { background: #F1F5F9; border-color: #E2E8F0; color: #94A3B8; }
@@ -518,7 +591,7 @@
     .rv-tl-step.is-none .rv-tl-time { color: #CBD5E1; }
 
     /* 다음 병원 방문 예정일: 강조 뱃지 — 나머지 섹션과 같은 브랜드 톤이되, 눈에 띄도록 진하게 */
-    .rv-next-visit { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: -8px 0 20px; padding: 12px 16px; background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: 12px; }
+    .rv-next-visit { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: -8px 0 20px; padding: 12px 16px; background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: var(--radius); }
     .rv-next-visit-label { font-size: 12.5px; font-weight: 700; color: var(--brand-dark); }
     .rv-next-visit-badge { font-size: 15px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
 
@@ -529,7 +602,7 @@
     /* 증빙 사진 썸네일 그리드 + 라이트박스 */
     .rv-photo-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
     .rv-photo-thumb {
-      position: relative; aspect-ratio: 1 / 1; border-radius: 10px; overflow: hidden; border: 1px solid var(--card-border);
+      position: relative; aspect-ratio: 1 / 1; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--card-border);
       background: var(--bg); cursor: pointer; padding: 0;
     }
     .rv-photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .15s ease; }
@@ -540,7 +613,7 @@
     }
     .rv-lightbox-backdrop { z-index: 400; background: rgba(15, 23, 42, .85); }
     .rv-lightbox { position: relative; width: 100%; max-width: min(640px, 92vw); }
-    .rv-lightbox img { width: 100%; border-radius: 12px; display: block; box-shadow: 0 25px 60px rgba(0,0,0,.4); }
+    .rv-lightbox img { width: 100%; border-radius: var(--radius-sm); display: block; box-shadow: 0 25px 60px rgba(0,0,0,.4); }
     .rv-lightbox-caption { margin: 12px 0 0; text-align: center; color: #fff; font-size: 13.5px; font-weight: 600; }
     .rv-lightbox-close {
       position: absolute; top: -42px; right: 0; width: 34px; height: 34px; border-radius: 50%; border: none;
@@ -550,7 +623,7 @@
 
     /* 만족도 평가 패널: [닫기] 옆 버튼을 누르면 액션 줄 위에 펼쳐짐 */
     .rv-rate-btn.is-open { color: var(--brand-dark); border-color: var(--brand-line); background: var(--brand-soft); }
-    .rv-rate-panel { margin: 0 0 14px; padding: 14px 16px; background: var(--bg); border: 1px solid var(--card-border); border-radius: 12px; text-align: center; }
+    .rv-rate-panel { margin: 0 0 14px; padding: 14px 16px; background: var(--bg); border: 1px solid var(--card-border); border-radius: var(--radius); text-align: center; }
     .rv-rate-question { margin: 0 0 10px; font-size: 13.5px; font-weight: 700; color: var(--ink); }
     .rv-rate-stars { display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 12px; }
     .rv-star { border: none; background: none; padding: 2px; font-size: 26px; line-height: 1; color: var(--card-border); cursor: pointer; transition: color .1s ease, transform .1s ease; }
@@ -559,20 +632,21 @@
 
 
     /* ---------- 반응형 ---------- */
-    /* 태블릿 이하(lg 미만): 2컬럼 대시보드를 자연스럽게 1열로 떨어뜨림 */
-    @media (max-width: 1024px) {
-      .dash-grid { grid-template-columns: minmax(0, 1fr); }
-    }
     @media (max-width: 960px) {
       .mp-main { padding: 20px 16px 56px; }
+    }
+    @media (max-width: 760px) {
+      /* 프로필 아래로 내려온 상태 배지: 왼쪽 정렬, 위 간격은 .profile 의 gap (mypage-manager.html 과 동일) */
+      .status-box { width: 100%; margin-left: 0; align-items: flex-start; }
     }
     @media (max-width: 640px) {
       /* 모바일: 카드 내부 여백을 좀 더 컴팩트하게 */
       .card { padding: 20px 16px; }
       .card-head { margin-bottom: 16px; }
-      .dash-grid, .dash-main, .dash-side { gap: 16px; }
-      .summary { padding: 18px 20px; }
-      .summary-title { font-size: 21px; }
+      .profile { padding: 14px 18px; }
+      .profile-name { font-size: 21px; }
+      .manager-promo { padding: 16px 18px; }
+      .manager-promo .btn { width: 100%; }
       .app-card { padding: 18px 16px; }
       /* 라벨 텍스트 상태 바: 좁은 화면에서는 두 줄로 자연스럽게 접히도록 글자만 살짝 줄입니다
          (레이아웃 자체는 기본 .stepper 의 flex-wrap 이 그대로 처리) */
@@ -639,40 +713,42 @@
 ====================================================================
 -->
 <!-- 상단 네비게이션 헤더 (독립된 login.html 이동 적용본) -->
-<header style="width: 100%; background-color: #ffffff; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 50; font-family: 'Noto Sans KR', sans-serif;">
-  <div style="max-width: 1380px; margin: 0 auto; padding: 32px 40px; display: flex; align-items: center; justify-content: space-between;">
-    
+<header style="width: 100%; background-color: #ffffff; border-bottom: 1px solid #F0F1F3; position: sticky; top: 0; z-index: 50; font-family: 'Noto Sans KR', sans-serif;">
+  <div style="max-width: 1380px; margin: 0 auto; padding: 12px 40px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: 24px;">
+
     <!-- 로고 영역 (클릭 시 메인 페이지로 이동하도록 index.html 적용) -->
-    <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
-      <img src="https://i.ibb.co/xqjbh2Hg/ab449647-1b1a-4b6d-8e17-71379d22e824.png" alt="위드브릿지 로고" style="height: 98px; width: auto; display: block; object-fit: contain;" />
+    <a href="index.html" style="justify-self: start; display: flex; align-items: center; text-decoration: none; flex: none;">
+      <img src="/images/withbridge-logo.png" alt="위드브릿지 로고" style="height: 38px; width: auto; display: block; object-fit: contain;" />
     </a>
 
-    <!-- 중앙 메뉴 링크 (소개 메뉴를 about.html로 연결) -->
-    <nav style="display: flex; align-items: center; gap: 44px; font-size: 19px; font-weight: 700;">
+    <!-- 중앙 메뉴 링크 (소개 메뉴를 about.html로 연결) : 가운데 auto 칸에 놓여 좌우 1fr 칸이 같은 폭이라 항상 화면 정중앙에 옵니다 -->
+    <nav style="display: flex; align-items: center; gap: 18px; font-size: 14.5px; font-weight: 600; white-space: nowrap; flex-wrap: nowrap;">
       <a href="about.html" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">소개</a>
+      <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
       <a href="index.html#services" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">서비스</a>
+      <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
       <a href="index.html#notice" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">공지사항</a>
+      <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
       <a href="index.html#reviews" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">고객후기</a>
+      <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
       <a href="index.html#faq" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">자주 묻는 질문(FAQ)</a>
     </nav>
 
-    <!-- 우측 버튼 및 링크 영역 -->
-    <div style="display: flex; align-items: center; gap: 20px;">
-      <!-- 💡 class="auth-buttons" 추가됨: 자바스크립트가 이 영역을 찾아 로그인 시 '로그아웃'으로 바꿉니다 -->
-      <div class="auth-buttons" style="display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 500; color: #1A1D21;">
-        <a href="login.html" style="text-decoration: none; font-weight: 500; color: #1A1D21; transition: color 0.2s;">
-          로그인
-        </a>
-        <span style="color: #d1d5db; font-size: 14px; font-weight: 400;">|</span>
-        <a href="login.html" style="text-decoration: none; font-weight: 500; color: #1A1D21; transition: color 0.2s;">
-          회원가입
-        </a>
+    <!-- 우측 버튼 및 링크 영역 : 로그인/마이페이지 등은 옅은 회색 텍스트로, '예약하기'만 브랜드 컬러 버튼으로 강조해 위계를 대비 -->
+    <div style="justify-self: end; display: flex; align-items: center; gap: 18px; white-space: nowrap; flex-wrap: nowrap;">
+      <div style="display: flex; align-items: center; gap: 12px; font-size: 13.5px; font-weight: 500; color: #6B7280;">
+        <a href="https://pf.kakao.com/_xjTdxaX/chat" target="_blank" rel="noopener noreferrer" style="color: #6B7280; text-decoration: none; transition: color 0.2s;">문의하기</a>
+        <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 12px; background-color: #E2E4E8;"></span>
+        <!-- 💡 class="auth-buttons" 추가됨: 자바스크립트가 이 영역을 찾아 로그인 시 '로그아웃'으로 바꿉니다 -->
+        <div class="auth-buttons" style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 500; color: #6B7280; white-space: nowrap;">
+          <a href="login.html" style="text-decoration: none; font-weight: 500; color: #6B7280; transition: color 0.2s;">로그인</a>
+          <span style="color: #d1d5db; font-size: 13.5px; font-weight: 400;">|</span>
+          <a href="login.html" style="text-decoration: none; font-weight: 500; color: #6B7280; transition: color 0.2s;">회원가입</a>
+        </div>
       </div>
 
-      <!-- 문의하기 버튼 (카카오톡 링크 연동) -->
-      <a href="https://accounts.kakao.com/login/?continue=https%3A%2F%2Fpf.kakao.com%2F_xjTdxaX%2Fchat#login" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 16px 36px; background-color: #000000; color: #ffffff; border-radius: 9999px; font-size: 18px; font-weight: 700; text-decoration: none; transition: background-color 0.2s;">
-        문의하기
-      </a>
+      <!-- 예약하기 버튼 (핵심 액션, 브랜드 세이지그린으로 강조) -->
+      <a href="apply.html" style="flex: none; display: inline-block; padding: 10px 22px; background-color: #8FA482; color: #ffffff; border-radius: 9999px; font-size: 14.5px; font-weight: 700; text-decoration: none; box-shadow: 0 4px 14px rgba(143, 164, 130, 0.35); transition: background-color 0.2s, transform 0.2s;">예약하기</a>
     </div>
 
   </div>
@@ -688,63 +764,87 @@
       <!-- ================================================================ -->
       <div class="mp-stack" id="guardianView">
 
-      <!-- 프로필 요약: 보유 쿠폰/완료 케어 미니 카드는 제거해 접속 직후 바로 아래 [케어 현황] 카드가
-           눈에 들어오도록 정돈했습니다. -->
-      <section class="card summary" aria-labelledby="welcomeTitle">
-        <div>
-          <p class="summary-hello">보호자님, 안녕하세요</p>
-          <h1 class="summary-title" id="welcomeTitle"></h1>
-          <p class="summary-email" id="welcomeEmail"></p>
+      <!-- 프로필 헤더: mypage-manager.html 의 .profile 카드와 같은 구조(아바타 + 인사말/이름 + 상태 뱃지) -->
+      <section class="card profile" aria-labelledby="welcomeTitle">
+        <div class="profile-main">
+          <div class="profile-avatar" id="guardianAvatar" aria-hidden="true"></div>
+          <div style="min-width:0">
+            <p class="profile-role">보호자님, 안녕하세요</p>
+            <h1 class="profile-name" id="welcomeTitle"></h1>
+            <p class="profile-email" id="welcomeEmail"></p>
+          </div>
+        </div>
+        <!-- 지금 진행 중인 케어가 있는지에 따라 자동으로 채워지는 표시 전용 상태 배지 (updateGuardianStatusBadge 참고) -->
+        <div class="status-box">
+          <span class="status-tag" id="guardianStatusBadge">불러오는 중</span>
         </div>
       </section>
 
-      <!-- ================================================================ -->
-      <!-- 03~04. 대시보드 2컬럼 그리드: Main(케어 현황) : Sidebar(어르신 프로필 관리) -->
-      <!-- 예전에 사이드바에 따로 있던 미니 '케어 리포트' 카드는 제거했습니다 — 리포트는 진행 중인 케어
-           카드의 [케어 리포트 확인] 버튼과, 아래 '이용 내역 & 케어 리포트' 달력 한 곳으로 일원화했습니다. -->
-      <!-- ================================================================ -->
-      <div class="dash-grid">
-        <div class="dash-main">
+      <!-- 케어 매니저 지원 안내: 특정 탭에 속한 콘텐츠가 아니라 보호자가 언제든 볼 수 있어야 하는 CTA라
+           탭 내부가 아닌, 프로필 카드와 탭 사이의 공통 영역에 둡니다. -->
+      <section class="card manager-promo" aria-labelledby="managerApplyTitle">
+        <div class="manager-promo-text">
+          <h2 class="manager-promo-title" id="managerApplyTitle">케어 매니저 지원</h2>
+          <p>직접 어르신을 동행하는 케어 매니저로 활동해 보세요. 지원서 작성 후 관리자 검토를 거쳐 승인됩니다.</p>
+        </div>
+        <a href="manager-apply.html" class="btn btn-sm">케어 매니저로 지원하기</a>
+      </section>
 
-          <!-- 실시간 / 예정 케어 현황 -->
+      <!-- ================================================================ -->
+      <!-- 03~05. 업무 탭: [진행 중인 케어] · [어르신 프로필 관리] · [지난 이용 내역] -->
+      <!-- mypage-manager.html 의 .mgr-tabs 와 동일한 세그먼트 탭 UI 로 통합했습니다. -->
+      <!-- ================================================================ -->
+      <div class="mgr-tabs">
+        <div class="mgr-tab-list" role="tablist" aria-label="보호자 업무">
+          <span class="mgr-tab-pill" id="mpTabPill" aria-hidden="true"></span>
+          <button type="button" class="mgr-tab is-active" id="tabBtnCare" role="tab" aria-selected="true" aria-controls="careSection">
+            <span class="mgr-tab-label">진행 중인 케어</span>
+          </button>
+          <button type="button" class="mgr-tab" id="tabBtnSeniors" role="tab" aria-selected="false" aria-controls="seniorSection" tabindex="-1">
+            <span class="mgr-tab-label">어르신 프로필 관리</span>
+          </button>
+          <button type="button" class="mgr-tab" id="tabBtnHistory" role="tab" aria-selected="false" aria-controls="careCalendarSection" tabindex="-1">
+            <span class="mgr-tab-label">지난 이용 내역</span>
+          </button>
+        </div>
+
+        <!-- 진행 중인 케어: 실시간 / 예정 케어 현황 -->
+        <div class="mgr-tab-panel" id="careSection" role="tabpanel" aria-labelledby="tabBtnCare" tabindex="0">
           <section class="card" aria-labelledby="careTitle">
             <div class="card-head">
               <h2 class="card-title" id="careTitle">케어 현황</h2>
               <div class="head-right">
                 <span class="badge" id="careBadge">예정된 케어 없음</span>
                 <!-- 신청 내역이 있을 때만 표시 (없으면 아래 빈 상태 카드의 '동행 서비스 신청하기' 버튼을 사용) -->
-                <a class="btn btn-sm" id="applyMoreBtn" href="apply.html" hidden>+ 추가 신청</a>
+                <a class="btn btn-sm card-head-btn" id="applyMoreBtn" href="apply.html" hidden>+ 추가 신청</a>
               </div>
             </div>
             <div id="careBody"></div>
           </section>
-
         </div>
 
-        <div class="dash-side">
-
-          <!-- 어르신 프로필 관리 -->
+        <!-- 어르신 프로필 관리 -->
+        <div class="mgr-tab-panel" id="seniorSection" role="tabpanel" aria-labelledby="tabBtnSeniors" tabindex="0" hidden>
           <section class="card" aria-labelledby="seniorTitle">
             <div class="card-head">
               <h2 class="card-title" id="seniorTitle">어르신 프로필 관리</h2>
               <!-- 등록된 어르신이 1명 이상일 때만 표시 (없으면 아래 빈 상태 카드의 '+ 어르신 등록하기' 버튼을 사용) -->
-              <button type="button" class="btn btn-sm" id="addSeniorBtn" hidden>+ 어르신 추가 등록</button>
+              <button type="button" class="btn btn-sm card-head-btn" id="addSeniorBtn" hidden>+ 어르신 추가 등록</button>
             </div>
             <div id="seniorList"></div>
           </section>
+        </div>
 
+        <!-- 지난 이용 내역: 월간 캘린더 (mypage-manager.html 의 달력 모듈을 보호자용으로 이식) -->
+        <div class="mgr-tab-panel" id="careCalendarSection" role="tabpanel" aria-labelledby="tabBtnHistory" tabindex="0" hidden>
+          <section class="card" aria-labelledby="careCalendarTitle">
+            <div class="card-head">
+              <h2 class="card-title" id="careCalendarTitle">이용 내역 & 케어 리포트</h2>
+            </div>
+            <div id="careCalendar"></div>
+          </section>
         </div>
       </div>
-
-      <!-- ================================================================ -->
-      <!-- 05. 이용 내역 & 케어 리포트 - 월간 캘린더 (mypage-manager.html 의 달력 모듈을 보호자용으로 이식) -->
-      <!-- ================================================================ -->
-      <section class="card" id="careCalendarSection" aria-labelledby="careCalendarTitle">
-        <div class="card-head">
-          <h2 class="card-title" id="careCalendarTitle">이용 내역 & 케어 리포트</h2>
-        </div>
-        <div id="careCalendar"></div>
-      </section>
 
       </div><!-- /#guardianView -->
 
@@ -897,6 +997,22 @@
 
       <div class="modal-actions">
         <button type="button" class="btn" id="verifyViewCloseBtn">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- 05-1c. 담당 매니저 정보 모달 (카드에는 [매니저 정보 확인하기] 버튼 하나만 두고,
+       실제 전화/문자 연락은 이 모달 안에서 처리합니다) -->
+  <!-- ==================================================================== -->
+  <div class="modal-backdrop" id="managerInfoModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="managerInfoTitle">
+      <h3 id="managerInfoTitle">담당 매니저 정보</h3>
+      <p class="modal-sub" id="managerInfoSub"></p>
+      <dl class="kv" id="managerInfoBody" style="margin-bottom:18px;"></dl>
+      <div class="modal-actions" id="managerInfoContactActions"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="managerInfoCloseBtn">닫기</button>
       </div>
     </div>
   </div>
@@ -1219,11 +1335,41 @@
     // ---------- 프로필 요약 ----------
     // (헤더의 로그인 상태 UI 는 index.html 과 동일하게 auth-header.js 가 그립니다)
     function renderProfile(user) {
-      document.getElementById('welcomeTitle').textContent = displayName(user) + '님, 환영합니다';
+      const name = displayName(user);
+      document.getElementById('welcomeTitle').textContent = name + ' 님';
       const emailEl = document.getElementById('welcomeEmail');
       emailEl.textContent = user.email || '';
       emailEl.hidden = !user.email;
 
+      // 아바타: mypage-manager.html 의 renderProfile() 과 동일하게 프로필 사진이 있으면 이미지, 없으면 이름 첫 글자
+      const meta = user.user_metadata || {};
+      const avatarUrl = (meta.avatar_url || meta.picture || '').replace(/^http:\/\//i, 'https://');
+      const av = document.getElementById('guardianAvatar');
+      av.textContent = '';
+      if (avatarUrl) {
+        const img = document.createElement('img');
+        img.alt = ''; img.referrerPolicy = 'no-referrer'; img.src = avatarUrl;
+        img.onerror = () => { av.textContent = name.charAt(0); };
+        av.appendChild(img);
+      } else {
+        av.textContent = name.charAt(0);
+      }
+    }
+
+    // ---------- 상태 배지: 지금 진행 중인 케어가 있는지에 따라 자동으로 채움 (mypage-manager.html 의
+    // updateActivityBadge() 와 같은 역할 — 사람이 조작하는 토글이 아니라 renderCare() 가 그리는 목록을
+    // 그대로 받아 동기화된 값만 보여주는 표시 전용 배지입니다) ----------
+    function setGuardianStatusBadge(tone, text) {
+      const badge = document.getElementById('guardianStatusBadge');
+      badge.className = 'status-tag st-' + tone;
+      badge.textContent = text;
+    }
+    function updateGuardianStatusBadge(activeApps, totalCount) {
+      if (!totalCount) { setGuardianStatusBadge('completed', '예정된 케어 없음'); return; }
+      if (!activeApps.length) { setGuardianStatusBadge('completed', '예정된 케어 없음'); return; }
+      const isLive = activeApps.some((a) => effectiveStatusInfo(a).tone === 'live');
+      if (isLive) setGuardianStatusBadge('departed', '케어 진행 중');
+      else setGuardianStatusBadge('assigned', '예정된 케어 있음');
     }
 
     // ---------- 케어 현황 ----------
@@ -1308,7 +1454,8 @@
       const hasKo = (...words) => words.some((w) => s.includes(w));
       let st;
       if (isEn('cancelled', 'canceled', 'cancel') || hasKo('취소')) st = { label: '취소됨', tone: 'cancel' };
-      else if (!s || isEn('pending', 'new', 'received', 'submitted', 'waiting', 'requested') || hasKo('접수', '대기', '신청')) st = { label: '매칭 대기 중', tone: 'wait' };
+      else if (isEn('payment_pending', 'pending_payment')) st = { label: '입금 대기 중', tone: 'wait' };
+      else if (!s || isEn('pending', 'new', 'received', 'submitted', 'waiting', 'requested', 'matching_pending', 'waiting_matching') || hasKo('접수', '대기', '신청')) st = { label: '매칭 대기 중', tone: 'wait' };
       else if (isEn('contacted', 'confirmed') || hasKo('상담', '확인')) st = { label: '상담·확인 완료', tone: 'info' };
       else if (isEn('matched', 'assigned') || hasKo('배정', '매칭')) st = { label: '배정 완료', tone: 'live', assigned: true };
       else if (isEn('in_progress', 'ongoing', 'progress', 'processing') || hasKo('진행')) st = { label: '진행 중', tone: 'live', assigned: true };
@@ -1351,7 +1498,7 @@
       if (isEn('arrived', 'arrived_at_hospital') || hasKo('병원도착', '병원 도착', '도착')) return 3;
       if (isEn('departed', 'on_the_way', 'ontheway', 'moving', 'in_transit') || hasKo('이동중', '이동 중')) return 2;
       if (isEn('matched', 'assigned', 'accepted') || hasKo('배정완료', '배정 완료', '배정', '매칭')) return 1;
-      if (isEn('pending', 'new', 'received', 'submitted', 'waiting', 'requested', 'applied') || hasKo('접수완료', '접수 완료', '접수', '대기', '신청')) return 0;
+      if (isEn('pending', 'new', 'received', 'submitted', 'waiting', 'requested', 'applied', 'payment_pending', 'pending_payment', 'matching_pending', 'waiting_matching') || hasKo('접수완료', '접수 완료', '접수', '대기', '신청')) return 0;
       if (hasKo('완료')) return 4; // 위 어느 것에도 안 걸린 값만 최후 수단으로 '완료' 취급
       return null;
     }
@@ -1989,19 +2136,15 @@
       if (verify) info.appendChild(verify);
       box.appendChild(info);
 
-      if (m.phone) {
-        const digits = m.phone.replace(/[^0-9+]/g, '');
-        const actions = h('div', 'manager-actions');
-        const callBtn = h('a', 'btn btn-sm manager-call-btn');
-        callBtn.append(svgPhoneIcon(15), '매니저에게 전화하기');
-        callBtn.href = 'tel:' + digits;
-        const smsBtn = h('a', 'btn btn-sm btn-ghost', '문자 보내기');
-        smsBtn.href = 'sms:' + digits;
-        actions.append(callBtn, smsBtn);
-        box.appendChild(actions);
-      } else {
-        box.appendChild(h('p', 'manager-meta manager-meta-fallback', '매니저 연락처를 곧 안내해 드려요.'));
-      }
+      // 통합 카드의 최하단: 전화/문자 두 버튼 대신 단 하나의 핵심 행동 버튼만 눈에 띄게 배치합니다.
+      // 실제 연락(전화·문자)은 이 버튼으로 여는 [담당 매니저 정보] 모달 안에서 처리합니다.
+      const actions = h('div', 'manager-actions');
+      const infoBtn = h('button', 'btn manager-info-btn');
+      infoBtn.type = 'button';
+      infoBtn.append(svgPhoneIcon(15), '매니저 정보 확인하기');
+      infoBtn.addEventListener('click', () => openManagerInfoModal(m, name));
+      actions.appendChild(infoBtn);
+      box.appendChild(actions);
       return box;
     }
 
@@ -2190,6 +2333,8 @@
 
       const card = h('li', 'app-card tone-' + st.tone);
 
+      // 상단: 서비스명(좌) + 총 예상 금액(우, 굵고 큼직하게). 상태는 바로 아래 스테퍼가 보여주므로
+      // 여기서는 별도 상태 뱃지를 두지 않습니다(중복 제거).
       const top = h('div', 'app-top');
       const title = h('div', 'app-title');
       const catBadge = h('span', 'app-icon' + (svc && svc.cat ? ' cat-' + svc.cat : ''));
@@ -2198,10 +2343,30 @@
       title.appendChild(catBadge);
       title.appendChild(h('span', '', a.service_type || '동행 서비스'));
       top.appendChild(title);
-      top.appendChild(h('span', 'app-tag tone-' + st.tone, st.label));
+      if (svc) {
+        const price = h('div', 'app-price app-price-top');
+        price.appendChild(h('span', 'app-price-label', '총 예상 금액'));
+        price.appendChild(h('b', '', won(svc.price) + '원'));
+        price.appendChild(h('small', '', '(기본 2시간)'));
+        top.appendChild(price);
+      }
       card.appendChild(top);
       if (DEBUG_ALL && a._link && a._link !== 'mine') { // 테스트 모드: 내 계정과 연결되지 않은 신청 표시
         card.appendChild(h('div', 'app-debug-chip', a._link === 'null' ? 'user_id 비어 있음 (어느 계정에도 미연결)' : 'user_id 가 다른 계정: ' + a.user_id));
+      }
+
+      // 케어 진행 단계: 카드 상단(제목 바로 아래)에서 지금이 정확히 어느 단계인지 한 번에 보여줍니다.
+      // 배정 이후에는 5단계 상세 타임라인, 매칭 대기 중에는 '신청 완료 → 매니저 배정 대기 중' 2단계 축소판.
+      // 취소·제안 대기 등 예외 상태에는 진행 표시 자체가 의미가 없어 표시하지 않습니다.
+      if (st.assigned || st.tone === 'done') {
+        card.appendChild(careProgressBar(a, st));
+      } else if (st.tone === 'wait') {
+        card.appendChild(pendingTimeline());
+      }
+
+      // 매니저가 보낸 일정 변경 제안이 아직 보호자 확인 전이면, 제안 일시와 수락/거절 버튼을 눈에 띄게 보여줍니다
+      if (proposal && proposal.status === PROPOSAL_STATUS.PROPOSED) {
+        card.appendChild(proposalBlock(a, proposal));
       }
 
       const dl = h('dl', 'app-kv');
@@ -2230,30 +2395,12 @@
       if (req.note) row(svgNoteIcon, '요청 사항', req.note, 'note');
       card.appendChild(dl);
 
-      // 케어 진행 단계: 배정 이후에는 5단계 상세 타임라인, 매칭 대기 중에는 '신청 완료 → 매니저 배정 대기 중'
-      // 2단계 축소판을 보여줘 지금이 정확히 어느 단계인지 배정 전에도 바로 알 수 있게 합니다. 취소·제안 대기 등
-      // 예외 상태에는 진행 표시 자체가 의미가 없어 표시하지 않습니다.
-      if (st.assigned || st.tone === 'done') {
-        card.appendChild(careProgressBar(a, st));
-      } else if (st.tone === 'wait') {
-        card.appendChild(pendingTimeline());
-      }
-
-      // 매니저가 보낸 일정 변경 제안이 아직 보호자 확인 전이면, 제안 일시와 수락/거절 버튼을 눈에 띄게 보여줍니다
-      if (proposal && proposal.status === PROPOSAL_STATUS.PROPOSED) {
-        card.appendChild(proposalBlock(a, proposal));
-      }
-
+      // 통합 카드의 최하단: 담당 매니저 프로필 + 단 하나의 핵심 행동 버튼([매니저 정보 확인하기])
       const mgr = managerBlock(a, st); // 배정 완료된 신청이면 담당 매니저 정보 (+ GPS/사진 인증 링크)
       if (mgr) card.appendChild(mgr);
 
+      // 신청일 + 경과 시간('10분 전') + 남은 시간 배지만 남김(금액은 상단으로 이동). 글자는 tickCare() 가 1분마다 갱신합니다
       const foot = h('div', 'app-foot');
-      if (svc) {
-        const price = h('div', 'app-price');
-        price.append('총 예상 금액', h('b', '', won(svc.price) + '원'), h('small', '', '(기본 2시간)'));
-        foot.appendChild(price);
-      }
-      // 신청일 + 경과 시간('10분 전') + 남은 시간 배지. 글자는 tickCare() 가 1분마다 갱신합니다
       const meta = h('div', 'app-meta');
       if (a.created_at) {
         const date = h('div', 'app-date');
@@ -2472,6 +2619,7 @@
       }
 
       renderCareCalendar(); // 이 신청 목록(lastCareApps) 기준으로 하단 '이용 내역 & 케어 리포트' 달력도 함께 갱신
+      updateGuardianStatusBadge(activeApps, apps.length); // 프로필 헤더의 상태 배지도 같은 목록 기준으로 동기화
     }
     // ---------- 어르신 목록 (Supabase: seniors) ----------
     async function loadSeniors() {
@@ -3504,6 +3652,69 @@
     verifyViewModal.addEventListener('mousedown', (e) => { if (e.target === verifyViewModal) closeVerifyViewModal(); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !verifyViewModal.hidden) closeVerifyViewModal(); });
 
+    // ---------- 담당 매니저 정보 모달 (카드의 [매니저 정보 확인하기] 버튼 하나로 열림, 전화/문자는 여기서) ----------
+    const managerInfoModal = document.getElementById('managerInfoModal');
+    function openManagerInfoModal(m, name) {
+      document.getElementById('managerInfoSub').textContent = (name ? name + ' 매니저' : '담당 케어 매니저') + '님의 정보예요.';
+
+      const body = document.getElementById('managerInfoBody');
+      body.textContent = '';
+      const addRow = (label, value) => {
+        body.appendChild(h('dt', '', label));
+        body.appendChild(h('dd', '', value));
+      };
+      addRow('이름', name ? name + ' 매니저' : '담당 케어 매니저 지정됨');
+      if (m.cert) addRow('자격', m.cert);
+      addRow('연락처', m.phone || '곧 안내해 드려요');
+
+      const contact = document.getElementById('managerInfoContactActions');
+      contact.textContent = '';
+      if (m.phone) {
+        const digits = m.phone.replace(/[^0-9+]/g, '');
+        const callBtn = h('a', 'btn btn-sm');
+        callBtn.append(svgPhoneIcon(15), '전화하기');
+        callBtn.href = 'tel:' + digits;
+        const smsBtn = h('a', 'btn btn-sm btn-ghost', '문자 보내기');
+        smsBtn.href = 'sms:' + digits;
+        contact.append(callBtn, smsBtn);
+      }
+
+      managerInfoModal.hidden = false;
+    }
+    function closeManagerInfoModal() { managerInfoModal.hidden = true; }
+    document.getElementById('managerInfoCloseBtn').addEventListener('click', closeManagerInfoModal);
+    managerInfoModal.addEventListener('mousedown', (e) => { if (e.target === managerInfoModal) closeManagerInfoModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !managerInfoModal.hidden) closeManagerInfoModal(); });
+
+    // ---------- 업무 탭 (진행 중인 케어 / 어르신 프로필 관리 / 지난 이용 내역) ----------
+    // mypage-manager.html 의 탭 전환 로직(activateTab/moveTabPill)과 동일한 구조입니다.
+    const MP_TAB_PANEL_ID = { care: 'careSection', seniors: 'seniorSection', history: 'careCalendarSection' };
+    const MP_TAB_BTN_ID = { care: 'tabBtnCare', seniors: 'tabBtnSeniors', history: 'tabBtnHistory' };
+    function moveMpTabPill() {
+      const pill = document.getElementById('mpTabPill');
+      const activeBtn = document.querySelector('.mgr-tab.is-active');
+      if (!pill || !activeBtn) return;
+      pill.style.width = activeBtn.offsetWidth + 'px';
+      pill.style.transform = 'translateX(' + activeBtn.offsetLeft + 'px)';
+    }
+    function activateMpTab(name) {
+      Object.keys(MP_TAB_PANEL_ID).forEach((key) => {
+        const isActive = key === name;
+        document.getElementById(MP_TAB_PANEL_ID[key]).hidden = !isActive;
+        const btn = document.getElementById(MP_TAB_BTN_ID[key]);
+        btn.classList.toggle('is-active', isActive);
+        btn.setAttribute('aria-selected', String(isActive));
+        btn.tabIndex = isActive ? 0 : -1;
+      });
+      moveMpTabPill();
+    }
+    Object.keys(MP_TAB_BTN_ID).forEach((key) => {
+      document.getElementById(MP_TAB_BTN_ID[key]).addEventListener('click', () => activateMpTab(key));
+    });
+    window.addEventListener('resize', moveMpTabPill);
+    window.addEventListener('load', moveMpTabPill);
+    moveMpTabPill();
+
     // ---------- 보호자 화면 초기화 (어르신 조회 등 보호자 데이터) ----------
     function initGuardianView(user) {
       currentUser = user;
@@ -3550,6 +3761,7 @@
 
       loading.hidden = true;
       document.getElementById('app').hidden = false;
+      moveMpTabPill(); // #app 이 hidden 상태였던 동안은 탭 너비를 잴 수 없었으므로, 보여진 직후 한 번 더 맞춤
       initGuardianView(user);
 
       // 다른 탭에서 로그아웃하면 이 페이지도 로그인 페이지로 이동
