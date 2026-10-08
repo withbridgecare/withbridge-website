@@ -15,6 +15,8 @@
 <script src="/js/terms-modal.js?v=1.0" charset="utf-8" defer></script>
   <!-- 브라우저 기본 날짜/시간 피커 대신 쓰는 공통 커스텀 피커 (wb-datepicker.js 참고) -->
   <script src="/js/wb-datepicker.js?v=1.0"></script>
+  <!-- 추가 요금(기본 요금 선결제 + 초과 시 추가 요금 정산) 결제창 — apply.html 과 같은 포트원 V2 SDK -->
+  <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
   <style>
     :root {
       /* mypage-manager.html 과 동일한 디자인 토큰(세이지 그린 축 + 토스 스타일 흰 모듈 카드)을 그대로 공유합니다 */
@@ -94,13 +96,15 @@
     /* ---------- 레이아웃 (mypage-manager.html 과 동일한 폭 · 패딩 · 배경) ---------- */
     .mp-main { max-width: 1100px; margin: 0 auto; padding: 24px 24px 56px; }
     .mp-loading { padding: 120px 0; text-align: center; color: var(--ink-sub); }
-    .mp-stack { display: flex; flex-direction: column; gap: 30px; }
+    /* 1열 컴팩트 레이아웃: 섹션 간 세로 여백을 30px → 18px(mb-4~5)로 줄여 스크롤 없이 핵심 위젯이
+       한눈에 들어오게 합니다 */
+    .mp-stack { display: flex; flex-direction: column; gap: 18px; }
 
     .card {
       background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius);
-      padding: 24px; box-shadow: var(--shadow-card);
+      padding: 20px; box-shadow: var(--shadow-card); /* p-6(24px) → p-5(20px) 로 다이어트 */
     }
-    .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+    .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
     .card-title { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.02em; color: var(--ink-section); }
     .badge {
       display: inline-block; padding: 4px 12px; border-radius: 9999px;
@@ -155,30 +159,31 @@
       padding: 16px; border-radius: var(--radius); background: #FDF1EF; color: var(--danger); font-size: 14px;
     }
 
-    /* ---------- 프로필 헤더 카드 (mypage-manager.html 의 .profile 과 동일한 구조: 아바타 + 인사말/이름 + 상태 뱃지) ---------- */
+    /* ---------- 통합 헤더 카드: 기존 '프로필'(아바타+이름+상태)과 '내 혜택 정보'(쿠폰+적립금)를
+       하나의 대형 카드로 합쳤습니다 — 좌측 신원 정보, 우측 쿠폰/적립금 요약(flex-row) ---------- */
     @keyframes wb-profile-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-    .profile {
+    .mp-header {
+      position: relative; /* 쿠폰 상세 레이어(.benefit-coupon-list)의 anchor */
       background: var(--card); color: var(--ink); border: 1px solid var(--card-border);
-      border-radius: var(--radius); box-shadow: var(--shadow-card); padding: 18px 32px;
-      display: flex; align-items: center; justify-content: space-between; gap: 20px 32px; flex-wrap: wrap;
+      border-radius: var(--radius); box-shadow: var(--shadow-card); padding: 16px 24px; /* p-6 → p-4~5 로 다이어트 */
+      display: flex; align-items: center; justify-content: space-between; gap: 14px 24px; flex-wrap: wrap;
       animation: wb-profile-in .45s cubic-bezier(.4, 0, .2, 1);
     }
-    .profile-main { display: flex; align-items: center; gap: 16px; min-width: 0; }
+    .profile-main { display: flex; align-items: center; gap: 14px; min-width: 0; }
     .profile-avatar {
-      width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0; overflow: hidden;
-      background: var(--brand-soft); color: var(--brand-dark); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800;
+      width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0; overflow: hidden;
+      background: var(--brand-soft); color: var(--brand-dark); display: flex; align-items: center; justify-content: center; font-size: 19px; font-weight: 800;
       box-shadow: 0 4px 14px rgba(120, 134, 107, .28);
     }
     .profile-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .profile-role { margin: 0 0 2px; font-size: 12.5px; color: var(--ink-sub); font-weight: 600; }
-    .profile-name { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.03em; color: var(--ink); word-break: keep-all; }
-    .profile-email { margin: 4px 0 0; font-size: 13px; color: var(--ink-sub); font-weight: 500; word-break: break-all; }
+    .profile-id-row { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+    .profile-name { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.03em; color: var(--ink); word-break: keep-all; }
+    .profile-email { margin: 3px 0 0; font-size: 12.5px; color: var(--ink-sub); font-weight: 500; word-break: break-all; }
     .profile-email:empty { display: none; }
-    .status-box { flex: 0 0 auto; margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
-    .status-hint { margin: 0; font-size: 12.5px; color: var(--ink-sub); max-width: 240px; text-align: right; }
     .status-tag {
-      display: inline-flex; align-items: center; gap: 6px; padding: 5px 13px 5px 11px; border-radius: 9999px;
-      font-size: 12.5px; font-weight: 700; white-space: nowrap;
+      display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px 4px 10px; border-radius: 9999px;
+      font-size: 12px; font-weight: 700; white-space: nowrap;
     }
     .status-tag::before { content: ''; flex: none; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
     .status-tag.st-assigned  { background: var(--sage-100); color: var(--sage-700); }
@@ -189,10 +194,62 @@
 
     .head-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
 
-    /* ---------- 케어 매니저 지원 배너 (특정 탭에 속하지 않는 공통 영역 — 프로필 카드와 탭 사이) ---------- */
+    /* ---------- 내 혜택 정보: 보유 쿠폰 · 적립금 — 헤더 우측에 연한 배경/세로 경계선으로 묶인 가로
+       요약 박스. 쿠폰 칸을 누르면 카드 아래로 뜨는 드롭다운 레이어에 상세 목록이 펼쳐집니다 ---------- */
+    .benefit-stats {
+      display: flex; align-items: stretch; background: var(--surface-soft);
+      border: 1px solid var(--card-border); border-radius: 12px; overflow: hidden;
+    }
+    .benefit-stat {
+      flex: 1 1 130px; min-width: 110px; display: flex; flex-direction: column; gap: 3px; padding: 10px 18px;
+      background: transparent; border: none; border-left: 1px solid var(--card-border);
+      text-align: left; font-family: inherit; color: inherit;
+    }
+    .benefit-stat:first-child { border-left: none; }
+    button.benefit-stat.is-toggle { cursor: pointer; transition: background-color .15s; }
+    button.benefit-stat.is-toggle:hover { background: var(--brand-soft); }
+    .benefit-stat-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .benefit-stat-label { font-size: 12px; font-weight: 600; color: var(--ink-sub); }
+    .benefit-stat-value { font-size: 17px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; }
+    .benefit-stat-chevron { display: inline-flex; color: var(--ink-sub); transition: transform .2s ease; }
+    .benefit-stat-chevron svg { display: block; width: 16px; height: 16px; }
+    .benefit-stat.is-toggle[aria-expanded="true"] .benefit-stat-chevron { transform: rotate(180deg); }
+    /* 쿠폰 상세 레이어: 인라인으로 카드를 밀어내지 않고, 헤더 카드 하단에 겹쳐 떠오르는 드롭다운/팝업 */
+    .benefit-coupon-list {
+      position: absolute; top: calc(100% + 8px); right: 0; z-index: 30; width: min(320px, calc(100vw - 48px));
+      margin: 0; padding: 12px 14px; background: #fff; border: 1px solid var(--card-border); border-radius: var(--radius);
+      box-shadow: 0 16px 32px rgba(15, 23, 42, .14);
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .benefit-coupon-item {
+      display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 9px 12px;
+      background: var(--brand-soft); border-radius: 10px; font-size: 13px; font-weight: 600; color: var(--brand-dark); word-break: keep-all;
+    }
+    .benefit-coupon-item .bc-expiry { flex: none; font-size: 12px; font-weight: 500; color: var(--ink-sub); }
+    .benefit-coupon-empty { padding: 4px 2px; font-size: 13px; color: var(--ink-sub); }
+    @media (max-width: 640px) {
+      .benefit-coupon-list { left: 0; right: 0; width: auto; }
+    }
+
+    /* ---------- 추가 요금 결제 안내 (기본 요금 선결제 + 초과 시 추가 요금 정산) ----------
+       완료 후 며칠 뒤에 관리자가 청구해도 놓치지 않도록, '진행 중인 케어' 카드의 24시간 버퍼링과
+       무관하게 결제 전까지 항상 상단(2번째 위치)에 노출합니다. */
+    .extra-charge-item {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px 14px; flex-wrap: wrap;
+      padding: 12px 14px; border-radius: var(--radius-sm); background: #FDF1EF;
+    }
+    .extra-charge-item + .extra-charge-item { margin-top: 8px; }
+    .extra-charge-info strong { display: block; color: var(--ink); font-size: 14px; }
+    .extra-charge-info span { display: block; margin-top: 2px; color: var(--ink-body); font-size: 12.5px; }
+    .extra-charge-amount { color: var(--danger); font-weight: 800; font-size: 15px; white-space: nowrap; }
+    .extra-charge-pay-btn { flex: none; }
+    .extra-charge-pay-btn:disabled { opacity: .6; cursor: not-allowed; }
+    .badge.is-warn { background: #FDF1EF; color: var(--danger); font-weight: 700; }
+
+    /* ---------- 케어 매니저 지원 배너 (3번째 위치) ---------- */
     .manager-promo {
-      display: flex; align-items: center; justify-content: space-between; gap: 14px 24px; flex-wrap: wrap;
-      background: var(--brand-soft); border-color: var(--brand-line); padding: 18px 24px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap;
+      background: var(--brand-soft); border-color: var(--brand-line); padding: 14px 20px; /* p-6 → p-4 로 다이어트 */
     }
     .manager-promo-text { min-width: 0; flex: 1 1 320px; }
     .manager-promo-title { margin: 0 0 4px; font-size: 15px; font-weight: 700; color: var(--brand-dark); }
@@ -200,7 +257,7 @@
     .manager-promo .btn { flex: none; }
 
     /* ---------- 업무 탭 메뉴 (mypage-manager.html 의 .mgr-tabs 와 동일한 구조·애니메이션) ---------- */
-    .mgr-tabs { display: flex; flex-direction: column; gap: 20px; }
+    .mgr-tabs { display: flex; flex-direction: column; gap: 16px; }
     .mgr-tab-list {
       position: relative; display: flex; gap: 4px; padding: 5px;
       background: var(--sec-bg); border: 1px solid var(--card-border); border-radius: 12px;
@@ -223,7 +280,7 @@
     .mgr-tab.is-active { color: var(--brand-dark); font-weight: 800; }
     .mgr-tab:active { transform: scale(.98); }
     .mgr-tab-label { position: relative; }
-    .mgr-tab-panel { display: flex; flex-direction: column; gap: 24px; }
+    .mgr-tab-panel { display: flex; flex-direction: column; gap: 18px; }
 
     /* ---------- 케어 현황: 신청 내역 카드 (모듈형 카드로 통일, 색은 상태 뱃지에만) ---------- */
     .list.app-list { gap: 16px; }   /* 뒤에 나오는 일반 .list { gap: 12px } 보다 우선하도록 두 클래스를 함께 지정 */
@@ -636,16 +693,16 @@
       .mp-main { padding: 20px 16px 56px; }
     }
     @media (max-width: 760px) {
-      /* 프로필 아래로 내려온 상태 배지: 왼쪽 정렬, 위 간격은 .profile 의 gap (mypage-manager.html 과 동일) */
-      .status-box { width: 100%; margin-left: 0; align-items: flex-start; }
+      /* 좁은 화면: 헤더 카드 우측 쿠폰·적립금 박스를 전체 폭으로 내려서 쌓음 */
+      .benefit-stats { width: 100%; }
     }
     @media (max-width: 640px) {
       /* 모바일: 카드 내부 여백을 좀 더 컴팩트하게 */
-      .card { padding: 20px 16px; }
-      .card-head { margin-bottom: 16px; }
-      .profile { padding: 14px 18px; }
-      .profile-name { font-size: 21px; }
-      .manager-promo { padding: 16px 18px; }
+      .card { padding: 16px 14px; }
+      .card-head { margin-bottom: 12px; }
+      .mp-header { padding: 14px 16px; }
+      .profile-name { font-size: 19px; }
+      .manager-promo { padding: 14px 16px; }
       .manager-promo .btn { width: 100%; }
       .app-card { padding: 18px 16px; }
       /* 라벨 텍스트 상태 바: 좁은 화면에서는 두 줄로 자연스럽게 접히도록 글자만 살짝 줄입니다
@@ -764,24 +821,58 @@
       <!-- ================================================================ -->
       <div class="mp-stack" id="guardianView">
 
-      <!-- 프로필 헤더: mypage-manager.html 의 .profile 카드와 같은 구조(아바타 + 인사말/이름 + 상태 뱃지) -->
-      <section class="card profile" aria-labelledby="welcomeTitle">
+      <!-- 1순위: 프로필 & 내 혜택 통합 카드 — 기존에 분리돼 있던 '프로필'과 '내 혜택 정보'를 하나의
+           대형 카드로 합쳤습니다. 좌측 아바타/이름/상태, 우측 쿠폰·적립금 요약(flex-row). 쿠폰 칸을
+           누르면 카드 아래로 뜨는 레이어(.benefit-coupon-list)에 상세 목록이 펼쳐집니다(loadBenefitSummary 참고). -->
+      <section class="card mp-header" aria-labelledby="welcomeTitle">
         <div class="profile-main">
           <div class="profile-avatar" id="guardianAvatar" aria-hidden="true"></div>
           <div style="min-width:0">
             <p class="profile-role">보호자님, 안녕하세요</p>
-            <h1 class="profile-name" id="welcomeTitle"></h1>
+            <div class="profile-id-row">
+              <h1 class="profile-name" id="welcomeTitle"></h1>
+              <!-- 지금 진행 중인 케어가 있는지에 따라 자동으로 채워지는 표시 전용 상태 배지 (updateGuardianStatusBadge 참고) -->
+              <span class="status-tag" id="guardianStatusBadge">불러오는 중</span>
+            </div>
             <p class="profile-email" id="welcomeEmail"></p>
           </div>
         </div>
-        <!-- 지금 진행 중인 케어가 있는지에 따라 자동으로 채워지는 표시 전용 상태 배지 (updateGuardianStatusBadge 참고) -->
-        <div class="status-box">
-          <span class="status-tag" id="guardianStatusBadge">불러오는 중</span>
+
+        <!-- 내 혜택 정보: 보유 쿠폰 수(user_coupons, status='active') · 보유 적립금(profiles.points_balance) -->
+        <div class="mp-header-benefits" id="benefitSection" hidden>
+          <div class="benefit-stats">
+            <button type="button" class="benefit-stat is-toggle" id="benefitCouponStat" aria-expanded="false" aria-controls="benefitCouponList">
+              <span class="benefit-stat-top">
+                <span class="benefit-stat-label">보유 쿠폰</span>
+                <span class="benefit-stat-chevron" id="benefitCouponChevron"></span>
+              </span>
+              <span class="benefit-stat-value" id="benefitCouponCount">-</span>
+            </button>
+            <div class="benefit-stat">
+              <span class="benefit-stat-label">적립금</span>
+              <span class="benefit-stat-value" id="benefitPointsBalance">-</span>
+            </div>
+          </div>
+          <div class="benefit-coupon-list" id="benefitCouponList" hidden></div>
         </div>
       </section>
 
-      <!-- 케어 매니저 지원 안내: 특정 탭에 속한 콘텐츠가 아니라 보호자가 언제든 볼 수 있어야 하는 CTA라
-           탭 내부가 아닌, 프로필 카드와 탭 사이의 공통 영역에 둡니다. -->
+      <!-- 2순위: 추가 요금 결제 안내 (기본 요금 선결제 + 초과 시 추가 요금 정산) — 관리자가 admin.html 에서
+           청구하면 나타납니다. '진행 중인 케어' 카드는 완료 후 일정 시간이 지나면 목록에서 빠지지만
+           (careReportBuffer), 추가 요금은 결제 전까지 그와 무관하게 항상 여기 보여야 해서 별도 섹션으로
+           둡니다. 신청 목록을 다시 안 불러와도 되도록 loadExtraCharges() 가 독립적으로 조회합니다. -->
+      <section class="card" id="extraChargeSection" aria-labelledby="extraChargeTitle" hidden>
+        <div class="card-head">
+          <h2 class="card-title" id="extraChargeTitle">추가 요금 결제 안내</h2>
+          <div class="head-right">
+            <span class="badge is-warn" id="extraChargeCount" hidden></span>
+          </div>
+        </div>
+        <div id="extraChargeList"></div>
+      </section>
+
+      <!-- 3순위: 케어 매니저 지원 안내 — 특정 탭에 속한 콘텐츠가 아니라 보호자가 언제든 볼 수 있어야
+           하는 CTA라 탭 내부가 아닌 공통 영역에 둡니다. -->
       <section class="card manager-promo" aria-labelledby="managerApplyTitle">
         <div class="manager-promo-text">
           <h2 class="manager-promo-title" id="managerApplyTitle">케어 매니저 지원</h2>
@@ -791,7 +882,7 @@
       </section>
 
       <!-- ================================================================ -->
-      <!-- 03~05. 업무 탭: [진행 중인 케어] · [어르신 프로필 관리] · [지난 이용 내역] -->
+      <!-- 4순위: 업무 탭 — [진행 중인 케어](케어 현황 메인 영역) · [어르신 프로필 관리] · [지난 이용 내역] -->
       <!-- mypage-manager.html 의 .mgr-tabs 와 동일한 세그먼트 탭 UI 로 통합했습니다. -->
       <!-- ================================================================ -->
       <div class="mgr-tabs">
@@ -1370,6 +1461,178 @@
       const isLive = activeApps.some((a) => effectiveStatusInfo(a).tone === 'live');
       if (isLive) setGuardianStatusBadge('departed', '케어 진행 중');
       else setGuardianStatusBadge('assigned', '예정된 케어 있음');
+    }
+
+    // ---------- 내 혜택 정보 (보유 쿠폰 · 적립금, sql/user_points.sql · sql/welcome_coupons.sql) ----------
+    const COUPON_LABELS = { WELCOME_2000: '첫 동행 웰컴 쿠폰' }; // apply.html 의 같은 상수와 동일하게 유지
+    function couponExpiryText(iso) {
+      const d = iso ? new Date(iso) : null;
+      if (!d || isNaN(d.getTime())) return '';
+      return '~' + d.getFullYear() + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + String(d.getDate()).padStart(2, '0');
+    }
+    async function loadBenefitSummary() {
+      const section = document.getElementById('benefitSection');
+      if (DEMO || !currentUser) { section.hidden = true; return; }
+      section.hidden = false;
+
+      const [{ data: profile, error: profileErr }, { data: coupons, error: couponsErr }] = await Promise.all([
+        supabaseClient.from('profiles').select('points_balance').eq('id', currentUser.id).maybeSingle(),
+        supabaseClient.from('user_coupons').select('id, coupon_code, amount, expires_at')
+          .eq('user_id', currentUser.id).eq('status', 'active').gt('expires_at', new Date().toISOString())
+          .order('expires_at', { ascending: true })
+      ]);
+
+      if (profileErr) {
+        console.warn('[내 혜택 정보] points_balance 조회 실패 → sql/user_points.sql 을 실행했는지 확인하세요:', profileErr.code, profileErr.message);
+        document.getElementById('benefitPointsBalance').textContent = '-';
+      } else {
+        const balance = (profile && Number.isFinite(profile.points_balance)) ? profile.points_balance : 0;
+        document.getElementById('benefitPointsBalance').textContent = won(balance) + '원';
+      }
+
+      if (couponsErr) {
+        console.warn('[내 혜택 정보] user_coupons 조회 실패 → sql/welcome_coupons.sql 을 실행했는지 확인하세요:', couponsErr.code, couponsErr.message);
+        document.getElementById('benefitCouponCount').textContent = '-';
+        renderBenefitCoupons([]);
+      } else {
+        document.getElementById('benefitCouponCount').textContent = (coupons || []).length + '장';
+        renderBenefitCoupons(coupons || []);
+      }
+    }
+    function renderBenefitCoupons(coupons) {
+      const list = document.getElementById('benefitCouponList');
+      list.textContent = '';
+      if (!coupons.length) {
+        list.appendChild(h('p', 'benefit-coupon-empty', '지금 사용할 수 있는 쿠폰이 없어요.'));
+        return;
+      }
+      coupons.forEach((c) => {
+        const item = h('div', 'benefit-coupon-item');
+        const label = COUPON_LABELS[c.coupon_code] || c.coupon_code;
+        item.appendChild(h('span', '', label + ' - ' + won(c.amount) + '원 할인'));
+        item.appendChild(h('span', 'bc-expiry', couponExpiryText(c.expires_at)));
+        list.appendChild(item);
+      });
+    }
+    // 보유 쿠폰 칸 클릭 → 목록 펼치기/접기(드롭다운 레이어, 데이터는 loadBenefitSummary 가 이미 채워 둠)
+    (function wireBenefitCouponToggle() {
+      const stat = document.getElementById('benefitCouponStat');
+      const chevron = document.getElementById('benefitCouponChevron');
+      const list = document.getElementById('benefitCouponList');
+      if (!stat || !chevron || !list) return;
+      chevron.appendChild(svgChevronDown('benefit-stat-chevron-icon'));
+      stat.addEventListener('click', () => {
+        const open = list.hidden;
+        list.hidden = !open;
+        stat.setAttribute('aria-expanded', String(open));
+      });
+    })();
+
+    // ---------- 추가 요금 결제 안내 (기본 요금 선결제 + 초과 시 추가 요금 정산, sql/extra_charge_billing.sql) ----------
+    // care_schedules_select_own / care_schedules_select_guardian_via_application RLS 가 이미 "내 케어"만
+    // 보여주므로, 신청 내역(loadCare)과 완전히 독립적으로 extra_charge_status='REQUESTED' 건만 바로 조회합니다
+    // — '진행 중인 케어' 카드가 완료 후 버퍼링이 끝나 사라져도 결제 전까지는 이 섹션에서 계속 보입니다.
+    const PORTONE_STORE_ID = 'store-d049e114-625d-4a7d-9202-b38f9072f3bc';
+    const PORTONE_CHANNEL_KEY = 'channel-key-abecc24a-efe4-49fc-9c93-d82444735477';
+
+    async function loadExtraCharges() {
+      const section = document.getElementById('extraChargeSection');
+      if (DEMO || !currentUser) { section.hidden = true; return; }
+
+      const { data, error } = await supabaseClient
+        .from('care_schedules')
+        .select('id, senior_name, scheduled_at, extra_charge_amount, extra_charge_memo, extra_charge_payment_id')
+        .eq('extra_charge_status', 'REQUESTED')
+        .order('extra_charge_requested_at', { ascending: false });
+
+      if (error) {
+        console.warn('[추가 요금 결제 안내] care_schedules 조회 실패 → sql/extra_charge_billing.sql 을 실행했는지 확인하세요:', error.code, error.message);
+        section.hidden = true;
+        return;
+      }
+      renderExtraCharges(data || []);
+    }
+
+    function renderExtraCharges(rows) {
+      const section = document.getElementById('extraChargeSection');
+      const list = document.getElementById('extraChargeList');
+      const count = document.getElementById('extraChargeCount');
+      if (!rows.length) { section.hidden = true; return; }
+      section.hidden = false;
+      count.hidden = false;
+      count.textContent = rows.length + '건';
+      list.textContent = '';
+      rows.forEach((r) => list.appendChild(extraChargeRow(r)));
+    }
+
+    function extraChargeRow(r) {
+      const item = h('div', 'extra-charge-item');
+      const info = h('div', 'extra-charge-info');
+      info.appendChild(h('strong', '', (r.senior_name || '어르신') + ' · 추가 요금 안내'));
+      info.appendChild(h('span', '', r.extra_charge_memo || '기본 이용 시간을 초과해 추가 요금이 청구되었습니다.'));
+      item.appendChild(info);
+
+      const amount = h('span', 'extra-charge-amount', Number(r.extra_charge_amount || 0).toLocaleString('ko-KR') + '원');
+      item.appendChild(amount);
+
+      const payBtn = h('button', 'btn btn-sm extra-charge-pay-btn', '결제하기');
+      payBtn.type = 'button';
+      payBtn.addEventListener('click', () => payExtraCharge(r, payBtn));
+      item.appendChild(payBtn);
+
+      return item;
+    }
+
+    async function payExtraCharge(r, btn) {
+      if (!window.PortOne) {
+        showToast('결제 모듈을 불러오지 못했어요. 새로고침 후 다시 시도해 주세요.');
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = '결제창 여는 중…';
+
+      let payment;
+      try {
+        payment = await PortOne.requestPayment({
+          storeId: PORTONE_STORE_ID,
+          channelKey: PORTONE_CHANNEL_KEY,
+          paymentId: r.extra_charge_payment_id,
+          orderName: (r.senior_name || '어르신') + ' 추가 요금',
+          totalAmount: r.extra_charge_amount,
+          currency: 'CURRENCY_KRW',
+          payMethod: 'CARD', // 추가 요금은 가상계좌 없이 즉시결제만 지원 (confirm-extra-charge-payment 참고)
+          customer: { email: (currentUser && currentUser.email) || undefined },
+          customData: { extra_charge_schedule_id: r.id }
+        });
+      } catch (e) {
+        console.error('[추가 요금 결제] PortOne.requestPayment 호출 자체가 실패했습니다:', e);
+        payment = { code: 'CLIENT_ERROR', message: '결제창을 여는 중 오류가 발생했어요.' };
+      }
+
+      if (payment && payment.code !== undefined) {
+        btn.disabled = false;
+        btn.textContent = '결제하기';
+        showToast('결제가 완료되지 않았어요. (' + (payment.message || payment.code) + ')');
+        return;
+      }
+
+      // 결제창 응답은 참고용일 뿐 그대로 신뢰하지 않습니다 — 서버가 PortOne 을 재조회해 실제 승인 금액을
+      // 확인한 뒤에만 DB 를 바꿉니다(issue-virtual-account 와 같은 원칙, confirm-extra-charge-payment 참고).
+      btn.textContent = '결제 확인 중…';
+      try {
+        const { data: confirmData, error: confirmErr } = await supabaseClient.functions.invoke('confirm-extra-charge-payment', {
+          body: { payment_id: r.extra_charge_payment_id }
+        });
+        if (confirmErr) throw confirmErr;
+        console.log('[추가 요금 결제] 확인 완료:', confirmData);
+        showToast('추가 요금 결제가 완료되었습니다.');
+        loadExtraCharges();
+      } catch (e) {
+        console.error('[추가 요금 결제] 결제 확인(confirm-extra-charge-payment) 실패:', e);
+        btn.disabled = false;
+        btn.textContent = '결제하기';
+        showToast('결제 확인에 실패했어요. 고객센터(010-5874-5760)로 문의해 주세요.');
+      }
     }
 
     // ---------- 케어 현황 ----------
@@ -3720,12 +3983,16 @@
       currentUser = user;
       renderProfile(user);
       loadCare();
+      loadBenefitSummary();
+      loadExtraCharges();
       loadReports();
       loadSeniors();
       subscribeCareScheduleChanges();
       subscribeCareCheckpoints();
       subscribeArrivalVerificationLogs();
     }
+    // 관리자가 admin.html 에서 언제든 새로 청구할 수 있어, 다른 탭 폴링(loadCare)과 같은 주기로 확인합니다
+    setInterval(() => { if (!document.hidden && currentUser) loadExtraCharges(); }, CARE_POLL_MS);
 
     // ---------- 진입: 로그인 검증 ----------
     (async function init() {
