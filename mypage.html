@@ -239,13 +239,26 @@
     .extra-charge-item {
       display: flex; align-items: center; justify-content: space-between; gap: 10px 14px; flex-wrap: wrap;
       padding: 12px 14px; border-radius: var(--radius-sm); background: #FDF1EF;
+      transition: opacity .3s ease, transform .3s ease, max-height .32s ease, margin .32s ease, padding .32s ease;
     }
     .extra-charge-item + .extra-charge-item { margin-top: 8px; }
+    /* 결제 완료 후 2.4초 간 [결제 완료 ✓] 뱃지를 보여준 다음 이 클래스로 슬라이드업 + 페이드아웃 시키며 제거합니다 */
+    .extra-charge-item.is-leaving {
+      opacity: 0; transform: translateY(-10px);
+      max-height: 0 !important; margin-top: 0 !important; margin-bottom: 0 !important;
+      padding-top: 0 !important; padding-bottom: 0 !important; overflow: hidden;
+    }
     .extra-charge-info strong { display: block; color: var(--ink); font-size: 14px; }
     .extra-charge-info span { display: block; margin-top: 2px; color: var(--ink-body); font-size: 12.5px; }
     .extra-charge-amount { color: var(--danger); font-weight: 800; font-size: 15px; white-space: nowrap; }
     .extra-charge-pay-btn { flex: none; }
     .extra-charge-pay-btn:disabled { opacity: .6; cursor: not-allowed; }
+    /* 결제 완료 후 버튼을 다른 곳의 '진행 중' 그린 뱃지(.badge.is-live)와 같은 톤으로 바꿔 보여줍니다 */
+    .extra-charge-pay-btn.is-paid {
+      background: var(--active-badge-bg); color: var(--active-badge-fg);
+      opacity: 1; cursor: default; box-shadow: none;
+    }
+    .extra-charge-pay-btn.is-paid:hover { background: var(--active-badge-bg); transform: none; }
     .badge.is-warn { background: #FDF1EF; color: var(--danger); font-weight: 700; }
 
     /* ---------- 케어 매니저 지원 배너 (3번째 위치) ---------- */
@@ -593,6 +606,14 @@
       padding: 12px 22px; border-radius: 9999px; background: var(--ink); color: #fff;
       font-size: 14px; font-weight: 500; box-shadow: 0 10px 25px rgba(0,0,0,.25);
     }
+    /* 추가 요금 결제 완료 알림: 다른 토스트와 달리 화면 우측 상단에 떠서 '결제 완료' 뱃지와 함께 성공을 알립니다 */
+    .toast.toast-top-right {
+      left: auto; right: 24px; top: 24px; bottom: auto; transform: none;
+      background: var(--active-badge-fg); border-radius: var(--radius-sm);
+      opacity: 1; transition: opacity .25s ease, transform .25s ease;
+    }
+    .toast.toast-top-right.is-leaving { opacity: 0; transform: translateY(-8px); }
+    @media (max-width: 640px) { .toast.toast-top-right { left: 16px; right: 16px; top: 16px; } }
 
     /* ---------- 케어 리포트 상세 모달: 헤더 정보 카드 · 동행 타임라인 · 진료/약제 · 컨디션 태그 · 증빙 사진 · 만족도 평가 ---------- */
     .rv-modal { max-width: 560px; }
@@ -1241,6 +1262,8 @@
   </div>
 
   <div class="toast" id="toast" role="status" hidden></div>
+  <!-- 추가 요금 결제 완료 전용 알림: 화면 우측 상단에 떠서 '결제하기' 자리의 상태 뱃지와 별개로 성공을 알립니다 -->
+  <div class="toast toast-top-right" id="extraChargeToast" role="status" hidden></div>
 
   <!-- ==================================================================== -->
   <!-- 06. 자바스크립트 (Supabase 연동) -->
@@ -1427,6 +1450,20 @@
       toastTimer = setTimeout(() => { toast.hidden = true; }, 2600);
     }
 
+    // 추가 요금 결제 완료 전용 — 화면 우측 상단에 떠서 아래 '결제 완료 ✓' 뱃지와 함께 성공을 알립니다
+    let extraChargeToastTimer = null;
+    function showExtraChargeToast(message) {
+      const toast = document.getElementById('extraChargeToast');
+      toast.textContent = message;
+      toast.hidden = false;
+      toast.classList.remove('is-leaving');
+      clearTimeout(extraChargeToastTimer);
+      extraChargeToastTimer = setTimeout(() => {
+        toast.classList.add('is-leaving');
+        setTimeout(() => { toast.hidden = true; }, 260); // CSS 트랜지션(.25s)이 끝난 뒤에 완전히 숨김
+      }, 2600);
+    }
+
     // ---------- 프로필 요약 ----------
     // (헤더의 로그인 상태 UI 는 index.html 과 동일하게 auth-header.js 가 그립니다)
     function renderProfile(user) {
@@ -1557,20 +1594,31 @@
       renderExtraCharges(data || []);
     }
 
+    // 결제 완료 애니메이션이 끝나지 않은 항목의 id. 이 ID들은 서버 조회 결과(이미 PAID 라 더 안 보임)에
+    // 더 이상 없어도, 8초 폴링(loadExtraCharges)이 그 사이에 다시 돌더라도 DOM에서 바로 사라지지 않게 지킵니다.
+    const extraChargePendingRemovalIds = new Set();
+
     function renderExtraCharges(rows) {
       const section = document.getElementById('extraChargeSection');
       const list = document.getElementById('extraChargeList');
       const count = document.getElementById('extraChargeCount');
-      if (!rows.length) { section.hidden = true; return; }
+
+      const keepNodes = Array.from(list.children)
+        .filter((el) => extraChargePendingRemovalIds.has(el.dataset.scheduleId));
+
+      if (!rows.length && !keepNodes.length) { section.hidden = true; return; }
       section.hidden = false;
-      count.hidden = false;
-      count.textContent = rows.length + '건';
+      count.hidden = rows.length === 0;
+      if (rows.length) count.textContent = rows.length + '건';
+
       list.textContent = '';
       rows.forEach((r) => list.appendChild(extraChargeRow(r)));
+      keepNodes.forEach((el) => list.appendChild(el)); // 결제 완료 뱃지를 보여주는 중인 항목은 맨 뒤에 그대로 유지
     }
 
     function extraChargeRow(r) {
       const item = h('div', 'extra-charge-item');
+      item.dataset.scheduleId = String(r.id);
       const info = h('div', 'extra-charge-info');
       info.appendChild(h('strong', '', (r.senior_name || '어르신') + ' · 추가 요금 안내'));
       info.appendChild(h('span', '', r.extra_charge_memo || '기본 이용 시간을 초과해 추가 요금이 청구되었습니다.'));
@@ -1629,14 +1677,44 @@
         });
         if (confirmErr) throw confirmErr;
         console.log('[추가 요금 결제] 확인 완료:', confirmData);
-        showToast('추가 요금 결제가 완료되었습니다.');
-        loadExtraCharges();
+        handleExtraChargePaid(r, btn);
       } catch (e) {
         console.error('[추가 요금 결제] 결제 확인(confirm-extra-charge-payment) 실패:', e);
         btn.disabled = false;
         btn.textContent = '결제하기';
         showToast('결제 확인에 실패했어요. 고객센터(010-5874-5760)로 문의해 주세요.');
       }
+    }
+
+    // 결제 확인이 끝난 직후: 바로 지우지 않고 [결제 완료 ✓] 뱃지를 2.4초 보여준 뒤 슬라이드업 + 페이드아웃으로
+    // 제거합니다. 그래야 사용자가 결제가 실제로 처리됐다는 걸 눈으로 확인할 시간이 생깁니다.
+    function handleExtraChargePaid(r, btn) {
+      const item = btn.closest('.extra-charge-item');
+      const scheduleId = String(r.id);
+      extraChargePendingRemovalIds.add(scheduleId);
+
+      btn.disabled = true;
+      btn.textContent = '결제 완료 ✓';
+      btn.classList.add('is-paid');
+
+      showExtraChargeToast('추가 요금 결제가 완료되었습니다.');
+      loadCare(true); // 하단 '케어 현황'의 결제 내역·상태 문구를 새로고침 없이 즉시 동기화
+
+      setTimeout(() => {
+        if (!item) { extraChargePendingRemovalIds.delete(scheduleId); return; }
+        item.style.maxHeight = item.scrollHeight + 'px'; // max-height 트랜지션이 동작하려면 시작 높이가 필요합니다
+        requestAnimationFrame(() => item.classList.add('is-leaving'));
+        setTimeout(() => {
+          item.remove();
+          extraChargePendingRemovalIds.delete(scheduleId);
+          const list = document.getElementById('extraChargeList');
+          const count = document.getElementById('extraChargeCount');
+          const remaining = list.children.length;
+          count.hidden = remaining === 0;
+          if (remaining) count.textContent = remaining + '건';
+          else document.getElementById('extraChargeSection').hidden = true;
+        }, 360); // CSS 트랜지션(max-height .32s)이 끝난 뒤에 DOM 에서 제거
+      }, 2400);
     }
 
     // ---------- 케어 현황 ----------
