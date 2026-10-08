@@ -194,23 +194,25 @@
 
     .head-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
 
-    /* ---------- 내 혜택 정보: 보유 쿠폰 · 적립금 — 헤더 우측에 연한 배경/세로 경계선으로 묶인 가로
-       요약 박스. 쿠폰 칸을 누르면 카드 아래로 뜨는 드롭다운 레이어에 상세 목록이 펼쳐집니다 ---------- */
-    .benefit-stats {
-      display: flex; align-items: stretch; background: var(--surface-soft);
-      border: 1px solid var(--card-border); border-radius: 12px; overflow: hidden;
-    }
+    /* ---------- 내 혜택 정보: 보유 쿠폰 · 적립금 — 하나로 이어붙인 박스가 아니라, 각자 독립된
+       테두리/배경을 가진 카드 2개를 gap 으로 나란히 둡니다. 쿠폰 칸을 누르면 카드 아래로 뜨는
+       드롭다운 레이어에 상세 목록이 펼쳐집니다 ---------- */
+    .benefit-stats { display: flex; align-items: stretch; gap: 10px; }
+    /* flex-col + justify-between: 라벨 줄은 위쪽에, 숫자는 아래쪽에 붙여 카드 안에서 텍스트가
+       한쪽으로 처지지 않고 균형 있게 배치되도록 함. 상하 패딩은 py-3(12px) 로 컴팩트하게 */
     .benefit-stat {
-      flex: 1 1 130px; min-width: 110px; display: flex; flex-direction: column; gap: 3px; padding: 10px 18px;
-      background: transparent; border: none; border-left: 1px solid var(--card-border);
+      flex: 1 1 130px; min-width: 110px; display: flex; flex-direction: column; justify-content: space-between;
+      padding: 12px 16px; /* py-3 px-4 */
+      background: var(--surface-soft); border: 1px solid var(--card-border); border-radius: 12px; /* rounded-xl */
       text-align: left; font-family: inherit; color: inherit;
     }
-    .benefit-stat:first-child { border-left: none; }
-    button.benefit-stat.is-toggle { cursor: pointer; transition: background-color .15s; }
-    button.benefit-stat.is-toggle:hover { background: var(--brand-soft); }
+    button.benefit-stat.is-toggle { cursor: pointer; transition: background-color .15s, border-color .15s; }
+    button.benefit-stat.is-toggle:hover { background: var(--brand-soft); border-color: var(--brand-line); }
+    /* 라벨 텍스트와 화살표 아이콘의 수직 중앙을 맞춤 — 고정 높이 대신 align-items: center 로만 정렬 */
     .benefit-stat-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-    .benefit-stat-label { font-size: 12px; font-weight: 600; color: var(--ink-sub); }
-    .benefit-stat-value { font-size: 17px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; }
+    .benefit-stat-label { font-size: 12px; font-weight: 600; color: var(--ink-sub); line-height: 1.2; }
+    /* leading-none: 숫자 아래쪽에 남는 불필요한 여백 제거 */
+    .benefit-stat-value { font-size: 17px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; line-height: 1; margin-top: 4px; }
     .benefit-stat-chevron { display: inline-flex; color: var(--ink-sub); transition: transform .2s ease; }
     .benefit-stat-chevron svg { display: block; width: 16px; height: 16px; }
     .benefit-stat.is-toggle[aria-expanded="true"] .benefit-stat-chevron { transform: rotate(180deg); }
@@ -849,7 +851,9 @@
               <span class="benefit-stat-value" id="benefitCouponCount">-</span>
             </button>
             <div class="benefit-stat">
-              <span class="benefit-stat-label">적립금</span>
+              <span class="benefit-stat-top">
+                <span class="benefit-stat-label">적립금</span>
+              </span>
               <span class="benefit-stat-value" id="benefitPointsBalance">-</span>
             </div>
           </div>
