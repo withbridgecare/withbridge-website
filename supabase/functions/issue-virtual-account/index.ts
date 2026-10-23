@@ -20,13 +20,25 @@
 //                                저장하고 상태는 'PAYMENT_PENDING' 유지 — 실제 입금 완료는 portone-webhook
 //                                이 처리합니다(요구사항 3).
 //   - 그 외                    : 승인 실패로 간주하고 에러를 돌려줍니다.
+//
+// MATCHING_PENDING 전환에 성공하면 _shared/telegram.ts 로 매니저 운영 채널에 신규 신청 알림을
+// 보냅니다 — 단, 카드/간편결제/계좌이체(즉시결제)만입니다. 가상계좌/무통장은 여기서 PAID 가 와도
+// 알림을 보내지 않고, 어드민 콘솔의 [수동 입금 확인] 클릭(admin_confirm_manual_payment() RPC)
+// 시점에만 보내도록 트리거를 분리해 두었습니다(관리자가 실제 입금을 확인하기 전에 매니저에게 먼저
+// 알림이 가는 것을 막기 위함).
 import { createAdminClient, createUserClient } from "../_shared/supabaseClients.ts";
 import { portoneFetch, PortOneApiError } from "../_shared/portone.ts";
+import { buildNewApplicationMessage, sendTelegramMessage } from "../_shared/telegram.ts";
 
 const CORS_HEADERS: Record<string, string> = {
   // 운영 환경에서는 "*" 대신 실제 서비스 도메인으로 좁히는 것을 권장합니다.
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, content-type, apikey",
+  // x-client-info: @supabase/supabase-js 가 모든 요청(Functions invoke 포함)에 클라이언트 버전 식별용으로
+  // 자동으로 붙이는 헤더입니다. 여기 허용 목록에 없으면 브라우저가 CORS preflight 에서 실제 요청을 보내기도
+  // 전에 막아버려 — 서버 로그엔 아무것도 안 남고, 브라우저 쪽에선 "FunctionsFetchError: Failed to send a
+  // request to the Edge Function" 라는 뜻만 알기 어려운 메시지만 뜹니다(curl 은 CORS 를 안 거치므로 이 문제를
+  // 재현하지 못합니다 — 그래서 서버가 배포·정상 동작하는 걸 curl 로 확인해도 브라우저에서는 계속 실패했던 원인).
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -45,6 +57,12 @@ interface ApplicationRow {
   id: string;
   status: string;
   user_id?: string | null;
+  service_type?: string | null;
+  address?: string | null;
+  request_details?: string | null;
+  user_contact?: string | null;
+  created_at?: string | null;
+  addon_codes?: string[] | null;
 }
 
 Deno.serve(async (req: Request) => {
@@ -77,7 +95,7 @@ Deno.serve(async (req: Request) => {
     // 조회가 되는 것 자체가 소유권 검증입니다.
     const { data, error } = await userClient
       .from("service_applications")
-      .select("id, status")
+      .select("id, status, service_type, address, request_details, user_contact, created_at, addon_codes")
       .eq("id", application_id)
       .maybeSingle();
     if (error) return json(500, { error: "APPLICATION_LOOKUP_FAILED", message: error.message });
@@ -90,7 +108,7 @@ Deno.serve(async (req: Request) => {
     // 비로그인 토큰으로 그 id를 추측해 조회를 시도하는 상황이므로 거부합니다.
     const { data, error } = await admin
       .from("service_applications")
-      .select("id, status, user_id")
+      .select("id, status, user_id, service_type, address, request_details, user_contact, created_at, addon_codes")
       .eq("id", application_id)
       .maybeSingle();
     if (error) return json(500, { error: "APPLICATION_LOOKUP_FAILED", message: error.message });
@@ -128,16 +146,54 @@ Deno.serve(async (req: Request) => {
   }
 
   const status: string | undefined = payment?.status;
+  // 분기 결과(PAID/VIRTUAL_ACCOUNT_ISSUED/그 외)와 무관하게 항상 남겨 둡니다 — "결제했는데 상태가 안 바뀐다"는
+  // 신고가 들어왔을 때, 클라이언트 재시도가 실제로 어떤 PortOne 상태를 몇 번 받았는지 로그만 보고 바로 알 수 있어야 합니다.
+  console.log("[issue-virtual-account] PortOne 조회 결과:", { application_id, payMethod: payment?.method?.type ?? payment?.payMethod, status });
 
   if (status === "PAID") {
     // 즉시 승인 완료 — 카드/간편결제/계좌이체, 또는 드물게 조회 시점에 이미 입금된 가상계좌 (요구사항 2)
+    // PortOne 재조회 결과의 실제 승인 금액을 같이 넘겨서, DB 함수가 신청서 service_type 기준 정가와
+    // 정확히 일치할 때만 MATCHING_PENDING 으로 전환하도록 합니다(브라우저가 보낸 totalAmount는 조작될 수
+    // 있어 신뢰하지 않음 — sql/payment_confirmation_functions.sql 의 expected_service_price() 참고).
+    // 가상계좌인지는 VIRTUAL_ACCOUNT_ISSUED 분기와 같은 방식(virtualAccount 필드 존재)으로 판단합니다 —
+    // 가상계좌/무통장은 텔레그램 알림을 관리자의 [수동 입금 확인] 클릭 시점으로만 보내기로 했으므로
+    // (admin_confirm_manual_payment() RPC, sql/admin_manual_payment_telegram_notify.sql), 조회 시점에
+    // 드물게 이미 입금된 가상계좌라도 여기서는 알림을 보내지 않습니다 — DB 상태 전환(결제 확정)은
+    // 그대로 진행하되, 알림만 건너뜁니다.
+    const isVirtualAccount = !!(payment?.virtualAccount ?? payment?.method?.virtualAccount);
+    const paidAmount: number | null = payment?.amount?.total ?? payment?.totalAmount ?? null;
+    // transactionId: PortOne 쪽 거래 식별자(= merchant_uid 가 아니라 imp_uid 격 — paymentId 는 이미
+    // application_id 와 같은 값이라 따로 저장하지 않습니다). 환불/고객센터 조회용으로 보관합니다.
+    const paymentKey: string | null = payment?.transactionId ?? payment?.id ?? null;
     const { data: updated, error: rpcErr } = await admin.rpc("mark_payment_matching_pending", {
       p_application_id: application_id,
+      p_paid_amount: paidAmount,
+      p_payment_key: paymentKey,
     });
     if (rpcErr) {
+      if (rpcErr.message?.includes("AMOUNT_MISMATCH")) {
+        console.error("[issue-virtual-account] 입금 금액 불일치:", rpcErr.message);
+        return json(409, { error: "AMOUNT_MISMATCH", message: rpcErr.message });
+      }
       console.error("[issue-virtual-account] mark_payment_matching_pending 실패:", rpcErr);
       return json(500, { error: "STATUS_UPDATE_FAILED", message: rpcErr.message });
     }
+
+    // 신규 신청이 매칭 대기(MATCHING_PENDING)로 들어간 시점에 매니저 운영 채널로 텔레그램 알림을
+    // 보냅니다 — 카드/간편결제/계좌이체(즉시결제)만. 가상계좌는 위에서 걸러집니다. 이미 결제/DB
+    // 반영이 끝난 뒤라, 알림 발송이 실패해도(토큰 미설정 등) 응답에는 영향을 주지 않습니다
+    // (sendTelegramMessage 는 예외를 던지지 않고 false 만 돌려줍니다).
+    if (!isVirtualAccount) {
+      await sendTelegramMessage(buildNewApplicationMessage({
+        serviceType: application.service_type,
+        address: application.address,
+        requestDetails: application.request_details,
+        userContact: application.user_contact,
+        createdAt: application.created_at,
+        addonCodes: application.addon_codes,
+      }));
+    }
+
     return json(200, { status: "PAID", application: updated });
   }
 

@@ -109,40 +109,11 @@ revoke all on function public.confirm_virtual_account_payment(uuid) from public,
 
 
 -- ----------------------------------------------------------------------------
--- 5) 관리자 수동 입금 확인 — admin.html의 [수동 입금 완료] 버튼이 호출합니다.
---    PAYMENT_PENDING 건만 MATCHING_PENDING 으로 전환하고, 연결된 가상계좌가 있으면 is_paid 도 같이
---    맞춰 둡니다(가상계좌/신청서 상태가 서로 어긋나지 않도록). is_admin() 이 아니면 거부(fail closed).
+-- 5) 관리자 수동 입금 확인 — admin_confirm_manual_payment() 정의는
+--    sql/payment_confirmation_functions.sql 로 옮겼습니다(결제 관련 함수들을 한 파일에 모아 두려고요).
+--    "Could not find the function in the schema cache" 오류가 나면 이 파일이 아니라 그 파일을
+--    Supabase SQL Editor 에서 실행하세요.
 -- ----------------------------------------------------------------------------
-create or replace function public.admin_confirm_manual_payment(p_application_id uuid)
-returns public.service_applications
-language plpgsql security definer set search_path = public as $$
-declare
-  v_app public.service_applications;
-begin
-  if not public.is_admin() then
-    raise exception 'NOT_ADMIN' using errcode = '42501';
-  end if;
-
-  update public.service_applications
-     set status = 'MATCHING_PENDING'
-   where id = p_application_id
-     and status = 'PAYMENT_PENDING'
-  returning * into v_app;
-
-  if not found then
-    raise exception 'APPLICATION_NOT_AWAITING_PAYMENT' using errcode = 'P0002';
-  end if;
-
-  update public.virtual_accounts
-     set is_paid = true
-   where application_id = p_application_id
-     and is_paid = false;
-
-  return v_app;
-end $$;
-
-revoke all on function public.admin_confirm_manual_payment(uuid) from public, anon;
-grant  execute on function public.admin_confirm_manual_payment(uuid) to authenticated;
 
 
 -- ============================================================================

@@ -96,19 +96,95 @@ drop function if exists public.confirm_virtual_account_payment(uuid);
 
 
 -- ----------------------------------------------------------------------------
--- 4) 결제 승인/입금 완료 시 공통으로 쓰는 상태 전환 — PAYMENT_PENDING 인 건만 MATCHING_PENDING 으로
+-- 4a) 서비스별 정가 카탈로그 — apply.html의 SERVICES 객체(화면 표시용으로만 쓰이고 DB에는 저장되지 않음)와
+--     반드시 같은 값으로 유지해야 합니다. 아래 4b)의 금액 검증이 비교할 "정답"이 이 함수뿐이라서, 여기
+--     값을 바꾸면서 apply.html(그리고 index.html의 요금 안내/계산기)을 같이 고치지 않으면 정상 결제까지
+--     AMOUNT_MISMATCH 로 막히게 됩니다.
+--     (2026 마진율 개편: 기본 2시간 정상가. 첫 이용 할인(정상가-5,000원)은 이 정가가 아니라 웰컴 쿠폰
+--     [sql/welcome_coupons.sql]으로 반영되므로 이 함수에는 할인 전 정상가만 둡니다.)
+-- ----------------------------------------------------------------------------
+create or replace function public.expected_service_price(p_service_type text)
+returns integer
+language sql immutable as $$
+  select case p_service_type
+    when '시니어 병원 동행' then 49000
+    when '생활 편의 대행' then 42000
+    when '복합 매칭 서비스 (동행 + 생활편의)' then 58000
+    else null
+  end;
+$$;
+
+-- 요금표는 index.html/apply.html 에 이미 공개돼 있는 정보라 숨길 이유가 없습니다 — anon/authenticated 모두 호출 가능.
+grant execute on function public.expected_service_price(text) to anon, authenticated;
+
+
+-- ----------------------------------------------------------------------------
+-- 4a-1) 서비스별 초과 요금(30분당) 카탈로그 — sql/user_packages_system.sql 의
+--     report_care_duration_and_bill_extra() 가 기본 2시간을 넘긴 시간에 대해 이 단가를 곱해 자동
+--     청구합니다. index.html '기본 서비스 요금 체계' 표의 '초과 요금(30분당)' 열과 반드시 같은 값으로
+--     유지해야 합니다.
+-- ----------------------------------------------------------------------------
+create or replace function public.expected_overtime_rate_per_30min(p_service_type text)
+returns integer
+language sql immutable as $$
+  select case p_service_type
+    when '시니어 병원 동행' then 12000
+    when '생활 편의 대행' then 10000
+    when '복합 매칭 서비스 (동행 + 생활편의)' then 14000
+    else 10000 -- 알 수 없는(또는 신청서와 연결되지 않은) 서비스 유형은 기존 기본값으로 안전하게 처리
+  end;
+$$;
+
+grant execute on function public.expected_overtime_rate_per_30min(text) to anon, authenticated;
+
+
+-- ----------------------------------------------------------------------------
+-- 4b) 결제 승인/입금 완료 시 공통으로 쓰는 상태 전환 — PAYMENT_PENDING 인 건만 MATCHING_PENDING 으로
 --    전환합니다(이미 MATCHING_PENDING/MATCHED 로 넘어간 건을 되돌리지 않도록 조건에 PAYMENT_PENDING 명시 —
 --    issue-virtual-account 와 portone-webhook 이 같은 건을 거의 동시에 처리해도 멱등합니다). 가상계좌로
 --    입금된 경우라면 virtual_accounts.is_paid 도 함께 true 로 맞춥니다(없으면 — 즉시결제 수단이면 — 조용히
 --    넘어갑니다). 서버(service_role, Edge Function)만 호출합니다 — 클라이언트 role에는 권한을 주지
 --    않습니다(revoke all, service_role 은 그랜트와 무관하게 항상 호출 가능).
+--
+--    p_paid_amount: PortOne API를 서버에서 재조회해 확인한 실제 금액(payment.amount.total) — 결제창
+--    totalAmount는 브라우저가 보내는 값이라 조작될 수 있으므로 신뢰하지 않고, 호출자는 반드시 PortOne 재조회
+--    결과를 넘겨야 합니다. 신청서의 service_type 기준 정가(4a)와 정확히 일치하지 않으면 AMOUNT_MISMATCH
+--    예외를 던지고 상태를 바꾸지 않습니다 — 적게 입금됐거나(사기 의심) 많이 입금된 경우 모두 자동 승인하지
+--    않고 운영자 확인(admin_confirm_manual_payment 등)을 거치게 합니다. null 로 넘어오면(과거 호출/정가를
+--    모르는 service_type) 검증을 건너뛰고 기존 동작대로 통과시킵니다.
 -- ----------------------------------------------------------------------------
-create or replace function public.mark_payment_matching_pending(p_application_id uuid, p_payment_key text default null)
+drop function if exists public.mark_payment_matching_pending(uuid, text);
+
+create or replace function public.mark_payment_matching_pending(
+  p_application_id uuid,
+  p_payment_key text default null,
+  p_paid_amount integer default null
+)
 returns public.service_applications
 language plpgsql security definer set search_path = public as $$
 declare
   v_app public.service_applications;
+  v_expected integer;
 begin
+  select * into v_app from public.service_applications where id = p_application_id;
+  if v_app.id is null then
+    raise exception 'APPLICATION_NOT_FOUND' using errcode = 'P0002';
+  end if;
+
+  if v_app.status <> 'PAYMENT_PENDING' then
+    -- 이미 MATCHING_PENDING/MATCHED 로 넘어간 건에 대한 재호출(webhook 중복 전송, confirm 과 webhook 이
+    -- 거의 동시에 들어온 경우 등)은 에러가 아니라 '현재 행 그대로' 조용히 돌려줍니다 — 멱등 처리.
+    return v_app;
+  end if;
+
+  if p_paid_amount is not null then
+    v_expected := public.expected_service_price(v_app.service_type);
+    if v_expected is not null and p_paid_amount <> v_expected then
+      raise exception 'AMOUNT_MISMATCH: service_type=%, expected=%, paid=%',
+        v_app.service_type, v_expected, p_paid_amount using errcode = 'P0003';
+    end if;
+  end if;
+
   update public.virtual_accounts
      set is_paid = true,
          pg_payment_ref = coalesce(p_payment_key, pg_payment_ref)
@@ -121,19 +197,10 @@ begin
      and status = 'PAYMENT_PENDING'
   returning * into v_app;
 
-  if not found then
-    -- 이미 MATCHING_PENDING/MATCHED 로 넘어간 건에 대한 재호출(webhook 중복 전송, confirm 과 webhook 이
-    -- 거의 동시에 들어온 경우 등)은 에러가 아니라 '현재 행 그대로' 조용히 돌려줍니다 — 멱등 처리.
-    select * into v_app from public.service_applications where id = p_application_id;
-    if v_app.id is null then
-      raise exception 'APPLICATION_NOT_FOUND' using errcode = 'P0002';
-    end if;
-  end if;
-
   return v_app;
 end $$;
 
-revoke all on function public.mark_payment_matching_pending(uuid, text) from public, anon, authenticated;
+revoke all on function public.mark_payment_matching_pending(uuid, text, integer) from public, anon, authenticated;
 
 
 -- ----------------------------------------------------------------------------
@@ -167,7 +234,19 @@ revoke all on function public.cancel_unpaid_application(uuid) from public, anon,
 
 
 -- ----------------------------------------------------------------------------
--- 6) 배치 정리 — PortOne 웹훅이 끝내 오지 않은 채로 가상계좌 입금 기한이 지난 PAYMENT_PENDING 건을
+-- 6) 관리자 수동 입금 확인 — admin_confirm_manual_payment() 정의는
+--    sql/admin_manual_payment_telegram_notify.sql 로 옮겼습니다(쿠폰/적립금 차감 + 텔레그램 알림까지
+--    포함한 최종 버전이 그 파일에 있습니다). 이 파일에서 다시 정의하지 않는 이유: 과거에 이 자리에 있던
+--    "상태 전환만 하는" 단순 버전을 실행하면 create or replace 로 더 완전한 버전을 덮어써 텔레그램 알림이
+--    조용히 사라지는 회귀가 실제로 발생했습니다(관리자가 '수동 입금 확인'을 눌러도 알림이 안 가는 버그) —
+--    이제 이 함수의 정의는 오직 한 파일에만 있어야 하고, 이 파일 실행 순서가 그보다 나중이어도 안전합니다.
+--    "Could not find the function in the schema cache" 오류가 나면 sql/admin_manual_payment_telegram_notify.sql
+--    을 Supabase SQL Editor 에서 실행하세요.
+-- ----------------------------------------------------------------------------
+
+
+-- ----------------------------------------------------------------------------
+-- 7) 배치 정리 — PortOne 웹훅이 끝내 오지 않은 채로 가상계좌 입금 기한이 지난 PAYMENT_PENDING 건을
 --    쓸어서 CANCELLED 처리합니다. pg_cron 이 주기적으로 호출합니다(맨 아래 스케줄 참고).
 -- ----------------------------------------------------------------------------
 create or replace function public.cancel_expired_virtual_accounts()
@@ -189,7 +268,7 @@ revoke all on function public.cancel_expired_virtual_accounts() from public, ano
 
 
 -- ----------------------------------------------------------------------------
--- 7) pg_cron 스케줄 — 10분마다 만료 건 정리. pg_cron 확장이 이 프로젝트 플랜에서 꺼져 있으면 이
+-- 8) pg_cron 스케줄 — 10분마다 만료 건 정리. pg_cron 확장이 이 프로젝트 플랜에서 꺼져 있으면 이
 --    create extension 문에서 에러가 날 수 있습니다: 그 경우 이 블록만 건너뛰고(요구사항 1~4의 나머지는
 --    모두 pg_cron 과 무관하게 동작합니다), Supabase 대시보드 → Database → Extensions 에서 pg_cron 을
 --    켠 뒤 이 블록만 다시 실행하거나, Database → Cron Jobs 화면에서 같은 스케줄을 직접 등록하세요.

@@ -95,7 +95,7 @@ begin
 
   insert into public.care_schedules
     (manager_id, guardian_id, guardian_name, guardian_phone, guardian_email,
-     senior_name, origin, destination, scheduled_at, notes, status, payout_amount, application_id,
+     senior_name, senior_age, senior_note, origin, destination, scheduled_at, notes, status, payout_amount, application_id,
      origin_lat, origin_lng, destination_lat, destination_lng)
   values (
     auth.uid(),
@@ -103,8 +103,11 @@ begin
     coalesce(nullif(btrim(regexp_replace(coalesce(v_app.user_contact, ''), v_phone_re, '', 'g'), E' \t\r\n/,·-'), ''), '보호자'),
     substring(coalesce(v_app.user_contact, '') from v_phone_re),
     (select lower(btrim(u.email)) from auth.users u where u.id = v_app.user_id and u.email is not null),
-    case when nullif(btrim(coalesce(v_app.user_relation, '')), '') is not null
-         then '어르신 (' || btrim(v_app.user_relation) || ' 신청)' else '어르신' end,
+    coalesce(nullif(btrim(coalesce(v_app.senior_name, '')), ''),
+      case when nullif(btrim(coalesce(v_app.user_relation, '')), '') is not null
+           then '어르신 (' || btrim(v_app.user_relation) || ' 신청)' else '어르신' end),
+    v_app.senior_age,
+    v_app.senior_note,
     case when v_sep > 0 then nullif(btrim(substr(v_app.address, 1, v_sep - 1)), '') else null end,
     coalesce(
       case when v_sep > 0 then nullif(btrim(substr(v_app.address, v_sep + 3)), '') else nullif(btrim(coalesce(v_app.address, '')), '') end,

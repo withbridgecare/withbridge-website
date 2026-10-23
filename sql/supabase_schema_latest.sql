@@ -95,6 +95,31 @@ create table if not exists public.managers (
 );
 alter table public.managers alter column certification_verified set default true;
 
+-- 최근 활동일시(관리자 콘솔 필터용) + '휴식' 전환 가드 (manager_duty_status.sql 과 동일)
+alter table public.managers add column if not exists last_active_at timestamptz;
+
+create or replace function public.enforce_manager_break_guard() returns trigger
+language plpgsql as $$
+begin
+  if new.activity_status = 'break' and old.activity_status is distinct from new.activity_status then
+    if exists (
+      select 1 from public.care_schedules cs
+      where cs.manager_id = new.id
+        and cs.status in ('assigned', 'departed', 'arrived', 'treatment_done', 'returning')
+    ) then
+      raise exception '현재 진행 중인 동행 예약 건이 있습니다. 일정을 완료한 후 상태를 변경해 주세요.';
+    end if;
+  end if;
+  if new.activity_status is distinct from old.activity_status then
+    new.last_active_at := now();
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists managers_break_guard on public.managers;
+create trigger managers_break_guard before update on public.managers
+  for each row execute function public.enforce_manager_break_guard();
+
 -- is_manager(): 지금 로그인한 사용자가 '인증된 매니저'인지 (RLS·수락 함수가 사용)
 create or replace function public.is_manager() returns boolean
 language sql stable security definer set search_path = public as $$
@@ -144,10 +169,19 @@ create table if not exists public.care_schedules (
 alter table public.care_schedules alter column manager_id drop not null;
 alter table public.care_schedules add column if not exists notes text;
 alter table public.care_schedules add column if not exists guardian_email text;
+-- 보호자의 '어르신 프로필 관리'(seniors 테이블, mypage.html)에서 선택한 어르신의 나이/특이사항 스냅샷.
+-- accept_service_application()/admin_assign_manager() 가 service_applications.senior_age/senior_note 를
+-- 그대로 옮겨 담습니다(어르신 프로필 연동, sql 아래 7-1번 참고) — seniors 를 직접 조인하지 않는 이유는
+-- (1) 보호자가 나중에 프로필을 수정/삭제해도 그 시점 케어 기록은 그대로 남아야 하고, (2) 매니저/관리자
+-- RLS 로 seniors 테이블까지 열어줄 필요가 없어서입니다.
+alter table public.care_schedules add column if not exists senior_age  integer;
+alter table public.care_schedules add column if not exists senior_note text;
 alter table public.care_schedules alter column status set default 'pending';
+-- 현장 수행 5단계 인증(출발 (이동 중)→병원 도착→진료/대행 완료→귀가 이동→케어 완료)을 care_schedules.status
+-- 하나로 실시간 추적할 수 있도록 'treatment_done'·'returning' 을 추가합니다(care_schedule_5step_status.sql 과 동일).
 alter table public.care_schedules drop constraint if exists care_schedules_status_check;
 alter table public.care_schedules add constraint care_schedules_status_check
-  check (status in ('pending', 'assigned', 'departed', 'arrived', 'completed'));
+  check (status in ('pending', 'assigned', 'departed', 'arrived', 'treatment_done', 'returning', 'completed'));
 alter table public.care_schedules drop constraint if exists care_schedules_pending_unassigned_check;
 alter table public.care_schedules add constraint care_schedules_pending_unassigned_check
   check ((status = 'pending') = (manager_id is null));
@@ -242,15 +276,18 @@ begin
 end $$;
 alter table public.care_schedules replica identity full;
 
--- 상태 진행 순서 강제 + 완료 시각 서버 기록
+-- 상태 진행 순서 강제 + 완료 시각 서버 기록 — 현장 수행 5단계(출발 (이동 중)→병원 도착→진료/대행 완료→
+-- 귀가 이동→케어 완료)를 매니저가 반드시 순서대로 한 단계씩만 밟도록 강제합니다(건너뛰기·되돌리기 금지).
 create or replace function public.enforce_care_status_flow() returns trigger
 language plpgsql as $$
 begin
   if new.status is distinct from old.status then
-    if not (   (old.status = 'pending'  and new.status = 'assigned')
-            or (old.status = 'assigned' and new.status = 'departed')
-            or (old.status = 'departed' and new.status = 'arrived')
-            or (old.status = 'arrived'  and new.status = 'completed')) then
+    if not (   (old.status = 'pending'        and new.status = 'assigned')
+            or (old.status = 'assigned'       and new.status = 'departed')
+            or (old.status = 'departed'       and new.status = 'arrived')
+            or (old.status = 'arrived'        and new.status = 'treatment_done')
+            or (old.status = 'treatment_done' and new.status = 'returning')
+            or (old.status = 'returning'      and new.status = 'completed')) then
       raise exception 'invalid status transition: % -> %', old.status, new.status;
     end if;
     if new.status = 'completed' then
@@ -446,6 +483,20 @@ create table if not exists public.care_reports (
 -- 보호자 '읽음' 추적 (supabase-care-report-read-tracking.sql)
 alter table public.care_reports add column if not exists read_at timestamptz;
 
+-- 케어 리포트 작성 모달 개선(원클릭 선택 칩 · 증빙 사진 첨부 · 다음 진료 예약일, sql/care_report_rich_fields.sql):
+--   condition_tags — 어르신 컨디션 칩 + 보행 상태 칩을 함께 담는 배열(예: ["양호","자립 보행"]). mypage.html
+--     보호자 화면(careReportViewConditionTags)이 이미 이 모양(#해시태그 칩)을 기대하도록 만들어져 있었습니다.
+--   photos         — 처방전·진료비 영수증·약 봉투 등 증빙 사진의 배열([{url,label}]). url 은 Storage 가 아니라
+--     canvas 로 축소한 데이터 URL 그대로 저장합니다 — 이 프로젝트의 다른 현장 사진들(care_checkpoints.photo_url,
+--     arrival_verification_logs 의 watermarked_image_url/raw_image_url)과 같은 방식입니다.
+--   next_visit_date — 의사가 안내한 다음 병원 방문/예약일(선택).
+-- senior_condition 은 이제 칩 선택을 보완하는 짧은 '특이사항' 자유 입력(선택 사항)으로 역할이 바뀌어
+-- not null 제약을 풉니다 — physician_notes 는 여전히 필수입니다.
+alter table public.care_reports alter column senior_condition drop not null;
+alter table public.care_reports add column if not exists condition_tags  jsonb not null default '[]'::jsonb;
+alter table public.care_reports add column if not exists photos          jsonb not null default '[]'::jsonb;
+alter table public.care_reports add column if not exists next_visit_date date;
+
 alter table public.care_reports enable row level security;
 drop policy if exists care_reports_select_own on public.care_reports;
 drop policy if exists care_reports_insert_own on public.care_reports;
@@ -456,14 +507,25 @@ create policy care_reports_insert_own on public.care_reports
     manager_id = auth.uid()
     and exists (
       select 1 from public.care_schedules s
-      where s.id = schedule_id and s.manager_id = auth.uid() and s.status = 'completed'
+      where s.id = schedule_id and s.manager_id = auth.uid()
+        -- mypage-manager.html 의 completeSubmitBtn 핸들러는 리포트를 먼저 저장한 뒤에야
+        -- advance_care_status() 로 상태를 'completed' 로 넘깁니다(리포트 없이 완료 처리되는 걸
+        -- 막으려는 의도적 순서) — 그래서 insert 시점의 실제 상태는 아직 'returning' 입니다.
+        -- status = 'completed' 만 허용하면 이 정상 흐름 자체가 매번 RLS 위반으로 막힙니다.
+        -- status 가 이미 'completed' 인 경우도 허용하는 건 리포트 저장 실패 후 재시도하는
+        -- openReportModal 경로(s.status === 'completed' 인데 아직 리포트가 없는 건) 때문입니다.
+        and s.status in ('returning', 'completed')
     )
   );
 
 revoke insert, update, delete on public.care_reports from anon, authenticated;
 grant  select, insert on public.care_reports to authenticated;
--- 보호자는 이 테이블에 직접 접근하지 않습니다 (의도된 설계) — guardian_care_reports 뷰로만 읽습니다.
-revoke all on public.care_reports from anon, authenticated;
+-- 보호자도 매니저와 같은 "authenticated" DB 역할이라 테이블 단위 GRANT로는 둘을 구분할 수 없습니다 —
+-- 보호자가 이 테이블에 직접 접근하지 못하게 막는 건 위 RLS 정책(manager_id = auth.uid())이 이미 하고
+-- 있으므로(자기 행이 없으면 select/insert 모두 0 rows), 여기서 authenticated 전체의 grant 를 다시
+-- revoke all 로 되돌리면 안 됩니다 — 그러면 매니저의 리포트 제출(insert)까지 "permission denied for
+-- table care_reports" 로 막힙니다(실제로 겪은 버그, mypage-manager.html submitReport()).
+-- 보호자는 care_reports 를 직접 조회하지 않고 guardian_care_reports 뷰로만 읽습니다(의도된 설계).
 
 
 -- ============================================================================
@@ -538,7 +600,12 @@ select
   s.completed_at     as completed_at,
   p.name             as manager_name,
   r.read_at          as read_at,
-  s.application_id   as application_id
+  s.application_id   as application_id,
+  -- create or replace view 는 기존 컬럼 순서를 바꿀 수 없어 새 컬럼은 항상 끝에 추가합니다
+  -- (sql/care_report_rich_fields.sql). mypage.html 의 REPORT_OPTIONAL_COLS 가 이 세 컬럼을 기대합니다.
+  r.condition_tags    as condition_tags,
+  r.photos            as photos,
+  r.next_visit_date   as next_visit_date
 from public.care_reports r
 join public.care_schedules s on s.id = r.schedule_id
 left join public.profiles p on p.id = s.manager_id
@@ -570,8 +637,8 @@ grant  execute on function public.mark_care_report_read(uuid) to authenticated;
 
 -- ============================================================================
 -- 6) service_applications (apply.html) — 테이블 자체는 Supabase 대시보드에 이미 존재한다고 가정합니다.
---    apply.html 이 저장하는 컬럼: service_type, user_relation, user_contact, address, request_details,
---    privacy_agreed (+ 서버가 채우는 id/created_at/user_id/status)
+--    apply.html 이 저장하는 컬럼: service_type, user_relation, senior_name, user_contact, address,
+--    request_details, privacy_agreed (+ 서버가 채우는 id/created_at/user_id/status)
 -- ============================================================================
 alter table public.service_applications alter column user_id set default auth.uid();
 alter table public.service_applications alter column status  set default 'pending';
@@ -579,6 +646,19 @@ alter table public.service_applications alter column status  set default 'pendin
 alter table public.service_applications add column if not exists manager_id  uuid references public.profiles(id);
 alter table public.service_applications add column if not exists accepted_at timestamptz;
 alter table public.service_applications add column if not exists schedule_id uuid references public.care_schedules(id) on delete set null;
+
+-- 어르신 실제 성함 — apply.html 이 '신청자(보호자) 성함'과는 별도로 받는 값입니다. 이 컬럼이 비어 있는
+-- (마이그레이션 이전) 신청은 accept_service_application()/admin_assign_manager() 가 여전히
+-- '어르신 (관계 신청)' 자리표시자로 대신합니다 — 두 함수의 coalesce(senior_name, ...) 참고.
+alter table public.service_applications add column if not exists senior_name text;
+
+-- 로그인한 보호자가 '어르신 프로필 관리'(seniors 테이블)에서 등록된 어르신을 선택해 신청하면, apply.html 이
+-- 이 세 컬럼을 함께 채웁니다 — senior_id 는 어느 프로필에서 가져왔는지 추적용(참조만, seniors 가 삭제/수정돼도
+-- 이 신청의 스냅샷은 그대로 유지), senior_age/senior_note 는 선택 당시 나이(만 나이)/특이사항 스냅샷입니다.
+-- 직접 입력(프로필 미등록 또는 비로그인)인 경우 senior_id/senior_age/senior_note 는 모두 null 로 남습니다.
+alter table public.service_applications add column if not exists senior_id   uuid references public.seniors(senior_id) on delete set null;
+alter table public.service_applications add column if not exists senior_age  integer;
+alter table public.service_applications add column if not exists senior_note text;
 
 -- 좌표 캐시 (supabase-address-coordinates.sql)
 alter table public.service_applications add column if not exists origin_lat double precision;
@@ -607,11 +687,19 @@ create policy service_applications_select_own on public.service_applications
   );
 
 -- 매니저: 아직 아무도 수락하지 않은 접수 대기 신청만 (인증된 매니저 한정)
+--
+-- ⚠ sql/service_application_status_standardization.sql 이 이 함수에 추가한 표준 상태값 'matching_pending'
+-- 인식을 여기서도 반드시 그대로 들고 와야 합니다 — create or replace 로 다시 정의하는 거라, 이 통합
+-- 스키마 파일을 나중에 다시 실행하면 그 인식 없이 함수가 "되돌아가" 버립니다. 그러면 is_admin() SELECT
+-- 정책(sql/admin_service_applications_select.sql)이 아직 적용되지 않은 계정이나, admin_manual_assignment.sql
+-- 이 의존하는 매니저 대체 정책(service_applications_select_managers)이 'MATCHING_PENDING'(결제 완료,
+-- 배정 대기) 건을 전부 숨겨버리는 회귀가 재발합니다 — PAYMENT_PENDING/CANCELLED 는 계속 false 입니다.
 create or replace function public.is_pending_application_status(p_status text) returns boolean
 language sql immutable as $$
   select case
     when lower(btrim(coalesce(p_status, ''))) in ('cancelled', 'canceled', 'cancel') or coalesce(p_status, '') ~ '취소' then false
-    when lower(btrim(coalesce(p_status, ''))) in ('', 'pending', 'new', 'received', 'submitted', 'waiting', 'requested') then true
+    when lower(btrim(coalesce(p_status, ''))) in
+      ('matching_pending', '', 'pending', 'new', 'received', 'submitted', 'waiting', 'requested', 'waiting_matching') then true
     when coalesce(p_status, '') ~ '접수|대기|신청' then true
     else false
   end
@@ -671,7 +759,7 @@ begin
 
   insert into public.care_schedules
     (manager_id, guardian_id, guardian_name, guardian_phone, guardian_email,
-     senior_name, origin, destination, scheduled_at, notes, status, payout_amount, application_id,
+     senior_name, senior_age, senior_note, origin, destination, scheduled_at, notes, status, payout_amount, application_id,
      origin_lat, origin_lng, destination_lat, destination_lng)
   values (
     auth.uid(),
@@ -679,8 +767,11 @@ begin
     coalesce(nullif(btrim(regexp_replace(coalesce(v_app.user_contact, ''), v_phone_re, '', 'g'), E' \t\r\n/,·-'), ''), '보호자'),
     substring(coalesce(v_app.user_contact, '') from v_phone_re),
     (select lower(btrim(u.email)) from auth.users u where u.id = v_app.user_id and u.email is not null),
-    case when nullif(btrim(coalesce(v_app.user_relation, '')), '') is not null
-         then '어르신 (' || btrim(v_app.user_relation) || ' 신청)' else '어르신' end,
+    coalesce(nullif(btrim(coalesce(v_app.senior_name, '')), ''),
+      case when nullif(btrim(coalesce(v_app.user_relation, '')), '') is not null
+           then '어르신 (' || btrim(v_app.user_relation) || ' 신청)' else '어르신' end),
+    v_app.senior_age,
+    v_app.senior_note,
     case when v_sep > 0 then nullif(btrim(substr(v_app.address, 1, v_sep - 1)), '') else null end,
     coalesce(
       case when v_sep > 0 then nullif(btrim(substr(v_app.address, v_sep + 3)), '') else nullif(btrim(coalesce(v_app.address, '')), '') end,
@@ -752,6 +843,9 @@ for each row
 execute function public.sync_application_status_from_schedule();
 
 -- 보호자가 '내 신청을 맡은 매니저'의 이름·연락처를 볼 수 있게
+-- ⚠ sql/manager_applications.sql 이 이 함수를 manager_phone 에 manager_applications.phone 폴백을
+-- 추가해 다시 정의합니다(create or replace) — 이 통합 스키마 파일을 그 파일 뒤에 다시 실행하면 그
+-- 폴백 없이 "되돌아가" 버려, profiles.phone 을 따로 채우지 않은 매니저의 연락처가 다시 안 보이게 됩니다.
 create or replace function public.my_application_managers()
 returns table (application_id uuid, manager_name text, manager_phone text, manager_certification text)
 language sql stable security definer set search_path = public as $$
@@ -804,6 +898,66 @@ end $$;
 revoke all on function public.confirm_service_application(uuid) from public, anon;
 grant  execute on function public.confirm_service_application(uuid) to authenticated;
 
+-- 보호자 [신청 취소] — 아직 매니저가 배정되지 않은(manager_id IS NULL) 본인 신청만 취소 가능
+-- (sql/guardian_cancel_application.sql 과 동일). 소유권 조건은 service_applications_select_own RLS
+-- 정책과 완전히 같습니다(user_id 일치 OR 인증된 이메일 일치) — user_id 연결이 끊긴 채 이메일로만
+-- 소유권이 확인되는 신청도 화면에는 보이는데 user_id 만 비교하면 취소가 막히는 비대칭 버그가 있어서,
+-- 둘을 반드시 같은 기준으로 맞춰야 합니다. UPDATE 가 0행이면 신청 없음/내 신청 아님/이미 배정됨을
+-- 구체적으로 가려내 각기 다른 에러 코드로 던집니다(진단용).
+create or replace function public.cancel_my_application(p_application_id uuid)
+returns public.service_applications
+language plpgsql security definer set search_path = public as $$
+declare
+  v_row public.service_applications;
+begin
+  if auth.uid() is null then
+    raise exception 'NOT_AUTHENTICATED' using errcode = '28000';
+  end if;
+
+  update public.service_applications
+     set status = 'CANCELLED'
+   where id = p_application_id
+     and manager_id is null
+     and (
+       user_id = auth.uid()
+       or (applicant_email is not null and lower(btrim(applicant_email)) = public.my_verified_email())
+     )
+  returning * into v_row;
+
+  if found then
+    return v_row;
+  end if;
+
+  select * into v_row from public.service_applications where id = p_application_id;
+
+  if v_row.id is null then
+    raise exception 'APPLICATION_NOT_FOUND' using errcode = 'P0002';
+  end if;
+
+  if not (
+    v_row.user_id = auth.uid()
+    or (v_row.applicant_email is not null and lower(btrim(v_row.applicant_email)) = public.my_verified_email())
+  ) then
+    raise exception 'NOT_YOUR_APPLICATION' using errcode = '42501';
+  end if;
+
+  if v_row.manager_id is not null then
+    raise exception 'ALREADY_ASSIGNED' using errcode = 'P0002';
+  end if;
+
+  raise exception 'APPLICATION_NOT_CANCELLABLE' using errcode = 'P0002';
+end $$;
+
+revoke all on function public.cancel_my_application(uuid) from public, anon;
+grant  execute on function public.cancel_my_application(uuid) to authenticated;
+
+-- 보호자 [신청 취소]의 PG 자동 환불 연동(Edge Function cancel-application + 이 RPC)은 "상태값 수동
+-- 처리" 방식으로 되돌리기로 하면서 완전히 걷어냈습니다 — 환불은 이제 관리자가 결제 내역을 확인한 뒤
+-- 수동으로 처리합니다(cancel_my_application() 하나로 충분). 두 시그니처 모두 혹시 먼저 이 파일을
+-- 실행해 실제 DB에 만들어진 적이 있다면 깨끗이 제거합니다(둘 다 없었다면 그냥 no-op).
+drop function if exists public.cancel_paid_application_after_refund(uuid, text);
+drop function if exists public.cancel_paid_application_after_refund(uuid, uuid, text);
+
 -- 비로그인 상태로 낸 신청을 로그인 후 계정에 연결
 create or replace function public.claim_service_applications(p_ids uuid[])
 returns setof uuid
@@ -854,6 +1008,25 @@ create policy seniors_delete_own on public.seniors
 revoke all on public.seniors from anon;
 grant select, insert, update, delete on public.seniors to authenticated;
 
+-- 성별 / 어르신 본인 연락처 / 거동 상태 상세 / 자주 가는 병원 / 거주지 상세주소 / 병원 상세위치
+-- (sql/seniors_profile_fields.sql 과 동일 — apply.html '어르신 프로필 원클릭 불러오기'가 이 값들을
+-- 신청서 입력칸에 그대로 채웁니다)
+alter table public.seniors add column if not exists gender text;
+alter table public.seniors drop constraint if exists seniors_gender_check;
+alter table public.seniors add constraint seniors_gender_check check (gender is null or gender in ('남', '여'));
+
+alter table public.seniors add column if not exists senior_phone text;
+
+alter table public.seniors add column if not exists mobility_level text;
+alter table public.seniors drop constraint if exists seniors_mobility_level_check;
+alter table public.seniors add constraint seniors_mobility_level_check
+  check (mobility_level is null or mobility_level in ('혼자 걸음 가능', '지팡이·보행기 사용', '휠체어 사용', '매니저 부축 필수'));
+
+alter table public.seniors add column if not exists frequent_hospital text;
+
+alter table public.seniors add column if not exists address_detail text;
+alter table public.seniors add column if not exists frequent_hospital_detail text;
+
 
 -- ============================================================================
 -- 8) care_checkpoints : 현장 수행 5단계 체크포인트 (출발/미팅 → 병원 도착 → 진료 완료 → 귀가 이동 → 귀가 및 완료)
@@ -863,16 +1036,20 @@ create table if not exists public.care_checkpoints (
   id             uuid primary key default gen_random_uuid(),
   schedule_id    uuid not null references public.care_schedules(id) on delete cascade,
   manager_id     uuid not null references public.profiles(id),
-  step           text not null check (step in (
-                   'departure', 'hospital_arrival', 'treatment_complete', 'return_departure', 'return_complete'
-                 )),
-  lat            double precision,
-  lng            double precision,
-  accuracy       double precision,
-  photo_url      text,
+  step           text not null,
   checkpoint_at  timestamptz not null default now(),
   created_at     timestamptz not null default now()
 );
+-- "create table if not exists" 는 테이블이 이미(예전 컬럼 구성으로) 존재하면 아무것도 보완하지 않으므로,
+-- api.saveCheckpoint() 가 insert 하는 7개 컬럼을 add column if not exists 로 한 번 더 강제합니다
+-- (실패 시 증상·상세 원인은 sql/care_checkpoints_hardening.sql 참고).
+alter table public.care_checkpoints add column if not exists lat       double precision;
+alter table public.care_checkpoints add column if not exists lng       double precision;
+alter table public.care_checkpoints add column if not exists accuracy  double precision;
+alter table public.care_checkpoints add column if not exists photo_url text;
+alter table public.care_checkpoints drop constraint if exists care_checkpoints_step_check;
+alter table public.care_checkpoints add constraint care_checkpoints_step_check
+  check (step in ('departure', 'hospital_arrival', 'treatment_complete', 'return_departure', 'return_complete'));
 
 create index if not exists care_checkpoints_schedule_idx on public.care_checkpoints (schedule_id, step, checkpoint_at desc);
 create index if not exists care_checkpoints_manager_idx  on public.care_checkpoints (manager_id, created_at desc);

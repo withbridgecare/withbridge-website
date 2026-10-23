@@ -200,6 +200,43 @@ grant  execute on function public.revoke_manager(uuid) to authenticated;
 
 
 -- ============================================================================
+-- my_application_managers() 재정의: 연락처 폴백 추가
+--   sql/supabase_schema_latest.sql 의 원본은 profiles.phone 만 봤는데, 매니저가 자기 프로필(phone)을
+--   따로 채운 적이 없으면(보통 그렇습니다 — 매니저는 가입 시 프로필 전화번호를 따로 입력하는 화면이
+--   없습니다) 이 값이 비어 있어 보호자 쪽 '담당 매니저 정보' 모달에 번호 대신 "곧 안내해 드려요"만
+--   보였습니다. 정작 전화번호는 이 매니저가 지원할 때 적어 낸 manager_applications.phone(not null)에
+--   이미 있으므로, profiles.phone 이 비었을 때만 그 값으로 보강합니다 — 가장 최근에 승인된 신청을 우선.
+--   이 파일(manager_applications.sql)이 supabase_schema_latest.sql 보다 나중에 실행되므로(파일 맨 위
+--   실행 순서 안내 참고) manager_applications 테이블이 이미 있는 여기서 재정의합니다.
+-- ============================================================================
+create or replace function public.my_application_managers()
+returns table (application_id uuid, manager_name text, manager_phone text, manager_certification text)
+language sql stable security definer set search_path = public as $$
+  select a.id,
+         coalesce(nullif(btrim(p.name), ''),
+                  nullif(btrim(u.raw_user_meta_data ->> 'name'), ''),
+                  nullif(btrim(u.raw_user_meta_data ->> 'full_name'), '')),
+         coalesce(nullif(btrim(p.phone), ''), nullif(btrim(ma.phone), '')),
+         nullif(btrim(m.certification), '')
+    from public.service_applications a
+    left join public.profiles p on p.id = a.manager_id
+    left join public.managers m on m.id = a.manager_id
+    left join auth.users u      on u.id = a.manager_id
+    left join lateral (
+      select phone from public.manager_applications
+      where user_id = a.manager_id and status = 'approved'
+      order by reviewed_at desc nulls last
+      limit 1
+    ) ma on true
+   where a.user_id = auth.uid()
+     and a.manager_id is not null
+$$;
+
+revoke all on function public.my_application_managers() from public, anon;
+grant  execute on function public.my_application_managers() to authenticated;
+
+
+-- ============================================================================
 -- PostgREST 스키마 캐시 새로고침
 -- ============================================================================
 notify pgrst, 'reload schema';
