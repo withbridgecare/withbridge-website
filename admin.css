@@ -92,6 +92,21 @@ button { font-family: inherit; cursor: pointer; }
   transition: background-color .15s ease, border-color .15s ease;
 }
 .admin-logout-btn:hover { background: var(--sage-50); border-color: var(--sage-200); }
+.admin-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border: 1px solid var(--sage-200);
+  border-radius: 9999px;
+  background: var(--sage-50);
+  color: var(--sage-700);
+  font-size: 13.5px;
+  font-weight: 600;
+  transition: background-color .15s ease, border-color .15s ease, opacity .15s ease;
+}
+.admin-refresh-btn:hover { background: var(--sage-100); }
+.admin-refresh-btn:disabled { opacity: .6; cursor: default; }
 
 /* ---------- 본문 레이아웃 ---------- */
 .admin-main {
@@ -118,6 +133,88 @@ button { font-family: inherit; cursor: pointer; }
   font-size: 12.5px;
 }
 
+/* ---------- 00. 핵심 현황 요약 카드 ---------- */
+.admin-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+@media (max-width: 720px) {
+  .admin-summary-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.admin-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 20px;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+}
+.admin-summary-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-sub);
+}
+.admin-summary-value {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.admin-summary-card.is-payment-pending .admin-summary-value { color: var(--earth-fg); }
+.admin-summary-card.is-matching-pending .admin-summary-value { color: #1D4ED8; }
+.admin-summary-card.is-in-progress .admin-summary-value { color: var(--sage-600); }
+
+/* ---------- 01. 검색 · 상태 필터 바 ---------- */
+.admin-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.admin-search-input {
+  flex: 1 1 240px;
+  min-width: 200px;
+  padding: 11px 16px;
+  border: 1px solid var(--card-border);
+  border-radius: 9999px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13.5px;
+}
+.admin-search-input:focus {
+  outline: none;
+  border-color: var(--sage-500);
+  box-shadow: 0 0 0 3px rgba(120, 134, 107, .18);
+}
+.admin-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.admin-filter-chip {
+  padding: 8px 16px;
+  border: 1px solid var(--card-border);
+  border-radius: 9999px;
+  background: var(--card);
+  color: var(--ink-body);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+.admin-filter-chip:hover { background: var(--sage-50); border-color: var(--sage-200); }
+.admin-filter-chip.is-active {
+  background: var(--sage-500);
+  border-color: var(--sage-500);
+  color: #fff;
+}
+
 .admin-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -127,6 +224,33 @@ button { font-family: inherit; cursor: pointer; }
 }
 @media (max-width: 900px) {
   .admin-grid { grid-template-columns: 1fr; }
+}
+
+/* mobile-nav.css(사이트 공용 햄버거 드로어 스타일)가 클래스 구분 없이 모든 <header> 태그를
+   768px 이하에서 position: fixed 로 강제하면서, 그 기준으로 body 에 준 padding-top: 99px
+   (띠배너 38px + 공용헤더 61px 기준)도 함께 걸려 버립니다. admin.html 은 띠배너도 드로어 메뉴도
+   쓰지 않으므로 이 값이 어드민 헤더 실제 높이와 맞지 않아, 헤더가 '오늘 신청' 등 요약 카드 위로
+   겹쳐 보이는 문제가 생겼습니다. 어드민 헤더는 원래 의도대로 sticky 로 되돌리고 body 패딩도
+   초기화합니다. (header/body 보다 선택자 특이성을 높여 CSS 로드 순서와 무관하게 이 규칙이
+   이기도록 합니다) */
+@media (max-width: 768px) {
+  html header.admin-header {
+    position: sticky !important;
+    top: 0 !important;
+    left: auto !important;
+    right: auto !important;
+  }
+  html body {
+    padding-top: 0 !important;
+  }
+  .admin-header-inner {
+    flex-wrap: wrap;
+    padding: 14px 16px;
+    gap: 10px;
+  }
+  .admin-main {
+    padding: 20px 16px 60px;
+  }
 }
 
 /* ---------- 카드 ---------- */
@@ -169,6 +293,14 @@ button { font-family: inherit; cursor: pointer; }
   color: var(--ink-sub);
   word-break: keep-all;
 }
+/* 신청 카드의 '48시간 지난 신청도 보기' 체크박스 — 기본 끔 상태라, 평소엔 매니저 화면과 건수가
+   똑같이 유지되고(2026-10 건수 불일치 수정 참고), 테스트 데이터 정리가 필요할 때만 켜서 기한이
+   지나 숨어 있던 신청까지 불러와 [취소] 버튼으로 정리할 수 있게 합니다. */
+.admin-toggle-row {
+  display: flex; align-items: flex-start; gap: 8px; margin: -8px 0 16px;
+  font-size: 12.5px; color: var(--ink-sub); cursor: pointer; word-break: keep-all;
+}
+.admin-toggle-row input[type="checkbox"] { margin-top: 2px; flex: none; accent-color: var(--sage-500); cursor: pointer; }
 .admin-count {
   flex: none;
   padding: 3px 11px;
@@ -227,6 +359,32 @@ button { font-family: inherit; cursor: pointer; }
   transition: transform .2s ease;
 }
 .admin-showmore-btn[aria-expanded="true"] .admin-showmore-chevron { transform: rotate(180deg); }
+
+/* 서버 페이지네이션용 '더보기' 버튼(오늘의 케어 신청/취소된 신청 내역 공용) — 펼치기/접기용 위
+   .admin-showmore-btn 과 같은 텍스트 톤을 쓰되, 매 클릭이 실제 서버 요청이라는 걸 알 수 있게
+   테두리를 둘러 버튼처럼 보이게 합니다. */
+.admin-showmore-btn.is-pagination {
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  padding: 10px 0;
+}
+.admin-showmore-btn.is-pagination:disabled {
+  opacity: .7;
+  cursor: default;
+}
+.admin-spinner {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: admin-spin .7s linear infinite;
+}
+@keyframes admin-spin {
+  to { transform: rotate(360deg); }
+}
 .admin-loading,
 .admin-empty {
   padding: 32px 16px;
@@ -244,6 +402,16 @@ button { font-family: inherit; cursor: pointer; }
   color: var(--danger);
   font-size: 13.5px;
   line-height: 1.6;
+}
+/* 모달 안의 읽기 전용 요약 값(현재 결제액/환불 예정 금액 등) — input 처럼 보이지 않게 일반 텍스트로 */
+.admin-info-text {
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--sage-50);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
 }
 .admin-error button {
   margin-top: 8px;
@@ -264,6 +432,13 @@ button { font-family: inherit; cursor: pointer; }
   border: 1px solid var(--card-border);
   border-radius: var(--radius-sm);
   background: #fff;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+/* '현장 이슈 접수' 카드의 [해당 케어 보기] → scrollToInProgressCareRow() 가 스크롤 이동 후 잠깐
+   덧씌우는 강조 테두리. */
+.admin-row.is-highlighted {
+  border-color: var(--sage-500);
+  box-shadow: 0 0 0 3px rgba(120, 134, 107, .25);
 }
 .admin-row-head {
   display: flex;
@@ -309,23 +484,50 @@ button { font-family: inherit; cursor: pointer; }
 .admin-badge.is-pending { background: var(--earth-bg); color: var(--earth-fg); }
 .admin-badge.is-verified { background: #ECFDF5; color: #047857; }
 .admin-badge.is-neutral { background: #F1F5F9; color: #334155; }
+/* 선택 추가 옵션(긴급 매칭/차량 이동 지원) — 상태 배지와 헷갈리지 않도록 보라 계열로 구분 */
+.admin-badge.is-addon { background: #F3E8FF; color: #6D28D9; }
 /* 결제 상태 태그: 입금 대기(주의) / 결제 완료(완료) — '오늘의 케어 신청 · 수동 배정' 목록 */
 .admin-badge.is-payment-pending { background: #FEF3C7; color: #92400E; }
 .admin-badge.is-payment-done { background: #ECFDF5; color: #047857; }
+/* 패키지(선결제 회차권) 차감으로 접수된 건 — 결제 상태 배지 자리에 대신 표시, 일반 결제와 구분되는
+   남색 계열(선택 추가 옵션의 보라색 is-addon과도 구분) */
+.admin-badge.is-package { background: #E0E7FF; color: #3730A3; }
+/* '경과' 뱃지 — 신청 시각 기준 48시간이 지난 건을 신규 신청과 시각적으로 구분(노란색/주황색 계열) */
+.admin-badge.is-overdue { background: #FEF3C7; color: #92400E; }
+/* 취소된 신청(service_applications.status = 'CANCELLED') — 다른 '취소' 액션(.admin-btn.is-danger,
+   경과일 위험 등급 is-dayago-danger)과 같은 danger 팔레트를 그대로 재사용합니다. */
+.admin-badge.is-cancelled { background: #FDF1EF; color: var(--danger); }
+/* 취소 상세 상태(admin.js renderCancelledApplicationRow) — '취소됨' 하나로는 환불 여부를 알 수 없어서
+   세 가지를 색으로 구분합니다: 48시간 자동취소(주황/경고) · 환불 완료(초록, is-verified/is-payment-done과
+   같은 팔레트) · 수동 취소인데 아직 PG 환불이 확인되지 않은 건(회색 바탕 + 주의 텍스트로 "그냥 취소"와도,
+   "이미 끝남"과도 다르게). */
+.admin-badge.is-auto-expired { background: #FFF7ED; color: #C2410C; }
+.admin-badge.is-refunded { background: #ECFDF5; color: #047857; }
+.admin-badge.is-manual-unrefunded { background: #F3F4F6; color: #92400E; }
 .admin-badge-group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex: none; }
-/* 배정 완료(진행 중) 케어 현황판의 단계 배지: 배정됨 → 출발 → 도착 순으로 진해짐 */
-.admin-badge.is-assigned { background: #EFF6FF; color: #1D4ED8; }
-.admin-badge.is-departed { background: #FFF7ED; color: #C2410C; }
-.admin-badge.is-arrived  { background: #F0FDF4; color: #15803D; }
+/* 배정 완료(진행 중) 케어 현황판의 단계 배지: 배정됨 → 출발 → 도착 → 진료/대행 완료 → 귀가 이동 순으로
+   (파랑 → 주황 → 초록 계열이 점점 짙어짐), 케어 완료(is-completed, 379행 근처)에서 중립 회색으로 톤다운됩니다. */
+.admin-badge.is-assigned       { background: #EFF6FF; color: #1D4ED8; }
+.admin-badge.is-departed       { background: #FFF7ED; color: #C2410C; }
+.admin-badge.is-arrived        { background: #F0FDF4; color: #15803D; }
+.admin-badge.is-treatment_done { background: #DCFCE7; color: #15803D; }
+.admin-badge.is-returning      { background: #BBF7D0; color: #166534; }
+
+/* 신청일 기준 경과일 태그 — 3일 이상 주황(경고), 7일 이상 빨강(위험) */
+.admin-badge.is-dayago-normal  { background: #F1F5F9; color: #334155; }
+.admin-badge.is-dayago-warn    { background: #FFF7ED; color: #C2410C; }
+.admin-badge.is-dayago-danger  { background: #FDF1EF; color: var(--danger); }
 
 /* 행 안의 액션 영역(수동 배정 등) */
 .admin-row-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   padding-top: 10px;
   border-top: 1px solid var(--card-border);
 }
+.admin-row-actions .admin-btn { flex: 1 1 100px; }
 .admin-btn {
   display: inline-flex;
   align-items: center;
@@ -415,6 +617,11 @@ button { font-family: inherit; cursor: pointer; }
 }
 .admin-select:focus { outline: none; border-color: var(--sage-500); box-shadow: 0 0 0 3px rgba(120, 134, 107, .18); }
 .admin-select:disabled { opacity: .6; cursor: not-allowed; }
+/* 추가 요금 청구 모달처럼 <select> 가 아니라 <input> 에 .admin-select 를 재사용하는 곳 — 포인터 커서는
+   드롭다운에만 맞는 모양이라 텍스트 입력에서는 원래 커서로 되돌립니다. */
+input.admin-select { cursor: text; }
+textarea.admin-select { cursor: text; resize: vertical; min-height: 72px; }
+.admin-select + .admin-field-label { margin-top: 14px; }
 .modal .admin-error { margin-top: 10px; }
 
 .idcard-mask-hint {
@@ -466,9 +673,10 @@ button { font-family: inherit; cursor: pointer; }
 .modal-actions .admin-btn { flex: 1; }
 
 /* ---------- 현장 인증 상세보기 (배정 완료 케어 현황 카드) ---------- */
-.admin-row-actions.is-verify { justify-content: space-between; }
+.admin-row-actions.is-verify { flex-wrap: wrap; justify-content: space-between; row-gap: 8px; }
 .admin-row-actions.is-verify .admin-btn { flex: none; }
 .admin-badge.is-done { background: #ECFDF5; color: #047857; }
+.admin-badge.is-completed { background: #F1F5F9; color: #334155; }
 
 .verify-modal { max-width: 480px; }
 .verify-section { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--card-border); }
@@ -533,6 +741,82 @@ button { font-family: inherit; cursor: pointer; }
   transition: background-color .15s;
 }
 .verify-lightbox-close:hover { background: rgba(255, 255, 255, .28); }
+
+/* ---------- 매니저 정산(월별) 표 ---------- */
+.admin-settlement-table-wrap { overflow-x: auto; } /* 좁은 화면에서 표가 카드 밖으로 넘치지 않고 가로 스크롤 */
+.admin-settlement-table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 560px; }
+.admin-settlement-table th,
+.admin-settlement-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--card-border);
+  text-align: right;
+  white-space: nowrap;
+}
+.admin-settlement-table th:first-child,
+.admin-settlement-table td:first-child { text-align: left; }
+.admin-settlement-table thead th {
+  font-weight: 700;
+  color: var(--ink-sub);
+  background: var(--sage-50);
+}
+.admin-settlement-table tbody tr:last-child td { border-bottom: none; }
+.admin-settlement-table tbody td.admin-loading,
+.admin-settlement-table tbody td.admin-empty { text-align: center; white-space: normal; }
+.admin-settlement-table .settle-manager-name { font-weight: 700; color: var(--ink); }
+.admin-settlement-table .settle-manager-phone { display: block; margin-top: 2px; font-size: 12px; font-weight: 400; color: var(--ink-sub); }
+.admin-settlement-table .settle-net { font-weight: 700; color: var(--sage-600); }
+.admin-settlement-table tfoot td {
+  padding: 12px 14px;
+  border-top: 2px solid var(--card-border);
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--sage-50);
+}
+
+/* ---------- 매니저 정산(월별) 표 ---------- */
+.admin-settlement-table-wrap { overflow-x: auto; } /* 좁은 화면에서 표가 카드 밖으로 넘치지 않고 가로 스크롤 */
+.admin-settlement-table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 560px; }
+.admin-settlement-table th,
+.admin-settlement-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--card-border);
+  text-align: right;
+  white-space: nowrap;
+}
+.admin-settlement-table th:first-child,
+.admin-settlement-table td:first-child { text-align: left; }
+.admin-settlement-table thead th {
+  font-weight: 700;
+  color: var(--ink-sub);
+  background: var(--sage-50);
+}
+.admin-settlement-table tbody tr:last-child td { border-bottom: none; }
+.admin-settlement-table tbody td.admin-loading,
+.admin-settlement-table tbody td.admin-empty { text-align: center; white-space: normal; }
+.admin-settlement-table .settle-manager-name { font-weight: 700; color: var(--ink); }
+.admin-settlement-table .settle-manager-phone { display: block; margin-top: 2px; font-size: 12px; font-weight: 400; color: var(--ink-sub); }
+.admin-settlement-table .settle-net { font-weight: 700; color: var(--sage-600); }
+.admin-settlement-table tfoot td {
+  padding: 12px 14px;
+  border-top: 2px solid var(--card-border);
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--sage-50);
+}
+.admin-settlement-table tbody tr.is-clickable { cursor: pointer; }
+.admin-settlement-table tbody tr.is-clickable:hover { background: var(--earth-bg); }
+.settle-detail-btn { padding: 6px 12px; font-size: 12.5px; }
+
+/* 정산 상세 내역 모달 — 4개 컬럼(서비스/일시/결제금액/정산금)이 들어가는 표라 기본 모달(480px)보다
+   넓게 씁니다. */
+.settlement-detail-modal { max-width: 640px; }
+.settlement-detail-table { min-width: 0; }
+.settlement-detail-table .detail-cat { font-weight: 700; color: var(--ink); }
+.settlement-detail-table .detail-datetime-sub { display: block; margin-top: 2px; font-size: 11.5px; font-weight: 400; color: var(--ink-sub); }
+.settlement-detail-table .detail-payout { font-weight: 700; color: var(--sage-600); }
+.settlement-detail-table td.detail-review { text-align: left; white-space: normal; max-width: 220px; }
+.settlement-detail-table .detail-stars { display: block; color: #F5B942; letter-spacing: 1px; }
+.settlement-detail-table .detail-review-text { display: block; margin-top: 3px; font-size: 12px; font-weight: 400; color: var(--ink-sub); word-break: keep-all; }
 
 /* ---------- 토스트 ---------- */
 .admin-toast {

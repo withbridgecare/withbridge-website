@@ -34,7 +34,7 @@
 
   // ---------- 스타일 (카드형 드롭다운 + 로그인 헤더 깜빡임 방지) ----------
   // 레퍼런스 디자인(둥근 카드 안에 카드가 겹친 구조 · backdrop-blur · 모드 전환 뱃지 · 레드 로그아웃)을
-  // React/shadcn 없이 순수 CSS 클래스로 재현합니다. 색상은 이 사이트의 기존 브랜드 그린(#556B2F 계열)을 그대로 씁니다.
+  // React/shadcn 없이 순수 CSS 클래스로 재현합니다. 색상은 이 사이트의 메인 브랜드 그린(#2D6A4F 계열)을 그대로 씁니다.
   var style = document.createElement('style');
   style.textContent =
     // 바깥 패널: rounded-3xl + backdrop-blur 카드
@@ -42,26 +42,24 @@
     'padding:6px;background:rgba(249,250,251,.92);border:1px solid #F1F1F1;border-radius:24px;' +
     'box-shadow:0 20px 45px rgba(15,23,42,.16);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:100}' +
     // 안쪽 섹션 카드(프로필 / 메뉴 / 로그아웃) 3장이 겹쳐 보이는 구조
-    '.wb-dd-card{background:#fff;border:1px solid #F1F1F1;border-radius:16px;box-shadow:0 1px 2px rgba(15,23,42,.04);padding:10px}' +
-    '.wb-dd-card + .wb-dd-card{margin-top:6px}' +
+    '.wb-dd-card{background:#fff;border:1px solid #F1F1F1;border-radius:16px;box-shadow:0 1px 2px rgba(15,23,42,.04);padding:12px}' +
+    '.wb-dd-card + .wb-dd-card{margin-top:10px}' +
     // 프로필 카드 상단: 아바타 + 이름/역할
     '.wb-dd-profile-top{display:flex;align-items:center;gap:10px;padding:2px 2px 10px;min-width:0}' +
     '.wb-dd-avatar{flex:none;width:40px;height:40px;border-radius:50%;overflow:hidden;border:1px solid #F1F1F1;background:#F3F4F6}' +
     '.wb-dd-avatar img{width:100%;height:100%;object-fit:cover;display:block}' +
     '.wb-dd-name{margin:0;font-size:14px;font-weight:700;color:#111827;word-break:keep-all}' +
     '.wb-dd-role{margin:2px 0 0;font-size:12px;color:#8B95A1}' +
-    // 모드 전환 버튼: 은은한 그린 배경 카드 + 좌측 아이콘/라벨, 우측 솔리드 뱃지
-    '.wb-mode-item{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;box-sizing:border-box;' +
-    'padding:9px 10px;border:1px solid #E4EBDF;border-radius:12px;background:#F1F5F0;cursor:pointer;transition:background-color .15s}' +
+    // 모드 전환 버튼: 뱃지를 없앤 대신 영역 전체 폭을 쓰고, 안쪽 여백/아이콘-텍스트 간격을 넉넉히 둡니다
+    // (현재 역할은 바로 위 프로필의 .wb-dd-role 에 이미 표시되므로 여기서는 전환 동작만 보여줍니다)
+    '.wb-mode-item{display:flex;align-items:center;width:100%;box-sizing:border-box;' +
+    'padding:14px 16px;border:1px solid #E4EBDF;border-radius:12px;background:#F1F5F0;cursor:pointer;transition:background-color .15s}' +
     '.wb-mode-item:hover{background:#E5EBDD}' +
     '.wb-mode-item:focus-visible,.wb-dd-item:focus-visible{outline:3px solid rgba(85,107,47,.45);outline-offset:1px}' +
-    '.wb-mode-left{display:flex;align-items:center;gap:8px;min-width:0;font-size:12.5px;font-weight:700;color:#3F4B36}' +
+    '.wb-mode-left{display:flex;align-items:center;gap:14px;min-width:0;font-size:13.5px;font-weight:600;color:#374151}' +
     '.wb-mode-left span:last-child{word-break:keep-all}' +
-    '.wb-mode-icon{flex:none;display:inline-flex;color:#5B7052}' +
-    '.wb-mode-icon svg{display:block;width:16px;height:16px}' +
-    '.wb-mode-badge{flex:none;padding:3px 9px;border-radius:9999px;font-size:10.5px;font-weight:700;color:#fff;white-space:nowrap}' +
-    '.wb-mode-badge.is-manager{background:#556B2F}' +
-    '.wb-mode-badge.is-guardian{background:#2563EB}' +
+    '.wb-mode-icon{flex:none;display:inline-flex;color:#6B7280}' +
+    '.wb-mode-icon svg{display:block;width:18px;height:18px}' +
     // 메뉴/로그아웃 항목 공통: 아이콘 + 라벨, 로그아웃만 is-danger 로 레드 포인트
     '.wb-dd-item{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;padding:10px;border:none;' +
     'border-radius:12px;background:transparent;font-family:"Noto Sans KR",sans-serif;font-size:13px;font-weight:600;' +
@@ -71,6 +69,10 @@
     '.wb-dd-item.is-danger{color:#DC2626}' +
     '.wb-dd-item.is-danger svg{color:#EF4444}' +
     '.wb-dd-item.is-danger:hover{background:#FEF2F2}' +
+    // '어드민 콘솔' 같은 권한부 항목을 감출 때 전용 클래스. HTML hidden 속성은 author stylesheet 의
+    // .wb-dd-item{display:flex}(위) 나 드로어 버전의 인라인 style="display:flex" 보다 캐스케이드 우선순위가
+    // 낮아 쉽게 뚫립니다(실제로 일반 계정에 어드민 링크가 보인 원인) — !important 로 두 경우를 모두 이깁니다.
+    '.wb-hidden{display:none!important}' +
     'html.wb-auth-pending .auth-buttons{visibility:hidden}';
   document.head.appendChild(style);
 
@@ -159,10 +161,12 @@
   }
 
   // 드롭다운의 '어드민 콘솔' 항목을 보이거나 숨김 (확인이 끝난 뒤 호출)
+  // 데스크톱 드롭다운과 모바일 드로어 양쪽에 있을 수 있으므로(.wb-admin-link), 찾은 모든 인스턴스를 갱신합니다.
   function fillAdminLink() {
-    var link = document.getElementById('wbAdminLink');
-    if (!link || knownIsAdmin === null) return;
-    link.hidden = !knownIsAdmin;
+    if (knownIsAdmin === null) return; // 확인 전(또는 실패)에는 손대지 않음 → 기본 .wb-hidden 이 그대로 유지됨
+    Array.prototype.forEach.call(document.querySelectorAll('.wb-admin-link'), function (link) {
+      link.classList.toggle('wb-hidden', !knownIsAdmin);
+    });
   }
 
   // 모드 전환 항목의 아이콘: 서로 맞물린 두 화살표(repeat) 선 아이콘. 색은 부모의 color(브랜드 그린)를 따라갑니다.
@@ -194,7 +198,8 @@
     if (opts.id) el.id = opts.id;
     el.className = 'wb-dd-item' + (opts.danger ? ' is-danger' : '');
     el.setAttribute('role', 'menuitem');
-    if (opts.hidden) el.hidden = true;
+    // hidden 속성 대신 .wb-hidden(!important) 클래스를 씀 — 위 스타일 주석 참고
+    if (opts.hidden) el.classList.add('wb-hidden');
     var icon = document.createElement('span');
     icon.setAttribute('aria-hidden', 'true');
     icon.innerHTML = opts.icon;
@@ -227,56 +232,56 @@
   // 드롭다운의 '모드 전환' 영역을 채움 (확인이 끝난 뒤, 그리고 다른 탭에서 역할이 바뀔 때 다시 호출)
   // managers 에 등록된 사용자에게는 localStorage 값과 상관없이 항상 보이고(certification_verified 여부와도 무관),
   // 그 외(일반 회원 · 확인 중 · 확인 실패)에는 영역 전체를 숨깁니다.
+  // 데스크톱 드롭다운과 모바일 드로어 양쪽에 같은 역할의 요소(.wb-mode-section 등)가 있을 수 있으므로,
+  // 찾은 모든 인스턴스를 같은 내용으로 채웁니다.
   function fillModeSection() {
-    var sec = document.getElementById('wbModeSection');
-    if (!sec || knownIsManager === null) return;
-    sec.textContent = '';
-    var mp = document.getElementById('wbMyPageLink');
-    var roleEl = document.getElementById('wbDdRole');
-
-    if (!knownIsManager) {
-      sec.hidden = true;
-      if (mp) mp.href = GUARDIAN_PAGE;
-      if (roleEl) roleEl.textContent = '보호자 계정';
-      return;
-    }
+    var secs = document.querySelectorAll('.wb-mode-section');
+    if (!secs.length || knownIsManager === null) return;
 
     var here = currentRole();
     var target = here === 'manager' ? 'guardian' : 'manager';
-    if (roleEl) roleEl.textContent = here === 'manager' ? '케어 매니저' : '보호자 모드';
 
-    var el = document.createElement('button');
-    el.type = 'button';
-    el.className = 'wb-mode-item';
-    el.setAttribute('role', 'menuitem');
-    el.addEventListener('click', function () { switchMode(target); });
-
-    var left = document.createElement('span');
-    left.className = 'wb-mode-left';
-    var iconEl = document.createElement('span');
-    iconEl.className = 'wb-mode-icon';
-    iconEl.setAttribute('aria-hidden', 'true');
-    iconEl.innerHTML = SWITCH_ICON_SVG; // 고정된 정적 SVG 문자열 (사용자 입력이 들어가지 않음)
-    var labelEl = document.createElement('span');
-    labelEl.textContent = target === 'manager' ? '케어 매니저 모드로 전환' : '보호자 모드로 전환';
-    left.appendChild(iconEl);
-    left.appendChild(labelEl);
-
-    var badgeEl = document.createElement('span');
-    badgeEl.className = 'wb-mode-badge ' + (here === 'manager' ? 'is-manager' : 'is-guardian');
-    badgeEl.textContent = here === 'manager' ? '현재 매니저 모드' : '현재 보호자 모드';
-
-    el.appendChild(left);
-    el.appendChild(badgeEl);
-    sec.appendChild(el);
-    sec.hidden = false;
-
+    Array.prototype.forEach.call(document.querySelectorAll('.wb-dd-role'), function (roleEl) {
+      roleEl.textContent = !knownIsManager ? '보호자 계정' : (here === 'manager' ? '케어 매니저' : '보호자 모드');
+    });
     // '마이페이지' 링크도 지금 역할의 화면으로
-    if (mp) mp.href = here === 'manager' ? MANAGER_PAGE : GUARDIAN_PAGE;
+    Array.prototype.forEach.call(document.querySelectorAll('.wb-mypage-link'), function (mp) {
+      mp.href = !knownIsManager ? GUARDIAN_PAGE : (here === 'manager' ? MANAGER_PAGE : GUARDIAN_PAGE);
+    });
+
+    Array.prototype.forEach.call(secs, function (sec) {
+      sec.textContent = '';
+      if (!knownIsManager) { sec.hidden = true; return; }
+
+      var el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'wb-mode-item';
+      el.setAttribute('role', 'menuitem');
+      el.addEventListener('click', function () { switchMode(target); });
+
+      var left = document.createElement('span');
+      left.className = 'wb-mode-left';
+      var iconEl = document.createElement('span');
+      iconEl.className = 'wb-mode-icon';
+      iconEl.setAttribute('aria-hidden', 'true');
+      iconEl.innerHTML = SWITCH_ICON_SVG; // 고정된 정적 SVG 문자열 (사용자 입력이 들어가지 않음)
+      var labelEl = document.createElement('span');
+      labelEl.textContent = target === 'manager' ? '케어 매니저 모드로 전환' : '보호자 모드로 전환';
+      left.appendChild(iconEl);
+      left.appendChild(labelEl);
+
+      // '현재 매니저/보호자 모드' 뱃지는 제거했습니다 — 바로 위 프로필 이름 아래(.wb-dd-role)에
+      // 이미 같은 정보가 표시되고 있어 중복이었습니다.
+      el.appendChild(left);
+      sec.appendChild(el);
+      sec.hidden = false;
+    });
   }
 
   // ---------- 헤더 렌더링 ----------
-  var loggedOutMarkup = null;
+  // .auth-buttons 클래스는 데스크톱 헤더(카드형 드롭다운)와 모바일 드로어(펼쳐진 목록, class 에
+  // wb-drawer-auth-buttons 도 함께 붙음) 양쪽에 있을 수 있어, 항상 전체를 찾아 같이 갱신합니다.
+  var loggedOutMarkupMap = new WeakMap(); // 컨테이너 엘리먼트 -> 로그아웃 상태의 원본 마크업
   var renderedKey = null;
 
   function whenReady(fn) {
@@ -284,7 +289,7 @@
     else fn();
   }
 
-  function getContainer() { return document.querySelector('.auth-buttons'); }
+  function getContainers() { return document.querySelectorAll('.auth-buttons'); }
 
   function closeMenu() {
     var menu = document.getElementById('profileMenu');
@@ -303,8 +308,8 @@
   }
 
   function renderLoggedIn(user) {
-    var container = getContainer();
-    if (!container) return;
+    var containers = getContainers();
+    if (!containers.length) return;
 
     var meta = user.user_metadata || {};
     var avatarUrl = meta.avatar_url || meta.picture || meta.profile_image || '';
@@ -314,13 +319,32 @@
     var name = meta.name || meta.full_name || meta.nickname || meta.preferred_username ||
                (user.email ? user.email.split('@')[0] : '회원');
 
-    // 같은 사용자/이미지라면 다시 그리지 않음 (토큰 갱신 때 열려 있는 드롭다운이 닫히지 않도록)
+    // 같은 사용자/이미지라면 다시 그리지 않음 (토큰 갱신 때 열려 있는 드롭다운이 닫히지 않도록) — 컨테이너별로 확인
     var key = user.id + '|' + avatarUrl + '|' + name;
-    if (renderedKey === key && document.getElementById('profileBtn')) return;
     renderedKey = key;
 
-    container.textContent = '';
+    Array.prototype.forEach.call(containers, function (container) {
+      if (container.dataset.wbRenderedKey === key) return; // 이미 같은 내용으로 그려져 있음
+      container.dataset.wbRenderedKey = key;
+      container.textContent = '';
+      if (container.classList.contains('wb-drawer-auth-buttons')) {
+        buildDrawerAuthUI(container, avatarUrl, name);
+      } else {
+        buildDropdownAuthUI(container, avatarUrl, name);
+      }
+    });
 
+    // managers 등록 여부 확인(서버) → 등록된 매니저면 '케어 매니저 모드로 전환' / '보호자 모드로 전환' 표시
+    knownIsManager = null;
+    startManagerCheck(user.id, key, 0);
+
+    // profiles.role 확인(서버) → 'admin' 이면 '어드민 콘솔' 링크 표시
+    knownIsAdmin = null;
+    startAdminCheck(user.id, key, 0);
+  }
+
+  // 데스크톱 헤더용: 아바타 버튼 + 카드형 드롭다운(모드 전환 · 마이페이지 · 어드민 콘솔 · 로그아웃)
+  function buildDropdownAuthUI(container, avatarUrl, name) {
     var wrap = document.createElement('div');
     wrap.style.cssText = 'position:relative;';
 
@@ -375,7 +399,6 @@
     nameEl.textContent = name + '님';
     var roleEl = document.createElement('p');
     roleEl.className = 'wb-dd-role';
-    roleEl.id = 'wbDdRole';
     roleEl.textContent = '회원';
     nameBlock.appendChild(nameEl);
     nameBlock.appendChild(roleEl);
@@ -386,16 +409,18 @@
 
     // 모드 전환 영역: managers 조회가 끝나기 전에는 숨겨 두었다가, 매니저로 확인되면 fillModeSection() 이 채웁니다
     var modeSec = document.createElement('div');
-    modeSec.id = 'wbModeSection';
+    modeSec.className = 'wb-mode-section';
     modeSec.hidden = true;
     profileCard.appendChild(modeSec);
 
     // ---- 2) 메뉴 카드: 마이페이지 / 어드민 콘솔(관리자만) ----
     var menuCard = document.createElement('section');
     menuCard.className = 'wb-dd-card';
-    var myPage = buildDdItem('a', { id: 'wbMyPageLink', href: GUARDIAN_PAGE, icon: USER_ICON_SVG, label: '마이페이지' });
+    var myPage = buildDdItem('a', { href: GUARDIAN_PAGE, icon: USER_ICON_SVG, label: '마이페이지' });
+    myPage.className += ' wb-mypage-link';
     // 어드민 콘솔: profiles.role 조회가 끝나기 전에는 숨겨 두었다가, 관리자로 확인되면 보입니다
-    var adminLink = buildDdItem('a', { id: 'wbAdminLink', href: ADMIN_PAGE, icon: SHIELD_ICON_SVG, label: '어드민 콘솔', hidden: true });
+    var adminLink = buildDdItem('a', { href: ADMIN_PAGE, icon: SHIELD_ICON_SVG, label: '어드민 콘솔', hidden: true });
+    adminLink.className += ' wb-admin-link';
     menuCard.appendChild(myPage);
     menuCard.appendChild(adminLink);
 
@@ -411,22 +436,77 @@
     wrap.appendChild(btn);
     wrap.appendChild(menu);
     container.appendChild(wrap);
-
-    // managers 등록 여부 확인(서버) → 등록된 매니저면 '케어 매니저 모드로 전환' / '보호자 모드로 전환' 표시
-    knownIsManager = null;
-    startManagerCheck(user.id, key, 0);
-
-    // profiles.role 확인(서버) → 'admin' 이면 '어드민 콘솔' 링크 표시
-    knownIsAdmin = null;
-    startAdminCheck(user.id, key, 0);
   }
 
+  // 모바일 드로어용: 토글 없이 항상 펼쳐진 목록으로 같은 정보(아바타·이름 · 모드 전환 · 마이페이지 ·
+  // 어드민 콘솔 · 로그아웃)를 보여줍니다. 데스크톱 드롭다운과 데이터 소스(managers/profiles 조회 결과)는
+  // 완전히 같고, fillModeSection()/fillAdminLink() 가 .wb-mode-section / .wb-admin-link 클래스로
+  // 이 안의 요소도 함께 갱신합니다.
+  function buildDrawerAuthUI(container, avatarUrl, name) {
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-direction:column;gap:6px;width:100%;';
+
+    var profileRow = document.createElement('div');
+    profileRow.style.cssText = 'display:flex;align-items:center;gap:8px;padding:2px 2px 8px;text-align:left;';
+    var avatar = document.createElement('div');
+    avatar.style.cssText = 'flex:none;width:30px;height:30px;border-radius:50%;overflow:hidden;border:1px solid #F1F1F1;background:#F3F4F6;';
+    var avatarImg = document.createElement('img');
+    avatarImg.alt = '프로필 이미지';
+    avatarImg.referrerPolicy = 'no-referrer';
+    avatarImg.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+    avatarImg.onerror = function () { avatarImg.onerror = null; avatarImg.src = DEFAULT_AVATAR; };
+    avatarImg.src = avatarUrl;
+    avatar.appendChild(avatarImg);
+
+    var nameBlock = document.createElement('div');
+    nameBlock.style.minWidth = '0';
+    var nameEl = document.createElement('p');
+    nameEl.style.cssText = 'margin:0;font-size:13.5px;font-weight:700;color:#374151;word-break:keep-all;';
+    nameEl.textContent = name + '님';
+    var roleEl = document.createElement('p');
+    roleEl.className = 'wb-dd-role';
+    roleEl.style.cssText = 'margin:2px 0 0;font-size:11.5px;color:#9CA3AF;';
+    roleEl.textContent = '회원';
+    nameBlock.appendChild(nameEl);
+    nameBlock.appendChild(roleEl);
+    profileRow.appendChild(avatar);
+    profileRow.appendChild(nameBlock);
+    wrap.appendChild(profileRow);
+
+    // 모드 전환 영역: managers 조회가 끝나기 전에는 숨겨 두었다가, 매니저로 확인되면 fillModeSection() 이 채웁니다
+    var modeSec = document.createElement('div');
+    modeSec.className = 'wb-mode-section';
+    modeSec.hidden = true;
+    wrap.appendChild(modeSec);
+
+    var myPage = buildDdItem('a', { href: GUARDIAN_PAGE, icon: USER_ICON_SVG, label: '마이페이지' });
+    myPage.className += ' wb-mypage-link wb-drawer-link';
+    myPage.style.cssText += 'display:flex;align-items:center;gap:8px;padding:9px 2px;font-size:13px;color:#6B7280;font-weight:600;';
+    wrap.appendChild(myPage);
+
+    // 어드민 콘솔: profiles.role 조회가 끝나기 전에는 숨겨 두었다가, 관리자로 확인되면 보입니다
+    var adminLink = buildDdItem('a', { href: ADMIN_PAGE, icon: SHIELD_ICON_SVG, label: '어드민 콘솔', hidden: true });
+    adminLink.className += ' wb-admin-link wb-drawer-link';
+    adminLink.style.cssText += 'display:flex;align-items:center;gap:8px;padding:9px 2px;font-size:13px;color:#6B7280;font-weight:600;';
+    wrap.appendChild(adminLink);
+
+    var logoutBtn = buildDdItem('button', { icon: LOGOUT_ICON_SVG, label: '로그아웃', danger: true, onClick: logout });
+    logoutBtn.className += ' wb-drawer-link';
+    logoutBtn.style.cssText += 'display:flex;align-items:center;gap:8px;padding:9px 2px;font-size:13px;';
+    wrap.appendChild(logoutBtn);
+
+    container.appendChild(wrap);
+  }
+
+  // 데스크톱/모바일 모든 .auth-buttons 컨테이너를 각자 원래의(로그아웃 상태) 마크업으로 되돌립니다.
   function renderLoggedOut() {
-    var container = getContainer();
-    if (!container) return;
-    if (document.getElementById('profileBtn') && loggedOutMarkup !== null) {
-      container.innerHTML = loggedOutMarkup;
-    }
+    Array.prototype.forEach.call(getContainers(), function (container) {
+      var original = loggedOutMarkupMap.get(container);
+      if (container.dataset.wbRenderedKey && original !== undefined) {
+        container.innerHTML = original;
+      }
+      delete container.dataset.wbRenderedKey;
+    });
     renderedKey = null;
     knownIsManager = null;        // 다음에 로그인하는 사람은 새로 확인
     knownIsAdmin = null;
@@ -439,8 +519,12 @@
       else renderLoggedOut();
       clearPending();
     });
-    // 로그인 세션이 확인되면(카카오 로그인 직후 포함) 비로그인으로 냈던 신청을 내 계정에 연결
-    if (session && session.user) claimPendingApplications();
+    if (session && session.user) {
+      // 로그인 세션이 확인되면(카카오 로그인 직후 포함) 비로그인으로 냈던 신청을 내 계정에 연결
+      claimPendingApplications();
+      // 로그인이 필요해서 login.html 로 보냈던 원래 목적지(예: apply.html)로 돌아감
+      consumePostLoginRedirect();
+    }
   }
 
   async function logout() {
@@ -466,10 +550,11 @@
   }
 
   // ---------- 초기화 ----------
-  // 로그아웃 상태의 원본 마크업을 먼저 보관 (whenReady 콜백은 등록 순서대로 실행되므로 applySession 보다 앞선다)
+  // 로그아웃 상태의 원본 마크업을 컨테이너별로 먼저 보관 (whenReady 콜백은 등록 순서대로 실행되므로 applySession 보다 앞선다)
   whenReady(function () {
-    var container = getContainer();
-    if (container && loggedOutMarkup === null) loggedOutMarkup = container.innerHTML;
+    Array.prototype.forEach.call(getContainers(), function (container) {
+      if (!loggedOutMarkupMap.has(container)) loggedOutMarkupMap.set(container, container.innerHTML);
+    });
   });
 
   // 드롭다운 바깥 클릭 / ESC 로 닫기
@@ -615,8 +700,186 @@
     if (e.key === MODE_KEY || LEGACY_MODE_KEYS.indexOf(e.key) !== -1 || e.key === null) fillModeSection();
   });
 
+  // ---------- 로그인이 필요한 버튼('예약하기' 등) 공용 처리 + 로그인 후 원래 목적지로 복귀 ----------
+  // 카카오 OAuth 는 redirectTo 가 index.html 로 고정돼 있어(login.html 의 Supabase 리다이렉트 URL 설정과 맞춰 둔 값)
+  // 로그인이 끝나면 늘 index.html 로 돌아옵니다. 그래서 원래 가려던 목적지(예: apply.html)는 이 브라우저 탭에만
+  // 남는 sessionStorage 에 잠깐 기억해 두고, index.html 에서 세션이 확인되는 순간(위 applySession) 그 쪽으로 한 번 더 이동시킵니다.
+  var POST_LOGIN_REDIRECT_KEY = 'wb_post_login_redirect';
+  // 사이트 안의 '파일명.html' 형태만 허용 — 외부 주소나 javascript: 등을 넣으면 로그인 후 다른 곳으로 보내는
+  // 열린 리다이렉트(open redirect)가 될 수 있어 막습니다
+  function isSafeLocalRedirect(target) {
+    return typeof target === 'string' && /^[A-Za-z0-9_-]+\.html(?:\?[^\s'"<>]*)?$/.test(target);
+  }
+  function rememberPostLoginRedirect(target) {
+    if (!isSafeLocalRedirect(target)) return;
+    try { sessionStorage.setItem(POST_LOGIN_REDIRECT_KEY, target); } catch (e) { /* 저장소를 쓸 수 없으면 무시 */ }
+  }
+  function consumePostLoginRedirect() {
+    var target = null;
+    try {
+      target = sessionStorage.getItem(POST_LOGIN_REDIRECT_KEY);
+      if (target) sessionStorage.removeItem(POST_LOGIN_REDIRECT_KEY);
+    } catch (e) { return; }
+    if (target && isSafeLocalRedirect(target)) navigate(target);
+  }
+
+  // ---------- 로그인 필요 안내 모달(alert() 대체) ----------
+  // alert() 은 '확인'만 누를 수 있어 곧바로 login.html 로 보내 버렸지만, 이 모달은 '취소'를 선택하면
+  // 아무 일도 일어나지 않게(페이지에 그대로 머물게) 해 실수로 로그인 페이지로 넘어가지 않도록 합니다.
+  var loginModalStyle = document.createElement('style');
+  loginModalStyle.textContent =
+    // 오버레이: bg-black/50 backdrop-blur-sm
+    '.wb-login-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);' +
+    '-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);display:flex;align-items:center;' +
+    'justify-content:center;padding:20px;z-index:2000}' +
+    '.wb-login-modal-overlay[hidden]{display:none}' +
+    // 카드: max-w-[360px] w-full, rounded-2xl, p-7, bg-white shadow-2xl
+    '.wb-login-modal-card{width:100%;max-width:360px;box-sizing:border-box;background:#fff;' +
+    'border-radius:16px;box-shadow:0 25px 50px -12px rgba(0,0,0,.25);padding:28px;text-align:center;' +
+    'font-family:"Noto Sans KR",sans-serif}' +
+    // 제목: text-lg font-bold text-gray-900 mb-2
+    '.wb-login-modal-title{margin:0 0 8px;font-size:18px;font-weight:700;color:#111827;line-height:1.4}' +
+    // 서브 문구: text-sm text-gray-500 mb-6
+    '.wb-login-modal-body{margin:0 0 24px;font-size:14px;color:#6B7280;line-height:1.5}' +
+    // 버튼 영역: grid grid-cols-2 gap-3 w-full
+    '.wb-login-modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%}' +
+    '.wb-login-modal-btn{border:none;border-radius:12px;padding:12px 0;font-size:14px;' +
+    'font-weight:500;cursor:pointer;font-family:inherit;transition:background-color .15s}' +
+    // 취소: bg-white border border-gray-200 text-gray-600, hover:bg-gray-50
+    '.wb-login-modal-cancel{background:#fff;border:1px solid #E5E7EB;color:#4B5563}' +
+    '.wb-login-modal-cancel:hover{background:#F9FAFB}' +
+    // 확인: 위드브릿지 메인 그린, hover 는 더 어두운 그린
+    '.wb-login-modal-confirm{background:#2D6A4F;color:#fff}' +
+    '.wb-login-modal-confirm:hover{background:#1B4332}' +
+    // 버튼 1개짜리 모달(전화 상담 안내)용 — 2열 그리드 대신 꽉 찬 1열
+    '.wb-login-modal-actions.is-single{grid-template-columns:1fr}' +
+    // 전화번호: 큰 글씨 + bold
+    '.wb-login-modal-phone{margin:0 0 6px;font-size:26px;font-weight:800;color:#1B4332;letter-spacing:-.01em}' +
+    // 운영 시간 안내
+    '.wb-login-modal-hours{margin:0 0 24px;font-size:13.5px;color:#6B7280;line-height:1.5}';
+  document.head.appendChild(loginModalStyle);
+
+  var loginModalEl = null;
+  var loginModalTarget = null;
+
+  function hideLoginModal() {
+    if (loginModalEl) loginModalEl.hidden = true;
+    document.removeEventListener('keydown', onLoginModalKeydown);
+  }
+  function onLoginModalKeydown(e) {
+    if (e.key === 'Escape') hideLoginModal();
+  }
+  function buildLoginModal() {
+    var overlay = document.createElement('div');
+    overlay.className = 'wb-login-modal-overlay';
+    overlay.hidden = true;
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.innerHTML =
+      '<div class="wb-login-modal-card">' +
+        '<p class="wb-login-modal-title">로그인이 필요해요</p>' +
+        '<p class="wb-login-modal-body">로그인 페이지로 이동할까요?</p>' +
+        '<div class="wb-login-modal-actions">' +
+          '<button type="button" class="wb-login-modal-btn wb-login-modal-cancel">취소</button>' +
+          '<button type="button" class="wb-login-modal-btn wb-login-modal-confirm">확인</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    // 배경(딤 처리된 바깥 영역) 클릭 시 닫기 — 카드 내부 클릭은 무시
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) hideLoginModal(); });
+    overlay.querySelector('.wb-login-modal-cancel').addEventListener('click', hideLoginModal);
+    overlay.querySelector('.wb-login-modal-confirm').addEventListener('click', function () {
+      var target = loginModalTarget;
+      hideLoginModal();
+      if (target) {
+        rememberPostLoginRedirect(target);
+        navigate('login.html?redirect=' + encodeURIComponent(target));
+      } else {
+        navigate('login.html');
+      }
+    });
+    return overlay;
+  }
+  // targetUrl 을 넘기면 '확인' 클릭 시 login.html?redirect=targetUrl 로 이동하고, 로그인 후 그 페이지로 되돌아옵니다.
+  // 생략하면 그냥 login.html 로만 이동합니다.
+  function showLoginModal(targetUrl) {
+    if (!loginModalEl) loginModalEl = buildLoginModal();
+    loginModalTarget = targetUrl || null;
+    loginModalEl.hidden = false;
+    document.addEventListener('keydown', onLoginModalKeydown);
+  }
+
+  // ---------- 전화 상담 안내 모달 ----------
+  // PC 에서 tel: 링크를 누르면 "앱 선택을 여시겠습니까?" 같은 브라우저 기본 시스템 팝업이 뜨는 문제를 피하려고,
+  // PC 에서는 tel: 이동 대신 번호/운영시간을 보여주는 안내 모달을 띄웁니다(모바일은 기존처럼 바로 전화 연결).
+  var CALL_PHONE_NUMBER = '010-5530-5760';
+  var CALL_HOURS_TEXT = '평일 08:00 ~ 18:00 (주말/공휴일 휴무)';
+  var callModalEl = null;
+
+  function hideCallModal() {
+    if (callModalEl) callModalEl.hidden = true;
+    document.removeEventListener('keydown', onCallModalKeydown);
+  }
+  function onCallModalKeydown(e) {
+    if (e.key === 'Escape') hideCallModal();
+  }
+  function buildCallModal() {
+    var overlay = document.createElement('div');
+    overlay.className = 'wb-login-modal-overlay';
+    overlay.hidden = true;
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.innerHTML =
+      '<div class="wb-login-modal-card">' +
+        '<p class="wb-login-modal-title">전화 상담 안내</p>' +
+        '<p class="wb-login-modal-phone">' + CALL_PHONE_NUMBER + '</p>' +
+        '<p class="wb-login-modal-hours">' + CALL_HOURS_TEXT + '</p>' +
+        '<div class="wb-login-modal-actions is-single">' +
+          '<button type="button" class="wb-login-modal-btn wb-login-modal-confirm">확인</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) hideCallModal(); });
+    overlay.querySelector('.wb-login-modal-confirm').addEventListener('click', hideCallModal);
+    return overlay;
+  }
+  function showCallModal() {
+    if (!callModalEl) callModalEl = buildCallModal();
+    callModalEl.hidden = false;
+    document.addEventListener('keydown', onCallModalKeydown);
+  }
+  // 모바일(실제 전화 연결이 되는 기기)이면 바로 tel: 로 이동시켜 전화 앱이 즉시 열리게 하고,
+  // PC 면 기본 동작을 막고 전화 상담 안내 모달을 띄웁니다. '전화 상담 문의' 버튼의 onclick 에서 씁니다.
+  function handlePhoneClick(event) {
+    if (event && event.preventDefault) event.preventDefault();
+    var isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile) {
+      location.href = 'tel:' + CALL_PHONE_NUMBER.replace(/[^0-9+]/g, '');
+    } else {
+      showCallModal();
+    }
+    return false;
+  }
+
+  // 로그인 상태면 targetUrl 로 바로 이동하고, 비로그인이면 안내 모달을 띄워 '확인'을 누르면 login.html?redirect=targetUrl 로 보내
+  // 로그인을 마치면 targetUrl 로 돌아오게 합니다. '예약하기' 류 버튼의 onclick 에서 공용으로 씁니다.
+  async function goIfLoggedIn(event, targetUrl) {
+    if (event && event.preventDefault) event.preventDefault();
+    try {
+      var res = await client.auth.getSession();
+      if (res && res.data && res.data.session && res.data.session.user) {
+        navigate(targetUrl);
+        return;
+      }
+    } catch (e) { /* 확인 실패 → 비로그인으로 간주해 로그인으로 보냄 */ }
+    showLoginModal(targetUrl);
+  }
+
   window.WBAuth = {
     client: client, logout: logout, checkIsManager: checkIsManager, checkIsAdmin: checkIsAdmin,
-    getUserMode: getUserMode, setUserMode: setUserMode, navigate: navigate, claimPendingApplications: claimPendingApplications, loggingOut: false
+    getUserMode: getUserMode, setUserMode: setUserMode, navigate: navigate, claimPendingApplications: claimPendingApplications,
+    rememberPostLoginRedirect: rememberPostLoginRedirect, goIfLoggedIn: goIfLoggedIn,
+    showLoginModal: showLoginModal, showCallModal: showCallModal, handlePhoneClick: handlePhoneClick,
+    loggingOut: false
   };
 })();

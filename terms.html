@@ -19,7 +19,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
   <!-- 사이트 머리글의 로그인 상태 표시용 (embed 모드에서는 머리글이 숨겨짐) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/js/auth-header.js?v=1.1" charset="utf-8"></script>
+  <script src="/js/auth-header.js?v=1.8" charset="utf-8"></script>
   <style>
     :root {
       --brand: #78866B; --brand-dark: #3B4B3C; --brand-soft: #F1F6F0; --brand-line: #E2ECE0;
@@ -48,7 +48,7 @@
     .tm-meta { margin: 0; font-size: 14px; color: var(--ink-sub); }
     .tm-meta b { color: var(--ink); }
     .tm-actions { display: flex; gap: 8px; flex-shrink: 0; }
-    .tm-btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border: 1.5px solid var(--accent); border-radius: 9999px; background: #fff; color: var(--accent-dark); font-size: 14px; font-weight: 700; cursor: pointer; transition: background .15s, color .15s; }
+    .tm-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 10px 18px; border: 1.5px solid var(--accent); border-radius: 9999px; background: #fff; color: var(--accent-dark); font-size: 14px; font-weight: 700; cursor: pointer; transition: background .15s, color .15s; box-sizing: border-box; }
     .tm-btn:hover { background: var(--accent); color: #fff; }
     .tm-btn.is-plain { border-color: #9AA3AF; color: #374151; }
     .tm-btn.is-plain:hover { background: #374151; border-color: #374151; color: #fff; }
@@ -125,6 +125,7 @@
       a { text-decoration: none; }
     }
   </style>
+  <link rel="stylesheet" href="/mobile-nav.css?v=1.0">
 </head>
 <body>
 
@@ -132,7 +133,7 @@
 <!-- ====================================================================
 00. 상단 롤링 띠배너 (폰트 12.5px / 높이 38px)
 ==================================================================== -->
-<div style="background-color: #78866B; color: #ffffff; font-size: 12.5px; font-weight: 500; height: 38px; overflow: hidden; position: relative; font-family: 'Noto Sans KR', sans-serif;">
+<div class="wb-top-banner" style="background-color: #78866B; color: #ffffff; font-size: 12.5px; font-weight: 500; height: 38px; overflow: hidden; position: relative; font-family: 'Noto Sans KR', sans-serif;">
   <div id="topBannerTrack" style="transition: transform 0.5s ease-in-out; width: 100%;">
     
     <!-- 문구 1 -->
@@ -151,7 +152,7 @@
 
     <!-- 문구 3 -->
     <div style="height: 38px; display: flex; align-items: center; justify-content: center; text-align: center;">
-      <a href="index.html#contact" style="color: #ffffff; text-decoration: none; letter-spacing: -0.2px;">
+      <a href="http://pf.kakao.com/_PKxemX" target="_blank" rel="noopener noreferrer" style="color: #ffffff; text-decoration: none; letter-spacing: -0.2px;">
         지금 문의하기로 간편하게 상담받기
       </a>
     </div>
@@ -181,7 +182,13 @@
 -->
 <!-- 상단 네비게이션 헤더 (독립된 login.html 이동 적용본) -->
 <header style="width: 100%; background-color: #ffffff; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 50; font-family: 'Noto Sans KR', sans-serif;">
-  <div style="max-width: 1380px; margin: 0 auto; padding: 12px 40px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: 24px;">
+  <div class="wb-header-row" style="max-width: 1380px; margin: 0 auto; padding: 12px 40px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: 24px;">
+
+    <!-- 모바일 전용 햄버거 버튼 -->
+    <button type="button" class="wb-mobile-toggle" id="wbMenuToggle" aria-label="메뉴 열기" aria-expanded="false" aria-controls="wbMobileDrawer" style="align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; border: none; background: transparent; cursor: pointer; justify-self: start;">
+      <svg id="wbMenuIconOpen" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1A1D21" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      <svg id="wbMenuIconClose" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1A1D21" stroke-width="2" stroke-linecap="round" style="display: none;"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
+    </button>
 
     <!-- 로고 영역 (클릭 시 메인 페이지로 이동하도록 index.html 적용) -->
     <a href="index.html" style="justify-self: start; display: flex; align-items: center; text-decoration: none; flex: none;">
@@ -189,8 +196,8 @@
     </a>
 
     <!-- 중앙 메뉴 링크 (소개 메뉴를 about.html로 연결) : 가운데 auto 칸에 놓여 좌우 1fr 칸이 같은 폭이라 항상 화면 정중앙에 옵니다 -->
-    <nav style="display: flex; align-items: center; gap: 18px; font-size: 14.5px; font-weight: 600; white-space: nowrap; flex-wrap: nowrap;">
-      <a href="about.html" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">소개</a>
+    <nav class="wb-desktop-nav" style="display: flex; align-items: center; gap: 18px; font-size: 14.5px; font-weight: 600; white-space: nowrap; flex-wrap: nowrap;">
+      <a href="story.html" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">소개</a>
       <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
       <a href="index.html#services" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">서비스</a>
       <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
@@ -202,9 +209,9 @@
     </nav>
 
     <!-- 우측 버튼 및 링크 영역 : 로그인/마이페이지 등은 옅은 회색 텍스트로, '예약하기'만 브랜드 컬러 버튼으로 강조해 위계를 대비 -->
-    <div style="justify-self: end; display: flex; align-items: center; gap: 18px; white-space: nowrap; flex-wrap: nowrap;">
+    <div class="wb-desktop-actions" style="justify-self: end; display: flex; align-items: center; gap: 18px; white-space: nowrap; flex-wrap: nowrap;">
       <div style="display: flex; align-items: center; gap: 12px; font-size: 13.5px; font-weight: 500; color: #6B7280;">
-        <a href="https://pf.kakao.com/_xjTdxaX/chat" target="_blank" rel="noopener noreferrer" style="color: #6B7280; text-decoration: none; transition: color 0.2s;">문의하기</a>
+        <a href="http://pf.kakao.com/_PKxemX" target="_blank" rel="noopener noreferrer" style="color: #6B7280; text-decoration: none; transition: color 0.2s;">문의하기</a>
         <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 12px; background-color: #E2E4E8;"></span>
         <!-- 💡 class="auth-buttons" 추가됨: 자바스크립트가 이 영역을 찾아 로그인 시 '로그아웃'으로 바꿉니다 -->
         <div class="auth-buttons" style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 500; color: #6B7280; white-space: nowrap;">
@@ -215,11 +222,44 @@
       </div>
 
       <!-- 예약하기 버튼 (핵심 액션, 브랜드 세이지그린으로 강조) -->
-      <a href="apply.html" style="flex: none; display: inline-block; padding: 10px 22px; background-color: #8FA482; color: #ffffff; border-radius: 9999px; font-size: 14.5px; font-weight: 700; text-decoration: none; box-shadow: 0 4px 14px rgba(143, 164, 130, 0.35); transition: background-color 0.2s, transform 0.2s;">예약하기</a>
+      <a href="apply.html" onclick="window.WBAuth && window.WBAuth.goIfLoggedIn(event, 'apply.html')" style="flex: none; display: inline-block; padding: 10px 22px; background-color: #8FA482; color: #ffffff; border-radius: 9999px; font-size: 14.5px; font-weight: 700; text-decoration: none; box-shadow: 0 4px 14px rgba(143, 164, 130, 0.35); transition: background-color 0.2s, transform 0.2s;">예약하기</a>
     </div>
+
+    <!-- 모바일 전용 예약하기 버튼 -->
+    <a href="apply.html" class="wb-mobile-cta" onclick="window.WBAuth && window.WBAuth.goIfLoggedIn(event, 'apply.html')" style="justify-self: end; padding: 8px 16px; background-color: #8FA482; color: #ffffff; border-radius: 9999px; font-size: 13.5px; font-weight: 700; text-decoration: none; white-space: nowrap;">예약하기</a>
 
   </div>
 </header>
+
+<!-- 모바일 드로어 메뉴 (768px 이하에서 햄버거 버튼으로 열림). site-chrome 안에 두어 ?embed=1 팝업/인쇄 시 함께 숨겨집니다 -->
+<div class="wb-drawer-overlay" id="wbDrawerOverlay"></div>
+<aside class="wb-drawer" id="wbMobileDrawer" role="dialog" aria-modal="true" aria-label="모바일 메뉴" aria-hidden="true">
+  <div class="wb-drawer-topbar" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #F0F1F3; flex: none;">
+    <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
+      <img src="/images/withbridge-logo.png" alt="위드브릿지 로고" style="height: 32px; width: auto; display: block; object-fit: contain;" />
+    </a>
+    <button type="button" id="wbDrawerClose" aria-label="메뉴 닫기" style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: none; background: transparent; cursor: pointer;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1D21" stroke-width="2" stroke-linecap="round"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
+    </button>
+  </div>
+  <nav style="display: flex; flex-direction: column; padding: 10px 16px; gap: 2px; font-family: 'Noto Sans KR', sans-serif;">
+    <a href="story.html" class="wb-drawer-link">소개</a>
+    <a href="index.html#services" class="wb-drawer-link">서비스</a>
+    <a href="index.html#notice" class="wb-drawer-link">공지사항</a>
+    <a href="index.html#reviews" class="wb-drawer-link">고객후기</a>
+    <a href="index.html#faq" class="wb-drawer-link">자주 묻는 질문(FAQ)</a>
+    <a href="http://pf.kakao.com/_PKxemX" target="_blank" rel="noopener noreferrer" class="wb-drawer-link">문의하기</a>
+  </nav>
+  <div style="padding: 18px 20px 24px; border-top: 1px solid #F0F1F3; display: flex; flex-direction: column; gap: 14px; flex: none; font-family: 'Noto Sans KR', sans-serif;">
+    <div class="auth-buttons wb-drawer-auth-buttons" style="display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 14.5px; font-weight: 500; color: #6B7280;">
+      <a href="login.html" style="color: #6B7280; text-decoration: none;">로그인</a>
+      <span style="color: #d1d5db;">|</span>
+      <a href="login.html" style="color: #6B7280; text-decoration: none;">회원가입</a>
+    </div>
+  </div>
+</aside>
+
+<script src="/js/mobile-nav.js?v=1.0" defer></script>
 </div>
 
   <main class="tm-main">
@@ -252,7 +292,7 @@
             <li><a href="#art-5"><span class="n">제5조</span> 요금 및 결제</a></li>
             <li><a href="#art-6"><span class="n">제6조</span> 취소 및 환불 규정 <span class="star">★</span></a></li>
             <li><a href="#art-7"><span class="n">제7조</span> 서비스 제공 거부 및 중단</a></li>
-            <li><a href="#art-8"><span class="n">제8조</span> 손해배상 및 배상책임보험</a></li>
+            <li><a href="#art-8"><span class="n">제8조</span> 손해배상</a></li>
             <li><a href="#art-9"><span class="n">제9조</span> 면책 조항</a></li>
             <li><a href="#art-10"><span class="n">제10조</span> 개인정보 및 건강정보 보호</a></li>
             <li><a href="#art-11"><span class="n">제11조</span> 분쟁 해결</a></li>
@@ -317,14 +357,14 @@
         <section class="art" id="art-5">
           <h2><span class="no">제5조</span> 요금 및 결제</h2>
           <!-- [요금표] index.html 의 '이용 요금 안내'와 같은 값입니다. 요금을 바꾸면 이 표도 함께 고쳐 주세요. -->
-          <p class="cl"><span class="no">①</span>서비스의 기본 요금(2시간 기준)과 초과 요금(30분당)은 플랫폼의 ‘이용 요금 안내’에 게시한 바에 따르며, 이 약관 시행일 현재 다음과 같습니다.</p>
+          <p class="cl"><span class="no">①</span>서비스의 기본 요금(2시간 기준, 정상가·첫 이용 할인가)과 초과 요금(30분당)은 플랫폼의 ‘이용 요금 안내’에 게시한 바에 따르며, 이 약관 시행일 현재 다음과 같습니다. 신규 회원의 첫 결제에는 5,000원 웰컴 쿠폰이 자동 적용되어 첫 이용 할인가로 결제됩니다.</p>
           <div class="tbl-wrap">
             <table>
               <thead><tr><th>서비스</th><th class="num">기본 요금 (2시간)</th><th class="num">초과 요금 (30분당)</th></tr></thead>
               <tbody>
-                <tr><td>시니어 병원 동행</td><td class="num">44,000원</td><td class="num">10,000원</td></tr>
-                <tr><td>생활 편의 대행</td><td class="num">36,000원</td><td class="num">8,500원</td></tr>
-                <tr><td>복합 매칭 서비스 (동행 + 생활편의)</td><td class="num">50,000원</td><td class="num">11,500원</td></tr>
+                <tr><td>시니어 병원 동행</td><td class="num">49,000원</td><td class="num">12,000원</td></tr>
+                <tr><td>생활 편의 대행</td><td class="num">42,000원</td><td class="num">10,000원</td></tr>
+                <tr><td>복합 매칭 서비스 (동행 + 생활편의)</td><td class="num">58,000원</td><td class="num">14,000원</td></tr>
               </tbody>
             </table>
           </div>
@@ -332,8 +372,8 @@
           <p class="cl"><span class="no">③</span>다음의 경우 아래의 <b>추가 요금</b>이 붙을 수 있으며, 예약 확정 시 안내해 드립니다.</p>
           <ol class="sub">
             <li>평일 주간(09:00~18:00) 외 <b>주말·공휴일·야간</b>(18:00~익일 09:00) 이용: 기본 요금의 20% 할증</li>
-            <li><b>케어 난이도 할증</b>(와상·휠체어 밀착 보조 필수, 중증 치매 돌봄, 수면 내시경 후 회복 동행 등): 회당 10,000원</li>
-            <li><b>전문 매니저 지정</b>(간호사·사회복지사·요양보호사 등 자격 소지 매니저 전담 지정): 회당 15,000원</li>
+            <li><b>긴급 매칭 서비스</b>(이용 24시간 이내 긴급 예약 요청): 10,000원</li>
+            <li><b>차량 이동 지원</b>(케어 매니저 자차 이동 지원 또는 보호자 차량 대리 운행): 10,000원</li>
             <li><b>실비</b>: 택시·버스·지하철 등 교통비와 병원 주차비는 이용자가 부담합니다(실비 청구).</li>
           </ol>
           <p class="cl"><span class="no">④</span><b>결제 시기 및 방법</b>: 예약 확정 후 회사가 안내하는 결제 수단(계좌이체 등)으로 기본 요금을 서비스 시작 전까지 결제하며, 초과 요금·추가 요금·실비는 서비스 종료 후 3영업일 이내에 정산합니다. <!-- [검토 필요] 선결제/후정산 방식과 정산 기한은 실제 운영 방식으로 확정 --></p>
@@ -385,12 +425,10 @@
 
         <!-- ================= 제8조 ================= -->
         <section class="art" id="art-8">
-          <h2><span class="no">제8조</span> 손해배상 및 배상책임보험</h2>
+          <h2><span class="no">제8조</span> 손해배상</h2>
           <p class="cl"><span class="no">①</span>회사 또는 케어매니저의 고의·과실로 이용자(어르신 포함)에게 손해가 발생한 경우 회사는 관계 법령과 이 약관에 따라 그 손해를 배상합니다.</p>
-          <!-- [검토 필요·중요] 아래 ②항은 회사가 실제로 배상책임보험에 가입해 있다는 전제입니다. 가입하지 않았다면 게시 전에 가입하거나 문구를 고치세요. 보험사·보장 한도를 확정해 고객센터 안내 자료를 준비하세요. -->
-          <p class="cl"><span class="no">②</span>회사는 동행 서비스 중 발생할 수 있는 사고에 대비하여 <b>배상책임보험에 가입</b>하고 이를 유지합니다. 가입 내용(보험사, 보장 범위 등)은 이용자가 고객센터에 문의하시면 안내해 드립니다.</p>
-          <p class="cl"><span class="no">③</span>사고가 발생한 경우 이용자는 즉시 회사에 알려야 하며, 회사는 사고 경위를 확인하고 보험 접수 등 필요한 절차를 지원합니다. 배상 범위와 금액은 사고의 경위, 과실의 정도, 보험 약관 등에 따라 정합니다. 다만, <b>회사의 고의 또는 중대한 과실로 발생한 손해</b>에 대하여는 보험 보장 한도와 관계없이 회사가 법령에 따라 책임을 집니다.</p>
-          <p class="cl"><span class="no">④</span>이용자 또는 어르신의 고의·과실로 케어매니저나 제3자에게 손해가 발생한 경우 이용자는 그 손해를 배상할 책임이 있습니다.</p>
+          <p class="cl"><span class="no">②</span>사고가 발생한 경우 이용자는 즉시 회사에 알려야 하며, 회사는 사고 경위를 확인하고 필요한 절차를 지원합니다. 단, <b>회사의 고의 또는 중대한 과실로 발생한 손해</b>에 대하여는 법령에 따라 책임을 집니다.</p>
+          <p class="cl"><span class="no">③</span>이용자 또는 어르신의 고의·과실로 케어매니저나 제3자에게 손해가 발생한 경우 이용자는 그 손해를 배상할 책임이 있습니다.</p>
         </section>
 
         <!-- ================= 제9조 ================= -->
@@ -447,7 +485,7 @@
                 <tr><th>사업자등록번호</th><td>등록 예정</td></tr>
                 <tr><th>통신판매업 신고번호</th><td>등록 예정</td></tr>
                 <tr><th>주소</th><td>인천광역시 남동구 소래역로 93 (906-201)</td></tr>
-                <tr><th>고객센터 전화</th><td><a href="tel:01058745760">010-5874-5760</a></td></tr>
+                <tr><th>고객센터 전화</th><td><a href="tel:01055305760">010-5530-5760</a></td></tr>
                 <tr><th>카카오톡 채널</th><td>@위드브릿지</td></tr>
                 <tr><th>이메일</th><td><a href="mailto:withbridge.care@gmail.com">withbridge.care@gmail.com</a></td></tr>
                 <tr><th>운영시간</th><td>평일 08:00 ~ 18:00 (주말·공휴일 휴무)</td></tr>
@@ -485,7 +523,7 @@
         <nav style="display: flex; align-items: center; gap: 16px; font-size: 14px;">
           <a href="terms.html" data-open-terms style="color: #d4d4d8 !important; text-decoration: underline; text-underline-offset: 4px;">이용약관</a>
           <span style="width: 1px; height: 12px; background-color: rgba(255,255,255,0.2);"></span>
-          <a href="index.html#privacy" style="color: #ffffff !important; font-weight: 700; text-decoration: underline; text-underline-offset: 4px;">개인정보 처리방침</a>
+          <a href="privacy.html" style="color: #ffffff !important; font-weight: 700; text-decoration: underline; text-underline-offset: 4px;">개인정보 처리방침</a>
         </nav>
         
         <!-- SNS 버튼 영역 (SVG 로고 제거 완료) -->
@@ -504,23 +542,23 @@
     </div>
 
     <!-- 중간: 회사 정보 & 고객센터 -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 48px;">
+    <div class="wb-footer-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 48px;">
       <!-- 회사 정보 -->
       <div style="display: flex; flex-direction: column;">
         <h3 style="margin-bottom: 12px; font-size: 16px; font-weight: 700; color: #ffffff !important;">회사 정보</h3>
-        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
           <span style="font-weight: 700; color: #ffffff !important;">상호명</span>
           <span style="color: #f4f4f5 !important;">위드브릿지</span>
         </div>
-        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
           <span style="font-weight: 700; color: #ffffff !important;">대표자</span>
           <span style="color: #f4f4f5 !important;">강승수</span>
         </div>
-        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
           <span style="font-weight: 700; color: #ffffff !important;">사업자등록번호</span>
           <span style="color: #f4f4f5 !important;">등록 예정</span>
         </div>
-        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
           <span style="font-weight: 700; color: #ffffff !important;">통신판매업 신고번호</span>
           <span style="color: #f4f4f5 !important;">등록 예정</span>
         </div>
@@ -529,19 +567,19 @@
       <!-- 연락처 & 고객센터 -->
       <div style="display: flex; flex-direction: column;">
         <h3 style="margin-bottom: 12px; font-size: 16px; font-weight: 700; color: #ffffff !important;">연락처 &amp; 고객센터</h3>
-        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
           <span style="font-weight: 700; color: #ffffff !important;">주소</span>
           <span style="color: #f4f4f5 !important;">인천광역시 남동구 소래역로 93 (906-201)</span>
         </div>
-        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
           <span style="font-weight: 700; color: #ffffff !important;">전화번호</span>
-          <a href="tel:01058745760" style="color: #ffffff !important; font-weight: 500; text-decoration: none;">010-5874-5760</a>
+          <a href="tel:01055305760" style="color: #ffffff !important; font-weight: 500; text-decoration: none;">010-5530-5760</a>
         </div>
-        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
           <span style="font-weight: 700; color: #ffffff !important;">이메일</span>
           <a href="mailto:withbridge.care@gmail.com" style="color: #ffffff !important; font-weight: 500; text-decoration: none;">withbridge.care@gmail.com</a>
         </div>
-        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 4px 0; font-size: 14px;">
+        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
           <span style="font-weight: 700; color: #ffffff !important;">운영시간</span>
           <span style="color: #f4f4f5 !important;">평일 08:00 ~ 18:00 <span style="color: #a1a1aa !important;">(주말·공휴일 휴무)</span></span>
         </div>

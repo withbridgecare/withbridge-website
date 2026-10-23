@@ -42,9 +42,14 @@
       'transition:background-color .15s ease;}' +
       '.wbdp-nav-btn:hover{background:#F3F4F6;}' +
       '.wbdp-nav-btn:disabled{opacity:.3;cursor:not-allowed;}' +
-      '.wbdp-ym{display:flex;align-items:center;gap:6px;min-width:0;}' +
+      '.wbdp-ym{display:flex;align-items:center;gap:6px;min-width:0;flex:1 1 auto;justify-content:center;}' +
       '.wbdp-ym select{border:1px solid #E5E7EB;border-radius:9999px;padding:6px 10px;font:inherit;font-size:13px;' +
-      'font-weight:700;color:#1A1D21;background:#F9FAFB;cursor:pointer;}' +
+      'font-weight:700;color:#1A1D21;background:#F9FAFB;cursor:pointer;flex:none;box-sizing:content-box;}' +
+      /* 연도는 "2026년"처럼 4자리+글자, 월은 "12월"처럼 최대 2자리+글자라 필요한 폭이 다릅니다 —
+         공통 규칙에 min-width 없이 두면(.wbdp-nav 양옆 원형 버튼과 한 줄에 끼여 좁아지는 화면에서)
+         select 가 내용보다 좁게 눌려 "2026년"이 "202"처럼 잘려 보이는 원인이 됩니다. */
+      '.wbdp-ym select.wbdp-year-select{min-width:60px;text-align:center;}' +
+      '.wbdp-ym select.wbdp-month-select{min-width:40px;text-align:center;}' +
       '.wbdp-dow{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:2px;}' +
       '.wbdp-dow span{text-align:center;font-size:11.5px;font-weight:700;color:#9CA3AF;padding-bottom:6px;}' +
       '.wbdp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}' +
@@ -55,9 +60,10 @@
       '.wbdp-day.is-selected{background:#78866B;color:#fff;font-weight:800;}' +
       '.wbdp-day:disabled{color:#E2E4E8;cursor:not-allowed;}' +
       '.wbdp-day-blank{aspect-ratio:1;}' +
-      '.wbdp-time{display:flex;align-items:center;gap:10px;}' +
+      '.wbdp-time{display:flex;align-items:center;gap:6px;}' +
       '.wbdp-time-col{flex:1 1 0;height:196px;overflow-y:auto;scroll-snap-type:y mandatory;border-radius:16px;' +
       'background:#F9FAFB;scrollbar-width:none;}' +
+      '.wbdp-time-col-ap{flex:0.85 1 0;}' + /* '오전'/'오후' 두 글자라 시·분 숫자 컬럼보다 살짝 좁게 */
       '.wbdp-time-col::-webkit-scrollbar{display:none;}' +
       '.wbdp-time-pad{height:78px;flex:none;}' +
       '.wbdp-time-opt{scroll-snap-align:center;display:flex;align-items:center;justify-content:center;height:40px;' +
@@ -106,7 +112,7 @@
     return { y: d.getFullYear(), m: d.getMonth() + 1, d: d.getDate(), iso: d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) };
   }
   function fmtDateDisplay(p) { return p.y + '-' + pad2(p.m) + '-' + pad2(p.d) + ' (' + WEEKDAYS[new Date(p.y, p.m - 1, p.d).getDay()] + ')'; }
-  function fmtTimeDisplay(t) { var ap = t.h < 12 ? '오전' : '오후'; return ap + ' ' + (t.h % 12 || 12) + ':' + pad2(t.mi); }
+  function fmtTimeDisplay(t) { var ap = t.h < 12 ? '오전' : '오후'; return ap + ' ' + pad2(t.h % 12 || 12) + ':' + pad2(t.mi); }
 
   // ---------- 모듈 상태: 패널은 한 번에 하나만 열려 있게 ----------
   var openState = null; // { panel, trigger, close() }
@@ -149,7 +155,9 @@
     var nextBtn = el('button', 'wbdp-nav-btn', '›'); nextBtn.type = 'button'; nextBtn.setAttribute('aria-label', '다음 달');
     var ym = el('div', 'wbdp-ym');
     var ySel = document.createElement('select');
+    ySel.className = 'wbdp-year-select';
     var mSel = document.createElement('select');
+    mSel.className = 'wbdp-month-select';
     ym.append(ySel, el('span', '', '년'), mSel, el('span', '', '월'));
     nav.append(prevBtn, ym, nextBtn);
     container.appendChild(nav);
@@ -248,44 +256,129 @@
     rerender();
   }
 
-  // ---------- 시/분 스크롤 선택기 (time / datetime 공용) ----------
-  // state: {h, mi} — onChange() 는 값이 바뀔 때마다 호출(패널을 닫지는 않음)
-  function buildTimeSection(container, state, onChange) {
+  // ---------- 오전/오후·시·분 스크롤 선택기 (time / datetime 공용) ----------
+  // state: {h, mi} — h 는 항상 24시간제(0~23)로 유지합니다(기존에 'HH:mm' 24시간 문자열을 만드는
+  // commit() 쪽 코드, <input type="time">의 저장 포맷을 전혀 고치지 않아도 되도록). 휠 UI만 오전/오후 +
+  // 12시간제(01~12시)로 보여주고, 두 휠 중 하나가 바뀌면 바로 24시간 값으로 합쳐 state.h 에 반영합니다.
+  // onChange() 는 값이 바뀔 때마다 호출(패널을 닫지는 않음).
+  //
+  // opts(모두 선택적, 지정 안 하면 기존과 동일하게 1분 단위·제한 없이 동작):
+  //   minuteStep : 분 간격(기본 1). 예: 30 → 00/30분만 선택 가능.
+  //   minHour/maxHour : 선택 가능한 시(0~23, 포함) 범위. 둘 다 주면 "운영 시간"처럼 그 밖의 시간대는
+  //     휠에서 아예 빠집니다(예: minHour=8, maxHour=18 → 08:00~18:00만, 18시는 00분만 남아 18:30은 제외).
+  var AMPM_LABELS = ['오전', '오후'];
+
+  function toH24(ampmIndex, h12) { return ampmIndex === 0 ? (h12 === 12 ? 0 : h12) : (h12 === 12 ? 12 : h12 + 12); }
+  function timeBounds(opts) {
+    return {
+      lo: (opts && opts.minHour != null) ? opts.minHour * 60 : 0,
+      hi: (opts && opts.maxHour != null) ? opts.maxHour * 60 : (24 * 60 - 1)
+    };
+  }
+  // 그 시(h24) 안에서, step 간격으로 bounds 를 만족하는 분(0~59) 목록
+  function validMinutesInHour(h24, step, bounds) {
+    var out = [];
+    for (var mm = 0; mm < 60; mm += step) {
+      var total = h24 * 60 + mm;
+      if (total >= bounds.lo && total <= bounds.hi) out.push(mm);
+    }
+    return out;
+  }
+  // 주어진 오전/오후에서, 유효한 분이 하나라도 있는 h12(1~12) 목록
+  function validHoursForAmpm(ampmIndex, step, bounds) {
+    var out = [];
+    for (var h12 = 1; h12 <= 12; h12++) {
+      if (validMinutesInHour(toH24(ampmIndex, h12), step, bounds).length) out.push(h12);
+    }
+    return out;
+  }
+  // 패널을 열 때 한 번, state.h/state.mi 를 범위 안의 가장 가까운 step 배수 slot 으로 당깁니다.
+  function clampToBounds(state, step, bounds) {
+    var total = state.h * 60 + state.mi;
+    var snapped = Math.round(total / step) * step;
+    if (snapped < bounds.lo) snapped = Math.ceil(bounds.lo / step) * step;
+    if (snapped > bounds.hi) snapped = Math.floor(bounds.hi / step) * step;
+    state.h = Math.floor(snapped / 60) % 24;
+    state.mi = snapped % 60;
+  }
+
+  function buildTimeSection(container, state, onChange, opts) {
+    var step = (opts && opts.minuteStep) || 1;
+    var bounds = timeBounds(opts);
+    clampToBounds(state, step, bounds);
+
     var wrap = el('div', 'wbdp-time');
+    var apCol = el('div', 'wbdp-time-col wbdp-time-col-ap');
     var hCol = el('div', 'wbdp-time-col');
     var sep = el('div', 'wbdp-time-sep', ':');
     var mCol = el('div', 'wbdp-time-col');
-    wrap.append(hCol, sep, mCol);
+    wrap.append(apCol, hCol, sep, mCol);
     container.appendChild(wrap);
 
-    function buildCol(colEl, count, current, pick) {
+    var ampmIndex = state.h < 12 ? 0 : 1;
+    var h12 = state.h % 12 || 12; // 1~12
+
+    // labels[i] 를 보여주고, 누르면 onPick(i) 을 부르는 범용 휠 컬럼 — 오전/오후·시·분 셋 다 이 하나로 만듭니다.
+    function buildOptCol(colEl, labels, selectedIndex, onPick) {
       colEl.innerHTML = '';
       colEl.appendChild(el('div', 'wbdp-time-pad'));
-      for (var i = 0; i < count; i++) {
-        var opt = el('div', 'wbdp-time-opt', pad2(i));
-        if (i === current) opt.classList.add('is-selected');
-        opt.addEventListener('click', function (v) {
+      labels.forEach(function (label, i) {
+        var opt = el('div', 'wbdp-time-opt', label);
+        if (i === selectedIndex) opt.classList.add('is-selected');
+        opt.addEventListener('click', function (idx) {
           return function () {
-            pick(v);
+            onPick(idx);
             colEl.querySelectorAll('.wbdp-time-opt').forEach(function (o) { o.classList.remove('is-selected'); });
-            var target = colEl.children[v + 1]; // +1: 위 패딩 요소만큼 보정
+            var target = colEl.children[idx + 1]; // +1: 위 패딩 요소만큼 보정
             if (target) { target.classList.add('is-selected'); target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
           };
         }(i));
         colEl.appendChild(opt);
-      }
+      });
       colEl.appendChild(el('div', 'wbdp-time-pad'));
+      requestAnimationFrame(function () {
+        var target = colEl.children[selectedIndex + 1];
+        if (target) target.scrollIntoView({ block: 'center' });
+      });
     }
 
-    buildCol(hCol, 24, state.h, function (v) { state.h = v; onChange(); });
-    buildCol(mCol, 60, state.mi, function (v) { state.mi = v; onChange(); });
+    // 분 휠: "지금 선택된 시" 에 따라 유효 목록이 달라지므로(예: 운영 마감 시각엔 00분만 남음),
+    // 시/오전오후가 바뀔 때마다 다시 그립니다.
+    function renderMinuteCol() {
+      var minuteValues = validMinutesInHour(state.h, step, bounds);
+      if (!minuteValues.length) minuteValues = [0]; // 이론상 비지 않지만, 혹시 비면 최소 하나는 보여줌
+      if (minuteValues.indexOf(state.mi) === -1) {
+        state.mi = minuteValues.reduce(function (best, v) {
+          return Math.abs(v - state.mi) < Math.abs(best - state.mi) ? v : best;
+        }, minuteValues[0]);
+      }
+      buildOptCol(mCol, minuteValues.map(pad2), minuteValues.indexOf(state.mi), function (i) {
+        state.mi = minuteValues[i]; onChange();
+      });
+    }
 
-    // 처음 열었을 때 선택된 시각이 화면 중앙에 오도록 (스무스 스크롤 없이 즉시 이동)
-    requestAnimationFrame(function () {
-      var hEl = hCol.children[state.h + 1], mEl = mCol.children[state.mi + 1];
-      if (hEl) hEl.scrollIntoView({ block: 'center' });
-      if (mEl) mEl.scrollIntoView({ block: 'center' });
+    // 시 휠: "지금 선택된 오전/오후" 에 따라 유효 목록이 달라집니다.
+    function renderHourCol() {
+      var hours = validHoursForAmpm(ampmIndex, step, bounds);
+      if (!hours.length) hours = [h12]; // 안전장치
+      if (hours.indexOf(h12) === -1) h12 = hours[0];
+      state.h = toH24(ampmIndex, h12);
+      buildOptCol(hCol, hours.map(pad2), hours.indexOf(h12), function (i) {
+        h12 = hours[i];
+        state.h = toH24(ampmIndex, h12);
+        renderMinuteCol();
+        onChange();
+      });
+    }
+
+    buildOptCol(apCol, AMPM_LABELS, ampmIndex, function (i) {
+      ampmIndex = i;
+      renderHourCol();
+      renderMinuteCol();
+      onChange();
     });
+    renderHourCol();
+    renderMinuteCol();
   }
 
   // ---------- 모드별 패널 렌더 ----------
@@ -298,11 +391,11 @@
     });
   }
 
-  function renderTimePanel(panel, input, commit) {
+  function renderTimePanel(panel, input, commit, opts) {
     panel.innerHTML = '';
     var cur = parseTime(input.value);
     var state = { h: cur ? cur.h : 9, mi: cur ? cur.mi : 0 };
-    buildTimeSection(panel, state, function () {});
+    buildTimeSection(panel, state, function () {}, opts);
     var foot = el('div', 'wbdp-foot');
     var okBtn = el('button', 'wbdp-btn', '확인'); okBtn.type = 'button';
     okBtn.addEventListener('click', function () { commit(pad2(state.h) + ':' + pad2(state.mi)); });
@@ -310,7 +403,7 @@
     panel.appendChild(foot);
   }
 
-  function renderDateTimePanel(panel, input, commit) {
+  function renderDateTimePanel(panel, input, commit, opts) {
     // dState/tState 는 패널이 열려 있는 동안 계속 재사용되는 상태입니다 — 날짜를 다시 고를 때마다
     // renderBody() 로 화면만 다시 그리고, input.value(아직 커밋 전)로 되돌아가 상태를 잃지 않게 합니다.
     var raw = input.value || '';
@@ -324,7 +417,7 @@
       panel.appendChild(el('p', 'wbdp-section-label', '날짜'));
       buildDateSection(panel, input, dState, function (y, m, d) { dState.y = y; dState.m = m; dState.d = d; renderBody(); });
       panel.appendChild(el('p', 'wbdp-section-label', '시간'));
-      buildTimeSection(panel, tState, function () {});
+      buildTimeSection(panel, tState, function () {}, opts);
 
       var foot = el('div', 'wbdp-foot');
       var okBtn = el('button', 'wbdp-btn', '확인'); okBtn.type = 'button';
@@ -387,9 +480,19 @@
       if (trigger.disabled) return;
       if (openState && openState.trigger === trigger) return; // 이미 이 트리거가 열려 있으면 재사용
       closeOpen();
-      RENDERERS[mode](panel, input, commit);
+      RENDERERS[mode](panel, input, commit, opts);
       trigger.classList.add('is-open');
       panel.classList.add('is-open');
+      panel.style.left = ''; // 매번 기본값(트리거 좌측 기준)에서 다시 계산
+      // 좁은 화면에서 트리거가 화면 오른쪽 절반(예: 날짜+시간이 나란히 있는 행의 시간 칸)에 있으면
+      // 패널(최대 320px)이 뷰포트 오른쪽 밖으로 넘어가 html 의 overflow-x:hidden 에 잘려 보이지 않는
+      // 부분이 생깁니다 — 열린 뒤 실제 위치를 측정해 화면 안으로 들어오도록 보정합니다.
+      var margin = 12;
+      var rect = panel.getBoundingClientRect();
+      var overflowRight = rect.right - (window.innerWidth - margin);
+      if (overflowRight > 0) panel.style.left = (-overflowRight) + 'px';
+      var rect2 = panel.getBoundingClientRect();
+      if (rect2.left < margin) panel.style.left = (parseFloat(panel.style.left || '0') + (margin - rect2.left)) + 'px';
       openState = {
         wrap: wrap, panel: panel, trigger: trigger,
         close: function () { trigger.classList.remove('is-open'); panel.classList.remove('is-open'); }
