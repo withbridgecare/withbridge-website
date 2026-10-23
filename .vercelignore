@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+.claude
+_backup_sql
+sql
+supabase
+.git
