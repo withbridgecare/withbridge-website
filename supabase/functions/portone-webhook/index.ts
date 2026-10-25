@@ -29,9 +29,35 @@ interface PortOneWebhookEvent {
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json(405, { error: "METHOD_NOT_ALLOWED" });
 
+  // PortOne이 직접 호출하는 공개 엔드포인트(verify_jwt=false)라, 아래 로직 중 어디서든 예상치 못한
+  // 예외가 나면(DB 연결 문제, 환경변수 누락 등) 이 try/catch 가 없으면 PortOne은 알아들을 수 없는
+  // 원시 오류 응답을 받고 불필요한 재시도를 반복하게 됩니다 — 항상 JSON으로 응답을 돌려줍니다.
+  try {
+    return await handleRequest(req);
+  } catch (e) {
+    console.error("[portone-webhook] 처리 중 예상치 못한 예외:", e);
+    return json(500, { error: "UNEXPECTED_ERROR", message: e instanceof Error ? e.message : String(e) });
+  }
+});
+
+async function handleRequest(req: Request): Promise<Response> {
   // 서명 검증을 위해 body는 반드시 "가공 전 원문 문자열"로 읽어야 합니다(JSON.parse 후 재직렬화하면 깨짐).
   const rawBody = await req.text();
 
+  function parseEventOrNull(raw: string): PortOneWebhookEvent | null {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  // ⚠ 서명 검증은 "스팸성 요청을 PortOne 재조회 전에 거르는" 부가 방어일 뿐, 이 함수의 유일한 신뢰
+  // 경계가 아닙니다 — 바로 아래에서 실제로 하는 일은 이벤트 바디의 status/금액을 그대로 믿지 않고
+  // paymentId 만 꺼내 PortOne API로 다시 조회하는 것이고, 그 재조회 결과만 신뢰해서 DB를 바꿉니다.
+  // 그래서 서명 검증이 실패해도(필수 헤더 누락 — PortOne 콘솔의 "테스트 전송"은 Standard Webhooks
+  // 헤더를 안 보내는 경우가 있습니다) 요청을 통째로 버리지 않고, 경고만 남긴 뒤 바디를 그대로 파싱해
+  // 이어서 처리합니다. JSON 자체가 깨졌을 때만(INVALID_JSON) 실제로 처리를 중단합니다.
   let event: PortOneWebhookEvent;
   const webhookSecret = Deno.env.get("PORTONE_WEBHOOK_SECRET");
   if (webhookSecret) {
@@ -39,19 +65,22 @@ Deno.serve(async (req: Request) => {
       const { Webhook } = await import("npm:@portone/server-sdk@0.9");
       event = (await Webhook.verify(webhookSecret, rawBody, Object.fromEntries(req.headers))) as PortOneWebhookEvent;
     } catch (e) {
-      console.error("[portone-webhook] 웹훅 서명 검증 실패:", e);
-      return json(400, { error: "INVALID_SIGNATURE" });
+      console.warn(
+        "[portone-webhook] 웹훅 서명 검증 실패(필수 헤더 누락 또는 서명 불일치) — PortOne 콘솔의 " +
+          "테스트 전송이거나 헤더가 유실된 경우일 수 있어, 서명 없이 바디만 파싱해서 계속 처리합니다:",
+        e instanceof Error ? e.message : e,
+      );
+      const parsed = parseEventOrNull(rawBody);
+      if (!parsed) return json(400, { error: "INVALID_JSON" });
+      event = parsed;
     }
   } else {
-    // 지금 발급받은 3개 키(STORE_ID/API_SECRET/CHANNEL_KEY)에는 웹훅 시크릿이 없습니다.
-    // PortOne 콘솔 > 결제 연동 > 연동 관리 > 결제알림(Webhook) 관리에서 발급 후 PORTONE_WEBHOOK_SECRET
-    // 로 채워 넣으면 서명 검증이 자동으로 켜집니다. 그 전까지는 아래 PortOne 재조회만으로 신뢰성을 확보합니다.
+    // 웹훅 시크릿이 아예 설정 안 된 경우 — PortOne 콘솔 > 결제 연동 > 연동 관리 > 결제알림(Webhook)
+    // 관리에서 발급 후 PORTONE_WEBHOOK_SECRET 으로 채워 넣으면 서명 검증이 자동으로 켜집니다.
     console.warn("[portone-webhook] PORTONE_WEBHOOK_SECRET 미설정 — 서명 검증 없이 처리합니다.");
-    try {
-      event = JSON.parse(rawBody);
-    } catch {
-      return json(400, { error: "INVALID_JSON" });
-    }
+    const parsed = parseEventOrNull(rawBody);
+    if (!parsed) return json(400, { error: "INVALID_JSON" });
+    event = parsed;
   }
 
   const paymentId = event.data?.paymentId;
@@ -66,6 +95,14 @@ Deno.serve(async (req: Request) => {
     payment = await portoneFetch(`/payments/${encodeURIComponent(paymentId)}`);
   } catch (e) {
     if (e instanceof PortOneApiError) {
+      if (e.status === 404) {
+        // PortOne 콘솔의 "테스트 전송"은 실제로 존재하지 않는 샘플 paymentId를 보내는 경우가 흔합니다 —
+        // 우리 쪽 오류가 아니라 "그런 결제건이 없다"는 정상적인 응답이므로, 경보성 error 로그 대신
+        // warn 으로만 남기고 200으로 응답합니다(PortOne이 비-2xx 응답을 재시도하므로, 502를 주면
+        // 존재하지도 않을 결제건을 계속 재조회하게 됩니다).
+        console.warn("[portone-webhook] PortOne에 없는 paymentId(테스트 전송 등으로 추정) — 무시합니다:", paymentId, e.body);
+        return json(200, { ignored: true, reason: "PAYMENT_NOT_FOUND" });
+      }
       console.error("[portone-webhook] PortOne 결제 조회 실패:", e.status, e.body);
       return json(502, { error: "PORTONE_LOOKUP_FAILED" });
     }
@@ -254,4 +291,4 @@ Deno.serve(async (req: Request) => {
 
   // 그 외 상태(VIRTUAL_ACCOUNT_ISSUED, READY 등 아직 확정 전)는 지금은 처리할 것이 없습니다.
   return json(200, { skipped: true, status: status ?? null });
-});
+}
