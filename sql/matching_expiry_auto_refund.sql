@@ -71,11 +71,13 @@ create index if not exists service_applications_matching_pending_idx
 -- 2) 결제 승인 시점에 payment_status / matching_started_at 도 같이 채우도록 기존 함수 재정의
 --    (상태 전환 조건·멱등 처리는 기존 로직과 동일하게 유지하고, set 절만 추가합니다)
 --
---    ⚠ sql/user_coupons_checkout.sql 이 이 함수에 추가했던 쿠폰 검증/사용 처리 + 적립금 차감 로직을
---    여기서도 반드시 그대로 들고 와야 합니다 — create or replace 로 함수를 다시 정의하는 거라, 이 파일을
---    나중에 실행하면 그 로직 없이 함수가 "되돌아가" 버립니다(실제로 그래서 쿠폰/적립금이 결제 완료 후에도
---    차감되지 않는 회귀가 있었습니다 — 이 파일을 sql/user_coupons_checkout.sql 보다 나중에 실행해도
---    쿠폰/적립금 차감이 유지되도록, 그 로직을 이 함수 본문에 합쳐 넣습니다).
+--    ⚠ sql/user_coupons_checkout.sql 이 이 함수에 추가했던 쿠폰 검증/사용 처리 + 적립금 차감 +
+--    선택 추가 옵션(addon_total) 반영 로직을 여기서도 반드시 그대로 들고 와야 합니다 — create or
+--    replace 로 함수를 다시 정의하는 거라, 이 파일을 나중에 실행하면 그 로직 없이 함수가 "되돌아가"
+--    버립니다. (실제로 이 파일이 한동안 addon_total 을 빼놓은 채 배포돼 있어서, 선택 추가 옵션을 고른
+--    결제가 전부 AMOUNT_MISMATCH 로 막혔던 사고가 있었습니다 — "expected=50000, paid=60000"처럼
+--    옵션 금액 10,000원만큼 정확히 차이 나는 게 이 버그의 특징입니다. 나중에 이 함수를 또 고칠 일이
+--    생기면 price/addon/coupon/points 네 가지를 전부 그대로 들고 와야 합니다.)
 -- ----------------------------------------------------------------------------
 create or replace function public.mark_payment_matching_pending(
   p_application_id uuid,
@@ -87,6 +89,7 @@ language plpgsql security definer set search_path = public as $$
 declare
   v_app             public.service_applications;
   v_price           integer;
+  v_addon_total     integer;
   v_coupon_discount integer;
   v_coupon_valid    boolean;
   v_points_to_use   integer;
@@ -128,14 +131,15 @@ begin
   end if;
 
   v_discount := v_coupon_discount + v_points_to_use;
+  v_addon_total := public.expected_addon_total(v_app.addon_codes);
 
   if p_paid_amount is not null then
     v_price := public.expected_service_price(v_app.service_type);
     if v_price is not null then
-      v_expected := v_price - v_discount;
+      v_expected := v_price + v_addon_total - v_discount;
       if p_paid_amount <> v_expected then
-        raise exception 'AMOUNT_MISMATCH: service_type=%, expected=%(price=%, coupon=%, points=%), paid=%',
-          v_app.service_type, v_expected, v_price, v_coupon_discount, v_points_to_use, p_paid_amount using errcode = 'P0003';
+        raise exception 'AMOUNT_MISMATCH: service_type=%, expected=%(price=%, addon=%, coupon=%, points=%), paid=%',
+          v_app.service_type, v_expected, v_price, v_addon_total, v_coupon_discount, v_points_to_use, p_paid_amount using errcode = 'P0003';
       end if;
     end if;
   end if;
@@ -191,7 +195,8 @@ begin
   update public.service_applications
      set discount_amount = v_discount,
          coupon_discount = v_coupon_discount,
-         final_amount = coalesce(v_price, public.expected_service_price(v_app.service_type)) - v_discount,
+         addon_total = v_addon_total,
+         final_amount = coalesce(v_price, public.expected_service_price(v_app.service_type)) + v_addon_total - v_discount,
          payment_key = coalesce(p_payment_key, payment_key)
    where id = p_application_id
   returning * into v_app;

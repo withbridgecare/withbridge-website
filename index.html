@@ -1425,25 +1425,26 @@
           <tbody>
             <tr>
               <td class="wb-badge-category">시니어 병원 동행</td>
-              <td class="wb-cost-main">49,000원</td>
-              <td class="wb-cost-add">12,000원</td>
+              <td class="wb-cost-main">50,000원</td>
+              <td class="wb-cost-add">12,500원</td>
               <td>집 앞 픽업 ➔ 병원 이동 ➔ 접수/수납/약국 동행 ➔ 진료 내용 보호자 피드백 ➔ 안전 귀가</td>
             </tr>
             <tr>
               <td class="wb-badge-category">생활 편의 대행</td>
-              <td class="wb-cost-main">42,000원</td>
+              <td class="wb-cost-main">40,000원</td>
               <td class="wb-cost-add">10,000원</td>
               <td>관공서·은행 업무 동행, 필수 생필품 장보기 대행/동행, 산책 및 말벗, 맞춤형 스마트폰 활용 교육</td>
             </tr>
             <tr>
               <td class="wb-badge-category">복합 매칭 서비스<br><small style="font-weight:normal; color:#64748B;">(동행 + 생활편의)</small></td>
-              <td class="wb-cost-main">58,000원</td>
-              <td class="wb-cost-add">14,000원</td>
+              <td class="wb-cost-main">60,000원</td>
+              <td class="wb-cost-add">15,000원</td>
               <td>병원 진료를 마친 후 약국에 들렀다가 은행 업무를 보거나 장보기를 함께 해결하는 원스톱 케어</td>
             </tr>
           </tbody>
         </table>
       </div>
+      <p class="wb-sec-sub" style="margin-top:10px;">※ 모든 서비스 요금에는 100% 미니 배상책임보험 및 케어 리포트 발송 비용이 기본 포함되어 있습니다.</p>
     </div>
 
     <!-- 2. 선택 추가 옵션 (Add-on) -->
@@ -1511,9 +1512,9 @@
           <label for="wb-service-type-trigger">1. 서비스 유형 선택</label>
           <div class="wb-select" data-wb-select>
             <select id="wb-service-type" class="wb-form-control" onchange="calculatePrice()">
-              <option value="49000|12000">시니어 병원 동행 (기본 49,000원)</option>
-              <option value="42000|10000">생활 편의 대행 (기본 42,000원)</option>
-              <option value="58000|14000">복합 매칭 서비스 (기본 58,000원)</option>
+              <option value="50000|12500">시니어 병원 동행 (기본 50,000원)</option>
+              <option value="40000|10000">생활 편의 대행 (기본 40,000원)</option>
+              <option value="60000|15000">복합 매칭 서비스 (기본 60,000원)</option>
             </select>
           </div>
 
@@ -1556,7 +1557,7 @@
       <div class="p-6 bg-emerald-900 text-white rounded-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-6">
         <div>
           <span class="text-xs text-emerald-200 block">총 예상 서비스 요금</span>
-          <span class="text-3xl font-black text-amber-300" id="wb-total-price">49,000원</span>
+          <span class="text-3xl font-black text-amber-300" id="wb-total-price">50,000원</span>
           <small class="block mt-1 text-emerald-200" style="font-size: 11.5px; opacity: .85;">* 실비(교통비, 주차비 등)는 별도로 부과될 수 있습니다. 첫 이용 웰컴 쿠폰(5,000원)은 결제 단계에서 별도로 적용됩니다.</small>
         </div>
         <a href="apply.html" id="btn-book-with-calc" onclick="window.WBAuth && window.WBAuth.goIfLoggedIn(event, 'apply.html')"
@@ -3063,90 +3064,8 @@
   footer h3 { margin-top: 0; }
 </style>
 
-<footer style="background-color: #1A1D21 !important; color: #E5E7EB !important; padding: 64px 32px 48px 32px !important; font-family: 'Noto Sans KR', sans-serif !important;">
-  <div style="max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; gap: 48px;">
-    
-    <!-- 상단: 로고 / 약관 / SNS -->
-    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 24px; padding-bottom: 0px;">
-      <div style="display: flex; align-items: baseline; gap: 12px;">
-        <strong style="font-size: 20px; font-weight: 700; color: #ffffff !important;">위드브릿지</strong>
-        <span style="font-size: 14px; color: #a1a1aa !important;">WithBridge</span>
-      </div>
-      
-      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 24px;">
-        <nav style="display: flex; align-items: center; gap: 16px; font-size: 14px;">
-          <a href="terms.html" data-open-terms style="color: #d4d4d8 !important; text-decoration: underline; text-underline-offset: 4px;">이용약관</a>
-          <span style="width: 1px; height: 12px; background-color: rgba(255,255,255,0.2);"></span>
-          <a href="privacy.html" style="color: #ffffff !important; font-weight: 700; text-decoration: underline; text-underline-offset: 4px;">개인정보 처리방침</a>
-        </nav>
-        
-        <!-- SNS 버튼 영역 (SVG 로고 제거 완료) -->
-        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
-          <a href="#instagram" style="display: inline-flex; align-items: center; justify-content: center; padding: 8px 18px; border-radius: 9999px; background-color: #ffffff !important; color: #18181b !important; font-size: 14px; font-weight: 700; text-decoration: none;">
-            <span>인스타그램</span>
-          </a>
-          <a href="#youtube" style="display: inline-flex; align-items: center; justify-content: center; padding: 8px 18px; border-radius: 9999px; background-color: #ffffff !important; color: #18181b !important; font-size: 14px; font-weight: 700; text-decoration: none;">
-            <span>유튜브</span>
-          </a>
-          <a href="#tiktok" style="display: inline-flex; align-items: center; justify-content: center; padding: 8px 18px; border-radius: 9999px; background-color: #ffffff !important; color: #18181b !important; font-size: 14px; font-weight: 700; text-decoration: none;">
-            <span>틱톡</span>
-          </a>
-        </div>
-      </div>
-    </div>
-
-    <!-- 중간: 회사 정보 & 고객센터 -->
-    <div class="wb-footer-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 48px;">
-      <!-- 회사 정보 -->
-      <div style="display: flex; flex-direction: column;">
-        <h3 style="margin-bottom: 12px; font-size: 16px; font-weight: 700; color: #ffffff !important;">회사 정보</h3>
-        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
-          <span style="font-weight: 700; color: #ffffff !important;">상호명</span>
-          <span style="color: #f4f4f5 !important;">위드브릿지</span>
-        </div>
-        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
-          <span style="font-weight: 700; color: #ffffff !important;">대표자</span>
-          <span style="color: #f4f4f5 !important;">강승수</span>
-        </div>
-        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
-          <span style="font-weight: 700; color: #ffffff !important;">사업자등록번호</span>
-          <span style="color: #f4f4f5 !important;">등록 예정</span>
-        </div>
-        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
-          <span style="font-weight: 700; color: #ffffff !important;">통신판매업 신고번호</span>
-          <span style="color: #f4f4f5 !important;">등록 예정</span>
-        </div>
-      </div>
-
-      <!-- 연락처 & 고객센터 -->
-      <div style="display: flex; flex-direction: column;">
-        <h3 style="margin-bottom: 12px; font-size: 16px; font-weight: 700; color: #ffffff !important;">연락처 &amp; 고객센터</h3>
-        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
-          <span style="font-weight: 700; color: #ffffff !important;">주소</span>
-          <span style="color: #f4f4f5 !important;">인천광역시 남동구 소래역로 93 (906-201)</span>
-        </div>
-        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
-          <span style="font-weight: 700; color: #ffffff !important;">전화번호</span>
-          <a href="tel:01055305760" style="color: #ffffff !important; font-weight: 500; text-decoration: none;">010-5530-5760</a>
-        </div>
-        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
-          <span style="font-weight: 700; color: #ffffff !important;">이메일</span>
-          <a href="mailto:withbridge.care@gmail.com" style="color: #ffffff !important; font-weight: 500; text-decoration: none;">withbridge.care@gmail.com</a>
-        </div>
-        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
-          <span style="font-weight: 700; color: #ffffff !important;">운영시간</span>
-          <span style="color: #f4f4f5 !important;">평일 08:00 ~ 18:00 <span style="color: #a1a1aa !important;">(주말·공휴일 휴무)</span></span>
-        </div>
-      </div>
-    </div>
-
-    <!-- 하단: 카피라이트 -->
-    <div style="padding-top: 32px; border-top: 1px solid rgba(255,255,255,0.1);">
-      <p style="margin: 0; font-size: 14px; color: #e4e4e7 !important;">© 2026 WithBridge. All rights reserved.</p>
-    </div>
-
-  </div>
-</footer>
+<div id="wb-footer"></div>
+<script src="/js/site-footer.js?v=1.0"></script>
 
 <script>
   // Supabase 클라이언트 / 헤더 로그인 상태(프로필 아바타·드롭다운·로그아웃)는 auth-header.js 가 담당합니다.

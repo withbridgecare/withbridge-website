@@ -744,9 +744,11 @@
   //     이 목록은 아직 매니저가 배정되지 않은 PAYMENT_PENDING·MATCHING_PENDING 두 상태를 모두 보여주되(결제가
   //     끝나기 전부터 관리자는 신청 내용을 확인할 수 있어야 하므로), 결제 여부는 태그로 구분하고 PAYMENT_PENDING
   //     건에는 [수동 입금 완료] 버튼을 달아 관리자가 직접 입금 확인 처리를 할 수 있게 합니다.
-  //     mypage-manager.html 의 매니저용 신청 대기 목록은 이와 달리 MATCHING_PENDING 건만 정확히 일치하는
-  //     조건으로 조회합니다(결제 전 건은 매니저에게 노출되면 안 되므로) — 두 화면이 서로 다른 조건을 쓰는 것이
-  //     의도된 설계입니다.
+  //     mypage-manager.html 의 매니저용 신청 대기 목록은 PAYMENT_PENDING(결제 전) 건은 보여주지 않는다는
+  //     점만 다르고, "매칭 대기로 쳐 줄 상태값이 뭔지"는 양쪢이 반드시 같은 규칙(isPendingApplicationStatus(),
+  //     SQL의 is_pending_application_status()와 동일)을 공유합니다 — 한쪽만 더 엄격한 문자열(예: 'MATCHING_PENDING'
+  //     완전 일치)로 걸던 시기엔, 아직 표준화 안 된 과거 상태값의 신청서가 한쪽 화면에만 안 보이는 불일치가
+  //     있었습니다(2026-11 수정). 이 두 함수는 항상 같이 고치세요.
   //
   //     manager_id IS NULL(= 아직 아무도 수락/배정되지 않음, 트리거 sync_application_status() 가 manager_id
   //     설정과 status='MATCHED' 전환을 항상 같이 처리하므로 이거 하나만으로 '배정 여부'를 정확히 판단할 수 있음)
@@ -767,9 +769,24 @@
   function isAwaitingPaymentStatus(raw) {
     return String(raw == null ? '' : raw).trim().toUpperCase() === 'PAYMENT_PENDING';
   }
+  // service_applications.status 가 "매니저 배정을 기다리는(=매니저가 봐야 하는) 상태"인지 판정 —
+  // sql/supabase_schema_latest.sql(원본 sql/service_application_status_standardization.sql)의
+  // is_pending_application_status() 와 반드시 같은 규칙을 유지합니다. 그 SQL 함수가 매니저 쪽 RLS
+  // (service_applications_select_managers)와 accept_service_application() 의 수락 가능 조건을
+  // 결정하는 "진짜" 기준이라, 여기(관리자 화면)가 이보다 더 엄격한 문자열만 인정하면 — 아직
+  // 표준화되지 않은 과거 상태값('', 'pending', 'waiting_matching' 등, RLS는 이미 통과시키는 값들)의
+  // 신청서가 매니저 화면에는 보이는데 관리자 화면에는 안 보이는(또는 그 반대) 불일치가 생깁니다.
+  // mypage-manager.html 의 isPendingApplicationStatus() 와 같은 로직입니다 — 함께 고쳐 주세요.
+  function isPendingApplicationStatus(raw) {
+    var original = raw == null ? '' : String(raw);
+    var s = original.trim().toLowerCase();
+    if (s === 'cancelled' || s === 'canceled' || s === 'cancel' || original.indexOf('취소') !== -1) return false;
+    var SYNONYMS = ['matching_pending', '', 'pending', 'new', 'received', 'submitted', 'waiting', 'requested', 'waiting_matching'];
+    if (SYNONYMS.indexOf(s) !== -1) return true;
+    return /접수|대기|신청/.test(original);
+  }
   function isAwaitingAssignmentStatus(raw) {
-    var s = String(raw == null ? '' : raw).trim().toUpperCase();
-    return s === 'PAYMENT_PENDING' || s === 'MATCHING_PENDING';
+    return isAwaitingPaymentStatus(raw) || isPendingApplicationStatus(raw);
   }
 
   // '경과' 뱃지 판정 — 희망 일시는 apply.html 에서 request_details 안에 연도 없는 자유 텍스트로만 저장돼
@@ -878,8 +895,8 @@
 
     // 서버 쿼리(.is('manager_id', null))에만 맡기지 않고, 여기서 다시 한 번 엄격하게 거릅니다:
     //   - manager_id 가 조금이라도 값을 가지고 있으면(빈 문자열 '' 포함) 무조건 제외
-    //   - status 는 isAwaitingAssignmentStatus() 로 판정(PAYMENT_PENDING/MATCHING_PENDING 만 통과,
-    //     MATCHED/CANCELLED 등 그 외 전부는 false)
+    //   - status 는 isAwaitingAssignmentStatus() 로 판정(PAYMENT_PENDING 이거나 is_pending_application_status()
+    //     계열(MATCHING_PENDING 및 그 과거 동의어)만 통과, MATCHED/CANCELLED 등 그 외 전부는 false)
     // 두 조건을 모두 만족해야만 화면에 남습니다. 서버 필터가 혹시라도(캐시된 응답, 쿼리 누락 등) 제대로
     // 안 걸렸더라도 여기서 반드시 다시 걸러지도록 이중 방어합니다.
     var pageRows = pageRawRows.filter(function (a) {
@@ -2528,31 +2545,84 @@
     var rawRows = managersRes.data || [];
     if (!rawRows.length) return { error: null, rows: [] };
 
+    // 디버깅용 원본 로그 — managers.profiles embed 가 null/빈 객체/배열 중 무엇으로 왔는지 그대로
+    // 찍습니다. Array.isArray(m.profiles) 가 true 면 PostgREST 가 이 관계를 "to-one"이 아니라
+    // "to-many"로 추론했다는 뜻이라(스키마 캐시가 managers.id → profiles.id FK를 못 찾았을 때
+    // 흔히 생김), 아래에서 profile.name 으로 바로 접근하면 항상 undefined 가 됩니다.
+    console.log('[Admin][디버그] managers 원본 조회 결과(' + rawRows.length + '건):',
+      rawRows.map(function (m) {
+        return {
+          manager_id: m.id,
+          profiles_embed_type: Array.isArray(m.profiles) ? 'array(비정상 — to-many로 추론됨)' : (m.profiles === null ? 'null(해당 id의 profiles 행을 못 읽음 — RLS 또는 행 없음)' : typeof m.profiles),
+          profiles_embed_raw: m.profiles
+        };
+      }));
+
     // profiles.name/phone 이 비어 있는 경우를 위한 보조 조회 (승인된 신청서의 이름/연락처)
     var ids = rawRows.map(function (m) { return m.id; });
+
+    // id 매핑 자체가 깨졌는지 먼저 직접 확인합니다 — embed 없이 profiles 를 id 로만 바로 조회해서
+    // managers.id 와 정확히 같은 id의 profiles 행이 실제로 존재하는지 비교합니다(embed 쪽만 이상할
+    // 수도 있고, id 자체가 어긋나 있을 수도 있어 둘을 구분하기 위함).
+    var directProfilesRes = await supabaseClient.from('profiles').select('id, name, phone').in('id', ids);
+    if (directProfilesRes.error) {
+      console.warn('[Admin][디버그] profiles 직접 조회 실패:', directProfilesRes.error.code, directProfilesRes.error.message);
+    } else {
+      var directProfileIds = (directProfilesRes.data || []).map(function (p) { return p.id; });
+      var missingProfileIds = ids.filter(function (id) { return directProfileIds.indexOf(id) === -1; });
+      console.log('[Admin][디버그] profiles 직접 조회(embed 없이) — 요청한 managers.id ' + ids.length + '개 중 ' +
+        directProfileIds.length + '개에서 profiles 행을 찾음. ' + directProfilesRes.data.length + '건 상세:', directProfilesRes.data);
+      if (missingProfileIds.length) {
+        console.warn('[Admin][디버그] ⚠ 아래 managers.id 는 profiles 테이블에 같은 id의 행이 전혀 없습니다 ' +
+          '(RLS 문제가 아니라 — RLS는 "있는 행을 못 보는" 것이고 이건 "행 자체가 없음" — managers.id 가 profiles.id 와 ' +
+          '어긋났거나, 그 유저의 profiles 행이 삭제/누락된 경우입니다. Supabase 테이블 편집기에서 직접 확인해 보세요):',
+          missingProfileIds);
+      }
+    }
+
     var appsRes = await supabaseClient
       .from('manager_applications')
-      .select('user_id, name, phone, reviewed_at')
-      .eq('status', 'approved')
+      .select('user_id, name, phone, status, reviewed_at')
       .in('user_id', ids)
       .order('reviewed_at', { ascending: false });
 
     if (appsRes.error) {
       console.warn('[Admin] 이름/연락처 보조 조회 실패(manager_applications):', appsRes.error.code, appsRes.error.message);
+    } else {
+      console.log('[Admin][디버그] manager_applications 전체 조회(상태 무관, ' + (appsRes.data || []).length + '건):', appsRes.data);
+      var appUserIds = (appsRes.data || []).map(function (a) { return a.user_id; });
+      var noApplicationAtAll = ids.filter(function (id) { return appUserIds.indexOf(id) === -1; });
+      if (noApplicationAtAll.length) {
+        console.warn('[Admin][디버그] ⚠ 아래 managers.id 는 manager_applications 에 행이 아예 없습니다 — ' +
+          '승인 절차(manager-apply.html → 관리자 승인)를 거치지 않고 직접 만들어진 매니저(수기 삽입/구버전 데이터)일 ' +
+          '가능성이 큽니다. 이름/연락처를 가져올 보조 소스 자체가 없다는 뜻이라, profiles.name/phone 을 직접 채우는 ' +
+          '수밖에 없습니다:', noApplicationAtAll);
+      }
     }
 
+    // status='approved' 가 아닌 행(예: 'pending'/'rejected'로 남아 있거나 상태값 표기가 다른 경우)까지
+    // 전부 받아 온 뒤 여기서 approved만 걸러 fallback으로 씁니다 — 위 로그에서 "신청서는 있는데 status가
+    // approved가 아니라서 fallback에 안 잡히는" 경우까지 구분해 보여주기 위함입니다.
     var infoById = {};
     (appsRes.data || []).forEach(function (a) {
+      if (a.status !== 'approved') return;
       if (!infoById[a.user_id]) infoById[a.user_id] = { name: a.name, phone: a.phone }; // 최신순 정렬이라 먼저 나온 값을 채택
     });
 
     var rows = rawRows.map(function (m) {
-      var profile = m.profiles || {};
+      var profile = Array.isArray(m.profiles) ? (m.profiles[0] || {}) : (m.profiles || {});
       var fallback = infoById[m.id] || {};
+      var resolvedName = profile.name || fallback.name || '이름 미등록';
+      var resolvedPhone = profile.phone || fallback.phone || '연락처 미등록';
+      if (resolvedName === '이름 미등록' || resolvedPhone === '연락처 미등록') {
+        console.warn('[Admin][디버그] ⚠ 최종적으로 이름/연락처를 못 채운 매니저 — manager_id=' + m.id +
+          ', profiles embed=', m.profiles, ', manager_applications fallback=', infoById[m.id] || '(없음)',
+          '→ 위 로그에서 이 id가 "profiles 행 없음" 또는 "manager_applications 행 없음" 목록에 있는지 확인하세요.');
+      }
       return {
         id: m.id,
-        name: profile.name || fallback.name || '이름 미등록',
-        phone: profile.phone || fallback.phone || '연락처 미등록',
+        name: resolvedName,
+        phone: resolvedPhone,
         certification: m.certification,
         activity_status: m.activity_status,
         last_active_at: m.last_active_at || null,
@@ -2748,9 +2818,9 @@
   }
 
   // ============================================================
-  // 05. 매니저 정산 (월별) — 건별 결제 금액의 70%를 매니저 정산금으로 자동 분배(sql/
-  //     manager_settlement_70_30.sql)한 뒤, 선택한 달에 완료(completed)된 건만 모아 매니저별로
-  //     [완료 건수 / 정산대상액(70%) / 3.3% 원천세 / 실지급액]을 집계해서 보여줍니다.
+  // 05. 매니저 정산 (월별) — 매니저 시급 × 수행 시간으로 매니저 정산금을 자동 계산(sql/
+  //     manager_hourly_rate_settlement.sql)한 뒤, 선택한 달에 완료(completed)된 건만 모아 매니저별로
+  //     [완료 건수 / 정산대상액 / 3.3% 원천세 / 실지급액]을 집계해서 보여줍니다.
   //     admin_manager_monthly_settlements() RPC 하나만 호출합니다 — is_admin() 체크가 그 함수
   //     안에 있어(fail closed), 이 화면은 결과를 그대로 표에 그리기만 합니다.
   // ============================================================
@@ -2806,7 +2876,7 @@
 
     if (res.error) {
       console.error('[Admin] 매니저 정산 집계 실패 — p_month=' + pMonth + ':', res.error.code, res.error.message,
-        '→ sql/manager_settlement_70_30.sql / admin_settlement_fixes_v3.sql 을 Supabase SQL Editor 에서 실행했는지 확인하세요.');
+        '→ sql/manager_hourly_rate_settlement.sql / admin_settlement_fixes_v3.sql 을 Supabase SQL Editor 에서 실행했는지 확인하세요.');
       body.innerHTML = '<tr><td colspan="6" class="admin-empty">정산 내역을 불러오지 못했습니다: ' +
         escapeHtml(res.error.message) + '</td></tr>';
       return;
@@ -2997,7 +3067,9 @@
   // 패키지 구매 회원 관리 — user_packages 전체를 고객 프로필과 함께 조회해 구매일/만료일/잔여 회차를
   // 보여줍니다(sql/admin_package_management.sql 의 user_packages_select_admin 정책이 있어야 다른
   // 보호자의 행까지 보입니다 — 없으면 본인 행만 보이는 user_packages_select_own 만 적용돼 빈 목록처럼
-  // 보일 수 있습니다). [회차 조정]은 같은 파일의 admin_adjust_user_package() RPC 를 호출합니다.
+  // 보일 수 있습니다). profiles.name/phone 이 비어 있는 보호자는 fillMissingGuardianContact() 가
+  // service_applications.user_contact(신청 시 직접 입력한 "이름 / 연락처")로 보조 채움합니다.
+  // [회차 조정]은 같은 파일의 admin_adjust_user_package() RPC 를 호출합니다.
   // ============================================================
   var USER_PACKAGE_TYPE_LABEL = { '5_sessions': '5회권', '10_sessions': '10회권', '10_hours': '10시간권', '20_hours': '20시간권' };
   var USER_PACKAGE_STATUS_LABEL = { active: '사용 중', exhausted: '소진', expired: '만료' };
@@ -3010,13 +3082,62 @@
   var currentUserPackagesSearchText = '';
   var packageAdjustTarget = null; // [회차 조정] 모달이 지금 다루고 있는 user_packages 행
 
+  // profiles.name/phone 은 카카오 로그인만으로 가입한 보호자는 비어 있을 수 있습니다(카카오 OAuth
+  // 메타데이터에 휴대폰 번호가 애초에 없고, 이름도 닉네임 제공을 거부하면 비어 있을 수 있음 —
+  // fetchActiveManagersWithNames() 가 manager_applications 를 보조로 쓰는 것과 같은 이유). 보호자는
+  // apply.html 신청 시 '신청자 성함/연락처'를 매번 직접 입력해 service_applications.user_contact 에
+  // "이름 / 연락처" 형식으로 남기므로(apply.html 의 user_contact: applicant_name + ' / ' + applicant_phone),
+  // profiles 쪽이 비어 있을 때 이 값을 보조로 채웁니다.
+  function parseUserContact(raw) {
+    var s = (raw || '').trim();
+    if (!s) return { name: '', phone: '' };
+    var sepIdx = s.indexOf(' / ');
+    if (sepIdx === -1) return { name: s, phone: '' };
+    return { name: s.slice(0, sepIdx).trim(), phone: s.slice(sepIdx + 3).trim() };
+  }
+
+  async function fillMissingGuardianContact(pageRows) {
+    var missingIds = [];
+    pageRows.forEach(function (p) {
+      var profile = p.profiles || {};
+      if ((!profile.name || !profile.phone) && p.user_id && missingIds.indexOf(p.user_id) === -1) {
+        missingIds.push(p.user_id);
+      }
+    });
+    if (!missingIds.length) return;
+
+    var appsRes = await supabaseClient
+      .from('service_applications')
+      .select('user_id, user_contact, created_at')
+      .in('user_id', missingIds)
+      .order('created_at', { ascending: false });
+
+    if (appsRes.error) {
+      console.warn('[Admin] 보호자 이름/연락처 보조 조회 실패(service_applications):', appsRes.error.code, appsRes.error.message);
+      return;
+    }
+
+    var infoById = {};
+    (appsRes.data || []).forEach(function (a) {
+      if (!infoById[a.user_id]) infoById[a.user_id] = parseUserContact(a.user_contact); // 최신순 정렬 → 먼저 나온 값 채택
+    });
+
+    pageRows.forEach(function (p) {
+      var fallback = infoById[p.user_id];
+      if (!fallback) return;
+      if (!p.profiles) p.profiles = {};
+      if (!p.profiles.name) p.profiles.name = fallback.name;
+      if (!p.profiles.phone) p.profiles.phone = fallback.phone;
+    });
+  }
+
   async function fetchUserPackagesPage(isFirstPage) {
     var body = els.userPackagesTableBody;
     if (!body) return false;
 
     var res = await supabaseClient
       .from('user_packages')
-      .select('id, package_type, total_count, remaining_count, status, created_at, expires_at, profiles(name, phone)')
+      .select('id, user_id, package_type, total_count, remaining_count, status, created_at, expires_at, profiles(name, phone)')
       .order('created_at', { ascending: false })
       .range(userPackagesOffset, userPackagesOffset + ADMIN_LIST_PAGE_SIZE);
 
@@ -3034,6 +3155,7 @@
     var rawRows = res.data || [];
     userPackagesHasMore = rawRows.length > ADMIN_LIST_PAGE_SIZE;
     var pageRows = rawRows.slice(0, ADMIN_LIST_PAGE_SIZE);
+    await fillMissingGuardianContact(pageRows);
     userPackagesOffset += pageRows.length;
     lastUserPackagesRows = lastUserPackagesRows.concat(pageRows);
     return true;

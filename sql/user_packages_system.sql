@@ -375,8 +375,8 @@ create trigger service_applications_consume_package
 -- ============================================================================
 -- 7) 초과 시간 자동 과금 — mypage-manager.html '케어 완료' 모달이 이미 받고 있는 실제 종료 시각을
 --    기준으로, 기본 2시간을 넘긴 시간을 30분당 서비스별 단가(expected_overtime_rate_per_30min(),
---    sql/payment_confirmation_functions.sql — 시니어 병원 동행 12,000 / 생활 편의 대행 10,000 /
---    복합 매칭 서비스 14,000)로 환산해 자동 청구합니다. 매니저(배정된 본인) 또는 관리자만 호출할 수
+--    sql/payment_confirmation_functions.sql — 시니어 병원 동행 12,500 / 생활 편의 대행 10,000 /
+--    복합 매칭 서비스 15,000)로 환산해 자동 청구합니다. 매니저(배정된 본인) 또는 관리자만 호출할 수
 --    있고, 기존 2차 결제 레일(care_schedules.extra_charge_*, confirm_extra_charge_payment(),
 --    mypage.html 의 PortOne 결제 버튼)을 그대로 재사용합니다 — 결제 인프라를 새로 만들지 않고,
 --    "얼마를 청구할지"만 자동으로 계산해 올려 둡니다.

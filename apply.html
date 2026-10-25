@@ -13,6 +13,9 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- 공통 Supabase 클라이언트 + 헤더 로그인 상태. SDK 뒤에 로드해야 합니다 -->
   <script src="/js/auth-header.js?v=1.8" charset="utf-8"></script>
+  <!-- 결제 확인 Edge Function(issue-virtual-account) 호출용 — supabaseClient.functions.invoke() 대신
+       명시적 fetch() 래퍼. auth-header.js 가 만든 supabaseClient 를 받아 쓰므로 그 뒤에 로드합니다 -->
+  <script src="/js/edge-function-fetch.js?v=1.0"></script>
   <!-- 비로그인 접근 차단: 세션 확인이 끝나기 전까지 신청서 본문을 숨겨 뒀다가(아래 <main> 의 visibility:hidden),
        비로그인으로 확인되면 안내 후 login.html 로 보내고, 로그인 상태면 본문을 보여줍니다.
        주의: getSession() 은 저장된 세션이 있으면 네트워크 없이 마이크로태스크로 즉시 끝나는데, 그 시점은 이 스크립트가
@@ -617,31 +620,32 @@
           </div>
           <div class="svc-options">
             <label class="svc">
-              <input type="radio" name="service" value="시니어 병원 동행" data-price="49000">
+              <input type="radio" name="service" value="시니어 병원 동행" data-price="50000">
               <span class="svc-card">
                 <span class="svc-name">시니어 병원 동행</span>
-                <span class="svc-price">49,000원 / 2시간</span>
+                <span class="svc-price">50,000원 / 2시간</span>
                 <span class="svc-desc">접수·수납·약국 동행, 진료 내용 보호자 피드백</span>
               </span>
             </label>
             <label class="svc">
-              <input type="radio" name="service" value="생활 편의 대행" data-price="42000">
+              <input type="radio" name="service" value="생활 편의 대행" data-price="40000">
               <span class="svc-card">
                 <span class="svc-name">생활 편의 대행</span>
-                <span class="svc-price">42,000원 / 2시간</span>
+                <span class="svc-price">40,000원 / 2시간</span>
                 <span class="svc-desc">관공서·은행 업무, 장보기, 산책·말벗, 스마트폰 교육</span>
               </span>
             </label>
             <label class="svc">
-              <input type="radio" name="service" value="복합 매칭 서비스 (동행 + 생활편의)" data-price="58000">
+              <input type="radio" name="service" value="복합 매칭 서비스 (동행 + 생활편의)" data-price="60000">
               <span class="svc-card">
                 <span class="svc-name">복합 매칭 서비스 (동행 + 생활편의)</span>
-                <span class="svc-price">58,000원 / 2시간</span>
+                <span class="svc-price">60,000원 / 2시간</span>
                 <span class="svc-desc">병원 진료 후 약국·은행·장보기까지 원스톱 케어</span>
               </span>
             </label>
           </div>
           <div class="fee-box is-empty" id="feeBox" aria-live="polite">서비스를 선택하시면 총 예상 금액이 표시됩니다.</div>
+          <p class="svc-firstuse-text" style="margin-top:6px;">※ 모든 서비스 요금에는 100% 미니 배상책임보험 및 케어 리포트 발송 비용이 기본 포함되어 있습니다.</p>
           <p class="err" id="e-service" hidden></p>
         </fieldset>
 
@@ -897,90 +901,8 @@
 11. 하단 푸터 (Footer)
 ====================================================================
 -->
-<footer style="background-color: #1A1D21 !important; color: #E5E7EB !important; padding: 64px 32px 48px 32px !important; font-family: 'Noto Sans KR', sans-serif !important;">
-  <div style="max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; gap: 48px;">
-    
-    <!-- 상단: 로고 / 약관 / SNS -->
-    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 24px; padding-bottom: 0px;">
-      <div style="display: flex; align-items: baseline; gap: 12px;">
-        <strong style="font-size: 20px; font-weight: 700; color: #ffffff !important;">위드브릿지</strong>
-        <span style="font-size: 14px; color: #a1a1aa !important;">WithBridge</span>
-      </div>
-      
-      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 24px;">
-        <nav style="display: flex; align-items: center; gap: 16px; font-size: 14px;">
-          <a href="terms.html" data-open-terms style="color: #d4d4d8 !important; text-decoration: underline; text-underline-offset: 4px;">이용약관</a>
-          <span style="width: 1px; height: 12px; background-color: rgba(255,255,255,0.2);"></span>
-          <a href="privacy.html" style="color: #ffffff !important; font-weight: 700; text-decoration: underline; text-underline-offset: 4px;">개인정보 처리방침</a>
-        </nav>
-        
-        <!-- SNS 버튼 영역 (SVG 로고 제거 완료) -->
-        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
-          <a href="#instagram" style="display: inline-flex; align-items: center; justify-content: center; padding: 8px 18px; border-radius: 9999px; background-color: #ffffff !important; color: #18181b !important; font-size: 14px; font-weight: 700; text-decoration: none;">
-            <span>인스타그램</span>
-          </a>
-          <a href="#youtube" style="display: inline-flex; align-items: center; justify-content: center; padding: 8px 18px; border-radius: 9999px; background-color: #ffffff !important; color: #18181b !important; font-size: 14px; font-weight: 700; text-decoration: none;">
-            <span>유튜브</span>
-          </a>
-          <a href="#tiktok" style="display: inline-flex; align-items: center; justify-content: center; padding: 8px 18px; border-radius: 9999px; background-color: #ffffff !important; color: #18181b !important; font-size: 14px; font-weight: 700; text-decoration: none;">
-            <span>틱톡</span>
-          </a>
-        </div>
-      </div>
-    </div>
-
-    <!-- 중간: 회사 정보 & 고객센터 -->
-    <div class="wb-footer-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 48px;">
-      <!-- 회사 정보 -->
-      <div style="display: flex; flex-direction: column;">
-        <h3 style="margin-bottom: 12px; font-size: 16px; font-weight: 700; color: #ffffff !important;">회사 정보</h3>
-        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
-          <span style="font-weight: 700; color: #ffffff !important;">상호명</span>
-          <span style="color: #f4f4f5 !important;">위드브릿지</span>
-        </div>
-        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
-          <span style="font-weight: 700; color: #ffffff !important;">대표자</span>
-          <span style="color: #f4f4f5 !important;">강승수</span>
-        </div>
-        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
-          <span style="font-weight: 700; color: #ffffff !important;">사업자등록번호</span>
-          <span style="color: #f4f4f5 !important;">등록 예정</span>
-        </div>
-        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
-          <span style="font-weight: 700; color: #ffffff !important;">통신판매업 신고번호</span>
-          <span style="color: #f4f4f5 !important;">등록 예정</span>
-        </div>
-      </div>
-
-      <!-- 연락처 & 고객센터 -->
-      <div style="display: flex; flex-direction: column;">
-        <h3 style="margin-bottom: 12px; font-size: 16px; font-weight: 700; color: #ffffff !important;">연락처 &amp; 고객센터</h3>
-        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
-          <span style="font-weight: 700; color: #ffffff !important;">주소</span>
-          <span style="color: #f4f4f5 !important;">인천광역시 남동구 소래역로 93 (906-201)</span>
-        </div>
-        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
-          <span style="font-weight: 700; color: #ffffff !important;">전화번호</span>
-          <a href="tel:01055305760" style="color: #ffffff !important; font-weight: 500; text-decoration: none;">010-5530-5760</a>
-        </div>
-        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
-          <span style="font-weight: 700; color: #ffffff !important;">이메일</span>
-          <a href="mailto:withbridge.care@gmail.com" style="color: #ffffff !important; font-weight: 500; text-decoration: none;">withbridge.care@gmail.com</a>
-        </div>
-        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
-          <span style="font-weight: 700; color: #ffffff !important;">운영시간</span>
-          <span style="color: #f4f4f5 !important;">평일 08:00 ~ 18:00 <span style="color: #a1a1aa !important;">(주말·공휴일 휴무)</span></span>
-        </div>
-      </div>
-    </div>
-
-    <!-- 하단: 카피라이트 -->
-    <div style="padding-top: 32px; border-top: 1px solid rgba(255,255,255,0.1);">
-      <p style="margin: 0; font-size: 14px; color: #e4e4e7 !important;">© 2026 WithBridge. All rights reserved.</p>
-    </div>
-
-  </div>
-</footer>
+<div id="wb-footer"></div>
+<script src="/js/site-footer.js?v=1.0"></script>
 
   <script>
     // Supabase 클라이언트는 auth-header.js 가 만든 하나를 공유합니다 (URL: https://layvjisfeivkzowopkco.supabase.co)
@@ -1030,15 +952,15 @@
     //  * 요금은 index.html 의 '이용 요금 안내'와 같은 값. 화면 안내용일 뿐 DB 에 저장하지 않습니다
     const SERVICES = {
       '시니어 병원 동행': {
-        price: 49000,
-        overtimeRate: 12000,
+        price: 50000,
+        overtimeRate: 12500,
         destLabel: '목적지 (병원명)',
         destPlaceholder: '예: 길병원',
         routeHint: '방문하실 병원의 정확한 이름을 적어 주시면 매칭에 도움이 돼요.',
         detailsPlaceholder: '예: 진료과(내과), 진료 예약 시간, 검사·수납·약 수령 등 도움이 필요한 부분'
       },
       '생활 편의 대행': {
-        price: 42000,
+        price: 40000,
         overtimeRate: 10000,
         destLabel: '목적지 (방문 장소·업무)',
         destPlaceholder: '방문할 병원, 관공서, 은행명을 입력해 주세요',
@@ -1046,8 +968,8 @@
         detailsPlaceholder: '예: 은행 통장 재발급, 주민센터 서류 발급, 장보기 목록(우유 2개, 두부 1모 등)'
       },
       '복합 매칭 서비스 (동행 + 생활편의)': {
-        price: 58000,
-        overtimeRate: 14000,
+        price: 60000,
+        overtimeRate: 15000,
         destLabel: '목적지 (병원 → 이후 방문 장소)',
         destPlaceholder: '예: 길병원 → 약국 → 우리은행',
         routeHint: '병원 진료 후 들르실 곳(약국·은행·마트 등)을 순서대로 적어 주세요.',
@@ -1303,7 +1225,7 @@
         return;
       }
       fee.className = 'fee-box';
-      // "총 예상 금액: 49,000원 (기본 2시간)" — 금액만 크고 굵게 강조
+      // "총 예상 금액: 50,000원 (기본 2시간)" — 금액만 크고 굵게 강조
       const main = document.createElement('div');
       main.className = 'fee-main';
       const label = document.createElement('span'); label.className = 'fee-label'; label.textContent = '총 예상 금액:';
@@ -1943,28 +1865,26 @@
       const isVirtualAccount = payMethod === 'VIRTUAL_ACCOUNT';
       btn.textContent = '결제 확인 중…';
       const RECHECK_DELAYS_MS = [1500, 3000, 5000]; // 최초 1회 + 최대 3회 재시도, 총 대기 최대 9.5초
-      let vaData = null, vaError = null, vaErrorBody = null;
+      // supabaseClient.functions.invoke() 대신 WBEdgeFn.invoke() (js/edge-function-fetch.js) 로 명시적
+      // fetch() 호출 — 결제창에서 성공으로 돌아온 직후 바로 서버 검증을 요청합니다. Edge Function 은
+      // Supabase 클라우드에 배포돼 있어 프론트엔드가 127.0.0.1 로컬이어도 동일하게 동작합니다(PortOne
+      // 웹훅만 로컬엔 못 들어옵니다 — 그건 PortOne 서버가 우리 쪽으로 보내는 inbound 호출이라 공개 URL이
+      // 필요하지만, 이건 브라우저가 Supabase로 보내는 outbound 호출이라 로컬/배포 여부와 무관합니다).
+      let vaData = null, vaError = null;
       for (let attempt = 0; ; attempt++) {
         console.log('[결제] issue-virtual-account 호출 시도 ' + (attempt + 1) + ' — application_id=' + applicationId);
         try {
-          const res = await supabaseClient.functions.invoke('issue-virtual-account', {
-            body: { application_id: applicationId }
-          });
+          const res = await WBEdgeFn.invoke(supabaseClient, 'issue-virtual-account', { application_id: applicationId });
           vaData = res.data; vaError = res.error;
         } catch (e) {
-          // invoke() 자체가 throw 하면(네트워크 끊김, CORS, 함수 URL 오설정 등) 이 submit 핸들러 전체가 중단되고
-          // 버튼이 "결제 확인 중…"에 멈춘 채로 남습니다 — Edge Function 로그에는 요청이 아예 도달하지 않았으니
-          // 아무것도 남지 않고, 유일한 흔적은 브라우저 콘솔의 unhandled rejection 뿐입니다. 그래서 반드시 여기서
-          // 잡아 다음 재시도로 넘기거나(그래도 안 되면 '그 외 오류'로 포기) 사용자가 멈춰 보이지 않게 합니다.
+          // WBEdgeFn.invoke() 는 내부적으로 fetch 예외를 이미 잡아 { error } 로 돌려주므로 보통 여기까지
+          // throw 하지 않지만, 혹시 모를 예외로 이 submit 핸들러 전체가 중단되어 버튼이 "결제 확인 중…"에
+          // 멈춘 채로 남는 것을 막기 위해 방어적으로 한 번 더 잡습니다.
           vaData = null; vaError = e;
         }
-        vaErrorBody = null;
         if (!vaError) break;
-        if (vaError.context && typeof vaError.context.json === 'function') {
-          try { vaErrorBody = await vaError.context.json(); } catch (e) { /* 응답 본문이 JSON 이 아닐 수 있음 */ }
-        }
-        console.error('[결제] issue-virtual-account 호출 실패(' + (attempt + 1) + '번째 시도):', vaErrorBody || vaError);
-        const retryable = vaErrorBody && vaErrorBody.error === 'PAYMENT_NOT_APPROVED' && attempt < RECHECK_DELAYS_MS.length;
+        console.error('[결제] issue-virtual-account 호출 실패(' + (attempt + 1) + '번째 시도):', vaError);
+        const retryable = vaError.error === 'PAYMENT_NOT_APPROVED' && attempt < RECHECK_DELAYS_MS.length;
         if (!retryable) break;
         btn.textContent = '결제 승인 확인 중… (' + (attempt + 2) + '/' + (RECHECK_DELAYS_MS.length + 1) + ')';
         await new Promise((r) => setTimeout(r, RECHECK_DELAYS_MS[attempt]));
@@ -1981,7 +1901,7 @@
       let virtualAccount = null;
       let paymentNotice = null;
       if (vaError) {
-        console.error('[결제] issue-virtual-account 재시도 끝에도 실패:', vaErrorBody || vaError);
+        console.error('[결제] issue-virtual-account 재시도 끝에도 실패:', vaError);
         if (isVirtualAccount) virtualAccount = 'ERROR';
         else paymentNotice = '카드 결제가 성공적으로 완료되었습니다.';
       } else if (vaData && vaData.status === 'PAID') {

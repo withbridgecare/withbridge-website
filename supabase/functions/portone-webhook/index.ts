@@ -15,7 +15,7 @@
 // 시점으로만 가도록 트리거를 분리해 두었습니다.
 import { createAdminClient } from "../_shared/supabaseClients.ts";
 import { portoneFetch, PortOneApiError } from "../_shared/portone.ts";
-import { buildNewApplicationMessage, sendTelegramMessage } from "../_shared/telegram.ts";
+import { buildNewApplicationMessage, buildNewPackageOrderMessage, buildPaymentReconciliationFailureMessage, notifySafely, sendTelegramMessage } from "../_shared/telegram.ts";
 
 function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -116,7 +116,7 @@ Deno.serve(async (req: Request) => {
   // 요금과 마찬가지로 독립된 uuid 공간을 쓰므로 섞일 일은 없습니다(sql/user_packages_system.sql 참고).
   const { data: packageOrderRow, error: packageOrderLookupErr } = await admin
     .from("package_orders")
-    .select("id")
+    .select("id, status")
     .eq("id", paymentId)
     .maybeSingle();
   if (packageOrderLookupErr) {
@@ -129,20 +129,41 @@ Deno.serve(async (req: Request) => {
     if (status !== "PAID") {
       return json(200, { skipped: true, status: status ?? null, kind: "package_order" });
     }
+    // confirm_package_order_payment() 는 이미 PAID 인 주문에 재호출돼도(웹훅 중복 전송, 또는
+    // confirm-package-order-payment 가 이미 처리한 뒤 이 웹훅이 뒤늦게 들어온 경우) 멱등하게 같은
+    // 행을 그대로 돌려줍니다 — RPC 응답만 보고는 "이번이 처음"인지 구분할 수 없으므로, 알림 중복
+    // 발송을 막기 위해 RPC 호출 *전에* 상태를 먼저 봐서 'PENDING' 이었던 경우에만 알립니다.
+    const wasFirstTransition = packageOrderRow.status === "PENDING";
     const paidAmount: number | null = payment?.amount?.total ?? payment?.totalAmount ?? null;
     const paymentKey: string | null = payment?.transactionId ?? payment?.id ?? null;
-    const { error } = await admin.rpc("confirm_package_order_payment", {
+    const { data: pkg, error } = await admin.rpc("confirm_package_order_payment", {
       p_order_id: paymentId,
       p_paid_amount: paidAmount,
       p_payment_key: paymentKey,
     });
     if (error) {
-      if (error.message?.includes("AMOUNT_MISMATCH")) {
+      const reason = error.message?.includes("AMOUNT_MISMATCH") ? "AMOUNT_MISMATCH" : "STATUS_UPDATE_FAILED";
+      const notified = await notifySafely("결제 반영 실패 경보", () => sendTelegramMessage(buildPaymentReconciliationFailureMessage({
+        applicationId: paymentId,
+        reason,
+        detail: error.message,
+        source: "portone-webhook",
+      })));
+      console.log("[portone-webhook] 결제 반영 실패 경보 발송 결과(package_order): " + notified);
+      if (reason === "AMOUNT_MISMATCH") {
         console.error("[portone-webhook] 패키지 결제 금액 불일치:", error.message);
         return json(409, { error: "AMOUNT_MISMATCH", message: error.message });
       }
       console.error("[portone-webhook] confirm_package_order_payment 실패:", error);
       return json(500, { error: "STATUS_UPDATE_FAILED", message: error.message });
+    }
+    if (wasFirstTransition) {
+      const notified = await notifySafely("패키지 구매 확정", () => sendTelegramMessage(buildNewPackageOrderMessage({
+        packageType: pkg?.package_type,
+        amount: paidAmount,
+        userId: pkg?.user_id,
+      })));
+      console.log("[portone-webhook] 패키지 구매 확정 알림 발송 결과: " + notified);
     }
     return json(200, { ok: true, status: "PAID", kind: "package_order" });
   }
@@ -177,7 +198,17 @@ Deno.serve(async (req: Request) => {
       p_payment_key: paymentKey,
     });
     if (error) {
-      if (error.message?.includes("AMOUNT_MISMATCH")) {
+      // 이 지점도 PortOne 이 이미 'PAID' 를 돌려준 뒤입니다 — issue-virtual-account 와 같은 이유로
+      // 운영자에게 즉시 알립니다(결제는 됐는데 매니저 배정이 시작되지 않는 사고를 조용히 넘기지 않음).
+      const reason = error.message?.includes("AMOUNT_MISMATCH") ? "AMOUNT_MISMATCH" : "STATUS_UPDATE_FAILED";
+      const notified = await notifySafely("결제 반영 실패 경보", () => sendTelegramMessage(buildPaymentReconciliationFailureMessage({
+        applicationId: paymentId,
+        reason,
+        detail: error.message,
+        source: "portone-webhook",
+      })));
+      console.log("[portone-webhook] 결제 반영 실패 경보 발송 결과(service_application): " + notified);
+      if (reason === "AMOUNT_MISMATCH") {
         console.error("[portone-webhook] 입금 금액 불일치:", error.message);
         return json(409, { error: "AMOUNT_MISMATCH", message: error.message });
       }
@@ -194,15 +225,18 @@ Deno.serve(async (req: Request) => {
     // 들어온 걸 웹훅이 자동으로 감지해도, 관리자가 그 입금을 직접 확인하기 전까지는 매니저에게 먼저
     // 알리지 않습니다.
     const isVirtualAccount = !!(payment?.virtualAccount ?? payment?.method?.virtualAccount);
+    console.log("[portone-webhook] 텔레그램 알림 분기 — wasFirstTransition=" + wasFirstTransition +
+      ", isVirtualAccount=" + isVirtualAccount);
     if (wasFirstTransition && beforeApp && !isVirtualAccount) {
-      await sendTelegramMessage(buildNewApplicationMessage({
+      const notified = await notifySafely("신규 신청 접수", () => sendTelegramMessage(buildNewApplicationMessage({
         serviceType: beforeApp.service_type,
         address: beforeApp.address,
         requestDetails: beforeApp.request_details,
         userContact: beforeApp.user_contact,
         createdAt: beforeApp.created_at,
         addonCodes: beforeApp.addon_codes,
-      }));
+      })));
+      console.log("[portone-webhook] 신규 신청 텔레그램 알림 발송 결과: " + notified);
     }
 
     return json(200, { ok: true, status: "PAID" });

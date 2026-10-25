@@ -328,7 +328,14 @@ button { font-family: inherit; cursor: pointer; }
   transition: max-height .35s ease, opacity .25s ease;
 }
 .admin-extra-rows.is-expanded {
-  max-height: 2000px; /* 실제 내용보다 넉넉한 값 — 전환이 끝까지 자연스럽게 재생되도록 */
+  /* 전에는 max-height 를 2000px 로 "넉넉히" 잡아 전환 애니메이션을 재생했는데, '배정 완료(진행 중)
+     케어 현황' 처럼 행이 많이 쌓이는 카드는 실제 내용이 2000px 를 넘어 맨 아래 카드가 박스
+     밑으로 잘려 보이는 버그가 있었습니다. max-height 를 아예 두지 않고(= 내용 높이에 맞춰 자동으로
+     늘어남) overflow 도 visible 로 풀어, 행이 몇 개가 쌓이든 절대 잘리지 않게 합니다 — 펼쳐질 때
+     높이 전환(0 → 실제 높이)은 'none' 값을 보간할 수 없어 더 이상 애니메이션되지 않지만(opacity
+     페이드만 남음), 내용이 잘리지 않는 쪽을 우선합니다. */
+  max-height: none;
+  overflow: visible;
   opacity: 1;
 }
 

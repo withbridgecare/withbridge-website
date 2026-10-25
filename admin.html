@@ -161,9 +161,10 @@
     </section>
 
     <!-- ================================================================ -->
-    <!-- 05. 매니저 정산 (월별) — 건별 결제 금액의 70%를 매니저 정산금으로, 완료된 건을 월 단위로
-         모아 [완료 건수 / 정산대상액(70%) / 3.3% 원천세 / 실지급액]을 보여줍니다(sql/
-         manager_settlement_70_30.sql 의 admin_manager_monthly_settlements() RPC). 익월 10일
+    <!-- 05. 매니저 정산 (월별) — 매니저별 시급 × 수행 시간으로 매니저 정산금을 계산해, 완료된 건을
+         월 단위로 모아 [완료 건수 / 정산대상액 / 3.3% 원천세 / 실지급액]을 보여줍니다(sql/
+         manager_hourly_rate_settlement.sql 의 트리거가 care_schedules.manager_payout 을 계산하고,
+         admin_manager_monthly_settlements() RPC 는 그 값을 그대로 집계합니다). 익월 10일
          일괄 지급 전, 이 표로 지급 내역을 확인합니다. -->
     <!-- ================================================================ -->
     <section class="admin-card" aria-labelledby="settlementTitle">
@@ -171,7 +172,7 @@
         <h2 id="settlementTitle">매니저 정산 (월별)</h2>
         <span class="admin-count" id="settlementCount" hidden>0명</span>
       </div>
-      <p class="admin-card-desc">건별 결제 금액의 70%를 매니저 정산금으로 자동 계산합니다(플랫폼 수수료 30%). 매월 말일 마감 후 익월 10일, 선택한 달의 완료 건을 모아 3.3%(소득세 3% + 지방소득세 0.3%) 원천징수 후 일괄 지급합니다.</p>
+      <p class="admin-card-desc">매니저별 설정된 시급과 서비스 수행 시간에 따라 정산금이 계산됩니다. 매월 말일 마감 후 익월 10일, 3.3% 원천징수 후 일괄 지급합니다.</p>
       <div class="admin-filter-bar">
         <label class="admin-field-label" for="settlementMonthInput" style="margin: 0;">정산 대상 월</label>
         <input type="month" class="admin-select" id="settlementMonthInput" style="max-width: 180px;">
@@ -183,7 +184,7 @@
             <tr>
               <th>매니저</th>
               <th>완료 건수</th>
-              <th>정산대상액 (70%)</th>
+              <th>정산대상액</th>
               <th>3.3% 원천세</th>
               <th>실지급액</th>
               <th aria-label="상세보기"></th>
@@ -247,8 +248,9 @@
 
   <!-- ================================================================ -->
   <!-- 04-1. 매니저 정산 상세 내역 모달 ('매니저 정산 (월별)' 표의 [상세보기] 버튼 또는 행 클릭에서 열림) —
-       그 달에 집계된 개별 완료 건을 서비스 종류·이용 일시·결제 금액·매니저 정산금 단위로 펼쳐 보여줍니다
-       (sql/admin_settlement_detail_rpc.sql 의 admin_manager_monthly_settlement_details() RPC). -->
+       그 달에 집계된 개별 완료 건을 서비스 종류·이용 일시·결제 금액·매니저 정산금(시급 × 수행 시간)
+       단위로 펼쳐 보여줍니다(sql/admin_settlement_detail_rpc.sql 의
+       admin_manager_monthly_settlement_details() RPC). -->
   <!-- ================================================================ -->
   <div class="modal-backdrop" id="settlementDetailModal" hidden>
     <div class="modal settlement-detail-modal" role="dialog" aria-modal="true" aria-labelledby="settlementDetailModalTitle">
@@ -265,7 +267,7 @@
               <th>서비스 카테고리</th>
               <th>이용 일시</th>
               <th>결제 금액</th>
-              <th>매니저 정산금 (70%)</th>
+              <th>매니저 정산금</th>
               <th>고객 평가</th>
             </tr>
           </thead>

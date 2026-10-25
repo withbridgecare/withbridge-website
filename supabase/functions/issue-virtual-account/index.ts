@@ -28,7 +28,7 @@
 // 알림이 가는 것을 막기 위함).
 import { createAdminClient, createUserClient } from "../_shared/supabaseClients.ts";
 import { portoneFetch, PortOneApiError } from "../_shared/portone.ts";
-import { buildNewApplicationMessage, sendTelegramMessage } from "../_shared/telegram.ts";
+import { buildNewApplicationMessage, buildPaymentReconciliationFailureMessage, notifySafely, sendTelegramMessage } from "../_shared/telegram.ts";
 
 const CORS_HEADERS: Record<string, string> = {
   // 운영 환경에서는 "*" 대신 실제 서비스 도메인으로 좁히는 것을 권장합니다.
@@ -171,7 +171,19 @@ Deno.serve(async (req: Request) => {
       p_payment_key: paymentKey,
     });
     if (rpcErr) {
-      if (rpcErr.message?.includes("AMOUNT_MISMATCH")) {
+      // 이 지점은 PortOne 이 이미 'PAID' 를 돌려준 뒤입니다 — 고객은 결제를 완료했는데 DB 전환이
+      // 실패하면 매니저 배정이 영원히 시작되지 않으므로, console.error 로만 남기지 않고 운영자에게도
+      // 즉시 알립니다(요금표 변경 후 expected_service_price() 를 DB에 재배포하지 않아 전건이
+      // AMOUNT_MISMATCH 로 막혔던 사고 재발 방지). 알림 발송 실패는 응답에 영향을 주지 않습니다.
+      const reason = rpcErr.message?.includes("AMOUNT_MISMATCH") ? "AMOUNT_MISMATCH" : "STATUS_UPDATE_FAILED";
+      const notified = await notifySafely("결제 반영 실패 경보", () => sendTelegramMessage(buildPaymentReconciliationFailureMessage({
+        applicationId: application_id,
+        reason,
+        detail: rpcErr.message,
+        source: "issue-virtual-account",
+      })));
+      console.log("[issue-virtual-account] 결제 반영 실패 경보 발송 결과: " + notified);
+      if (reason === "AMOUNT_MISMATCH") {
         console.error("[issue-virtual-account] 입금 금액 불일치:", rpcErr.message);
         return json(409, { error: "AMOUNT_MISMATCH", message: rpcErr.message });
       }
@@ -182,16 +194,25 @@ Deno.serve(async (req: Request) => {
     // 신규 신청이 매칭 대기(MATCHING_PENDING)로 들어간 시점에 매니저 운영 채널로 텔레그램 알림을
     // 보냅니다 — 카드/간편결제/계좌이체(즉시결제)만. 가상계좌는 위에서 걸러집니다. 이미 결제/DB
     // 반영이 끝난 뒤라, 알림 발송이 실패해도(토큰 미설정 등) 응답에는 영향을 주지 않습니다
-    // (sendTelegramMessage 는 예외를 던지지 않고 false 만 돌려줍니다).
+    // (sendTelegramMessage 는 예외를 던지지 않고 false 만 돌려줍니다). 결과(성공/실패)를 반드시
+    // 로그로 남겨, "수동 입금 확인은 알림이 오는데 자동 승인은 안 온다"는 보고가 들어왔을 때 —
+    // 애초에 isVirtualAccount 로 걸러져 호출 자체를 안 한 것인지, 호출은 했지만
+    // TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID(Supabase Edge Function Secrets — admin_confirm_manual_payment()
+    // 가 쓰는 Postgres Vault 시크릿과는 "다른" 저장소입니다) 미설정으로 실패한 것인지 바로 구분합니다.
+    console.log("[issue-virtual-account] 텔레그램 알림 분기 — isVirtualAccount=" + isVirtualAccount +
+      ", payMethod=" + (payment?.method?.type ?? payment?.payMethod ?? "unknown"));
     if (!isVirtualAccount) {
-      await sendTelegramMessage(buildNewApplicationMessage({
+      const notified = await notifySafely("신규 신청 접수", () => sendTelegramMessage(buildNewApplicationMessage({
         serviceType: application.service_type,
         address: application.address,
         requestDetails: application.request_details,
         userContact: application.user_contact,
         createdAt: application.created_at,
         addonCodes: application.addon_codes,
-      }));
+      })));
+      console.log("[issue-virtual-account] 신규 신청 텔레그램 알림 발송 결과: " + notified);
+    } else {
+      console.log("[issue-virtual-account] 가상계좌 결제라 텔레그램 알림을 건너뜁니다(어드민 [수동 입금 확인] 시점에만 발송).");
     }
 
     return json(200, { status: "PAID", application: updated });

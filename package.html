@@ -12,6 +12,9 @@
 <!-- 사이트 공통 인증 헤더 (로그인 상태 감지, window.WBAuth 제공) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/auth-header.js?v=1.8" charset="utf-8"></script>
+<!-- 결제 확인 Edge Function(confirm-package-order-payment) 호출용 — supabaseClient.functions.invoke()
+     대신 명시적 fetch() 래퍼. auth-header.js 가 만든 supabaseClient 를 받아 쓰므로 그 뒤에 로드합니다 -->
+<script src="/js/edge-function-fetch.js?v=1.0"></script>
 <script src="/js/terms-modal.js?v=1.0" charset="utf-8" defer></script>
 <!-- 패키지 결제(PortOne V2) -->
 <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
@@ -469,7 +472,7 @@
         </details>
         <details>
           <summary>기본 2시간을 넘기면 어떻게 되나요?<svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></summary>
-          <div class="pkg-faq-body">패키지로 예약한 건도 단건 결제와 동일하게 기본 2시간 동행을 기준으로 하며, 현장에서 이를 초과하면 서비스 종류별 초과 요금(30분당 10,000~14,000원, <a href="index.html#services">이용 요금 안내</a> 참고)이 자동으로 산정되어 별도로 후불 청구됩니다. 패키지 회차는 기본 2시간 이용분에 대해서만 적용됩니다.</div>
+          <div class="pkg-faq-body">패키지로 예약한 건도 단건 결제와 동일하게 기본 2시간 동행을 기준으로 하며, 현장에서 이를 초과하면 서비스 종류별 초과 요금(30분당 10,000~15,000원, <a href="index.html#services">이용 요금 안내</a> 참고)이 자동으로 산정되어 별도로 후불 청구됩니다. 패키지 회차는 기본 2시간 이용분에 대해서만 적용됩니다.</div>
         </details>
         <details>
           <summary>유효기간이 지나면 남은 회차는 어떻게 되나요?<svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></summary>
@@ -501,71 +504,8 @@
 11. 하단 푸터 (Footer)
 ====================================================================
 -->
-<footer style="background-color: #1A1D21 !important; color: #E5E7EB !important; padding: 64px 32px 48px 32px !important; font-family: 'Noto Sans KR', sans-serif !important;">
-  <div style="max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; gap: 48px;">
-    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 24px; padding-bottom: 0px;">
-      <div style="display: flex; align-items: baseline; gap: 12px;">
-        <strong style="font-size: 20px; font-weight: 700; color: #ffffff !important;">위드브릿지</strong>
-        <span style="font-size: 14px; color: #a1a1aa !important;">WithBridge</span>
-      </div>
-      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 24px;">
-        <nav style="display: flex; align-items: center; gap: 16px; font-size: 14px;">
-          <a href="terms.html" data-open-terms style="color: #d4d4d8 !important; text-decoration: underline; text-underline-offset: 4px;">이용약관</a>
-          <span style="width: 1px; height: 12px; background-color: rgba(255,255,255,0.2);"></span>
-          <a href="privacy.html" style="color: #ffffff !important; font-weight: 700; text-decoration: underline; text-underline-offset: 4px;">개인정보 처리방침</a>
-        </nav>
-        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
-          <a href="#instagram" style="display: inline-flex; align-items: center; justify-content: center; padding: 8px 18px; border-radius: 9999px; background-color: #ffffff !important; color: #18181b !important; font-size: 14px; font-weight: 700; text-decoration: none;"><span>인스타그램</span></a>
-          <a href="#youtube" style="display: inline-flex; align-items: center; justify-content: center; padding: 8px 18px; border-radius: 9999px; background-color: #ffffff !important; color: #18181b !important; font-size: 14px; font-weight: 700; text-decoration: none;"><span>유튜브</span></a>
-          <a href="#tiktok" style="display: inline-flex; align-items: center; justify-content: center; padding: 8px 18px; border-radius: 9999px; background-color: #ffffff !important; color: #18181b !important; font-size: 14px; font-weight: 700; text-decoration: none;"><span>틱톡</span></a>
-        </div>
-      </div>
-    </div>
-    <div class="wb-footer-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 48px;">
-      <div style="display: flex; flex-direction: column;">
-        <h3 style="margin-bottom: 12px; font-size: 16px; font-weight: 700; color: #ffffff !important;">회사 정보</h3>
-        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
-          <span style="font-weight: 700; color: #ffffff !important;">상호명</span>
-          <span style="color: #f4f4f5 !important;">위드브릿지</span>
-        </div>
-        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
-          <span style="font-weight: 700; color: #ffffff !important;">대표자</span>
-          <span style="color: #f4f4f5 !important;">강승수</span>
-        </div>
-        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
-          <span style="font-weight: 700; color: #ffffff !important;">사업자등록번호</span>
-          <span style="color: #f4f4f5 !important;">등록 예정</span>
-        </div>
-        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
-          <span style="font-weight: 700; color: #ffffff !important;">통신판매업 신고번호</span>
-          <span style="color: #f4f4f5 !important;">등록 예정</span>
-        </div>
-      </div>
-      <div style="display: flex; flex-direction: column;">
-        <h3 style="margin-bottom: 12px; font-size: 16px; font-weight: 700; color: #ffffff !important;">연락처 &amp; 고객센터</h3>
-        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
-          <span style="font-weight: 700; color: #ffffff !important;">주소</span>
-          <span style="color: #f4f4f5 !important;">인천광역시 남동구 소래역로 93 (906-201)</span>
-        </div>
-        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
-          <span style="font-weight: 700; color: #ffffff !important;">전화번호</span>
-          <a href="tel:01055305760" style="color: #ffffff !important; font-weight: 500; text-decoration: none;">010-5530-5760</a>
-        </div>
-        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
-          <span style="font-weight: 700; color: #ffffff !important;">이메일</span>
-          <a href="mailto:withbridge.care@gmail.com" style="color: #ffffff !important; font-weight: 500; text-decoration: none;">withbridge.care@gmail.com</a>
-        </div>
-        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">
-          <span style="font-weight: 700; color: #ffffff !important;">운영시간</span>
-          <span style="color: #f4f4f5 !important;">평일 08:00 ~ 18:00 <span style="color: #a1a1aa !important;">(주말·공휴일 휴무)</span></span>
-        </div>
-      </div>
-    </div>
-    <div style="padding-top: 32px; border-top: 1px solid rgba(255,255,255,0.1);">
-      <p style="margin: 0; font-size: 14px; color: #e4e4e7 !important;">© 2026 WithBridge. All rights reserved.</p>
-    </div>
-  </div>
-</footer>
+<div id="wb-footer"></div>
+<script src="/js/site-footer.js?v=1.0"></script>
 
 <!-- 구매 완료 모달 — [마이페이지로 이동]/[케어 예약하러 가기] 중 하나를 직접 눌러야 닫히고 이동합니다
      (토스트처럼 저절로 사라지지 않음). 내용은 buyPackage() 가 showPurchaseModal() 로 채웁니다. -->
@@ -722,15 +662,27 @@
     }
 
     btn.textContent = '결제 확인 중…';
+    // supabaseClient.functions.invoke() 대신 WBEdgeFn.invoke() (js/edge-function-fetch.js) 로 명시적
+    // fetch() 호출 — 결제창에서 성공으로 돌아온 직후 바로 서버 검증을 요청합니다. 이 Edge Function은
+    // Supabase 클라우드에 배포돼 있어 프론트엔드가 127.0.0.1 로컬이어도 동일하게 동작합니다(PortOne
+    // 웹훅만 로컬엔 못 들어옵니다 — 그건 PortOne 서버가 우리 쪽으로 보내는 inbound 호출이라 공개 URL이
+    // 필요하지만, 이건 브라우저가 Supabase로 보내는 outbound 호출이라 로컬/배포 여부와 무관합니다).
+    console.log('[패키지 구매][디버그] confirm-package-order-payment 호출 시작 — order_id=' + order.id +
+      ', packageType=' + packageType + ', amount=' + catalog.price);
     try {
-      const { error: confirmErr } = await supabaseClient.functions.invoke('confirm-package-order-payment', {
-        body: { order_id: order.id }
+      const { error: confirmErr } = await WBEdgeFn.invoke(supabaseClient, 'confirm-package-order-payment', {
+        order_id: order.id
       });
       if (confirmErr) throw confirmErr;
+      console.log('[패키지 구매][디버그] 결제 확인 성공 — order_id=' + order.id);
       btn.textContent = '구매 완료 ✓';
       showPurchaseModal(catalog);
     } catch (e) {
-      console.error('[패키지 구매] 결제 확인(confirm-package-order-payment) 실패:', e);
+      // e.status/e.error 는 js/edge-function-fetch.js 의 WBEdgeFn.invoke() 가 채워 줍니다 — 401(인증)/
+      // 404(함수 미배포 또는 주문 못 찾음)/409(AMOUNT_MISMATCH·PAYMENT_NOT_APPROVED)/500(서버 내부 오류)
+      // 를 여기서 바로 구분할 수 있습니다. 자세한 요청/응답 원문은 WBEdgeFn 의 [WBEdgeFn][디버그] 로그를 보세요.
+      console.error('[패키지 구매][디버그] 결제 확인(confirm-package-order-payment) 실패 — order_id=' + order.id +
+        ', status=' + (e && e.status) + ', error=' + (e && (e.error || e.message)), e);
       btn.disabled = false;
       btn.textContent = originalLabel;
       showToast('결제 확인에 실패했어요. 고객센터(010-5530-5760)로 문의해 주세요.');

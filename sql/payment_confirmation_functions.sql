@@ -107,9 +107,9 @@ create or replace function public.expected_service_price(p_service_type text)
 returns integer
 language sql immutable as $$
   select case p_service_type
-    when '시니어 병원 동행' then 49000
-    when '생활 편의 대행' then 42000
-    when '복합 매칭 서비스 (동행 + 생활편의)' then 58000
+    when '시니어 병원 동행' then 50000
+    when '생활 편의 대행' then 40000
+    when '복합 매칭 서비스 (동행 + 생활편의)' then 60000
     else null
   end;
 $$;
@@ -128,9 +128,9 @@ create or replace function public.expected_overtime_rate_per_30min(p_service_typ
 returns integer
 language sql immutable as $$
   select case p_service_type
-    when '시니어 병원 동행' then 12000
+    when '시니어 병원 동행' then 12500
     when '생활 편의 대행' then 10000
-    when '복합 매칭 서비스 (동행 + 생활편의)' then 14000
+    when '복합 매칭 서비스 (동행 + 생활편의)' then 15000
     else 10000 -- 알 수 없는(또는 신청서와 연결되지 않은) 서비스 유형은 기존 기본값으로 안전하게 처리
   end;
 $$;
