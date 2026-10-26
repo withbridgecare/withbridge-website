@@ -136,7 +136,7 @@ button { font-family: inherit; cursor: pointer; }
 /* ---------- 00. 핵심 현황 요약 카드 ---------- */
 .admin-summary-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 16px;
   margin-bottom: 20px;
 }
@@ -167,6 +167,18 @@ button { font-family: inherit; cursor: pointer; }
 .admin-summary-card.is-payment-pending .admin-summary-value { color: var(--earth-fg); }
 .admin-summary-card.is-matching-pending .admin-summary-value { color: #1D4ED8; }
 .admin-summary-card.is-in-progress .admin-summary-value { color: var(--sage-600); }
+.admin-summary-card.is-cancelled .admin-summary-value { color: var(--danger); }
+
+/* 클릭 가능한 요약 카드(지금은 [취소 건수] 하나) — <button> 이라 생기는 브라우저 기본 스타일만 reset */
+.admin-summary-card.is-clickable {
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+.admin-summary-card.is-clickable:hover { border-color: var(--sage-200); box-shadow: 0 4px 14px rgba(0,0,0,.06); }
+.admin-summary-card.is-clickable:focus-visible { outline: 3px solid rgba(85,107,47,.35); outline-offset: 2px; }
 
 /* ---------- 01. 검색 · 상태 필터 바 ---------- */
 .admin-filter-bar {
@@ -822,6 +834,12 @@ textarea.admin-select { cursor: text; resize: vertical; min-height: 72px; }
 .settlement-detail-table .detail-datetime-sub { display: block; margin-top: 2px; font-size: 11.5px; font-weight: 400; color: var(--ink-sub); }
 .settlement-detail-table .detail-payout { font-weight: 700; color: var(--sage-600); }
 .settlement-detail-table td.detail-review { text-align: left; white-space: normal; max-width: 220px; }
+
+/* 패키지 상세보기 모달 — 그 안의 [회차 조정] 버튼이 06-1 패키지 회차 조정 모달(z-index 는 .modal-backdrop
+   기본값 300)을 이 모달을 닫지 않고 그 위에 띄우므로, 이 모달만 한 단 낮춰 둬서 DOM 순서와 무관하게
+   항상 조정 모달이 위에 뜨도록 고정합니다. */
+#packageGroupDetailModal { z-index: 295; }
+.pkg-detail-adjust-btn { padding: 6px 12px; font-size: 12.5px; }
 .settlement-detail-table .detail-stars { display: block; color: #F5B942; letter-spacing: 1px; }
 .settlement-detail-table .detail-review-text { display: block; margin-top: 3px; font-size: 12px; font-weight: 400; color: var(--ink-sub); word-break: keep-all; }
 

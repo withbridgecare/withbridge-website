@@ -113,6 +113,9 @@ async function handleRequest(req: Request): Promise<Response> {
   const paidAmount: number | null = payment?.amount?.total ?? payment?.totalAmount ?? null;
   const paymentKey: string | null = payment?.transactionId ?? payment?.id ?? null;
   const admin = createAdminClient();
+  // 패키지 구매 자체는 아직 "신청(service_applications)"이 아니라 user_packages 회차 충전일 뿐이라
+  // insurance_applied 를 여기서 찍지 않습니다 — 실제 적용 시각은 이 회차를 소진해 동행이 확정되는
+  // 순간(consume_package_on_application(), sql/manager_insurance_tracking.sql)에 기록됩니다.
   const { data: pkg, error: rpcErr } = await admin.rpc("confirm_package_order_payment", {
     p_order_id: order_id,
     p_paid_amount: paidAmount,

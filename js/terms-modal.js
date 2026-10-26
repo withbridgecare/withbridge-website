@@ -14,7 +14,7 @@
   'use strict';
 
   var TERMS_URL = 'terms.html';
-  var VERSION = '2026-09-22';              // terms.html 의 '약관 버전'과 같게 유지 (약관을 개정하면 함께 갱신)
+  var VERSION = '2026-10-26';              // terms.html 의 '약관 버전'과 같게 유지 (약관을 개정하면 함께 갱신)
   var STORAGE_KEY = 'wb_terms_agreed';
 
   // ---------- 동의 기록 (이 브라우저에 '어느 버전에 동의했는지'만 기억) ----------

@@ -229,6 +229,8 @@ async function handleRequest(req: Request): Promise<Response> {
     // expected_service_price() 참고).
     const paidAmount: number | null = payment?.amount?.total ?? payment?.totalAmount ?? null;
     const paymentKey: string | null = payment?.transactionId ?? payment?.id ?? null;
+    // mark_payment_matching_pending() 내부에서 PAID 전환과 같은 트랜잭션으로 insurance_applied=true,
+    // insurance_applied_at=now() 도 함께 기록합니다(sql/manager_insurance_tracking.sql 참고).
     const { error } = await admin.rpc("mark_payment_matching_pending", {
       p_application_id: paymentId,
       p_paid_amount: paidAmount,

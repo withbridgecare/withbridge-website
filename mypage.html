@@ -486,8 +486,12 @@
     .app-more-btn.is-open .chevron { transform: rotate(180deg); }
     /* 이전엔 그림자 한 겹만 있어 입체감이 희미했습니다 — 테두리를 살짝 또렷하게 하고, 가장자리를 잡아주는
        얇은 1px 그림자와 은은하게 퍼지는 넓은 그림자를 겹쳐 카드가 배경 위에 확실히 떠 보이게 합니다. */
-    .app-card { padding: 26px; background: #fff; border: 1px solid var(--card-border); border-radius: var(--radius); box-shadow: var(--shadow-card); transition: box-shadow .15s ease; }
+    .app-card { padding: 26px; background: #fff; border: 1px solid var(--card-border); border-radius: var(--radius); box-shadow: var(--shadow-card); transition: box-shadow .15s ease, opacity .22s ease, transform .22s ease; }
     .app-card:hover { box-shadow: var(--shadow-card-hover); }
+    /* 신청 취소 성공 직후 renderCare() 가 목록을 다시 그리기 전, 이 카드만 짚어 잠깐 부드럽게
+       사라지도록 거는 전환(cancelMyApplication/fadeOutApplicationCard 참고) — 전체 목록이 통째로
+       훅 비워지는 대신, 취소한 카드 하나만 자연스럽게 내려가는 것처럼 보이게 합니다. */
+    .app-card.is-leaving { opacity: 0; transform: scale(.98); pointer-events: none; }
     .app-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
     .app-title { display: flex; align-items: center; gap: 10px; min-width: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.02em; word-break: keep-all; color: var(--ink); } /* 서비스명이 카드에서 가장 먼저 눈에 띄도록 한 단계 더 크고 진하게 */
     /* 서비스 카테고리 뱃지: 대괄호 텍스트('[병원]') 대신 SVG 아이콘 + 라벨을 담은 독립된 pill 뱃지로 분리합니다.
@@ -1974,12 +1978,12 @@
     // 매니저 모드로 열리면 그쪽으로 이동합니다 (그 페이지도 진입 시 같은 서버 확인을 다시 합니다).
 
     let toastTimer = null;
-    function showToast(message) {
+    function showToast(message, duration) {
       const toast = document.getElementById('toast');
       toast.textContent = message;
       toast.hidden = false;
       clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => { toast.hidden = true; }, 2600);
+      toastTimer = setTimeout(() => { toast.hidden = true; }, duration || 2600);
     }
 
     // 사용자가 결제창을 직접 닫거나 취소한 경우를 판별합니다. PortOne 은 결제사·버전에 따라 코드가
@@ -3296,6 +3300,7 @@
       const proposal = getScheduleProposal(a.id);
 
       const card = h('li', 'app-card tone-' + st.tone);
+      card.dataset.appId = a.id; // 취소 시 이 카드만 짚어 부드럽게 사라지는 전환을 걸기 위한 훅(fadeOutApplicationCard 참고)
 
       // 상단: 서비스명(좌) + 총 예상 금액(우, 굵고 큼직하게). 상태는 바로 아래 스테퍼가 보여주므로
       // 여기서는 별도 상태 뱃지를 두지 않습니다(중복 제거).
@@ -3545,13 +3550,32 @@
     // 'CANCELLED' 로 바꿉니다. 결제 완료(MATCHING_PENDING) 건의 PG사 환불은 자동 연동하지 않고 — 관리자가
     // 어드민 콘솔에서 결제 내역을 확인한 뒤 수동으로 환불 처리합니다(요구사항에 따라 Edge Function
     // 기반 자동 환불 연동을 제거하고 상태값 수동 처리 방식으로 되돌림).
+    // 취소 성공 직후, renderCare() 가 목록 전체를 통째로 다시 그리기 '전에' 이 카드 하나만 짚어
+    // .is-leaving(opacity/scale 전환)을 걸고 그 전환이 끝날 때까지만 기다립니다 — 그래야 '진행 중인
+    // 케어'에서 카드가 빠지는 게 통째 리렌더로 한순간에 뚝 끊기듯 사라지는 게 아니라, 이 카드만 부드럽게
+    // 내려가는 것처럼 보입니다. 카드를 못 찾아도(이미 '더보기' 접힘 등으로 DOM에 없는 경우) 조용히
+    // 넘어갑니다 — 어차피 바로 이어지는 renderCare() 가 최종 상태를 맞춰 줍니다.
+    function fadeOutApplicationCard(applicationId) {
+      return new Promise((resolve) => {
+        const el = document.querySelector('.app-card[data-app-id="' + applicationId + '"]');
+        if (!el) { resolve(); return; }
+        el.classList.add('is-leaving');
+        setTimeout(resolve, 220);
+      });
+    }
+
     async function cancelMyApplication(a) {
       const ok = await openCancelApplicationModal();
       if (!ok) return;
 
+      // 두 문장짜리 안내라 기본 2.6초로는 다 읽기 전에 사라질 수 있어, 이 토스트만 조금 더 오래 띄웁니다.
+      const CANCEL_TOAST_MSG = "신청이 취소되었습니다. 환불 및 처리 내역은 '지난 이용 내역' 탭에서 확인하실 수 있습니다.";
+      const CANCEL_TOAST_MS = 4200;
+
       if (DEMO) { // 미리보기(?demo=1)는 서버가 없으므로 화면에서만 바로 반영
         a.status = 'CANCELLED';
-        showToast('신청이 취소되었습니다. 환불은 관리자 확인 후 처리됩니다.');
+        showToast(CANCEL_TOAST_MSG, CANCEL_TOAST_MS);
+        await fadeOutApplicationCard(a.id);
         renderCare(lastCareApps);
         return;
       }
@@ -3560,8 +3584,9 @@
         const { error } = await supabaseClient.rpc('cancel_my_application', { p_application_id: a.id });
         if (error) throw error;
         a.status = 'CANCELLED'; // 다음 폴링을 기다리지 않고 즉시 '진행 중인 신청'에서 빠지도록 낙관적으로 반영
-        showToast('신청이 취소되었습니다. 환불은 관리자 확인 후 처리됩니다.');
-        renderCare(lastCareApps);
+        showToast(CANCEL_TOAST_MSG, CANCEL_TOAST_MS);
+        await fadeOutApplicationCard(a.id); // 카드가 뚝 끊기듯 사라지지 않도록, 통째 리렌더 전에 이 카드만 먼저 부드럽게 전환
+        renderCare(lastCareApps); // 이 재렌더가 activeApps 에서는 빼고 '지난 이용 내역' 달력(groupScheduleByDay)에는 올립니다(effectiveStatusInfo 의 tone==='cancel' 분기)
         loadCare(true); // 서버 값으로 조용히 다시 동기화
       } catch (err) {
         console.error('[신청 취소] cancel_my_application 실패 (sql/guardian_cancel_application.sql 실행 여부 확인):', errInfo(err));
@@ -3575,8 +3600,16 @@
         } else if (/APPLICATION_NOT_FOUND/.test(msg)) {
           showToast('신청 정보를 찾을 수 없어요. 새로고침 후 다시 시도해 주세요.');
           loadCare(true);
+        } else if (/PGRST202|Could not find the function/i.test(msg)) {
+          // RPC 가 아직 배포되지 않은 경우(sql/guardian_cancel_application.sql 미실행) — 신청은 그대로
+          // 살아 있고 아무것도 바뀌지 않았으니, 카드가 사라진 것처럼 보이지 않도록 목록을 다시 그립니다.
+          showToast('취소 기능이 아직 준비되지 않았어요. 고객센터(010-5530-5760)로 문의해 주세요.');
+          renderCare(lastCareApps);
         } else {
-          alert('취소 처리 중 오류가 발생했습니다: ' + (err && err.message ? err.message : err));
+          // 예상 못 한 오류도 네이티브 alert() 대신 같은 토스트로 — 화면이 갑자기 깨진 것처럼 보이지 않게 합니다.
+          // 신청은 아직 'CANCELLED' 로 바뀌지 않았으므로(위 throw 가 a.status 대입 전에 일어남) 목록도 그대로 다시 그려 줍니다.
+          showToast('취소 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.', 4200);
+          renderCare(lastCareApps);
         }
       }
     }
@@ -3728,7 +3761,10 @@
           const emptyActive = h('div', 'empty');
           emptyActive.appendChild(h('span', 'empty-icon')).appendChild(svgCheckCircleIcon(30));
           emptyActive.appendChild(h('strong', '', '현재 진행 중인 케어 일정이 없습니다.'));
-          emptyActive.appendChild(h('span', '', '완료된 케어 내역은 아래 달력에서 확인하실 수 있어요. 새로운 병원 진료·외출 동행이 필요하시면 언제든 신청해 주세요.'));
+          // 방금 '진행 중'이었던 유일한 신청을 취소한 경우에도 이 빈 상태가 뜨므로, '완료된'만 말하면
+          // 취소한 사람에게는 "내 취소 건이 어디 갔지?"처럼 보입니다 — 취소/환불도 아래에서 찾을 수
+          // 있다는 걸 함께 밝혀야 사라진 것처럼 느껴지지 않습니다.
+          emptyActive.appendChild(h('span', '', '완료되었거나 취소된 케어 내역은 아래 \'지난 이용 내역\' 달력에서 확인하실 수 있어요. 새로운 병원 진료·외출 동행이 필요하시면 언제든 신청해 주세요.'));
           body.appendChild(emptyActive);
         }
       } else {

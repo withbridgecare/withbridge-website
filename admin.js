@@ -30,6 +30,8 @@
     summaryPaymentPendingCount: $('summaryPaymentPendingCount'),
     summaryMatchingPendingCount: $('summaryMatchingPendingCount'),
     summaryInProgressCount: $('summaryInProgressCount'),
+    summaryCancelledCount: $('summaryCancelledCount'),
+    summaryCancelledCard: $('summaryCancelledCard'),
     searchInput: $('adminSearchInput'),
     statusFilterGroup: $('adminStatusFilter'),
     pendingManagersList: $('pendingManagersList'),
@@ -131,6 +133,12 @@
     userPackagesSearchInput: $('userPackagesSearchInput'),
     userPackagesTableBody: $('userPackagesTableBody'),
     userPackagesShowMoreWrap: $('userPackagesShowMoreWrap'),
+    packageGroupDetailModal: $('packageGroupDetailModal'),
+    packageGroupDetailModalTitle: $('packageGroupDetailModalTitle'),
+    packageGroupDetailModalSub: $('packageGroupDetailModalSub'),
+    packageGroupDetailTableBody: $('packageGroupDetailTableBody'),
+    packageGroupDetailCloseBtn: $('packageGroupDetailCloseBtn'),
+    packageGroupDetailCloseBtn2: $('packageGroupDetailCloseBtn2'),
     packageAdjustModal: $('packageAdjustModal'),
     packageAdjustModalSub: $('packageAdjustModalSub'),
     packageAdjustDeltaInput: $('packageAdjustDeltaInput'),
@@ -399,10 +407,13 @@
   }
 
   // ============================================================
-  // 00-2. 핵심 현황 요약 카드 (오늘 신청 / 입금 대기 / 매칭 대기 / 진행 중 케어)
+  // 00-2. 핵심 현황 요약 카드 (오늘 신청 / 입금 대기 / 매칭 대기 / 진행 중 케어 / 취소 건수)
   //     목록 카드들과 별개로, 조건 없이 전체 건수를 직접 count 쿼리로 받습니다 — 목록 카드들은
   //     각자의 화면 목적에 맞춰 조회 범위를 좁혀 놨기 때문에(예: 48시간 cutoff) 그 결과만으로는
   //     "오늘 전체 신청 수" 같은 요약 숫자를 정확히 낼 수 없습니다.
+  //     취소 건수는 fetchCancelledApplicationsPage() 가 쓰는 것과 똑같은 상태값 묶음
+  //     ('CANCELLED' 보호자/관리자 수동 취소 + 'EXPIRED_CANCELLED' 48시간 자동 취소)을 세어,
+  //     이 카드 숫자와 [취소] 필터로 들어가서 보이는 목록 건수가 항상 일치하도록 맞춥니다.
   // ============================================================
   async function loadSummaryStats() {
     var todayStartIso = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
@@ -411,10 +422,11 @@
       supabaseClient.from('service_applications').select('id', { count: 'exact', head: true }).gte('created_at', todayStartIso),
       supabaseClient.from('service_applications').select('id', { count: 'exact', head: true }).eq('status', 'PAYMENT_PENDING'),
       supabaseClient.from('service_applications').select('id', { count: 'exact', head: true }).eq('status', 'MATCHING_PENDING'),
-      supabaseClient.from('care_schedules').select('id', { count: 'exact', head: true }).not('manager_id', 'is', null).neq('status', 'completed').neq('status', 'cancelled')
+      supabaseClient.from('care_schedules').select('id', { count: 'exact', head: true }).not('manager_id', 'is', null).neq('status', 'completed').neq('status', 'cancelled'),
+      supabaseClient.from('service_applications').select('id', { count: 'exact', head: true }).in('status', ['CANCELLED', 'EXPIRED_CANCELLED'])
     ]);
 
-    var labels = [els.summaryTodayCount, els.summaryPaymentPendingCount, els.summaryMatchingPendingCount, els.summaryInProgressCount];
+    var labels = [els.summaryTodayCount, els.summaryPaymentPendingCount, els.summaryMatchingPendingCount, els.summaryInProgressCount, els.summaryCancelledCount];
     results.forEach(function (res, i) {
       var el = labels[i];
       if (!el) return;
@@ -424,6 +436,18 @@
         return;
       }
       el.textContent = (res.count || 0) + '건';
+    });
+  }
+
+  // [취소 건수] 요약 카드 클릭 → 아래 상태 필터의 [취소] 칩을 그대로 눌러 줍니다. 필터 전환/목록 로드
+  // 로직을 여기 다시 옮겨 적지 않고 기존 칩의 클릭 핸들러(위 els.statusFilterGroup 리스너)를 그대로
+  // 재사용해, 두 진입점(카드 클릭 / 칩 클릭)의 동작이 항상 같게 유지됩니다.
+  if (els.summaryCancelledCard) {
+    els.summaryCancelledCard.addEventListener('click', function () {
+      var chip = els.statusFilterGroup && els.statusFilterGroup.querySelector('.admin-filter-chip[data-status="cancelled"]');
+      if (chip) chip.click();
+      var target = els.applicationsTitle && els.applicationsTitle.closest('.admin-card');
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
 
@@ -3081,6 +3105,7 @@
   var userPackagesLoadingMore = false;
   var currentUserPackagesSearchText = '';
   var packageAdjustTarget = null; // [회차 조정] 모달이 지금 다루고 있는 user_packages 행
+  var packageGroupDetailCurrentKey = null; // [상세보기] 모달이 지금 열어 둔 그룹의 key(groupUserPackagesByContact 참고) — 회차 조정 뒤 그 모달을 같은 그룹으로 다시 그리기 위해 기억
 
   // profiles.name/phone 은 카카오 로그인만으로 가입한 보호자는 비어 있을 수 있습니다(카카오 OAuth
   // 메타데이터에 휴대폰 번호가 애초에 없고, 이름도 닉네임 제공을 거부하면 비어 있을 수 있음 —
@@ -3145,7 +3170,7 @@
       console.error('[Admin] 패키지 구매 회원 조회 실패:', res.error.code, res.error.message,
         '→ sql/admin_package_management.sql 을 Supabase SQL Editor 에서 실행했는지(user_packages_select_admin 정책), 이 계정의 profiles.role 이 \'admin\' 인지 확인하세요.');
       if (isFirstPage) {
-        body.innerHTML = '<tr><td colspan="7" class="admin-empty">목록을 불러오지 못했습니다: ' + escapeHtml(res.error.message) + '</td></tr>';
+        body.innerHTML = '<tr><td colspan="5" class="admin-empty">목록을 불러오지 못했습니다: ' + escapeHtml(res.error.message) + '</td></tr>';
       } else {
         showToast('목록을 더 불러오지 못했습니다: ' + res.error.message);
       }
@@ -3161,20 +3186,48 @@
     return true;
   }
 
-  function renderUserPackageRow(p) {
-    var profile = p.profiles || {};
-    var statusKey = USER_PACKAGE_STATUS_LABEL.hasOwnProperty(p.status) ? p.status : 'active';
+  // 같은 보호자가 여러 번 패키지를 구매하면 user_packages 에 행이 여러 개 쌓입니다 — 메인 표에서는
+  // 이걸 한 사람당 한 행으로 모아 보여주고(총 잔여 회차 합산 · 대표 상태), 개별 구매 내역은
+  // [상세보기] 모달에서만 펼쳐 봅니다. 그룹 키는 연락처(전화번호) 우선이고, 연락처가 비어 있는 행은
+  // (카카오 로그인만으로 가입한 보호자 등) user_id로, 그마저도 없으면 행 자신의 id로 묶어 — 서로
+  // 다른 사람의 '연락처 미등록' 행들이 전부 한 그룹으로 잘못 합쳐지지 않게 합니다.
+  function groupUserPackagesByContact(rows) {
+    var groups = [];
+    var byKey = {};
+    rows.forEach(function (p) {
+      var profile = p.profiles || {};
+      var phone = normalizeSearchText(profile.phone || '').trim();
+      var key = phone ? ('phone:' + phone) : (p.user_id ? ('uid:' + p.user_id) : ('row:' + p.id));
+      var g = byKey[key];
+      if (!g) {
+        g = { key: key, name: '', phone: '', packages: [] };
+        byKey[key] = g;
+        groups.push(g);
+      }
+      if (!g.name && profile.name) g.name = profile.name;
+      if (!g.phone && profile.phone) g.phone = profile.phone;
+      g.packages.push(p);
+    });
+    groups.forEach(function (g) {
+      g.totalRemaining = g.packages.reduce(function (sum, p) { return sum + (Number(p.remaining_count) || 0); }, 0);
+      g.totalCount = g.packages.reduce(function (sum, p) { return sum + (Number(p.total_count) || 0); }, 0);
+      // 대표 상태: 하나라도 '사용 중'이면 사용 중, 아니면 하나라도 '소진'이면 소진, 전부 만료일 때만 만료
+      g.statusKey = g.packages.some(function (p) { return p.status === 'active'; }) ? 'active' :
+        g.packages.some(function (p) { return p.status === 'exhausted'; }) ? 'exhausted' : 'expired';
+    });
+    return groups;
+  }
+
+  function renderUserPackageGroupRow(g) {
     var tr = document.createElement('tr');
     tr.innerHTML =
-      '<td><span class="settle-manager-name">' + escapeHtml(profile.name || '이름 미등록') + '</span>' +
-        '<span class="settle-manager-phone">' + escapeHtml(profile.phone || '연락처 미등록') + '</span></td>' +
-      '<td>' + escapeHtml(USER_PACKAGE_TYPE_LABEL[p.package_type] || p.package_type || '-') + '</td>' +
-      '<td>' + escapeHtml(formatDateOnly(p.created_at)) + '</td>' +
-      '<td>' + escapeHtml(formatDateOnly(p.expires_at)) + '</td>' +
-      '<td>' + formatPkgCount(p.remaining_count) + ' / ' + formatPkgCount(p.total_count) + '회</td>' +
-      '<td><span class="admin-badge ' + (USER_PACKAGE_STATUS_BADGE[statusKey] || 'is-neutral') + '">' + escapeHtml(USER_PACKAGE_STATUS_LABEL[statusKey]) + '</span></td>' +
-      '<td><button type="button" class="admin-btn is-ghost pkg-adjust-btn">회차 조정</button></td>';
-    tr.querySelector('.pkg-adjust-btn').addEventListener('click', function () { openPackageAdjustModal(p); });
+      '<td><span class="settle-manager-name">' + escapeHtml(g.name || '이름 미등록') + '</span>' +
+        '<span class="settle-manager-phone">' + escapeHtml(g.phone || '연락처 미등록') + '</span></td>' +
+      '<td>' + g.packages.length + '건</td>' +
+      '<td>' + formatPkgCount(g.totalRemaining) + ' / ' + formatPkgCount(g.totalCount) + '회</td>' +
+      '<td><span class="admin-badge ' + (USER_PACKAGE_STATUS_BADGE[g.statusKey] || 'is-neutral') + '">' + escapeHtml(USER_PACKAGE_STATUS_LABEL[g.statusKey]) + '</span></td>' +
+      '<td><button type="button" class="admin-btn is-ghost pkg-detail-btn">상세보기</button></td>';
+    tr.querySelector('.pkg-detail-btn').addEventListener('click', function () { openPackageGroupDetailModal(g); });
     return tr;
   }
 
@@ -3188,18 +3241,19 @@
       return normalizeSearchText(profile.name).indexOf(currentUserPackagesSearchText) !== -1 ||
              normalizeSearchText(profile.phone).indexOf(currentUserPackagesSearchText) !== -1;
     });
+    var groups = groupUserPackagesByContact(rows);
 
     if (els.userPackagesCount) {
-      els.userPackagesCount.textContent = rows.length + '건';
+      els.userPackagesCount.textContent = groups.length + '명 (' + rows.length + '건)';
       els.userPackagesCount.hidden = false;
     }
 
-    if (!rows.length) {
-      body.innerHTML = '<tr><td colspan="7" class="admin-empty">' +
+    if (!groups.length) {
+      body.innerHTML = '<tr><td colspan="5" class="admin-empty">' +
         (lastUserPackagesRows.length ? '조건에 맞는 회원이 없습니다.' : '등록된 패키지가 없습니다.') + '</td></tr>';
     } else {
       body.innerHTML = '';
-      rows.forEach(function (p) { body.appendChild(renderUserPackageRow(p)); });
+      groups.forEach(function (g) { body.appendChild(renderUserPackageGroupRow(g)); });
     }
 
     if (els.userPackagesShowMoreWrap) {
@@ -3207,6 +3261,15 @@
       if (userPackagesHasMore) {
         els.userPackagesShowMoreWrap.appendChild(createLoadMoreButton(userPackagesLoadingMore, loadMoreUserPackages));
       }
+    }
+
+    // [상세보기] 모달이 지금 열려 있는 그룹을 보고 있었다면(예: 다른 창에서 회차 조정 후 돌아옴), 그
+    // 그룹의 최신 데이터로 모달 내용도 같이 갱신합니다 — 모달을 닫지 않았는데 뒤의 표만 바뀌어 숫자가
+    // 서로 달라 보이는 걸 막습니다.
+    if (packageGroupDetailCurrentKey && els.packageGroupDetailModal && !els.packageGroupDetailModal.hidden) {
+      var reopened = groups.filter(function (g) { return g.key === packageGroupDetailCurrentKey; })[0];
+      if (reopened) renderPackageGroupDetailModal(reopened);
+      else closePackageGroupDetailModal(); // 검색어 등으로 그 그룹이 더 이상 목록에 없으면 모달도 닫음
     }
   }
 
@@ -3222,7 +3285,7 @@
   async function loadUserPackages() {
     var body = els.userPackagesTableBody;
     if (!body) return;
-    body.innerHTML = '<tr><td colspan="7" class="admin-loading">불러오는 중…</td></tr>';
+    body.innerHTML = '<tr><td colspan="5" class="admin-loading">불러오는 중…</td></tr>';
     lastUserPackagesRows = [];
     userPackagesOffset = 0;
     userPackagesHasMore = false;
@@ -3236,6 +3299,55 @@
       renderUserPackagesList();
     });
   }
+
+  // ---------- 패키지 상세보기 모달 (같은 보호자의 개별 패키지 목록 + 각 행의 [회차 조정]) ----------
+  function renderPackageGroupDetailModal(g) {
+    if (els.packageGroupDetailModalTitle) els.packageGroupDetailModalTitle.textContent = (g.name || '이름 미등록') + ' 패키지 상세';
+    if (els.packageGroupDetailModalSub) {
+      els.packageGroupDetailModalSub.textContent = (g.phone || '연락처 미등록') + ' · 보유 패키지 ' + g.packages.length +
+        '건 · 총 잔여 ' + formatPkgCount(g.totalRemaining) + ' / ' + formatPkgCount(g.totalCount) + '회';
+    }
+    var body = els.packageGroupDetailTableBody;
+    if (!body) return;
+    body.innerHTML = '';
+    // 최신 구매 건을 위로 — fetchUserPackagesPage() 가 이미 created_at desc 로 받아 오므로 그 순서를 그대로 둡니다.
+    g.packages.forEach(function (p) {
+      var statusKey = USER_PACKAGE_STATUS_LABEL.hasOwnProperty(p.status) ? p.status : 'active';
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + escapeHtml(USER_PACKAGE_TYPE_LABEL[p.package_type] || p.package_type || '-') + '</td>' +
+        '<td>' + escapeHtml(formatDateOnly(p.created_at)) + '</td>' +
+        '<td>' + escapeHtml(formatDateOnly(p.expires_at)) + '</td>' +
+        '<td>' + formatPkgCount(p.remaining_count) + ' / ' + formatPkgCount(p.total_count) + '회</td>' +
+        '<td><span class="admin-badge ' + (USER_PACKAGE_STATUS_BADGE[statusKey] || 'is-neutral') + '">' + escapeHtml(USER_PACKAGE_STATUS_LABEL[statusKey]) + '</span></td>' +
+        '<td><button type="button" class="admin-btn is-ghost pkg-detail-adjust-btn">회차 조정</button></td>';
+      tr.querySelector('.pkg-detail-adjust-btn').addEventListener('click', function () { openPackageAdjustModal(p); });
+      body.appendChild(tr);
+    });
+  }
+
+  function openPackageGroupDetailModal(g) {
+    if (!els.packageGroupDetailModal) return;
+    packageGroupDetailCurrentKey = g.key;
+    renderPackageGroupDetailModal(g);
+    els.packageGroupDetailModal.hidden = false;
+  }
+
+  function closePackageGroupDetailModal() {
+    if (els.packageGroupDetailModal) els.packageGroupDetailModal.hidden = true;
+    packageGroupDetailCurrentKey = null;
+  }
+
+  if (els.packageGroupDetailModal) {
+    els.packageGroupDetailModal.addEventListener('mousedown', function (e) {
+      if (e.target === els.packageGroupDetailModal) closePackageGroupDetailModal();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !els.packageGroupDetailModal.hidden) closePackageGroupDetailModal();
+    });
+  }
+  if (els.packageGroupDetailCloseBtn) els.packageGroupDetailCloseBtn.addEventListener('click', closePackageGroupDetailModal);
+  if (els.packageGroupDetailCloseBtn2) els.packageGroupDetailCloseBtn2.addEventListener('click', closePackageGroupDetailModal);
 
   // ---------- 패키지 회차 조정 모달 ----------
   function openPackageAdjustModal(p) {
