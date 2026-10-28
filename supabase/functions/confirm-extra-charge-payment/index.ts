@@ -16,8 +16,14 @@
 // "내 케어의 추가 청구"라는 뜻입니다. 기본 결제(issue-virtual-account)와 달리 비로그인 신청 경로는
 // 지원하지 않습니다 — mypage.html 자체가 로그인 사용자만 접근 가능한 화면이라, 추가 요금은 항상
 // 로그인 후에만 확인·결제할 수 있습니다.
+//
+// DB 반영(PAID 전환)에 처음 성공하면 issue-virtual-account/portone-webhook과 같은 패턴으로
+// _shared/telegram.ts 를 통해 운영 채널에 결제 완료를 알리고, confirm_extra_charge_payment() RPC가
+// AMOUNT_MISMATCH/그 외 오류로 실패하면(이미 PortOne 결제는 승인된 뒤이므로) 결제 반영 실패 경보도
+// 보냅니다 — portone-webhook의 extra_charge 분기와 같은 알림 로직입니다.
 import { createAdminClient, createUserClient } from "../_shared/supabaseClients.ts";
 import { portoneFetch, PortOneApiError } from "../_shared/portone.ts";
+import { buildExtraChargePaidMessage, buildPaymentReconciliationFailureMessage, notifySafely, sendTelegramMessage } from "../_shared/telegram.ts";
 
 const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -60,7 +66,7 @@ Deno.serve(async (req: Request) => {
   // 소유권 확인 — RLS가 "내 케어"만 보여주므로, 이 조회가 성공하는 것 자체가 권한 확인입니다.
   const { data: schedule, error: scheduleErr } = await userClient
     .from("care_schedules")
-    .select("id, extra_charge_status, extra_charge_amount")
+    .select("id, application_id, extra_charge_status, extra_charge_amount, extra_charge_memo, senior_name, guardian_name")
     .eq("extra_charge_payment_id", payment_id)
     .maybeSingle();
   if (scheduleErr) return json(500, { error: "SCHEDULE_LOOKUP_FAILED", message: scheduleErr.message });
@@ -93,17 +99,58 @@ Deno.serve(async (req: Request) => {
 
   const paidAmount: number | null = payment?.amount?.total ?? payment?.totalAmount ?? null;
   const admin = createAdminClient();
+
+  // portone-webhook 이 같은 payment_id 에 대해 거의 동시에 호출될 수 있습니다 — confirm_extra_charge_payment()
+  // 는 멱등이라 DB 상태는 안전하지만, 알림을 "항상" 보내면 이 함수와 webhook이 각자 한 번씩 보내 중복
+  // 알림이 발송됩니다. RPC 호출 바로 전에 상태를 다시 읽어, 그 시점에도 여전히 REQUESTED 였을 때(= 이
+  // 호출이 실제로 전환을 수행하는 경우에만) 알림을 보냅니다(portone-webhook 의 wasFirstTransition 과 같은 패턴).
+  const { data: freshSchedule, error: freshErr } = await admin
+    .from("care_schedules")
+    .select("extra_charge_status")
+    .eq("extra_charge_payment_id", payment_id)
+    .maybeSingle();
+  if (freshErr) return json(500, { error: "SCHEDULE_LOOKUP_FAILED", message: freshErr.message });
+  const wasFirstTransition = freshSchedule?.extra_charge_status === "REQUESTED";
+
   const { data: updated, error: rpcErr } = await admin.rpc("confirm_extra_charge_payment", {
     p_payment_id: payment_id,
     p_paid_amount: paidAmount,
   });
   if (rpcErr) {
-    if (rpcErr.message?.includes("AMOUNT_MISMATCH")) {
+    // 이 지점은 PortOne 이 이미 'PAID' 를 돌려준 뒤입니다 — issue-virtual-account/portone-webhook 과
+    // 같은 이유로, 추가 요금도 결제는 됐는데 DB 반영이 실패하면 보호자는 돈을 냈지만 관리자 화면에는
+    // 여전히 '청구중'으로 보이는 불일치가 생기므로 운영자에게 즉시 알립니다. 알림 발송 실패는 응답에
+    // 영향을 주지 않습니다.
+    const reason = rpcErr.message?.includes("AMOUNT_MISMATCH") ? "AMOUNT_MISMATCH" : "STATUS_UPDATE_FAILED";
+    const notified = await notifySafely("추가 요금 결제 반영 실패 경보", () => sendTelegramMessage(buildPaymentReconciliationFailureMessage({
+      applicationId: schedule.application_id || payment_id,
+      reason,
+      detail: rpcErr.message,
+      source: "confirm-extra-charge-payment",
+    })));
+    console.log("[confirm-extra-charge-payment] 결제 반영 실패 경보 발송 결과: " + notified);
+    if (reason === "AMOUNT_MISMATCH") {
       console.error("[confirm-extra-charge-payment] 입금 금액 불일치:", rpcErr.message);
       return json(409, { error: "AMOUNT_MISMATCH", message: rpcErr.message });
     }
     console.error("[confirm-extra-charge-payment] confirm_extra_charge_payment 실패:", rpcErr);
     return json(500, { error: "STATUS_UPDATE_FAILED", message: rpcErr.message });
+  }
+
+  // 관리자가 수기로 청구한 추가 요금을 보호자가 실제로 결제했다는 사실을 바로 확인할 수 있도록
+  // 운영 채널에 알립니다 — 이미 결제/DB 반영이 끝난 뒤라 알림 발송이 실패해도 응답에는 영향을 주지 않습니다.
+  if (wasFirstTransition) {
+    const notified = await notifySafely("추가 요금 결제 완료", () => sendTelegramMessage(buildExtraChargePaidMessage({
+      scheduleId: schedule.id,
+      applicationId: schedule.application_id,
+      seniorName: schedule.senior_name,
+      guardianName: schedule.guardian_name,
+      amount: paidAmount,
+      memo: schedule.extra_charge_memo,
+    })));
+    console.log("[confirm-extra-charge-payment] 추가 요금 결제 완료 텔레그램 알림 발송 결과: " + notified);
+  } else {
+    console.log("[confirm-extra-charge-payment] 텔레그램 알림을 건너뜁니다 — portone-webhook 이 먼저 전환을 수행함(중복 알림 방지).");
   }
 
   return json(200, { status: "PAID", schedule: updated });

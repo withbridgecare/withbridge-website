@@ -2,9 +2,11 @@
    위드브릿지 공통 인증 헤더 (index.html / login.html 공용)
    - Supabase 클라이언트를 페이지당 1개만 생성해 window.WBAuth.client 로 공유
    - getSession() + onAuthStateChange() 로 로그인 상태를 감지
-   - 로그인: '로그인 | 회원가입' → 프로필 아바타 버튼 + 드롭다운(모드 전환 · 마이페이지 · 로그아웃)
+   - 로그인: '로그인 | 회원가입' → 프로필 아바타 버튼 + 드롭다운(모드 전환 · 마이페이지[+어르신 프로필 관리·
+     내 정보 수정 서브 바로가기] · 어드민 콘솔 · CS 메뉴[1:1 문의하기·FAQ] · 로그아웃)
      · managers 에 등록된 매니저만(사용자 이름 바로 아래, '마이페이지' 위):'케어 매니저 모드로 전환' ↔ '보호자 모드로 전환' (선택은 localStorage 'active_role')
      · 매니저가 아닌 회원에게는 전환 항목을 보여 주지 않음
+     · '내 정보 수정'은 모달이 아니라 전용 페이지(profile-edit.html)로 이동합니다
    - 로그아웃: signOut() 후 '로그인 | 회원가입' 복원
    사용 조건: Supabase SDK <script> 뒤에 로드, 헤더의 우측 영역에 class="auth-buttons"
 ========================================================= */
@@ -37,38 +39,64 @@
   // React/shadcn 없이 순수 CSS 클래스로 재현합니다. 색상은 이 사이트의 메인 브랜드 그린(#2D6A4F 계열)을 그대로 씁니다.
   var style = document.createElement('style');
   style.textContent =
-    // 바깥 패널: rounded-3xl + backdrop-blur 카드
-    '.wb-dd-panel{position:absolute;top:calc(100% + 12px);right:0;width:310px;max-width:calc(100vw - 32px);' +
-    'padding:6px;background:rgba(249,250,251,.92);border:1px solid #F1F1F1;border-radius:24px;' +
-    'box-shadow:0 20px 45px rgba(15,23,42,.16);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:100}' +
-    // 안쪽 섹션 카드(프로필 / 메뉴 / 로그아웃) 3장이 겹쳐 보이는 구조
-    '.wb-dd-card{background:#fff;border:1px solid #F1F1F1;border-radius:16px;box-shadow:0 1px 2px rgba(15,23,42,.04);padding:12px}' +
-    '.wb-dd-card + .wb-dd-card{margin-top:10px}' +
+    // 바깥 패널: 더 넓고 여백이 넉넉한 rounded-3xl 카드 + backdrop-blur
+    '.wb-dd-panel{position:absolute;top:calc(100% + 12px);right:0;width:326px;max-width:calc(100vw - 32px);' +
+    'padding:10px;background:rgba(250,250,251,.96);border:1px solid #F0F1F3;border-radius:22px;' +
+    'box-shadow:0 28px 56px rgba(15,23,42,.18),0 4px 10px rgba(15,23,42,.05);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);z-index:100}' +
+    // 안쪽 섹션 카드(프로필 / 메뉴 / 로그아웃) — 패딩을 넉넉히 줘 한층 여유 있는 인상을 줍니다
+    '.wb-dd-card{background:#fff;border:1px solid #F1F1F1;border-radius:18px;box-shadow:0 1px 2px rgba(15,23,42,.03);padding:14px}' +
+    '.wb-dd-card + .wb-dd-card{margin-top:8px}' +
     // 프로필 카드 상단: 아바타 + 이름/역할
-    '.wb-dd-profile-top{display:flex;align-items:center;gap:10px;padding:2px 2px 10px;min-width:0}' +
-    '.wb-dd-avatar{flex:none;width:40px;height:40px;border-radius:50%;overflow:hidden;border:1px solid #F1F1F1;background:#F3F4F6}' +
+    '.wb-dd-profile-top{display:flex;align-items:center;gap:12px;padding:4px 4px 12px;min-width:0}' +
+    '.wb-dd-avatar{flex:none;width:46px;height:46px;border-radius:50%;overflow:hidden;border:2px solid #fff;' +
+    'box-shadow:0 0 0 1px #E8EDE5;background:#F3F4F6}' +
     '.wb-dd-avatar img{width:100%;height:100%;object-fit:cover;display:block}' +
-    '.wb-dd-name{margin:0;font-size:14px;font-weight:700;color:#111827;word-break:keep-all}' +
-    '.wb-dd-role{margin:2px 0 0;font-size:12px;color:#8B95A1}' +
+    '.wb-dd-name{margin:0;font-size:15px;font-weight:800;letter-spacing:-.01em;color:#111827;word-break:keep-all}' +
+    // 역할 표시를 작은 브랜드 톤 뱃지로 — 프로필 식별 영역임을 한눈에 구분시킵니다
+    '.wb-dd-role{display:inline-flex;margin:5px 0 0;padding:2px 10px;border-radius:999px;background:#F1F5F0;' +
+    'font-size:11px;font-weight:700;color:#4F6B3A;word-break:keep-all}' +
     // 모드 전환 버튼: 뱃지를 없앤 대신 영역 전체 폭을 쓰고, 안쪽 여백/아이콘-텍스트 간격을 넉넉히 둡니다
     // (현재 역할은 바로 위 프로필의 .wb-dd-role 에 이미 표시되므로 여기서는 전환 동작만 보여줍니다)
     '.wb-mode-item{display:flex;align-items:center;width:100%;box-sizing:border-box;' +
-    'padding:14px 16px;border:1px solid #E4EBDF;border-radius:12px;background:#F1F5F0;cursor:pointer;transition:background-color .15s}' +
+    'padding:13px 14px;border:1px solid #E4EBDF;border-radius:14px;background:#F1F5F0;cursor:pointer;transition:background-color .15s}' +
     '.wb-mode-item:hover{background:#E5EBDD}' +
     '.wb-mode-item:focus-visible,.wb-dd-item:focus-visible{outline:3px solid rgba(85,107,47,.45);outline-offset:1px}' +
-    '.wb-mode-left{display:flex;align-items:center;gap:14px;min-width:0;font-size:13.5px;font-weight:600;color:#374151}' +
+    '.wb-mode-left{display:flex;align-items:center;gap:12px;min-width:0;font-size:13.5px;font-weight:700;color:#374151}' +
     '.wb-mode-left span:last-child{word-break:keep-all}' +
     '.wb-mode-icon{flex:none;display:inline-flex;color:#6B7280}' +
     '.wb-mode-icon svg{display:block;width:18px;height:18px}' +
-    // 메뉴/로그아웃 항목 공통: 아이콘 + 라벨, 로그아웃만 is-danger 로 레드 포인트
-    '.wb-dd-item{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;padding:10px;border:none;' +
-    'border-radius:12px;background:transparent;font-family:"Noto Sans KR",sans-serif;font-size:13px;font-weight:600;' +
+    // 1차 메뉴 항목(마이페이지 · 어드민 콘솔 · 로그아웃): 굵은 글자 + hover 시 아이콘이 브랜드 그린으로 — 가장 눈에 띄는 위계
+    '.wb-dd-item{display:flex;align-items:center;gap:11px;width:100%;box-sizing:border-box;padding:11px 12px;border:none;' +
+    'border-radius:13px;background:transparent;font-family:"Noto Sans KR",sans-serif;font-size:13.5px;font-weight:700;' +
     'color:#374151;text-align:left;text-decoration:none;cursor:pointer;transition:background-color .15s}' +
-    '.wb-dd-item:hover{background:#F9FAFB}' +
-    '.wb-dd-item svg{flex:none;display:block;width:16px;height:16px;color:#6B7280}' +
+    '.wb-dd-item:hover{background:#F3F4F6}' +
+    '.wb-dd-item svg{flex:none;display:block;width:17px;height:17px;color:#8B95A1;transition:color .15s}' +
+    '.wb-dd-item:hover svg{color:#556B2F}' +
     '.wb-dd-item.is-danger{color:#DC2626}' +
     '.wb-dd-item.is-danger svg{color:#EF4444}' +
     '.wb-dd-item.is-danger:hover{background:#FEF2F2}' +
+    '.wb-dd-item.is-danger:hover svg{color:#DC2626}' +
+    // 2차 서브 바로가기('어르신 프로필 관리' · '내 정보 수정'): 작은 점 마커 + 들여쓰기로 '마이페이지' 아래
+    // 한 단계 낮은 위계임을 드러냅니다(아이콘 없이 텍스트만 — 1차 항목과는 글자 크기/굵기로 구분하되,
+    // 색은 너무 희미하지 않게 #4B5563 로 — 가독성이 위계 표현보다 우선합니다).
+    '.wb-dd-subitem{position:relative;display:block;width:100%;box-sizing:border-box;padding:8px 10px 8px 38px;border:none;' +
+    'border-radius:11px;background:transparent;font-family:"Noto Sans KR",sans-serif;font-size:.875rem;' +
+    'font-weight:600;color:#4B5563;text-align:left;text-decoration:none;cursor:pointer;transition:background-color .15s,color .15s}' +
+    '.wb-dd-subitem::before{content:"";position:absolute;left:24px;top:50%;width:4px;height:4px;border-radius:50%;' +
+    'background:#CBD2D9;transform:translateY(-50%);transition:background-color .15s}' +
+    '.wb-dd-subitem:hover{background:#F9FAFB;color:#1F2937}' +
+    '.wb-dd-subitem:hover::before{background:#8FA482}' +
+    '.wb-dd-subitem:focus-visible{outline:3px solid rgba(85,107,47,.45);outline-offset:1px}' +
+    // 3차 CS(고객 지원) 영역: 구분선 + 작은 캡션 라벨로 앞의 메뉴와 섹션 자체를 명확히 나눕니다 —
+    // 라벨 자체는 소형·간결하게 유지하되, 위/아래 간격은 다른 항목들과 같은 리듬(12·10·6px)으로 정돈합니다.
+    '.wb-dd-section-label{margin:12px 10px 6px;padding-top:10px;border-top:1px solid #F1F1F1;' +
+    'font-size:10.5px;font-weight:800;letter-spacing:.05em;color:#B0B6BE;text-transform:uppercase}' +
+    // CS 링크 텍스트도 서브 바로가기와 같은 색/크기로 통일(#4B5563, .875rem) — 아이콘도 같은 톤의
+    // 진한 회색(#6B7280)으로 맞춰, 옅은 회색(#AEB4BC)이던 이전보다 또렷하게 보이게 합니다.
+    '.wb-dd-item.is-slim{padding:8px 10px;font-size:.875rem;font-weight:600;color:#4B5563}' +
+    '.wb-dd-item.is-slim svg{width:14px;height:14px;color:#6B7280}' +
+    '.wb-dd-item.is-slim:hover{background:#F9FAFB;color:#1F2937}' +
+    '.wb-dd-item.is-slim:hover svg{color:#4B5563}' +
     // '어드민 콘솔' 같은 권한부 항목을 감출 때 전용 클래스. HTML hidden 속성은 author stylesheet 의
     // .wb-dd-item{display:flex}(위) 나 드로어 버전의 인라인 style="display:flex" 보다 캐스케이드 우선순위가
     // 낮아 쉽게 뚫립니다(실제로 일반 계정에 어드민 링크가 보인 원인) — !important 로 두 경우를 모두 이깁니다.
@@ -97,6 +125,16 @@
   // ---------- 화면 모드 전환 (보호자 ↔ 케어 매니저) ----------
   var GUARDIAN_PAGE = 'mypage.html';
   var MANAGER_PAGE = 'mypage-manager.html';
+  // CS(고객 지원) 슬림 메뉴 링크 — index.html/mypage.html 하단 '자주 묻는 질문 & 1:1 고객센터 문의'
+  // 배너와 같은 주소를 그대로 씁니다(사이트 전역에서 이미 쓰고 있는 표준 링크).
+  var FAQ_PAGE = 'index.html#faq';
+  var KAKAO_CHANNEL_URL = 'http://pf.kakao.com/_PKxemX';
+  // 어르신 프로필 관리는 보호자 전용 기능이라(매니저 모드와 무관) mypage.html 의 '어르신 프로필 관리'
+  // 탭으로 고정 이동합니다 — '마이페이지' 링크(.wb-mypage-link)처럼 모드에 따라 바뀌지 않습니다.
+  var ELDER_PROFILE_PAGE = 'mypage.html?tab=elder';
+  // '내 정보 수정' — 모달 대신 전용 페이지로 이동합니다(profile-edit.html, 이름/연락처 저장은
+  // sql/profile_self_update.sql 의 update_user_profile() RPC).
+  var PROFILE_EDIT_PAGE = 'profile-edit.html';
   // 이 사용자가 managers 에 등록돼 있는지: 서버 조회가 끝나면 그 결과로 메뉴를 그립니다.
   // 조회가 오래 걸려도 끝나는 즉시 항목이 나타나고, 조회 자체가 실패하면(네트워크/일시 오류) '아님'으로 굳히지 않고 몇 번 다시 시도합니다.
   var knownIsManager = null; // null = 아직 모름(확인 중/실패), true = 매니저, false = 매니저 아님
@@ -189,6 +227,15 @@
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true">' +
     '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>' +
     '</svg>';
+  // CS(고객 지원) 슬림 메뉴 아이콘 — '1:1 문의하기'(말풍선) / '자주 묻는 질문(FAQ)'(물음표)
+  var CHAT_ICON_SVG =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true">' +
+    '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' +
+    '</svg>';
+  var QUESTION_ICON_SVG =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true">' +
+    '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 1 1 5.82 1c0 2-3 2-3 4"/><line x1="12" y1="17" x2="12" y2="17.01"/>' +
+    '</svg>';
 
   // 드롭다운 메뉴 한 줄(아이콘 + 라벨)을 만드는 공통 헬퍼 — a 태그(링크)와 button(액션) 둘 다 지원
   function buildDdItem(tag, opts) {
@@ -207,6 +254,18 @@
     label.textContent = opts.label;
     el.appendChild(icon);
     el.appendChild(label);
+    if (opts.onClick) el.addEventListener('click', opts.onClick);
+    return el;
+  }
+
+  // '마이페이지' 아래 들여쓴 소형 서브 바로가기 한 줄(아이콘 없이 텍스트만) — a 태그/button 둘 다 지원
+  function buildDdSubItem(tag, opts) {
+    var el = document.createElement(tag);
+    if (tag === 'a') el.href = opts.href || '#';
+    else el.type = 'button';
+    el.className = 'wb-dd-subitem';
+    el.setAttribute('role', 'menuitem');
+    el.textContent = opts.label;
     if (opts.onClick) el.addEventListener('click', opts.onClick);
     return el;
   }
@@ -413,16 +472,37 @@
     modeSec.hidden = true;
     profileCard.appendChild(modeSec);
 
-    // ---- 2) 메뉴 카드: 마이페이지 / 어드민 콘솔(관리자만) ----
+    // ---- 2) 메뉴 카드: 마이페이지(+서브 바로가기) / 어드민 콘솔(관리자만) / CS 슬림 메뉴 ----
     var menuCard = document.createElement('section');
     menuCard.className = 'wb-dd-card';
     var myPage = buildDdItem('a', { href: GUARDIAN_PAGE, icon: USER_ICON_SVG, label: '마이페이지' });
     myPage.className += ' wb-mypage-link';
+    menuCard.appendChild(myPage);
+
+    // '마이페이지' 바로 아래 들여쓴 서브 바로가기 — 어르신 프로필 관리(탭 직접 이동) / 내 정보 수정(전용 페이지로 이동)
+    var elderLink = buildDdSubItem('a', { href: ELDER_PROFILE_PAGE, label: '어르신 프로필 관리' });
+    var editInfoLink = buildDdSubItem('a', { href: PROFILE_EDIT_PAGE, label: '내 정보 수정' });
+    menuCard.appendChild(elderLink);
+    menuCard.appendChild(editInfoLink);
+
     // 어드민 콘솔: profiles.role 조회가 끝나기 전에는 숨겨 두었다가, 관리자로 확인되면 보입니다
     var adminLink = buildDdItem('a', { href: ADMIN_PAGE, icon: SHIELD_ICON_SVG, label: '어드민 콘솔', hidden: true });
     adminLink.className += ' wb-admin-link';
-    menuCard.appendChild(myPage);
     menuCard.appendChild(adminLink);
+
+    // CS(고객 지원) 슬림 메뉴 — 구분선 + 캡션 라벨로 위의 메뉴와 섹션을 명확히 나눔
+    var csLabel = document.createElement('p');
+    csLabel.className = 'wb-dd-section-label';
+    csLabel.textContent = '고객 지원';
+    menuCard.appendChild(csLabel);
+    var inquiryLink = buildDdItem('a', { href: KAKAO_CHANNEL_URL, icon: CHAT_ICON_SVG, label: '1:1 문의하기' });
+    inquiryLink.target = '_blank';
+    inquiryLink.rel = 'noopener noreferrer';
+    inquiryLink.className += ' is-slim';
+    var faqLink = buildDdItem('a', { href: FAQ_PAGE, icon: QUESTION_ICON_SVG, label: '자주 묻는 질문(FAQ)' });
+    faqLink.className += ' is-slim';
+    menuCard.appendChild(inquiryLink);
+    menuCard.appendChild(faqLink);
 
     // ---- 3) 로그아웃 카드: 위험 상태를 레드 포인트로 구분 ----
     var logoutCard = document.createElement('section');
@@ -484,11 +564,37 @@
     myPage.style.cssText += 'display:flex;align-items:center;gap:8px;padding:9px 2px;font-size:13px;color:#6B7280;font-weight:600;';
     wrap.appendChild(myPage);
 
+    // '마이페이지' 바로 아래 들여쓴 서브 바로가기(데스크톱 드롭다운의 .wb-dd-subitem 과 같은 역할)
+    var elderLink = buildDdSubItem('a', { href: ELDER_PROFILE_PAGE, label: '어르신 프로필 관리' });
+    elderLink.classList.add('wb-drawer-link');
+    elderLink.style.cssText += 'padding:7px 2px 7px 20px;';
+    var editInfoLink = buildDdSubItem('a', { href: PROFILE_EDIT_PAGE, label: '내 정보 수정' });
+    editInfoLink.classList.add('wb-drawer-link');
+    editInfoLink.style.cssText += 'padding:7px 2px 7px 20px;';
+    wrap.appendChild(elderLink);
+    wrap.appendChild(editInfoLink);
+
     // 어드민 콘솔: profiles.role 조회가 끝나기 전에는 숨겨 두었다가, 관리자로 확인되면 보입니다
     var adminLink = buildDdItem('a', { href: ADMIN_PAGE, icon: SHIELD_ICON_SVG, label: '어드민 콘솔', hidden: true });
     adminLink.className += ' wb-admin-link wb-drawer-link';
     adminLink.style.cssText += 'display:flex;align-items:center;gap:8px;padding:9px 2px;font-size:13px;color:#6B7280;font-weight:600;';
     wrap.appendChild(adminLink);
+
+    // CS(고객 지원) 슬림 메뉴 — 구분선 + 캡션 라벨로 위의 메뉴와 섹션을 명확히 나눔
+    var csLabel = document.createElement('p');
+    csLabel.className = 'wb-dd-section-label';
+    csLabel.textContent = '고객 지원';
+    wrap.appendChild(csLabel);
+    var inquiryLink = buildDdItem('a', { href: KAKAO_CHANNEL_URL, icon: CHAT_ICON_SVG, label: '1:1 문의하기' });
+    inquiryLink.target = '_blank';
+    inquiryLink.rel = 'noopener noreferrer';
+    inquiryLink.className += ' is-slim wb-drawer-link';
+    inquiryLink.style.cssText += 'display:flex;align-items:center;gap:8px;padding:7px 2px;';
+    var faqLink = buildDdItem('a', { href: FAQ_PAGE, icon: QUESTION_ICON_SVG, label: '자주 묻는 질문(FAQ)' });
+    faqLink.className += ' is-slim wb-drawer-link';
+    faqLink.style.cssText += 'display:flex;align-items:center;gap:8px;padding:7px 2px;';
+    wrap.appendChild(inquiryLink);
+    wrap.appendChild(faqLink);
 
     var logoutBtn = buildDdItem('button', { icon: LOGOUT_ICON_SVG, label: '로그아웃', danger: true, onClick: logout });
     logoutBtn.className += ' wb-drawer-link';
@@ -860,6 +966,9 @@
     }
     return false;
   }
+
+  // '내 정보 수정'은 모달이 아니라 전용 페이지(profile-edit.html)로 이동합니다 — 드롭다운/드로어의
+  // .wb-dd-subitem 링크가 바로 그 주소를 가리키므로, 여기서 따로 열고 닫을 것이 없습니다.
 
   // 로그인 상태면 targetUrl 로 바로 이동하고, 비로그인이면 안내 모달을 띄워 '확인'을 누르면 login.html?redirect=targetUrl 로 보내
   // 로그인을 마치면 targetUrl 로 돌아오게 합니다. '예약하기' 류 버튼의 onclick 에서 공용으로 씁니다.

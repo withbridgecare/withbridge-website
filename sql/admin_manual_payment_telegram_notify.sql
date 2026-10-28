@@ -161,7 +161,6 @@ begin
       -- 같은 맵이 있습니다 — 함께 고쳐 주세요).
       select coalesce(string_agg(case code
           when 'URGENT_MATCHING' then '긴급 매칭 서비스'
-          when 'VEHICLE_SUPPORT' then '차량 이동 지원'
           else code
         end, ', '), '없음')
         into v_addon_labels

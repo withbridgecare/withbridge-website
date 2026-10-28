@@ -165,6 +165,22 @@ Deno.serve(async (req: Request) => {
     // transactionId: PortOne 쪽 거래 식별자(= merchant_uid 가 아니라 imp_uid 격 — paymentId 는 이미
     // application_id 와 같은 값이라 따로 저장하지 않습니다). 환불/고객센터 조회용으로 보관합니다.
     const paymentKey: string | null = payment?.transactionId ?? payment?.id ?? null;
+
+    // portone-webhook 이 거의 동시에 같은 application_id 에 대해 호출될 수 있습니다(브라우저가 결제창을
+    // 닫고 이 함수를 부르는 것과 별개로, PortOne 서버가 같은 결제 확정을 웹훅으로도 보냅니다) — 함수
+    // 맨 위의 PAYMENT_PENDING 체크는 이 PortOne 재조회(네트워크 왕복)보다 먼저 읽은 값이라 그 사이에
+    // 웹훅이 먼저 전환을 마쳤을 수 있습니다. mark_payment_matching_pending() 자체는 멱등이라 DB 상태는
+    // 안전하지만, 알림까지 "항상" 보내면 두 호출이 각자 한 번씩 보내 중복 알림이 발송됩니다 — 그래서
+    // RPC 호출 바로 전에 상태를 다시 읽어, 그 시점에도 여전히 PAYMENT_PENDING 이었을 때(= 이 호출이
+    // 실제로 전환을 수행하는 경우에만) 알림을 보냅니다(portone-webhook 의 wasFirstTransition 과 같은 패턴).
+    const { data: freshApp, error: freshErr } = await admin
+      .from("service_applications")
+      .select("status")
+      .eq("id", application_id)
+      .maybeSingle();
+    if (freshErr) return json(500, { error: "APPLICATION_LOOKUP_FAILED", message: freshErr.message });
+    const wasFirstTransition = freshApp?.status === "PAYMENT_PENDING";
+
     const { data: updated, error: rpcErr } = await admin.rpc("mark_payment_matching_pending", {
       p_application_id: application_id,
       p_paid_amount: paidAmount,
@@ -200,8 +216,9 @@ Deno.serve(async (req: Request) => {
     // TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID(Supabase Edge Function Secrets — admin_confirm_manual_payment()
     // 가 쓰는 Postgres Vault 시크릿과는 "다른" 저장소입니다) 미설정으로 실패한 것인지 바로 구분합니다.
     console.log("[issue-virtual-account] 텔레그램 알림 분기 — isVirtualAccount=" + isVirtualAccount +
+      ", wasFirstTransition=" + wasFirstTransition +
       ", payMethod=" + (payment?.method?.type ?? payment?.payMethod ?? "unknown"));
-    if (!isVirtualAccount) {
+    if (!isVirtualAccount && wasFirstTransition) {
       const notified = await notifySafely("신규 신청 접수", () => sendTelegramMessage(buildNewApplicationMessage({
         serviceType: application.service_type,
         address: application.address,
@@ -212,7 +229,10 @@ Deno.serve(async (req: Request) => {
       })));
       console.log("[issue-virtual-account] 신규 신청 텔레그램 알림 발송 결과: " + notified);
     } else {
-      console.log("[issue-virtual-account] 가상계좌 결제라 텔레그램 알림을 건너뜁니다(어드민 [수동 입금 확인] 시점에만 발송).");
+      console.log("[issue-virtual-account] 텔레그램 알림을 건너뜁니다 — " +
+        (isVirtualAccount
+          ? "가상계좌 결제(어드민 [수동 입금 확인] 시점에만 발송)."
+          : "portone-webhook 이 먼저 전환을 수행함(중복 알림 방지)."));
     }
 
     return json(200, { status: "PAID", application: updated });

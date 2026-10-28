@@ -113,6 +113,19 @@ async function handleRequest(req: Request): Promise<Response> {
   const paidAmount: number | null = payment?.amount?.total ?? payment?.totalAmount ?? null;
   const paymentKey: string | null = payment?.transactionId ?? payment?.id ?? null;
   const admin = createAdminClient();
+
+  // portone-webhook 이 같은 order_id 에 대해 거의 동시에 호출될 수 있습니다 — confirm_package_order_payment()
+  // 는 멱등이라 DB 상태는 안전하지만, 알림을 "항상" 보내면 이 함수와 webhook이 각자 한 번씩 보내 중복
+  // 알림이 발송됩니다. RPC 호출 바로 전에 상태를 다시 읽어, 그 시점에도 여전히 PENDING 이었을 때(= 이
+  // 호출이 실제로 전환을 수행하는 경우에만) 알림을 보냅니다(portone-webhook 의 wasFirstTransition 과 같은 패턴).
+  const { data: freshOrder, error: freshErr } = await admin
+    .from("package_orders")
+    .select("status")
+    .eq("id", order_id)
+    .maybeSingle();
+  if (freshErr) return json(500, { error: "ORDER_LOOKUP_FAILED", message: freshErr.message });
+  const wasFirstTransition = freshOrder?.status === "PENDING";
+
   // 패키지 구매 자체는 아직 "신청(service_applications)"이 아니라 user_packages 회차 충전일 뿐이라
   // insurance_applied 를 여기서 찍지 않습니다 — 실제 적용 시각은 이 회차를 소진해 동행이 확정되는
   // 순간(consume_package_on_application(), sql/manager_insurance_tracking.sql)에 기록됩니다.
@@ -145,16 +158,20 @@ async function handleRequest(req: Request): Promise<Response> {
   // 같은 취지로, 자동 승인 경로(여기)에서도 운영 채널에 알립니다. 실패해도(토큰 미설정 등)
   // 이미 끝난 결제 반영에는 영향이 없도록 예외를 던지지 않고 await 만 하되, 결과는 반드시 로그로
   // 남겨 "응답은 200인데 알림이 안 왔다"는 보고가 오면 이 로그 한 줄로 원인을 바로 구분합니다.
-  const notified = await notifySafely(
-    "패키지 구매 확정",
-    () => sendTelegramMessage(buildNewPackageOrderMessage({
-      packageType: pkg?.package_type,
-      amount: paidAmount,
-      userId: pkg?.user_id,
-    })),
-  );
-  console.log("[confirm-package-order-payment] 패키지 구매 확정 알림 발송 결과: " + notified +
-    " (package_type=" + pkg?.package_type + ", amount=" + paidAmount + ")");
+  if (wasFirstTransition) {
+    const notified = await notifySafely(
+      "패키지 구매 확정",
+      () => sendTelegramMessage(buildNewPackageOrderMessage({
+        packageType: pkg?.package_type,
+        amount: paidAmount,
+        userId: pkg?.user_id,
+      })),
+    );
+    console.log("[confirm-package-order-payment] 패키지 구매 확정 알림 발송 결과: " + notified +
+      " (package_type=" + pkg?.package_type + ", amount=" + paidAmount + ")");
+  } else {
+    console.log("[confirm-package-order-payment] 텔레그램 알림을 건너뜁니다 — portone-webhook 이 먼저 전환을 수행함(중복 알림 방지).");
+  }
 
   return json(200, { status: "PAID", package: pkg });
 }

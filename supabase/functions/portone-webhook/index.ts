@@ -13,9 +13,14 @@
 // 매니저 운영 채널에 신규 신청 알림을 보냅니다. 가상계좌/무통장 입금은 이 웹훅이 자동으로 감지해도
 // 알림을 보내지 않습니다 — 그 알림은 어드민 콘솔 [수동 입금 확인] 클릭(admin_confirm_manual_payment())
 // 시점으로만 가도록 트리거를 분리해 두었습니다.
+//
+// 패키지 구매(package_order)/추가 요금(extra_charge) 2차 결제도 각각 처음 PAID 로 전환될 때 같은
+// 운영 채널로 결제 완료 알림을 보내고, 두 경로 모두 DB 반영 실패(AMOUNT_MISMATCH/STATUS_UPDATE_FAILED)
+// 시에는 confirm-extra-charge-payment/confirm-package-order-payment Edge Function과 동일하게
+// 결제 반영 실패 경보를 보냅니다.
 import { createAdminClient } from "../_shared/supabaseClients.ts";
 import { portoneFetch, PortOneApiError } from "../_shared/portone.ts";
-import { buildNewApplicationMessage, buildNewPackageOrderMessage, buildPaymentReconciliationFailureMessage, notifySafely, sendTelegramMessage } from "../_shared/telegram.ts";
+import { buildExtraChargePaidMessage, buildNewApplicationMessage, buildNewPackageOrderMessage, buildPaymentReconciliationFailureMessage, notifySafely, sendTelegramMessage } from "../_shared/telegram.ts";
 
 function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -119,7 +124,7 @@ async function handleRequest(req: Request): Promise<Response> {
   // 합니다(sql/extra_charge_billing.sql 참고).
   const { data: extraChargeRow, error: extraChargeLookupErr } = await admin
     .from("care_schedules")
-    .select("id")
+    .select("id, application_id, extra_charge_status, extra_charge_amount, extra_charge_memo, senior_name, guardian_name")
     .eq("extra_charge_payment_id", paymentId)
     .maybeSingle();
   if (extraChargeLookupErr) {
@@ -133,18 +138,44 @@ async function handleRequest(req: Request): Promise<Response> {
     if (status !== "PAID") {
       return json(200, { skipped: true, status: status ?? null, kind: "extra_charge" });
     }
+    // confirm_extra_charge_payment() 도 이미 PAID 인 건에 재호출되면 멱등하게 같은 행을 그대로
+    // 돌려줍니다 — confirm-extra-charge-payment(사용자 호출)와 이 웹훅이 거의 동시에 들어올 수 있으므로,
+    // RPC 호출 *전에* 상태를 먼저 봐서 'REQUESTED' 였던 경우에만(= 이 호출이 실제로 전환을 수행한
+    // 경우에만) 알림을 보내 중복 발송을 막습니다.
+    const wasFirstTransition = extraChargeRow.extra_charge_status === "REQUESTED";
     const paidAmount: number | null = payment?.amount?.total ?? payment?.totalAmount ?? null;
     const { error } = await admin.rpc("confirm_extra_charge_payment", {
       p_payment_id: paymentId,
       p_paid_amount: paidAmount,
     });
     if (error) {
-      if (error.message?.includes("AMOUNT_MISMATCH")) {
+      // 결제는 승인됐는데 DB 반영이 실패한 경우 — issue-virtual-account/package_order 분기와 같은
+      // 이유로 운영자에게 즉시 알립니다.
+      const reason = error.message?.includes("AMOUNT_MISMATCH") ? "AMOUNT_MISMATCH" : "STATUS_UPDATE_FAILED";
+      const notified = await notifySafely("추가 요금 결제 반영 실패 경보", () => sendTelegramMessage(buildPaymentReconciliationFailureMessage({
+        applicationId: extraChargeRow.application_id || paymentId,
+        reason,
+        detail: error.message,
+        source: "portone-webhook",
+      })));
+      console.log("[portone-webhook] 결제 반영 실패 경보 발송 결과(extra_charge): " + notified);
+      if (reason === "AMOUNT_MISMATCH") {
         console.error("[portone-webhook] 추가 요금 결제 금액 불일치:", error.message);
         return json(409, { error: "AMOUNT_MISMATCH", message: error.message });
       }
       console.error("[portone-webhook] confirm_extra_charge_payment 실패:", error);
       return json(500, { error: "STATUS_UPDATE_FAILED", message: error.message });
+    }
+    if (wasFirstTransition) {
+      const notified = await notifySafely("추가 요금 결제 완료", () => sendTelegramMessage(buildExtraChargePaidMessage({
+        scheduleId: extraChargeRow.id,
+        applicationId: extraChargeRow.application_id,
+        seniorName: extraChargeRow.senior_name,
+        guardianName: extraChargeRow.guardian_name,
+        amount: paidAmount,
+        memo: extraChargeRow.extra_charge_memo,
+      })));
+      console.log("[portone-webhook] 추가 요금 결제 완료 알림 발송 결과: " + notified);
     }
     return json(200, { ok: true, status: "PAID", kind: "extra_charge" });
   }

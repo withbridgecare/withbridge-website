@@ -5,6 +5,10 @@
 // 옮겼습니다(브라우저 직접 insert 는 sql/manager_application_anti_abuse.sql 에서 권한을 회수해 막았습니다):
 //
 //   1) 연락처(phone) 중복 지원 — "이미 지원 접수된 연락처입니다." (요구사항 1)
+//   1-1) 이미 활동 중인 매니저 계정의 연락처 — "이미 케어 매니저로 등록된 연락처입니다."
+//        profiles.phone 을 managers(certification_verified=true) 와 대조합니다. profiles/managers
+//        모두 RLS가 "본인 행만 조회"라 브라우저에서는 이 대조를 할 수 없고, service_role 인 이 함수에서만
+//        가능합니다.
 //   2) IP 기준 요청 횟수 제한 — 같은 IP가 짧은 시간에 과도하게 두드리면 차단 (요구사항 3)
 //   3) Cloudflare Turnstile 사람 확인 — 토큰을 Cloudflare에 서버에서 재검증 (요구사항 4)
 //
@@ -199,6 +203,27 @@ Deno.serve(async (req: Request) => {
   if (ownPendingErr) return json(500, { error: "LOOKUP_FAILED", message: ownPendingErr.message });
   if (ownPending) {
     return json(409, { error: "PENDING_EXISTS", message: "이미 심사 중인 지원서가 있습니다." });
+  }
+
+  // ---- 1-1) 이미 활동 중인 매니저 계정의 연락처인지 — profiles.phone 을 모아 managers
+  // (certification_verified=true) 에 그 id가 있는지 봅니다. phone 은 profiles 에만 있고 managers 에는
+  // 없어서(managers.id 가 profiles.id 를 그대로 참조) 두 단계로 조회합니다. ----
+  const { data: phoneProfiles, error: phoneProfileErr } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("phone", phone);
+  if (phoneProfileErr) return json(500, { error: "LOOKUP_FAILED", message: phoneProfileErr.message });
+  if (phoneProfiles && phoneProfiles.length > 0) {
+    const { data: activeManagerByPhone, error: activeManagerErr } = await admin
+      .from("managers")
+      .select("id")
+      .in("id", phoneProfiles.map((p) => p.id))
+      .eq("certification_verified", true)
+      .maybeSingle();
+    if (activeManagerErr) return json(500, { error: "LOOKUP_FAILED", message: activeManagerErr.message });
+    if (activeManagerByPhone) {
+      return json(409, { error: "PHONE_ALREADY_MANAGER", message: "이미 케어 매니저로 등록된 연락처입니다." });
+    }
   }
 
   // ---- 1) 연락처 중복 지원 ----

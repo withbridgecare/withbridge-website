@@ -12,7 +12,7 @@
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- 공통 Supabase 클라이언트 + 헤더 로그인 상태. SDK 뒤에 로드해야 합니다 -->
-  <script src="/js/auth-header.js?v=1.8" charset="utf-8"></script>
+  <script src="/js/auth-header.js?v=1.9" charset="utf-8"></script>
   <!-- 카카오(다음) 우편번호 서비스: 거주지 주소를 자유 입력 대신 정식 도로명·지번 주소로 선택하게 함 -->
   <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
   <!-- 도배/봇 방지: Cloudflare Turnstile (STEP4의 .cf-turnstile 위젯을 자동으로 렌더링) -->
@@ -564,8 +564,8 @@
               <p class="err" id="e-turnstile" hidden></p>
             </div>
 
+            <div class="form-error" id="formError" role="alert" hidden></div>
             <div class="step-nav">
-              <div class="form-error" id="formError" role="alert" hidden style="flex:1 1 100%; margin:0 0 -6px;"></div>
               <button type="button" class="nav-btn nav-prev" id="toStep3FromStep4">이전</button>
               <button type="submit" class="nav-btn nav-submit" id="submitBtn">제출하기</button>
             </div>
@@ -1090,11 +1090,22 @@
           try { errBody = await invokeErr.context.json(); } catch (parseErr) { /* 응답 본문이 JSON이 아닐 수 있음 */ }
         }
         console.error('[매니저 지원] 제출 실패:', errBody || invokeErr);
-        formError.textContent = (errBody && errBody.message) || '제출 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
-        formError.hidden = false;
         submitBtn.disabled = false;
         submitBtn.textContent = '제출하기';
         resetTurnstile(); // Turnstile 토큰은 1회용이라, 재시도 전에 새로 받아야 합니다.
+
+        // 연락처 중복 계열 오류(이미 지원 접수됨/이미 활동 중인 매니저)는 STEP 1의 연락처 입력칸
+        // 바로 아래에 표시해야 사용자가 바로 알아챕니다 — 일반 오류처럼 STEP 4 상단 배너로만 보이면
+        // 어떤 입력값이 문제인지 알기 어렵습니다.
+        const PHONE_DUPLICATE_ERRORS = ['PHONE_ALREADY_APPLIED', 'PHONE_ALREADY_MANAGER'];
+        if (errBody && PHONE_DUPLICATE_ERRORS.includes(errBody.error)) {
+          applyFieldErrors(['phone'], { phone: errBody.message });
+          showStep(1);
+          return;
+        }
+
+        formError.textContent = (errBody && errBody.message) || '제출 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
+        formError.hidden = false;
         showStep(4);
         return;
       }

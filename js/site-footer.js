@@ -5,8 +5,9 @@
    - defer 없이(동기) 로드되므로, 바로 뒤에 이어서 실행되어 자리를
      바꿔 끼운 뒤 나머지 파싱이 이어집니다 — 깜빡임(FOUC) 없음.
    - 푸터 내용을 바꿀 땐 이 파일 하나만 고치면 모든 페이지에 반영됩니다.
-   - data-open-terms 클릭은 terms-modal.js 가 이벤트 위임으로 처리하므로,
-     이 스크립트가 나중에 푸터를 끼워 넣어도 '이용약관' 링크는 그대로 동작합니다.
+   - '이용약관'/'개인정보 처리방침' 링크는 data-open-terms(팝업, js/terms-modal.js) 를 쓰지 않고
+     target="_blank" 로 각 전용 페이지(terms.html/privacy.html)를 새 탭에서 바로 엽니다 — 신청서(apply.html,
+     manager-apply.html)의 '동의하고 닫기' 흐름에서만 그 팝업을 계속 씁니다.
 ========================================================= */
 (function () {
   'use strict';
@@ -21,9 +22,9 @@
         '</div>' +
         '<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 24px;">' +
           '<nav style="display: flex; align-items: center; gap: 16px; font-size: 14px;">' +
-            '<a href="terms.html" data-open-terms style="color: #d4d4d8 !important; text-decoration: underline; text-underline-offset: 4px;">이용약관</a>' +
+            '<a href="terms.html" target="_blank" rel="noopener" style="color: #d4d4d8 !important; text-decoration: underline; text-underline-offset: 4px;">이용약관</a>' +
             '<span style="width: 1px; height: 12px; background-color: rgba(255,255,255,0.2);"></span>' +
-            '<a href="privacy.html" style="color: #ffffff !important; font-weight: 700; text-decoration: underline; text-underline-offset: 4px;">개인정보 처리방침</a>' +
+            '<a href="privacy.html" target="_blank" rel="noopener" style="color: #ffffff !important; font-weight: 700; text-decoration: underline; text-underline-offset: 4px;">개인정보 처리방침</a>' +
           '</nav>' +
           '<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">' +
             '<a href="#instagram" style="display: inline-flex; align-items: center; justify-content: center; padding: 8px 18px; border-radius: 9999px; background-color: #ffffff !important; color: #18181b !important; font-size: 14px; font-weight: 700; text-decoration: none;"><span>인스타그램</span></a>' +

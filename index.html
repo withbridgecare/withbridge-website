@@ -25,7 +25,7 @@
 <!-- 💡 Supabase 라이브러리 추가 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 <!-- 💡 공통 인증 헤더 (로그인 상태 감지 · 프로필 아바타/드롭다운). Supabase SDK 뒤에 로드해야 합니다 -->
-<script src="/js/auth-header.js?v=1.8" charset="utf-8" defer></script>
+<script src="/js/auth-header.js?v=1.9" charset="utf-8" defer></script>
 <script src="/js/terms-modal.js?v=1.0" charset="utf-8" defer></script>
 
 <!-- 혜택 안내 레이어 팝업 (위드브릿지 브랜드 대표색 #78866B 반영) -->
@@ -2063,26 +2063,31 @@
   }
 
   .wb-card-1 {
-    background: linear-gradient(180deg, rgba(0,0,0,0) 20%, rgba(30,41,59,0.8) 100%), 
-                url('https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?q=80&w=600') center/cover;
+    /* 안심 이동 지원 — 대중교통 이용 동행(지팡이를 짚고 버스에 오르는 모습) */
+    background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.6)),
+                url('https://images.unsplash.com/photo-1763262141826-d58a4c43746f?q=80&w=600') center/cover;
   }
   .wb-card-2 {
-    background: linear-gradient(180deg, rgba(0,0,0,0) 20%, rgba(30,41,59,0.8) 100%), 
-                url('https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?q=80&w=600') center/cover;
+    /* 실시간 상황 공유 — 진료 기록을 기록하는 모습 */
+    background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.6)),
+                url('https://images.unsplash.com/photo-1758691462814-485c3672e447?q=80&w=600') center/cover;
   }
   .wb-card-3 {
-    background: linear-gradient(180deg, rgba(0,0,0,0) 20%, rgba(30,41,59,0.8) 100%), 
-                url('https://images.unsplash.com/photo-1581579438747-1dc8d1e289c6?q=80&w=600') center/cover;
+    /* 전문 동행 인력 교육 이수 — 전문성·신뢰감을 주는 케어 인력 */
+    background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.6)),
+                url('https://images.unsplash.com/photo-1756699277286-5166560ecd40?q=80&w=600') center/cover;
   }
   .wb-card-4 {
     grid-row: span 2;
     min-height: 436px;
-    background: linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(30,41,59,0.85) 100%), 
-                url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=600') center/cover;
+    /* 맞춤형 케어 솔루션 — 어르신과 동행하는 산책로 */
+    background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.6)),
+                url('https://images.unsplash.com/photo-1742841551724-2620db58e1c6?q=80&w=600') center/cover;
   }
   .wb-card-5 {
-    background: linear-gradient(180deg, rgba(0,0,0,0) 20%, rgba(30,41,59,0.8) 100%), 
-                url('https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?q=80&w=600') center/cover;
+    /* 맞춤형 생활 & 복약 케어 — 약 정리함에서 약을 꺼내는 모습 */
+    background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.6)),
+                url('https://images.unsplash.com/photo-1563213126-a4273aed2016?q=80&w=600') center/cover;
   }
 
   .wb-card-content {
@@ -2160,7 +2165,7 @@
       <div class="wb-card wb-card-1">
         <div class="wb-card-content">
           <div class="wb-card-title">안심 이동 지원</div>
-          <div class="wb-card-desc">자택부터 병원·외출지까지 도보, 대중교통, 전용 차량 맞춤 동행</div>
+          <div class="wb-card-desc">자택부터 병원·외출까지 도보 및 대중교통/택시 맞춤 동행</div>
         </div>
       </div>
 

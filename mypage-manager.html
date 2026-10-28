@@ -12,7 +12,7 @@
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- 공통 Supabase 클라이언트 + 매니저 자격 확인(checkIsManager). SDK 뒤에 로드해야 합니다 -->
-  <script src="/js/auth-header.js?v=1.8" charset="utf-8"></script>
+  <script src="/js/auth-header.js?v=1.9" charset="utf-8"></script>
 <script src="/js/terms-modal.js?v=1.0" charset="utf-8" defer></script>
   <!-- 브라우저 기본 날짜/시간 피커 대신 쓰는 공통 커스텀 피커 (wb-datepicker.js 참고) -->
   <script src="/js/wb-datepicker.js?v=1.1"></script>
@@ -2080,7 +2080,7 @@
     // 선택 추가 옵션(Add-on) 코드 → 사람이 읽는 이름. apply.html 의 ADDONS, sql/user_coupons_checkout.sql
     // 의 expected_addon_total() 과 반드시 같은 코드 문자열을 써야 합니다(admin.js 에도 같은 맵이 있습니다
     // — 양쪽을 같이 고쳐 주세요).
-    const ADDON_LABELS = { URGENT_MATCHING: '긴급 매칭 서비스', VEHICLE_SUPPORT: '차량 이동 지원' };
+    const ADDON_LABELS = { URGENT_MATCHING: '긴급 매칭 서비스' };
     function addonLabels(codes) {
       return (Array.isArray(codes) ? codes : []).map((code) => ADDON_LABELS[code] || code);
     }
@@ -3275,7 +3275,7 @@
       const urgentBadgeHtml = urgentLabel
         ? `<span class="bg-red-50 text-red-700 border border-red-200 text-xs font-semibold px-2.5 py-1 rounded-full" data-urgent-chip data-created="${escapeHtml(createdIso)}">${escapeHtml(urgentLabel)}</span>` : '';
 
-      // 선택 추가 옵션(긴급 매칭/차량 이동 지원): 상태 뱃지 바로 옆에 같은 줄 뱃지로 붙여(.req-addon-badge),
+      // 선택 추가 옵션(긴급 매칭 서비스): 상태 뱃지 바로 옆에 같은 줄 뱃지로 붙여(.req-addon-badge),
       // 옵션이 있을 때만 카드에 '옵션: ...' 같은 별도 세로 줄이 추가로 생기지 않게 합니다.
       const addons = Array.isArray(r.addons) ? r.addons : [];
       const addonBadgesHtml = addons

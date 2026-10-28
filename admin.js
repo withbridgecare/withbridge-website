@@ -146,7 +146,20 @@
     packageAdjustError: $('packageAdjustError'),
     packageAdjustCloseBtn: $('packageAdjustCloseBtn'),
     packageAdjustCancelBtn: $('packageAdjustCancelBtn'),
-    packageAdjustConfirmBtn: $('packageAdjustConfirmBtn')
+    packageAdjustConfirmBtn: $('packageAdjustConfirmBtn'),
+
+    adminRefundModal: $('adminRefundModal'),
+    adminRefundSub: $('adminRefundSub'),
+    adminRefundBalanceInfo: $('adminRefundBalanceInfo'),
+    adminRefundTypeFull: $('adminRefundTypeFull'),
+    adminRefundTypePartial: $('adminRefundTypePartial'),
+    adminRefundPartialSection: $('adminRefundPartialSection'),
+    adminRefundAmountInput: $('adminRefundAmountInput'),
+    adminRefundReasonInput: $('adminRefundReasonInput'),
+    adminRefundError: $('adminRefundError'),
+    adminRefundCloseBtn: $('adminRefundCloseBtn'),
+    adminRefundCancelBtn: $('adminRefundCancelBtn'),
+    adminRefundConfirmBtn: $('adminRefundConfirmBtn')
   };
 
   var toastTimer = null;
@@ -208,7 +221,7 @@
   // 선택 추가 옵션(Add-on) 코드 → 사람이 읽는 이름. apply.html 의 ADDONS, sql/user_coupons_checkout.sql
   // 의 expected_addon_total() 과 반드시 같은 코드 문자열을 써야 합니다(mypage-manager.html 에도 같은
   // 맵이 있습니다 — 양쪽을 같이 고쳐 주세요).
-  var ADDON_LABELS = { URGENT_MATCHING: '긴급 매칭 서비스', VEHICLE_SUPPORT: '차량 이동 지원' };
+  var ADDON_LABELS = { URGENT_MATCHING: '긴급 매칭 서비스' };
   function addonLabels(row) {
     var codes = row && Array.isArray(row.addon_codes) ? row.addon_codes : [];
     return codes.map(function (code) { return ADDON_LABELS[code] || code; });
@@ -645,7 +658,10 @@
   }
 
   async function rejectManager(applicationId, btn) {
-    var reason = window.prompt('반려 사유를 입력해 주세요 (선택 사항).') || null;
+    var reason = window.prompt('반려 사유를 입력해 주세요 (선택 사항).');
+    if (reason === null) return false; // 사용자가 '취소'를 누름 — 반려 처리를 하지 않고 중단
+    reason = reason.trim() || null; // 입력칸을 비워둔 채 확인을 누른 경우는 '사유 없음'으로 처리
+
     btn.disabled = true;
     var res = await supabaseClient.rpc('reject_manager_application', { p_application_id: applicationId, p_reason: reason });
 
@@ -1103,7 +1119,7 @@
       // 별도 count 쿼리 없이 판단합니다(오늘의 케어 신청 카드의 fetchApplicationsPage() 와 같은 패턴).
       var res = await supabaseClient
         .from('service_applications')
-        .select('id, created_at, service_type, user_relation, senior_name, senior_age, senior_note, user_contact, address, request_details, status, payment_status')
+        .select('id, created_at, service_type, user_relation, senior_name, senior_age, senior_note, user_contact, address, request_details, status, payment_status, final_amount, refund_amount')
         .in('status', ['CANCELLED', 'EXPIRED_CANCELLED'])
         .order('created_at', { ascending: false })
         .range(cancelledOffset, cancelledOffset + ADMIN_LIST_PAGE_SIZE);
@@ -1177,32 +1193,38 @@
     // 중복이라 그 경우에는 빼고 보여줍니다.
     var overdue = isCreatedAtOverdue(a.created_at);
 
-    // 취소 상세 상태 3분기 (sql/matching_expiry_auto_refund.sql 참고) — 기존에는 전부 '취소됨' 하나로만
-    // 보였는데, 운영자가 "이미 환불까지 끝났는지 / 아직 PG 콘솔에서 수동 환불을 처리해야 하는지"를 목록만
-    // 보고 바로 구별할 수 있도록 나눕니다:
+    // 취소 상세 상태 분기 (sql/matching_expiry_auto_refund.sql, sql/admin_application_refund_system.sql
+    // 참고) — 운영자가 "이미 환불까지 끝났는지 / 부분 환불만 됐는지 / 아직 환불이 전혀 안 됐는지"를
+    // 목록만 보고 바로 구별할 수 있도록 나눕니다:
     //   1) 48시간 자동취소 — status='EXPIRED_CANCELLED'(표준) 이거나, 수기로 남긴 cancellation_reason에
     //      '48시간'이 포함된 경우(이 컬럼이 아직 없는 환경에서는 항상 빈 문자열이라 조용히 무시됩니다).
     //      cancel-expired-applications Edge Function이 PortOne 환불까지 성공한 뒤에만 이 상태로 바꾸므로
     //      항상 payment_status='REFUNDED'도 같이 true 입니다 — 두 뱃지가 함께 뜨는 게 정상입니다.
-    //   2) 환불 완료 — payment_status='REFUNDED' (1)과 독립적으로도 확인: 나중에 수동 환불을 처리하고
-    //      운영자가 payment_status 만 직접 REFUNDED로 맞춰 둔 건도 이 뱃지로 잡힙니다.
-    //   3) 수동 취소인데 환불 미확인 — 결제까지 끝난 뒤(payment_status='PAID') CANCELLED 로 바뀐 건.
-    //      guardian_cancel_application()의 cancel_my_application()과 이 화면의 [취소] 버튼(아래
-    //      cancelApplication())은 둘 다 status만 바꾸고 PG 환불은 운영자가 수동으로 처리해야 하므로,
-    //      이 조합(결제완료 + 취소됨 + 아직 REFUNDED 아님)이 "PG 환불이 안 됐을 수도 있는" 건을 가려내는
-    //      유일한 신호입니다. payment_status 가 비어 있으면(결제 전에 취소된 건) 환불할 돈 자체가 없으므로
-    //      이 뱃지를 붙이지 않습니다.
+    //   2) 환불 완료 — payment_status='REFUNDED'. [환불 처리]로 전액(또는 잔액까지 누적) 환불했거나,
+    //      수동 확인([환불 완료 처리])으로 맞춘 경우 모두 이 뱃지로 잡힙니다.
+    //   3) 부분 환불 완료 — payment_status='PARTIALLY_REFUNDED'. refund_amount 만큼 이미 돌아갔고,
+    //      final_amount - refund_amount 만큼 추가로 환불할 잔액이 남아 있어 [환불 처리] 버튼을 계속 보여줍니다.
+    //   4) 환불 미처리 — 결제까지 끝난 뒤(payment_status='PAID') CANCELLED 로 바뀌었지만 아직 한 번도
+    //      환불을 처리하지 않은 건. payment_status 가 비어 있으면(결제 전에 취소된 건) 환불할 돈 자체가
+    //      없으므로 어떤 뱃지도 붙이지 않습니다.
     var cancellationReason = String(a.cancellation_reason || '');
     var isAutoExpired = a.status === 'EXPIRED_CANCELLED' || cancellationReason.indexOf('48시간') !== -1;
     var isRefunded = a.payment_status === 'REFUNDED';
-    var isManualUnrefunded = !isAutoExpired && !isRefunded && a.payment_status === 'PAID';
+    var isPartiallyRefunded = a.payment_status === 'PARTIALLY_REFUNDED';
+    var isManualUnrefunded = !isAutoExpired && !isRefunded && !isPartiallyRefunded && a.payment_status === 'PAID';
+    // 잔액이 남아 있는 한(부분 환불 1회차든, 아직 한 번도 환불하지 않은 건이든) [환불 처리] 버튼을 보여줍니다.
+    var canRefund = isManualUnrefunded || isPartiallyRefunded;
+    // 기존 [환불 완료 처리](admin_mark_refund_completed)로 전액 환불 처리된 과거 건은 refund_amount를
+    // 채우지 않으므로, 전액 환불 표기에서는 final_amount(결제 총액)로 대신 보여줍니다.
+    var refundedSoFar = a.refund_amount || (isRefunded ? (a.final_amount || 0) : 0);
 
     var badges = '';
     if (overdue && !isAutoExpired) badges += '<span class="admin-badge is-overdue">경과</span>';
     if (isAutoExpired) badges += '<span class="admin-badge is-auto-expired">48시간 자동취소</span>';
     if (isRefunded) badges += '<span class="admin-badge is-refunded">환불 완료</span>';
+    if (isPartiallyRefunded) badges += '<span class="admin-badge is-partially-refunded">부분 환불 완료</span>';
     if (isManualUnrefunded) badges += '<span class="admin-badge is-manual-unrefunded">수동 취소 (PG 환불 필요)</span>';
-    if (!isAutoExpired && !isRefunded && !isManualUnrefunded) badges += '<span class="admin-badge is-cancelled">취소됨</span>';
+    if (!isAutoExpired && !isRefunded && !isPartiallyRefunded && !isManualUnrefunded) badges += '<span class="admin-badge is-cancelled">취소됨</span>';
 
     var head = document.createElement('div');
     head.className = 'admin-row-head';
@@ -1217,23 +1239,36 @@
       '<dt>어르신</dt><dd>' + escapeHtml(seniorLabel(a) + (a.user_relation ? ' · ' + a.user_relation + ' 신청' : '')) + '</dd>' +
       '<dt>신청 시각</dt><dd>' + formatDateTime(a.created_at) + '</dd>' +
       '<dt>주소</dt><dd>' + escapeHtml(a.address || '-') + '</dd>' +
-      '<dt>요청 사항</dt><dd>' + escapeHtml(a.request_details || '-') + '</dd>';
+      '<dt>요청 사항</dt><dd>' + escapeHtml(a.request_details || '-') + '</dd>' +
+      (isRefunded ? '<dt>환불 내역</dt><dd>전액 취소 완료 (' + refundedSoFar.toLocaleString('ko-KR') + '원)</dd>' : '') +
+      (isPartiallyRefunded ? '<dt>환불 내역</dt><dd>부분 환불 완료 (' + refundedSoFar.toLocaleString('ko-KR') + '원)</dd>' : '');
 
     row.appendChild(head);
     row.appendChild(meta);
 
-    // '수동 취소 (PG 환불 필요)' 건에만 [환불 완료 처리] 버튼을 보여줍니다 — PG 콘솔에서 관리자가
-    // 직접 환불을 마친 뒤 여기서 눌러야 payment_status 가 'REFUNDED' 로 바뀌고 배지도 '환불 완료'로
-    // 바뀝니다(admin_mark_refund_completed RPC, sql/matching_expiry_auto_refund.sql 참고).
-    if (isManualUnrefunded) {
+    // 환불 가능 잔액이 남아 있는 건에 [환불 처리] 버튼을 보여줍니다 — 전액/부분 환불 모달을 열어
+    // PortOne 환불 API를 바로 호출합니다(openAdminRefundModal, supabase/functions/admin-refund-application).
+    // '수동 취소' 건에는 PortOne에 결제 기록이 없는 예외적인 경우(무통장 입금을 수동 확인 처리한 건 등)를
+    // 대비해 기존 수동 확인([환불 완료 처리])도 보조 버튼으로 함께 둡니다.
+    if (canRefund) {
       var actions = document.createElement('div');
       actions.className = 'admin-row-actions';
       var refundBtn = document.createElement('button');
       refundBtn.type = 'button';
       refundBtn.className = 'admin-btn is-primary';
-      refundBtn.textContent = '환불 완료 처리';
-      refundBtn.addEventListener('click', function () { markRefundCompleted(a, refundBtn); });
+      refundBtn.textContent = '환불 처리';
+      refundBtn.addEventListener('click', function () { openAdminRefundModal(a); });
       actions.appendChild(refundBtn);
+
+      if (isManualUnrefunded) {
+        var manualBtn = document.createElement('button');
+        manualBtn.type = 'button';
+        manualBtn.className = 'admin-btn is-ghost';
+        manualBtn.textContent = 'PG 콘솔에서 이미 환불함 (수동 확인)';
+        manualBtn.addEventListener('click', function () { markRefundCompleted(a, manualBtn); });
+        actions.appendChild(manualBtn);
+      }
+
       row.appendChild(actions);
     }
 
@@ -1260,6 +1295,129 @@
     showToast('환불 완료로 표시했습니다.');
     loadCancelledApplications();
   }
+
+  // ================================================================
+  // [환불 처리] 모달 — '취소된 신청 내역' 카드에서 PortOne 전액/부분 환불을 직접 호출합니다
+  // (supabase/functions/admin-refund-application, sql/admin_application_refund_system.sql).
+  // 전액 환불 선택 시에는 사유만 입력받고, 부분 환불 선택 시에는 금액 + 사유를 입력받아 결제 총액 ·
+  // 잔여 환불 가능 금액을 넘지 않는지 서버와 똑같은 기준으로 먼저 클라이언트에서 검증합니다.
+  // ================================================================
+  var adminRefundState = null; // { application, total, already, remaining }
+
+  function adminRefundIsPartial() {
+    return !!(els.adminRefundTypePartial && els.adminRefundTypePartial.checked);
+  }
+
+  function updateAdminRefundTypeVisibility() {
+    if (!els.adminRefundPartialSection) return;
+    els.adminRefundPartialSection.hidden = !adminRefundIsPartial();
+  }
+
+  function openAdminRefundModal(a) {
+    var total = a.final_amount || 0;
+    var already = a.refund_amount || 0;
+    var remaining = Math.max(total - already, 0);
+    adminRefundState = { application: a, total: total, already: already, remaining: remaining };
+
+    els.adminRefundSub.textContent = (a.senior_name || '어르신') + ' · ' + (a.service_type || '케어 신청');
+    els.adminRefundBalanceInfo.textContent =
+      total.toLocaleString('ko-KR') + '원 / ' + remaining.toLocaleString('ko-KR') + '원' +
+      (already > 0 ? ' (기존 환불 누적 ' + already.toLocaleString('ko-KR') + '원)' : '');
+    els.adminRefundTypeFull.checked = true;
+    els.adminRefundAmountInput.value = '';
+    els.adminRefundAmountInput.max = String(remaining);
+    els.adminRefundReasonInput.value = '';
+    els.adminRefundError.hidden = true;
+    updateAdminRefundTypeVisibility();
+    els.adminRefundConfirmBtn.disabled = false;
+    els.adminRefundConfirmBtn.textContent = '환불 처리하기';
+    els.adminRefundModal.hidden = false;
+  }
+
+  function closeAdminRefundModal() {
+    els.adminRefundModal.hidden = true;
+    adminRefundState = null;
+  }
+
+  els.adminRefundTypeFull.addEventListener('change', updateAdminRefundTypeVisibility);
+  els.adminRefundTypePartial.addEventListener('change', updateAdminRefundTypeVisibility);
+  els.adminRefundCloseBtn.addEventListener('click', closeAdminRefundModal);
+  els.adminRefundCancelBtn.addEventListener('click', closeAdminRefundModal);
+  els.adminRefundModal.addEventListener('mousedown', function (e) { if (e.target === els.adminRefundModal) closeAdminRefundModal(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !els.adminRefundModal.hidden) closeAdminRefundModal(); });
+
+  els.adminRefundConfirmBtn.addEventListener('click', async function () {
+    if (!adminRefundState) return;
+    var isPartial = adminRefundIsPartial();
+    var reason = els.adminRefundReasonInput.value.trim();
+    var remaining = adminRefundState.remaining;
+
+    if (!reason) {
+      els.adminRefundError.textContent = '환불 사유를 입력해 주세요.';
+      els.adminRefundError.hidden = false;
+      return;
+    }
+    if (remaining <= 0) {
+      els.adminRefundError.textContent = '이미 전액 환불이 완료되어 더 이상 환불할 금액이 없습니다.';
+      els.adminRefundError.hidden = false;
+      return;
+    }
+
+    var amount = remaining;
+    if (isPartial) {
+      amount = Number(els.adminRefundAmountInput.value);
+      if (!amount || amount <= 0 || !Number.isInteger(amount)) {
+        els.adminRefundError.textContent = '환불할 금액을 올바르게 입력해 주세요.';
+        els.adminRefundError.hidden = false;
+        return;
+      }
+      if (amount > remaining) {
+        els.adminRefundError.textContent = '환불할 금액이 환불 가능 잔액(' + remaining.toLocaleString('ko-KR') + '원)보다 많습니다.';
+        els.adminRefundError.hidden = false;
+        return;
+      }
+    }
+
+    var ok = window.confirm((isPartial ? '부분 환불 ' + amount.toLocaleString('ko-KR') + '원을' : '전액 ' + amount.toLocaleString('ko-KR') + '원을') +
+      ' PortOne으로 실제 환불 처리합니다. 계속할까요?');
+    if (!ok) return;
+
+    els.adminRefundError.hidden = true;
+    els.adminRefundConfirmBtn.disabled = true;
+    els.adminRefundConfirmBtn.textContent = '처리 중…';
+    try {
+      var res = await supabaseClient.functions.invoke('admin-refund-application', {
+        body: {
+          application_id: adminRefundState.application.id,
+          refund_type: isPartial ? 'partial' : 'full',
+          amount: isPartial ? amount : undefined,
+          reason: reason
+        }
+      });
+      if (res.error) throw res.error;
+      showToast('환불 처리가 완료되었습니다.');
+      closeAdminRefundModal();
+      loadCancelledApplications();
+    } catch (e) {
+      // supabase-js functions.invoke() 에러 분기는 cancel-payment 호출(위 careInterruptConfirmBtn
+      // 핸들러)과 같은 패턴입니다 — FunctionsHttpError(함수가 실행은 됐지만 4xx/5xx 응답)와
+      // FunctionsFetchError(배포 안 됨/네트워크 문제)를 구분해 메시지를 보여줍니다.
+      var detail = (e && e.context && typeof e.context.json === 'function') ? await e.context.json().catch(function () { return null; }) : null;
+      var isFetchFailure = e && e.name === 'FunctionsFetchError';
+      console.error('[Admin] 환불 처리 실패 — name=' + (e && e.name) + ', message=' + (e && e.message) + ':',
+        '\n  함수 응답 본문(detail):', detail,
+        '\n  네트워크 단계 원인(context):', e && e.context,
+        '\n  원본 에러 객체:', e);
+      var userMsg = isFetchFailure
+        ? 'Edge Function(admin-refund-application)에 연결할 수 없습니다. 함수가 Supabase에 배포되어 있는지(supabase functions deploy admin-refund-application), 네트워크 상태를 확인해 주세요.'
+        : ((detail && detail.message) || e.message || String(e));
+      els.adminRefundError.textContent = '환불 처리에 실패했습니다: ' + userMsg;
+      els.adminRefundError.hidden = false;
+    } finally {
+      els.adminRefundConfirmBtn.disabled = false;
+      els.adminRefundConfirmBtn.textContent = '환불 처리하기';
+    }
+  });
 
   // PAYMENT_PENDING 건을 관리자가 수동으로 입금 확인 처리 — admin_confirm_manual_payment() RPC
   // (sql/admin_manual_payment_telegram_notify.sql — 이 함수의 유일한 정의)가 is_admin() 검증과 함께

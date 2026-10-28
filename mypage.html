@@ -12,7 +12,7 @@
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- 공통 Supabase 클라이언트 (index.html / login.html 과 같은 세션 공유). SDK 뒤에 로드해야 합니다 -->
-  <script src="/js/auth-header.js?v=1.8" charset="utf-8"></script>
+  <script src="/js/auth-header.js?v=1.9" charset="utf-8"></script>
   <!-- 결제 확인 Edge Function(confirm-extra-charge-payment) 호출용 — supabaseClient.functions.invoke()
        대신 명시적 fetch() 래퍼. auth-header.js 가 만든 supabaseClient 를 받아 쓰므로 그 뒤에 로드합니다 -->
   <script src="/js/edge-function-fetch.js?v=1.0"></script>
@@ -333,22 +333,6 @@
         gap: 4px;
       }
     }
-
-    /* 환불 완료 후 7일 이내 안내 배너 — '진행 중인 케어' 탭 맨 위, 카드 목록보다 먼저 보입니다.
-       연초록(브랜드 톤) 배경으로 "끝난 일"이라는 걸 차분하게 알리고, 클릭하면 '지난 이용 내역' 탭의
-       해당 날짜로 바로 이동합니다(goToHistoryForApp). */
-    .refund-banner {
-      display: flex; align-items: center; gap: 12px; padding: 14px 18px; margin-bottom: 18px;
-      background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: var(--radius-sm);
-    }
-    .refund-banner-icon { flex: none; display: inline-flex; color: var(--brand-dark); }
-    .refund-banner-text { flex: 1 1 auto; margin: 0; font-size: 13.5px; font-weight: 600; color: var(--ink); }
-    .refund-banner-link {
-      flex: none; background: none; border: none; padding: 0; font-size: 13px; font-weight: 700;
-      color: var(--brand-dark); cursor: pointer; white-space: nowrap;
-    }
-    .refund-banner-link:hover { text-decoration: underline; }
-    @media (max-width: 480px) { .refund-banner { flex-wrap: wrap; } }
 
     /* 패키지 구매 완료 안내 배너 — package.html 에서 구매를 마치고 돌아왔을 때(?purchased=…&hours=…)
        가장 먼저 보이도록 보호자 화면 맨 위에 둡니다. 토스트처럼 사라지지 않고, 직접 닫기 전까지 남아
@@ -2600,6 +2584,25 @@
       // (care_schedules.status)는 여전히 'completed'로 남아 있어 resolveCareStep() 만 보면 그냥 '케어 완료'로
       // 보이므로, 여기서 먼저 걸러야 진행 중인 신청 목록에서 확실히 빠지고 하단 이용 내역에는 계속 남습니다.
       if (isGuardianConfirmed(a.status)) return { label: '이용 완료', tone: 'confirmed', assigned: true };
+
+      // 신청 자체가 취소된 건은 care_schedules 의 진행 단계(resolveCareStep)보다 항상 우선합니다 — 매니저가
+      // 배정되어 이동/병원 도착까지 진행됐던 건이라도, 그 뒤 관리자가 신청을 취소하거나 환불 처리했다면
+      // care_schedules 에 남은 옛 진행 단계 값 때문에 이 건이 '진행 중인 케어' 목록에 계속 남아있으면
+      // 안 됩니다(실제로 이 확인이 없으면 activeApps 필터가 effectiveStatusInfo().tone 만 보고 판단하므로
+      // 그런 건을 걸러내지 못했습니다).
+      const base = statusInfo(a.status, !!a.manager_id);
+      if (base.tone === 'cancel') {
+        // 수동 취소(일반 '취소됨' 라벨) 건을 관리자가 admin.html 에서 [환불 처리]/[환불 완료 처리]로
+        // 환불 완료 처리하면 payment_status 가 'REFUNDED' 로 바뀝니다 — 그 경우 배지/안내 문구를
+        // admin.html 과 같은 어휘인 '환불 완료'로 보여줍니다. statusInfo() 가 이미 '자동 취소 · 환불
+        // 완료'로 더 구체적으로 표시해 둔 48시간 자동취소 건은 그대로 둡니다(label === '취소됨'일 때만,
+        // 즉 수동 취소 케이스에만 덮어씁니다).
+        if (base.label === '취소됨' && a.payment_status === 'REFUNDED') {
+          return Object.assign({}, base, { label: '환불 완료' });
+        }
+        return base;
+      }
+
       // 실제 진행 상태(이동 중 이상)가 있으면 항상 최우선입니다 — care_schedules 를 읽을 수 있으면 그 값을,
       // 못 읽더라도 service_applications.status 에 미러링된 값(resolveCareStep 참고)을 그대로 씁니다.
       // 예전에 '일정 변경 제안'을 수락해 로컬로 남겨 둔 '배정 완료' 값이 있어도, 매니저가 실제로 출발/병원
@@ -2608,15 +2611,6 @@
       if (step != null && step >= 2) return { label: careStepLabelsFor(a)[step], tone: step === 4 ? 'done' : 'live', assigned: true };
       const proposal = proposalStatusInfo(a);
       if (proposal) return proposal;
-      const base = statusInfo(a.status, !!a.manager_id);
-      // 수동 취소(일반 '취소됨' 라벨) 건을 관리자가 admin.html 에서 [환불 완료 처리]
-      // (admin_mark_refund_completed RPC)로 처리하면 payment_status 가 'REFUNDED' 로 바뀝니다 —
-      // 그 경우 배지/안내 문구를 admin.html 과 같은 어휘인 '환불 완료'로 보여줍니다. statusInfo() 가
-      // 이미 '자동 취소 · 환불 완료'로 더 구체적으로 표시해 둔 48시간 자동취소 건은 그대로 둡니다
-      // (label === '취소됨'일 때만, 즉 수동 취소 케이스에만 덮어씁니다).
-      if (base.label === '취소됨' && a.payment_status === 'REFUNDED') {
-        return Object.assign({}, base, { label: '환불 완료' });
-      }
       return base;
     }
 
@@ -2950,7 +2944,7 @@
         const APP_BASE_CORE = 'id, created_at, user_id, service_type, user_relation, address, request_details, status';
         // 아직 최신 마이그레이션을 안 돌린 프로젝트를 위해, 없는 컬럼만 하나씩 빼고 재시도합니다 (queryReports() 와 같은 패턴).
         // payment_status/refunded_at: sql/matching_expiry_auto_refund.sql 이 추가 — '취소됨'/'환불 완료' 배지
-        // 분기(effectiveStatusInfo)와 환불 후 7일 이내 안내 배너(recentlyRefundedApps)에 씁니다.
+        // 분기(effectiveStatusInfo)와 '지난 이용 내역' 카드의 환불 안내 문구(careCalCaseCard)에 씁니다.
         const APP_OPTIONAL_COLS = ['applicant_email', 'manager_id', 'accepted_at', 'schedule_id', 'payment_status', 'refunded_at'];
         let appsRemaining = APP_OPTIONAL_COLS.slice();
         let apps, error;
@@ -3632,42 +3626,6 @@
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !opsContactModal.hidden) closeOpsContactModal(); });
 
     // 신청 내역이 있으면 카드 목록, 없을 때만 '동행 서비스 신청하기' 빈 상태를 보여줌
-    // ---------- 환불 완료 후 7일 이내 안내 배너 ('진행 중인 케어' 탭 상단) ----------
-    const REFUND_BANNER_WINDOW_DAYS = 7;
-    function recentlyRefundedApps(apps) {
-      return (apps || []).filter((a) => {
-        if (effectiveStatusInfo(a).tone !== 'cancel' || a.payment_status !== 'REFUNDED' || !a.refunded_at) return false;
-        const days = (Date.now() - new Date(a.refunded_at).getTime()) / 86400000;
-        return days >= 0 && days < REFUND_BANNER_WINDOW_DAYS; // refunded_at 이 없는 옛 데이터는 자동으로 배너 대상에서 빠짐
-      });
-    }
-    function refundBanner(a) {
-      const svc = serviceInfo(a.service_type);
-      const banner = h('div', 'refund-banner');
-      const icon = h('span', 'refund-banner-icon');
-      icon.appendChild(svgCheckCircleIcon(18));
-      const text = h('p', 'refund-banner-text',
-        '결제하신 금액' + (svc ? '(' + won(svc.price) + '원)' : '') + '의 환불이 완료되었습니다.');
-      const link = h('button', 'refund-banner-link', '지난 이용 내역에서 보기 >');
-      link.type = 'button';
-      link.addEventListener('click', () => goToHistoryForApp(a));
-      banner.append(icon, text, link);
-      return banner;
-    }
-    // 배너의 [지난 이용 내역에서 보기] — '지난 이용 내역' 탭으로 전환하고, 그 신청의 날짜가 있는 달로
-    // 달력을 옮긴 뒤 그 날짜를 선택 + 필터를 '취소/환불'로 맞춰 바로 보이게 합니다.
-    function goToHistoryForApp(a) {
-      const iso = careScheduleDateIso(a);
-      const d = iso ? new Date(iso) : new Date();
-      careCalMonth = new Date(d.getFullYear(), d.getMonth(), 1);
-      careCalSelectedKey = calDateKey(d);
-      careHistoryFilter = 'cancel';
-      const bar = document.getElementById('careHistoryFilterBar');
-      if (bar) bar.querySelectorAll('.cal-filter-chip').forEach((b) => b.classList.toggle('is-active', b.dataset.filter === 'cancel'));
-      activateMpTab('history');
-      renderCareCalendar();
-    }
-
     function renderCare(applications) {
       const body = document.getElementById('careBody');
       const badge = document.getElementById('careBadge');
@@ -3681,22 +3639,18 @@
 
       if (DEBUG_ALL) body.appendChild(h('p', 'app-debug', '테스트 모드(?debug): user_id 조건과 48시간 제한 없이, 로그인 권한(RLS)이 허용한 신청을 모두 표시합니다. 내 계정과 연결되지 않은 신청에는 표시가 붙어요.'));
 
-      // 환불 완료 후 REFUND_BANNER_WINDOW_DAYS(7)일 이내인 건은 '진행 중인 케어' 탭 맨 위에 안내 배너로
-      // 보여줍니다 — 아래 activeApps 에는 넣지 않으므로(취소/환불은 그쪽에서 완전히 제외) '진행 중인
-      // 신청 N건' 카운트에는 영향이 없고, 7일이 지나면 이 배너도 자동으로 사라집니다(기간만 지났을
-      // 뿐 데이터/탭 이동(지난 이용 내역)에는 변화가 없습니다).
-      recentlyRefundedApps(apps).forEach((a) => body.appendChild(refundBanner(a)));
-
       // 상단 '케어 현황' 카드 노출 조건:
       //   A) 진행 중인 건(tone !== 'done'/'cancel')
       //   B) 완료됐지만 아직 [케어 이용 완료 확정]을 누르지 않은 건 (리포트 유무·열람 여부와 무관)
       // B 는 careReportBuffer() 가 판단하고(완료 후 24시간이 지나면 버퍼링 종료), 버퍼링이 끝난 완료 건은
       // 하단 '이용 내역 & 케어 리포트' 달력에서만 날짜별 뱃지·상세로 확인합니다 — [케어 리포트 보기]는
       // 모달을 열 뿐 이 목록 상태에는 손대지 않고, 오직 [케어 이용 완료 확정](confirmServiceApplication)만
-      // tone 을 'confirmed'로 바꿔 이 목록에서 뺍니다. 취소/환불된 건(tone==='cancel')도 이 '진행 중인
-      // 케어' 카드에는 올리지 않고 '지난 이용 내역' 달력(groupScheduleByDay)으로 자동 이관합니다 —
-      // care_schedules 행이 없어도 careScheduleDateIso() 가 accepted_at/created_at 으로 대신 날짜를
-      // 잡아 주므로, 거기서도 날짜별로 찾아볼 수 있습니다.
+      // tone 을 'confirmed'로 바꿔 이 목록에서 뺍니다. 취소/환불된 건(tone==='cancel', effectiveStatusInfo가
+      // care_schedules 의 옛 진행 단계보다 신청 자체의 취소 여부를 항상 우선시하므로 한 번 취소되면
+      // 다시 여기로 돌아오지 않습니다)도 이 '진행 중인 케어' 카드에는 올리지 않고 '지난 이용 내역' 달력
+      // (groupScheduleByDay)으로 자동 이관합니다 — 환불 완료 여부는 그 달력의 상태 배지(careCalCaseCard)
+      // 로만 확인합니다. care_schedules 행이 없어도 careScheduleDateIso() 가 accepted_at/created_at 으로
+      // 대신 날짜를 잡아 주므로, 거기서도 날짜별로 찾아볼 수 있습니다.
       const activeApps = apps.filter((a) => {
         const tone = effectiveStatusInfo(a).tone;
         if (tone === 'confirmed' || tone === 'cancel') return false; // 둘 다 곧바로 이 목록에서 제외
@@ -5131,6 +5085,18 @@
     window.addEventListener('resize', moveMpTabPill);
     window.addEventListener('load', moveMpTabPill);
     moveMpTabPill();
+
+    // 헤더 드롭다운의 '어르신 프로필 관리' 바로가기(mypage.html?tab=elder) — 도착하면 '어르신 프로필 관리'
+    // 탭을 바로 열어 줍니다. 새로고침해도 다시 열리지 않도록(그냥 '진행 중인 케어'로 돌아가도록) 확인한
+    // 즉시 쿼리 파라미터를 지웁니다(package.html 결제 완료 배너의 checkPackagePurchaseBanner() 와 같은 패턴).
+    (function openTabFromQuery() {
+      const params = new URLSearchParams(location.search);
+      if (params.get('tab') !== 'elder') return;
+      activateMpTab('seniors');
+      params.delete('tab');
+      const newSearch = params.toString();
+      history.replaceState(null, '', location.pathname + (newSearch ? '?' + newSearch : '') + location.hash);
+    })();
 
     // '지난 이용 내역' 상단 소형 필터([전체]/[이용 완료]/[취소/환불]) — careHistoryFilter 상태만 바꾸고
     // renderCareCalendar() 를 다시 그립니다. 필터를 바꾸면 선택해 둔 날짜의 항목 구성이 달라질 수 있어

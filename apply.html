@@ -12,7 +12,7 @@
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- 공통 Supabase 클라이언트 + 헤더 로그인 상태. SDK 뒤에 로드해야 합니다 -->
-  <script src="/js/auth-header.js?v=1.8" charset="utf-8"></script>
+  <script src="/js/auth-header.js?v=1.9" charset="utf-8"></script>
   <!-- 결제 확인 Edge Function(issue-virtual-account) 호출용 — supabaseClient.functions.invoke() 대신
        명시적 fetch() 래퍼. auth-header.js 가 만든 supabaseClient 를 받아 쓰므로 그 뒤에 로드합니다 -->
   <script src="/js/edge-function-fetch.js?v=1.0"></script>
@@ -746,7 +746,7 @@
           <p class="err" id="e-mobility" hidden></p>
         </fieldset>
 
-        <!-- 선택 추가 옵션(Add-on) — 긴급 매칭/차량 이동 지원. 보유 패키지 차감을 고른 경우에도 선택할
+        <!-- 선택 추가 옵션(Add-on) — 긴급 매칭 서비스. 보유 패키지 차감을 고른 경우에도 선택할
              수 있습니다 — 패키지는 기본 서비스 요금만 차감하므로, 추가 옵션을 고르면 그 금액은 결제
              없이 접수되고 '결제 대기(추가금)'로 표시가 접수되어 매니저 수락 이후 '추가 요금 결제 안내'
              (mypage.html)에서 나중에 결제합니다(packageHint, toDbRow 참고). -->
@@ -754,7 +754,6 @@
           <legend>선택 추가 옵션 <span class="opt-tag">(선택)</span></legend>
           <div class="options">
             <label class="opt"><input type="checkbox" id="addonUrgent" name="addon_urgent"><span>긴급 매칭 서비스 (+10,000원) <small>24시간 이내 긴급 예약 요청 시</small></span></label>
-            <label class="opt"><input type="checkbox" id="addonVehicle" name="addon_vehicle"><span>차량 이동 지원 (+10,000원) <small>매니저 자차 이동 지원 또는 보호자 차량 대리 운행</small></span></label>
           </div>
         </fieldset>
 
@@ -979,13 +978,14 @@
     };
     const SERVICE_NAMES = Object.keys(SERVICES);
 
-    // 선택 추가 옵션(Add-on) — 긴급 매칭/차량 이동 지원 (2026 마진율 개편. 진료 피드백 리포트는
-    // 모든 서비스에 기본 무료 제공되므로 별도 유료 옵션(상세 건강&복약 리포트)은 폐지했습니다).
+    // 선택 추가 옵션(Add-on) — 긴급 매칭 서비스 (2026 마진율 개편. 진료 피드백 리포트는
+    // 모든 서비스에 기본 무료 제공되므로 별도 유료 옵션(상세 건강&복약 리포트)은 폐지했습니다.
+    // 차량 이동 지원 옵션도 폐지 — expected_addon_total() 은 VEHICLE_SUPPORT 코드가 들어와도
+    // else 0 으로 떨어지는 기존 폐지 패턴을 그대로 적용합니다).
     // code 는 sql/user_coupons_checkout.sql 의 expected_addon_total() 이 같은 문자열로 금액을 다시
     // 계산해 검증하는 값이라 임의로 바꾸면 결제 승인이 AMOUNT_MISMATCH 로 막힙니다.
     const ADDONS = {
-      urgent: { code: 'URGENT_MATCHING', amount: 10000, label: '긴급 매칭 서비스' },
-      vehicle: { code: 'VEHICLE_SUPPORT', amount: 10000, label: '차량 이동 지원' }
+      urgent: { code: 'URGENT_MATCHING', amount: 10000, label: '긴급 매칭 서비스' }
     };
 
     // 포트원 V2 통합 결제창 설정. storeId/channelKey 는 js/auth-header.js 의 Supabase anon key 처럼
@@ -1075,7 +1075,7 @@
       const svc = SERVICES[form.querySelector('input[name="service"]:checked')?.value];
       return svc ? svc.price : null;
     }
-    const ADDON_CHECKBOX_IDS = { urgent: 'addonUrgent', vehicle: 'addonVehicle' };
+    const ADDON_CHECKBOX_IDS = { urgent: 'addonUrgent' };
     // 체크된 추가 옵션만 모아 { key, code, amount } 배열로 반환 — toDbRow()/payableAmount 계산에서 공용으로 씁니다.
     function selectedAddons() {
       return Object.keys(ADDONS)

@@ -7,16 +7,21 @@
 // 호출부는 결과를 기다리되(await) 실패해도 응답 흐름을 바꾸지 않아야 합니다.
 //
 // 환경변수(Supabase Edge Function Secrets):
-//   TELEGRAM_BOT_TOKEN        — @BotFather 로 만든 봇의 토큰 (아래 두 알림이 공유)
-//   TELEGRAM_CHAT_ID          — 신규 "케어 신청" 알림을 받을 채팅방/채널 id
-//   TELEGRAM_MANAGER_CHAT_ID  — 신규 "케어 매니저 지원" 알림을 받을 채팅방 id (submit-manager-application 함수 전용)
+//   TELEGRAM_BOT_TOKEN          — "케어 신청" 알림을 보내는 기존 봇의 토큰(@BotFather 발급).
+//   TELEGRAM_CHAT_ID            — 신규 "케어 신청" 알림을 받을 채팅방/채널 id — 기존 위드브릿지 매니저
+//                                  알림방을 그대로 씁니다.
+//   TELEGRAM_MANAGER_BOT_TOKEN  — "케어 매니저 지원" 알림 전용으로 새로 만든 봇의 토큰(@BotFather 발급,
+//                                  위 TELEGRAM_BOT_TOKEN과 다른 봇). submit-manager-application 함수 전용.
+//   TELEGRAM_MANAGER_CHAT_ID    — 신규 "케어 매니저 지원" 알림을 받을 채팅방 id — "위드브릿지 매니저
+//                                  지원 알림방"(위 TELEGRAM_CHAT_ID의 방과 다른 방)에 TELEGRAM_MANAGER_BOT_TOKEN
+//                                  봇을 초대한 뒤 그 방의 chat_id를 넣습니다. submit-manager-application 함수 전용.
 //   SITE_URL           — 메시지 안 "매니저 마이페이지" 링크에 쓸 배포 도메인(예: https://withbridgecare.com).
 //                         없으면 상대 경로("mypage-manager.html")로만 표시됩니다(클릭은 안 될 수 있음).
 // 설정 방법은 이 파일과 같은 커밋의 가이드 주석(아래 buildNewApplicationMessage 윗부분) 참고.
 
 const TELEGRAM_API_BASE = "https://api.telegram.org";
 
-// 호출부(issue-virtual-account/portone-webhook/confirm-package-order-payment)가 매번
+// 호출부(issue-virtual-account/portone-webhook/confirm-package-order-payment/confirm-extra-charge-payment)가 매번
 // try/catch 를 따로 쓰지 않도록 — "메시지 빌더 호출 + 발송"을 한 번에 감싸는 공용 래퍼입니다.
 // sendTelegramMessage() 자신은 이미 예외를 던지지 않지만, buildXxxMessage() 쪽은 파라미터가
 // 누락되면(지금은 전부 방어적으로 짜여 있어 그럴 일이 없지만, 나중에 누군가 수정하다가 생길 수
@@ -80,16 +85,18 @@ export async function sendTelegramMessage(text: string): Promise<boolean> {
   return true;
 }
 
-// 케어 매니저 지원서(manager-apply.html) 접수 알림은 고객 신청 알림과 다른 그룹방(TELEGRAM_MANAGER_CHAT_ID)
-// 으로 보내야 하므로, 위 sendTelegramMessage()와 같은 "실패해도 예외를 던지지 않는" 규칙을 지키는 별도
-// 함수를 둡니다(봇 토큰은 TELEGRAM_BOT_TOKEN 을 그대로 재사용).
+// 케어 매니저 지원서(manager-apply.html) 접수 알림은 고객 신청 알림과 완전히 분리된 봇/방으로 보냅니다 —
+// 봇 토큰(TELEGRAM_MANAGER_BOT_TOKEN)과 채팅방(TELEGRAM_MANAGER_CHAT_ID) 모두 "케어 신청" 알림이 쓰는
+// TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID와 다른 값입니다 — 봇을 공유하지 않으므로 이 함수가 실패해도
+// "케어 신청" 알림(sendTelegramMessage)에는 전혀 영향이 없습니다. 위 sendTelegramMessage()와 같은
+// "실패해도 예외를 던지지 않는" 규칙을 지키는 별도 함수를 둡니다.
 export async function sendManagerApplicationTelegramMessage(text: string): Promise<boolean> {
-  const token = Deno.env.get("TELEGRAM_BOT_TOKEN");
+  const token = Deno.env.get("TELEGRAM_MANAGER_BOT_TOKEN");
   const chatId = Deno.env.get("TELEGRAM_MANAGER_CHAT_ID");
   if (!token || !chatId) {
     console.warn(
-      "[telegram] TELEGRAM_BOT_TOKEN/TELEGRAM_MANAGER_CHAT_ID 환경변수가 없어 매니저 지원 알림을 건너뜁니다. " +
-        "supabase secrets set TELEGRAM_BOT_TOKEN=... TELEGRAM_MANAGER_CHAT_ID=... 로 설정하세요.",
+      "[telegram] TELEGRAM_MANAGER_BOT_TOKEN/TELEGRAM_MANAGER_CHAT_ID 환경변수가 없어 매니저 지원 알림을 건너뜁니다. " +
+        "supabase secrets set TELEGRAM_MANAGER_BOT_TOKEN=... TELEGRAM_MANAGER_CHAT_ID=... 로 설정하세요.",
     );
     return false;
   }
@@ -128,7 +135,8 @@ export async function sendManagerApplicationTelegramMessage(text: string): Promi
 // "고객은 결제했는데 매니저 배정 자체가 영원히 시작되지 않는다"는 더 심각한 문제라, 실패를
 // console.error 로만 남기고 조용히 끝나면 안 됩니다(요금표 변경 후 expected_service_price() 를
 // DB에 재배포하지 않아 AMOUNT_MISMATCH 로 결제 확인이 막혔던 사고가 실제로 있었습니다).
-// issue-virtual-account/portone-webhook 양쪽의 AMOUNT_MISMATCH·STATUS_UPDATE_FAILED 분기에서 호출합니다.
+// issue-virtual-account/portone-webhook/confirm-package-order-payment/confirm-extra-charge-payment 의
+// AMOUNT_MISMATCH·STATUS_UPDATE_FAILED 분기에서 호출합니다.
 export interface PaymentReconciliationFailureInput {
   applicationId: string;
   /** 'AMOUNT_MISMATCH' | 'STATUS_UPDATE_FAILED' 등 — 그대로 메시지에 노출해 원인 구분에 씁니다. */
@@ -136,7 +144,7 @@ export interface PaymentReconciliationFailureInput {
   /** Postgres 예외 메시지 전체(AMOUNT_MISMATCH 는 service_type/expected/paid 를 메시지 안에 담고 있음). */
   detail?: string | null;
   /** 어떤 Edge Function에서 보냈는지 — 로그/채널에서 바로 구분하기 위함. */
-  source: "issue-virtual-account" | "portone-webhook" | "confirm-package-order-payment";
+  source: "issue-virtual-account" | "portone-webhook" | "confirm-package-order-payment" | "confirm-extra-charge-payment";
 }
 
 export function buildPaymentReconciliationFailureMessage(input: PaymentReconciliationFailureInput): string {
@@ -211,7 +219,6 @@ function extractApplicantName(userContact: string | null | undefined): string {
 // 같은 맵이 있습니다 — 함께 고쳐 주세요).
 const ADDON_LABELS: Record<string, string> = {
   URGENT_MATCHING: "긴급 매칭 서비스",
-  VEHICLE_SUPPORT: "차량 이동 지원",
 };
 function formatAddonLabels(addonCodes: string[] | null | undefined): string {
   const codes = Array.isArray(addonCodes) ? addonCodes : [];
@@ -227,7 +234,7 @@ export interface NewApplicationNotifyInput {
   userContact?: string | null;
   /** request_details 에서 희망 일시를 못 찾았을 때 대신 보여줄 신청 접수 시각(ISO). */
   createdAt?: string | null;
-  /** service_applications.addon_codes — 긴급 매칭/차량 이동 지원 등 선택한 추가 옵션 코드 배열. */
+  /** service_applications.addon_codes — 긴급 매칭 서비스 등 선택한 추가 옵션 코드 배열. */
   addonCodes?: string[] | null;
 }
 
@@ -277,6 +284,33 @@ export function buildNewPackageOrderMessage(input: NewPackageOrderNotifyInput): 
     `- 패키지: ${label}`,
     `- 결제 금액: ${input.amount != null ? input.amount.toLocaleString("ko-KR") + "원" : "-"}`,
     `- 구매자 user_id: ${input.userId || "-"}`,
+    divider,
+  ].join("\n");
+}
+
+// 추가 요금(초과 시간 2차 결제) 결제 확정 알림 — confirm-extra-charge-payment/portone-webhook
+// (extra_charge 분기) 양쪽에서 호출합니다. 관리자가 admin.html에서 수기로 청구한 금액을 보호자가
+// 실제로 결제했는지 운영팀이 바로 확인할 수 있어야 하므로, 다른 결제 확정 알림들과 동일하게
+// 메인 운영 채널(TELEGRAM_CHAT_ID)로 보냅니다.
+export interface ExtraChargePaidNotifyInput {
+  scheduleId?: string | null;
+  applicationId?: string | null;
+  seniorName?: string | null;
+  guardianName?: string | null;
+  amount?: number | null;
+  memo?: string | null;
+}
+
+export function buildExtraChargePaidMessage(input: ExtraChargePaidNotifyInput): string {
+  const divider = "----------------------------------------";
+  return [
+    divider,
+    "[💳 위드브릿지 추가 요금 결제 완료]",
+    `- 어르신: ${input.seniorName || "-"}`,
+    `- 보호자: ${input.guardianName || "-"}`,
+    `- 추가 요금: ${input.amount != null ? input.amount.toLocaleString("ko-KR") + "원" : "-"}`,
+    `- 사유: ${input.memo || "-"}`,
+    `- 케어 일정 ID: ${input.scheduleId || "-"}`,
     divider,
   ].join("\n");
 }

@@ -27,7 +27,7 @@ alter table public.service_applications add column if not exists coupon_discount
 alter table public.service_applications add column if not exists discount_amount integer not null default 0;
 alter table public.service_applications add column if not exists final_amount integer;
 
--- 1-1) 선택 추가 옵션(Add-on) — 긴급 매칭/차량 이동 지원 (2026 마진율 개편. '상세 건강&복약 리포트'
+-- 1-1) 선택 추가 옵션(Add-on) — 긴급 매칭 서비스 ('차량 이동 지원'·'상세 건강&복약 리포트'
 --      유료 옵션은 폐지 — 진료 피드백 리포트는 모든 서비스에 기본 무료로 제공됩니다).
 --      addon_codes 는 apply.html 체크박스에서 고른 코드 배열(희망값 스냅샷), addon_total 은 그 코드들의
 --      합계 스냅샷(화면 표시용) — coupon_id/coupon_discount 와 같은 패턴입니다. 실제 검증은 아래
@@ -39,11 +39,10 @@ alter table public.service_applications add column if not exists addon_total int
 create or replace function public.expected_addon_total(p_addon_codes text[])
 returns integer
 language sql immutable as $$
-  -- 'DETAILED_REPORT' 는 폐지된 옵션 — 과거에 저장된 신청서가 그 코드를 여전히 들고 있어도
-  -- else 0 으로 떨어져 더 이상 금액이 합산되지 않습니다(결제 금액 검증을 깨뜨리지 않는 안전한 폐지).
+  -- 'DETAILED_REPORT'·'VEHICLE_SUPPORT' 는 폐지된 옵션 — 과거에 저장된 신청서가 그 코드를 여전히
+  -- 들고 있어도 else 0 으로 떨어져 더 이상 금액이 합산되지 않습니다(결제 금액 검증을 깨뜨리지 않는 안전한 폐지).
   select coalesce(sum(case code
     when 'URGENT_MATCHING' then 10000 -- 긴급 매칭 서비스 (이용 24시간 이내 긴급 예약 요청)
-    when 'VEHICLE_SUPPORT' then 10000 -- 차량 이동 지원 (매니저 자차 이동 지원 또는 보호자 차량 대리 운행)
     else 0
   end), 0)
   from unnest(coalesce(p_addon_codes, '{}'::text[])) as code;
