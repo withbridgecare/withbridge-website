@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>위드브릿지 | WithBridge</title>
+<link rel="icon" href="./images/withbridge_logo.png" type="image/png">
 <!-- 아래 세 외부 스크립트(Tailwind CDN · Supabase SDK · auth-header.js)에 defer 를 걸어 HTML 파싱을
      막지 않게 합니다 — defer 가 없으면 브라우저가 이 스크립트들을 전부 내려받고 실행할 때까지
      바로 뒤에 오는 본문 전체(헤더·히어로 등)를 그리지 않아, 접속 직후 화면이 하얗게 비어 있다가
@@ -25,8 +26,9 @@
 <!-- 💡 Supabase 라이브러리 추가 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 <!-- 💡 공통 인증 헤더 (로그인 상태 감지 · 프로필 아바타/드롭다운). Supabase SDK 뒤에 로드해야 합니다 -->
-<script src="/js/auth-header.js?v=1.9" charset="utf-8" defer></script>
+<script src="/js/auth-header.js?v=2.1" charset="utf-8" defer></script>
 <script src="/js/terms-modal.js?v=1.0" charset="utf-8" defer></script>
+<script src="/js/notice-modal.js?v=1.0" charset="utf-8" defer></script>
 
 <!-- 혜택 안내 레이어 팝업 (위드브릿지 브랜드 대표색 #78866B 반영) -->
 <div id="benefitModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(30, 35, 32, 0.65); display: flex; align-items: center; justify-content: center; z-index: 9999; font-family: 'Noto Sans KR', sans-serif;">
@@ -146,7 +148,7 @@
 <!-- 상단 네비게이션 헤더 (독립된 login.html 이동 적용본) -->
 <!-- 모바일 헤더/드로어 스타일·동작은 공용 파일(/mobile-nav.css, /js/mobile-nav.js, <head>에서 로드)이 담당합니다 -->
 <header style="width: 100%; background-color: #ffffff; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 50; font-family: 'Noto Sans KR', sans-serif;">
-  <div class="wb-header-row" style="max-width: 1380px; margin: 0 auto; padding: 12px 40px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: 24px;">
+  <div class="wb-header-row" style="max-width: 1380px; margin: 0 auto; padding: 6px 40px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: 24px;">
 
     <!-- 모바일 전용 햄버거 버튼 : 데스크톱에서는 숨겨지고(wb-mobile-toggle), 768px 이하에서만 좌측 칸에 나타납니다 -->
     <button type="button" class="wb-mobile-toggle" id="wbMenuToggle" aria-label="메뉴 열기" aria-expanded="false" aria-controls="wbMobileDrawer" style="align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; border: none; background: transparent; cursor: pointer; justify-self: start;">
@@ -156,7 +158,7 @@
 
     <!-- 로고 영역 (클릭 시 메인 페이지로 이동하도록 index.html 적용) : 1fr 칸의 시작 쪽에 고정 -->
     <a href="index.html" style="justify-self: start; display: flex; align-items: center; text-decoration: none; flex: none;">
-      <img src="/images/withbridge-logo.png" alt="위드브릿지 로고" style="height: 38px; width: auto; display: block; object-fit: contain;" />
+      <img src="./images/logo_main.png" alt="위드브릿지 로고" style="height: 48px; width: auto; display: block; object-fit: contain; margin: 0; padding: 0; position: relative; top: 3px;" />
     </a>
 
     <!-- 중앙 메뉴 링크 (소개 메뉴를 about.html로 연결) : 가운데 auto 칸에 놓여, 좌우 1fr 칸이 같은 폭이라 로고·우측 버튼 폭이 달라도 항상 화면 정중앙에 옵니다.
@@ -166,9 +168,9 @@
       <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
       <a href="#services" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">서비스</a>
       <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
-      <a href="#notice" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">공지사항</a>
+      <a href="#how-it-works" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">이용 방법</a>
       <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
-      <a href="#reviews" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">고객후기</a>
+      <a href="#notice" data-open-notice style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">공지사항</a>
       <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
       <a href="#faq" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">자주 묻는 질문(FAQ)</a>
     </nav>
@@ -182,7 +184,7 @@
         <div class="auth-buttons" style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 500; color: #6B7280; white-space: nowrap;">
           <a href="login.html" style="text-decoration: none; font-weight: 500; color: #6B7280; transition: color 0.2s;">로그인</a>
           <span style="color: #d1d5db; font-size: 13.5px; font-weight: 400;">|</span>
-          <a href="login.html" style="text-decoration: none; font-weight: 500; color: #6B7280; transition: color 0.2s;">회원가입</a>
+          <a href="signup.html" style="text-decoration: none; font-weight: 500; color: #6B7280; transition: color 0.2s;">회원가입</a>
         </div>
       </div>
 
@@ -201,7 +203,7 @@
 <aside class="wb-drawer" id="wbMobileDrawer" role="dialog" aria-modal="true" aria-label="모바일 메뉴" aria-hidden="true">
   <div class="wb-drawer-topbar" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #F0F1F3; flex: none;">
     <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
-      <img src="/images/withbridge-logo.png" alt="위드브릿지 로고" style="height: 32px; width: auto; display: block; object-fit: contain;" />
+      <img src="./images/logo_main.png" alt="위드브릿지 로고" style="height: 32px; width: auto; display: block; object-fit: contain;" />
     </a>
     <button type="button" id="wbDrawerClose" aria-label="메뉴 닫기" style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: none; background: transparent; cursor: pointer;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1D21" stroke-width="2" stroke-linecap="round"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
@@ -210,8 +212,8 @@
   <nav style="display: flex; flex-direction: column; padding: 10px 16px; gap: 2px; font-family: 'Noto Sans KR', sans-serif;">
     <a href="story.html" class="wb-drawer-link">소개</a>
     <a href="#services" class="wb-drawer-link">서비스</a>
-    <a href="#notice" class="wb-drawer-link">공지사항</a>
-    <a href="#reviews" class="wb-drawer-link">고객후기</a>
+    <a href="#how-it-works" class="wb-drawer-link">이용 방법</a>
+    <a href="#notice" data-open-notice class="wb-drawer-link">공지사항</a>
     <a href="#faq" class="wb-drawer-link">자주 묻는 질문(FAQ)</a>
     <a href="http://pf.kakao.com/_PKxemX" target="_blank" rel="noopener noreferrer" class="wb-drawer-link">문의하기</a>
   </nav>
@@ -219,7 +221,7 @@
     <div class="auth-buttons wb-drawer-auth-buttons" style="display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 14.5px; font-weight: 500; color: #6B7280;">
       <a href="login.html" style="color: #6B7280; text-decoration: none;">로그인</a>
       <span style="color: #d1d5db;">|</span>
-      <a href="login.html" style="color: #6B7280; text-decoration: none;">회원가입</a>
+      <a href="signup.html" style="color: #6B7280; text-decoration: none;">회원가입</a>
     </div>
   </div>
 </aside>
@@ -401,7 +403,7 @@
             <span class="flex items-center justify-center w-5 h-5 rounded-full shrink-0" style="background-color: #556B49;">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
             </span>
-            가입 즉시 자동 발급
+            가입 즉시 5,000원 자동 지급
           </li>
           <li class="flex items-center gap-2.5 text-[13.5px]" style="color: #334155;">
             <span class="flex items-center justify-center w-5 h-5 rounded-full shrink-0" style="background-color: #556B49;">
@@ -410,8 +412,8 @@
             유효기간 넉넉한 30일
           </li>
         </ul>
-        <a href="login.html?redirect=index.html" class="mt-auto w-full text-center py-2.5 bg-[#2E6D53] hover:bg-[#245742] text-white font-bold text-sm rounded-full transition-colors duration-300" onclick="wbClaimWelcomeCoupon(event);">
-          5,000원 쿠폰 받고 시작하기 →
+        <a href="signup.html" id="wbWelcomeCouponBtn" class="mt-auto w-full text-center py-2.5 bg-[#2E6D53] hover:bg-[#245742] text-white font-bold text-sm rounded-full transition-colors duration-300">
+          회원가입하고 5,000원 쿠폰 받기 →
         </a>
       </div>
 
@@ -466,72 +468,160 @@
     </p>
 
   </div>
-
-  <!-- 토스트 알림 -->
-  <div id="wbToast" class="fixed bottom-8 left-1/2 z-[9999]" style="transform: translate(-50%, 12px); opacity: 0; visibility: hidden; transition: opacity 0.25s ease, transform 0.25s ease;">
-    <div class="px-5 py-3.5 rounded-full text-[14px] font-semibold text-white shadow-lg" style="background-color: #3B4B3C; white-space: nowrap;">
-      <span id="wbToastText"></span>
-    </div>
-  </div>
-
-  <script>
-    let wbToastTimer;
-    function wbShowToast(message) {
-      const toast = document.getElementById('wbToast');
-      const text = document.getElementById('wbToastText');
-      if (!toast || !text) return;
-      text.textContent = message;
-      toast.style.visibility = 'visible';
-      requestAnimationFrame(() => {
-        toast.style.opacity = '1';
-        toast.style.transform = 'translate(-50%, 0)';
-      });
-      clearTimeout(wbToastTimer);
-      wbToastTimer = setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translate(-50%, 12px)';
-        setTimeout(() => { toast.style.visibility = 'hidden'; }, 250);
-      }, 3000);
-    }
-
-    // [쿠폰 받고 시작하기] 버튼: 로그인 여부 확인 → 로그인 상태면 '첫 동행 웰컴 쿠폰(5,000원)'을
-    // claim_welcome_coupon() RPC 로 실제 발급(중복 발급은 서버에서 already_issued 로 막음) → apply.html 로 이동.
-    // sql/welcome_coupons.sql 을 Supabase 에 실행해야 claim_welcome_coupon() 함수/테이블이 생깁니다.
-    async function wbClaimWelcomeCoupon(event) {
-      if (event && event.preventDefault) event.preventDefault();
-      const client = window.WBAuth && window.WBAuth.client;
-      if (!client) { wbShowToast('일시적인 오류입니다. 새로고침 후 다시 시도해 주세요.'); return; }
-
-      let session = null;
-      try {
-        const res = await client.auth.getSession();
-        session = res && res.data && res.data.session;
-      } catch (e) { /* 네트워크 오류 등 → 비로그인으로 간주 */ }
-
-      if (!session || !session.user) {
-        window.WBAuth.showLoginModal('index.html');
-        return;
-      }
-
-      const res = await client.rpc('claim_welcome_coupon');
-      if (res.error) {
-        console.error('[웰컴 쿠폰] claim_welcome_coupon() 호출 실패 → sql/welcome_coupons.sql 을 Supabase 에 실행했는지 확인하세요:',
-          res.error.code, res.error.message);
-        wbShowToast('쿠폰 발급 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.');
-        return;
-      }
-
-      const row = Array.isArray(res.data) ? res.data[0] : res.data;
-      const alreadyIssued = row && row.status === 'already_issued';
-      const amountText = row && Number.isFinite(row.amount) ? Number(row.amount).toLocaleString('ko-KR') : '5,000';
-      wbShowToast(alreadyIssued
-        ? '이미 발급된 쿠폰입니다'
-        : '웰컴 쿠폰 ' + amountText + '원이 발급되었습니다! (예약 시 사용 가능합니다)');
-
-      setTimeout(() => { window.WBAuth.navigate('apply.html'); }, 1100);
-    }
-  </script>
 </section>
+
+<!-- 토스트 알림 (회원가입 축하 웰컴 쿠폰 발급 안내 — wbNotifyWelcomeCouponIfAny 참고) -->
+<div id="wbToast" class="fixed bottom-8 left-1/2 z-[9999]" style="transform: translate(-50%, 12px); opacity: 0; visibility: hidden; transition: opacity 0.25s ease, transform 0.25s ease;">
+  <div class="px-5 py-3.5 rounded-full text-[14px] font-semibold text-white shadow-lg" style="background-color: #3B4B3C; white-space: nowrap;">
+    <span id="wbToastText"></span>
+  </div>
+</div>
+
+<script>
+  let wbToastTimer;
+  function wbShowToast(message) {
+    const toast = document.getElementById('wbToast');
+    const text = document.getElementById('wbToastText');
+    if (!toast || !text) return;
+    text.textContent = message;
+    toast.style.visibility = 'visible';
+    requestAnimationFrame(() => {
+      toast.style.opacity = '1';
+      toast.style.transform = 'translate(-50%, 0)';
+    });
+    clearTimeout(wbToastTimer);
+    wbToastTimer = setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translate(-50%, 12px)';
+      setTimeout(() => { toast.style.visibility = 'hidden'; }, 250);
+    }, 3000);
+  }
+
+  // 회원가입 시 자동 발급되는 웰컴 쿠폰(sql/welcome_coupon_auto_issue.sql)을 로그인한 사용자가 처음
+  // 메인 페이지에 들어왔을 때 한 번 알려줍니다. 이 브라우저에서 그 쿠폰 id 를 이미 안내했는지는
+  // localStorage 에 남겨 중복 알림을 막습니다(다른 브라우저/기기에서는 한 번 더 뜰 수 있지만, 쿠폰은
+  // 여전히 서버 쪽에서 1회만 발급되므로 안내만 다시 보일 뿐 중복 발급되지는 않습니다).
+  async function wbNotifyWelcomeCouponIfAny() {
+    const client = window.WBAuth && window.WBAuth.client;
+    if (!client) return;
+
+    let session = null;
+    try {
+      const res = await client.auth.getSession();
+      session = res && res.data && res.data.session;
+    } catch (e) { /* 네트워크 오류 등 → 조용히 무시 */ }
+    if (!session || !session.user) return;
+
+    const { data: coupon, error } = await client
+      .from('user_coupons')
+      .select('id, amount')
+      .eq('user_id', session.user.id)
+      .eq('coupon_code', 'WELCOME_2000')
+      .maybeSingle();
+    if (error || !coupon) return;
+
+    const seenKey = 'wb_welcome_coupon_notice_' + coupon.id;
+    if (localStorage.getItem(seenKey)) return;
+
+    const amountText = Number.isFinite(coupon.amount) ? Number(coupon.amount).toLocaleString('ko-KR') : '5,000';
+    wbShowToast('회원가입 축하 ' + amountText + '원 웰컴 쿠폰이 발급되었습니다!');
+    try { localStorage.setItem(seenKey, '1'); } catch (e) { /* 사생활 보호 모드 등으로 저장이 안 돼도 토스트는 이미 표시됨 */ }
+  }
+  window.addEventListener('DOMContentLoaded', wbNotifyWelcomeCouponIfAny);
+
+  // '회원가입하고 5,000원 쿠폰 받기' 버튼: 로그인 상태 · 웰컴 쿠폰 발급 여부에 따라 버튼 자체의
+  // 문구/동작을 바꿔 줍니다(어색한 alert 대신 버튼 상태 전환으로 안내).
+  //   - 비로그인: 문구 그대로, signup.html 로 이동(기존 동작 유지, JS 개입 없음)
+  //   - 로그인 + 미발급: '5,000원 웰컴 쿠폰 즉시 받기' → 클릭 시 claim_welcome_coupon() RPC 로 즉시 발급
+  //     (sql/welcome_coupons.sql — 이 트리거(welcome_coupon_auto_issue.sql)가 생기기 전에 가입한
+  //     기존 사용자를 위한 복구 경로이자, 혹시 트리거가 실패했을 때의 안전망)
+  //   - 로그인 + 이미 발급: '이미 발급된 웰컴 쿠폰입니다 (내 쿠폰함 보기)' → 클릭 시 마이페이지 쿠폰함으로 이동
+  // mode 는 btn.dataset.mode 에 저장하고, 클릭 핸들러 하나가 그 값만 보고 분기합니다
+  // (mode='signup' 이면 아무것도 막지 않아 기본 <a href> 이동이 그대로 일어납니다).
+  (function () {
+    var btn = document.getElementById('wbWelcomeCouponBtn');
+    if (!btn) return;
+    var DEFAULT_LABEL = btn.textContent;
+    var claiming = false;
+
+    function setMode(mode) {
+      btn.dataset.mode = mode;
+      if (mode === 'claim') {
+        btn.textContent = '5,000원 웰컴 쿠폰 즉시 받기 →';
+        btn.href = '#';
+        btn.style.backgroundColor = '';
+        btn.style.cursor = '';
+      } else if (mode === 'issued') {
+        btn.textContent = '이미 발급된 웰컴 쿠폰입니다 (내 쿠폰함 보기)';
+        btn.href = 'mypage.html?openCoupons=1';
+        btn.style.backgroundColor = '#9CA3AF'; // 중립 그레이 — 완료 상태를 더 이상 할 일이 없는 톤으로 표시
+        btn.style.cursor = 'pointer';
+      }
+    }
+
+    async function claimWelcomeCoupon() {
+      if (claiming) return;
+      claiming = true;
+      var prevText = btn.textContent;
+      btn.textContent = '쿠폰 발급 중...';
+      btn.style.cursor = 'default';
+      try {
+        var client = window.WBAuth.client;
+        var res = await client.rpc('claim_welcome_coupon');
+        if (res.error) throw res.error;
+        var row = Array.isArray(res.data) ? res.data[0] : res.data;
+        var amountText = row && Number.isFinite(row.amount) ? Number(row.amount).toLocaleString('ko-KR') : '5,000';
+        if (row && row.status === 'issued') {
+          wbShowToast('웰컴 쿠폰이 발급되었습니다!');
+        } else {
+          wbShowToast(amountText + '원 웰컴 쿠폰은 이미 발급되어 있어요.');
+        }
+        setMode('issued');
+      } catch (e) {
+        console.error('[웰컴 쿠폰] claim_welcome_coupon() 호출 실패:', e);
+        wbShowToast('쿠폰 발급에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+        btn.textContent = prevText;
+        btn.style.cursor = 'pointer';
+      } finally {
+        claiming = false;
+      }
+    }
+
+    btn.addEventListener('click', function (e) {
+      var mode = btn.dataset.mode;
+      if (!mode || mode === 'signup') return; // 비로그인 → 기본 동작(signup.html 이동) 그대로
+      e.preventDefault();
+      if (mode === 'issued') { window.location.href = btn.href; return; }
+      if (mode === 'claim') { claimWelcomeCoupon(); }
+    });
+
+    (async function initCouponButtonState() {
+      var client = window.WBAuth && window.WBAuth.client;
+      if (!client) return; // SDK 로드 실패 등 → 기본 동작(signup.html 이동) 유지
+
+      var session = null;
+      try {
+        var res = await client.auth.getSession();
+        session = res && res.data && res.data.session;
+      } catch (e) { /* 네트워크 오류 등 → 조용히 무시, 기본(비로그인) 동작 유지 */ }
+      if (!session || !session.user) { btn.dataset.mode = 'signup'; btn.textContent = DEFAULT_LABEL; return; }
+
+      try {
+        var couponRes = await client
+          .from('user_coupons')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .eq('coupon_code', 'WELCOME_2000')
+          .maybeSingle();
+        // 조회 자체가 실패해도 claim_welcome_coupon() 은 중복 발급을 막아 주므로(이미 있으면
+        // 'already_issued' 를 돌려줌), 안전하게 '즉시 받기' 모드로 둡니다.
+        setMode(couponRes.data ? 'issued' : 'claim');
+      } catch (e) {
+        setMode('claim');
+      }
+    })();
+  })();
+</script>
 
 <!--
 ====================================================================
@@ -1760,7 +1850,10 @@
     padding: 60px 20px !important;
     background-color: #F9F9F7 !important;
     margin: 0 !important; /* 외부 공백 완전히 제거 */
-    
+    /* 상단 메뉴 '이용 방법' 클릭 시 고정 헤더에 가려지지 않도록 — #services(.wb-price-page)와
+       같은 110px 기준을 그대로 씁니다. */
+    scroll-margin-top: 110px !important;
+
     /* 위아래 경계선 (실선) */
     border-top: 1px solid #E2E5DC !important;
     border-bottom: 1px solid #E2E5DC !important;
@@ -1869,19 +1962,26 @@
     height: 100% !important;
     object-fit: contain !important;
   }
-  /* 카드 스텝 번호 (18px) */
+  /* 카드 스텝 번호 - 눈에 띄는 배지 형태 */
   .wb-step-num {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     font-weight: 700 !important;
-    font-size: 18px !important; 
-    color: #8FA482 !important;
-    margin-bottom: 4px !important;
-    line-height: 1 !important;
+    font-size: 13px !important;
+    color: #FFFFFF !important;
+    background-color: #8FA482 !important;
+    padding: 4px 12px !important;
+    border-radius: 9999px !important;
+    margin-bottom: 10px !important;
+    line-height: 1.4 !important;
+    letter-spacing: 0.02em !important;
   }
 
   /* 카드 제목 (20px) */
   .wb-headline {
     font-weight: 700 !important;
-    font-size: 20px !important; 
+    font-size: 20px !important;
     color: #2C2C2C !important;
     margin: 0 0 8px 0 !important;
     letter-spacing: -0.3px !important;
@@ -1892,14 +1992,15 @@
   .wb-body {
     font-size: 13.5px !important;
     line-height: 1.55 !important;
-    color: #555555 !important;
+    color: #374151 !important;
     margin: 0 !important;
     max-width: 300px !important;
     word-break: keep-all !important;
   }
 </style>
 
-<div class="wb-container wb-section">
+<!-- id="how-it-works" 속성을 추가하여 상단 메뉴 '이용 방법' 링크와 연결 -->
+<div class="wb-container wb-section" id="how-it-works">
   <!-- 헤더 영역 -->
   <div class="wb-header">
     <h2 class="wb-title">서비스 이용 방법</h2>
@@ -1926,7 +2027,7 @@
     <!-- STEP 01 -->
     <div class="wb-card">
       <div class="wb-image-box">
-        <img src="https://i.ibb.co/9kSn079n/crayon-monitor-registration-02.png" alt="간편하게 신청하세요">
+        <img src="images/crayon-monitor-registration-02.png" alt="간편하게 신청하세요">
       </div>
       <span class="wb-step-num">01</span>
       <h3 class="wb-headline">간편하게 신청하세요!</h3>
@@ -1936,7 +2037,7 @@
     <!-- STEP 02 -->
     <div class="wb-card">
       <div class="wb-image-box">
-        <img src="https://i.ibb.co/XZVjhBsH/crayon-hands-smartphones-connection-02.png" alt="매니저와 매칭되세요">
+        <img src="images/crayon-hands-smartphones-connection-02.png" alt="매니저와 매칭되세요">
       </div>
       <span class="wb-step-num">02</span>
       <h3 class="wb-headline">매니저와 매칭되세요!</h3>
@@ -1946,7 +2047,7 @@
     <!-- STEP 03 -->
     <div class="wb-card">
       <div class="wb-image-box">
-        <img src="https://i.ibb.co/2xmVY67/crayon-manager-senior-walking-01.png" alt="편안하게 다녀오세요">
+        <img src="images/crayon-manager-senior-walking-01.png" alt="편안하게 다녀오세요">
       </div>
       <span class="wb-step-num">03</span>
       <h3 class="wb-headline">편안하게 다녀오세요!</h3>
@@ -1956,7 +2057,7 @@
     <!-- STEP 04 -->
     <div class="wb-card">
       <div class="wb-image-box">
-        <img src="https://i.ibb.co/8D0GQjPH/crayon-notification-bubble-check-01.png" alt="실시간으로 확인하세요">
+        <img src="images/crayon-notification-bubble-check-01.png" alt="실시간으로 확인하세요">
       </div>
       <span class="wb-step-num">04</span>
       <h3 class="wb-headline">실시간으로 확인하세요!</h3>
@@ -1974,8 +2075,15 @@
 <!-- 위드브릿지 핵심 가치 & 서비스 특장점 섹션 (위드브릿지 브랜드 컬러 적용) -->
 <style>
   .wb-feature-section {
-    background-color: #FAF8F5; /* 위드브릿지 크림 베이지 배경 */
-    padding: 80px 20px;
+    /* 사진 텍스처 배경을 썼더니 바로 위(서비스 이용 방법, #F9F9F7)·아래(FAQ, 사실상 흰색) 두 단색
+       섹션 사이에서 이 섹션만 톤이 튀어 보였습니다(2026-11) — 단색 아이보리(#FAF8F5)로 되돌려 위아래
+       섹션과 같은 톤 계열로 자연스럽게 이어지게 합니다. 상하 패딩은 바로 아래 FAQ 섹션
+       (.wb-faq-container, padding: 80px 15px)과 동일한 80px로 맞춰 전환이 매끄럽습니다. */
+    background-color: #FAF8F5;
+    padding-top: 80px;
+    padding-bottom: 80px;
+    padding-left: 20px;
+    padding-right: 20px;
     font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif !important;
     color: #1E293B;
   }
@@ -1985,13 +2093,13 @@
     margin: 0 auto;
     display: flex;
     gap: 48px;
-    align-items: flex-start;
+    align-items: center;
   }
 
-  /* --- 좌측 : 타이틀 및 고민 말풍선 --- */
+  /* --- 좌측 : 타이틀 및 페인포인트 탭 리스트 --- */
   .wb-feature-left {
-    flex: 1.1;
-    min-width: 400px;
+    flex: 1;
+    min-width: 380px;
   }
 
   /* 서브 타이틀 : 딥 세이지 그린 */
@@ -2016,104 +2124,118 @@
     letter-spacing: -0.025em !important;
   }
 
-  /* 고민 말풍선 리스트 - 간격 유감없이 확보 */
-  .wb-bubble-list {
+  /* 세로형 탭 리스트 - 페인포인트 */
+  .wb-pain-tab-list {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 20px;
-    max-width: 540px;
-  }
-
-  .wb-bubble-row {
-    display: flex;
     gap: 12px;
-    flex-wrap: wrap;
+    max-width: 480px;
   }
 
-  .wb-bubble-item {
+  .wb-pain-tab {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
     background: #FFFFFF;
-    border: 1px solid #EBE7E0;
-    border-radius: 24px;
-    padding: 14px 24px;
-    font-size: 14.5px !important;
-    color: #475569;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.02);
-    display: inline-block;
+    border: 1px solid #E5E7EB;
+    border-radius: 14px;
+    padding: 18px 20px;
+    font-size: 15px !important;
+    font-family: inherit;
+    color: #4B5563;
     line-height: 1.4 !important;
     letter-spacing: -0.02em !important;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, color 0.25s ease;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  /* --- 우측 : 5개 카드 그리드 레이아웃 --- */
+  .wb-pain-tab .wb-tab-arrow {
+    flex: none;
+    display: inline-flex;
+    color: #9CA3AF;
+    transition: color 0.25s ease, transform 0.25s ease;
+  }
+
+  .wb-pain-tab:hover,
+  .wb-pain-tab.is-active {
+    background: #F0FDF4;
+    border: 1.5px solid #16A34A;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    color: #111827;
+    font-weight: 600 !important;
+  }
+
+  .wb-pain-tab:hover .wb-tab-arrow,
+  .wb-pain-tab.is-active .wb-tab-arrow {
+    color: #16A34A;
+    transform: translateX(2px);
+  }
+
+  /* --- 우측 : 단일 대형 동적 솔루션 카드 --- */
   .wb-feature-right {
-    flex: 1.2;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
+    flex: 1.15;
+    display: flex;
   }
 
-  .wb-card {
-    position: relative;
-    border-radius: 16px;
-    overflow: hidden;
-    min-height: 210px;
+  .wb-solution-hero-card {
+    width: 100%;
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
+    background: #FFFFFF;
+    border: 1px solid #ECEFE8;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px -8px rgba(30, 41, 59, 0.12);
   }
 
-  .wb-card-1 {
-    /* 안심 이동 지원 — 대중교통 이용 동행(지팡이를 짚고 버스에 오르는 모습) */
-    background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.6)),
-                url('https://images.unsplash.com/photo-1763262141826-d58a4c43746f?q=80&w=600') center/cover;
-  }
-  .wb-card-2 {
-    /* 실시간 상황 공유 — 진료 기록을 기록하는 모습 */
-    background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.6)),
-                url('https://images.unsplash.com/photo-1758691462814-485c3672e447?q=80&w=600') center/cover;
-  }
-  .wb-card-3 {
-    /* 전문 동행 인력 교육 이수 — 전문성·신뢰감을 주는 케어 인력 */
-    background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.6)),
-                url('https://images.unsplash.com/photo-1756699277286-5166560ecd40?q=80&w=600') center/cover;
-  }
-  .wb-card-4 {
-    grid-row: span 2;
-    min-height: 436px;
-    /* 맞춤형 케어 솔루션 — 어르신과 동행하는 산책로 */
-    background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.6)),
-                url('https://images.unsplash.com/photo-1742841551724-2620db58e1c6?q=80&w=600') center/cover;
-  }
-  .wb-card-5 {
-    /* 맞춤형 생활 & 복약 케어 — 약 정리함에서 약을 꺼내는 모습 */
-    background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.6)),
-                url('https://images.unsplash.com/photo-1563213126-a4273aed2016?q=80&w=600') center/cover;
+  .wb-solution-hero-image {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background-color: #FAF8F5;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    border-radius: 24px 24px 0 0;
+    transition: opacity 0.3s ease;
   }
 
-  .wb-card-content {
-    padding: 22px;
-    color: #FFFFFF;
+  .wb-solution-hero-body {
+    padding: 28px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: opacity 0.3s ease;
   }
 
-  .wb-card-title {
-    font-size: 15.5px !important;
+  .wb-solution-hero-title {
+    font-size: 24px !important;
     font-weight: 700 !important;
-    margin-bottom: 6px !important;
-    line-height: 1.35 !important;
-    letter-spacing: -0.01em !important;
+    color: #1E293B !important;
+    letter-spacing: -0.02em !important;
+    line-height: 1.3 !important;
   }
 
-  .wb-card-desc {
-    font-size: 13px !important;
-    line-height: 1.45 !important;
-    opacity: 0.9;
-    letter-spacing: -0.01em !important;
+  .wb-solution-hero-desc {
+    font-size: 15px !important;
+    line-height: 1.6 !important;
+    color: #4B5563 !important;
+    word-break: keep-all !important;
+  }
+
+  .wb-solution-hero-card.is-fading .wb-solution-hero-image,
+  .wb-solution-hero-card.is-fading .wb-solution-hero-body {
+    opacity: 0;
   }
 
   /* 반응형 모바일 대응 */
-  @media (max-width: 900px) {
+  @media (max-width: 768px) {
     .wb-feature-container {
       flex-direction: column;
+      align-items: stretch;
     }
     .wb-feature-left {
       min-width: 100%;
@@ -2121,24 +2243,46 @@
     .wb-feature-left .wb-main-title {
       font-size: 26px !important;
     }
-    .wb-bubble-list {
-      gap: 14px;
+
+    /* 세로형 탭 리스트 - 가로 스크롤 칩으로 전환 */
+    .wb-pain-tab-list {
+      flex-direction: row;
+      flex-wrap: nowrap;
+      gap: 10px;
+      max-width: 100%;
+      overflow-x: auto;
+      overflow-y: visible;
+      padding: 2px 2px 10px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
     }
+    .wb-pain-tab {
+      flex: none;
+      white-space: nowrap;
+      padding: 12px 16px;
+      border-radius: 9999px;
+    }
+    .wb-pain-tab .wb-tab-arrow {
+      display: none;
+    }
+
     .wb-feature-right {
       width: 100%;
-      grid-template-columns: 1fr;
+      margin-top: 8px;
     }
-    .wb-card-4 {
-      grid-row: span 1;
-      min-height: 210px;
+    .wb-solution-hero-body {
+      padding: 20px;
+    }
+    .wb-solution-hero-title {
+      font-size: 20px !important;
     }
   }
 </style>
 
 <div class="wb-feature-section">
   <div class="wb-feature-container">
-    
-    <!-- 좌측 : 타이틀 및 고민 말풍선 -->
+
+    <!-- 좌측 : 타이틀 및 페인포인트 세로형 탭 리스트 -->
     <div class="wb-feature-left">
       <span class="wb-sub-title">상담 이후로는 알아서 척척</span>
       <div class="wb-main-title">
@@ -2146,60 +2290,120 @@
         편안하고 안심되게 케어
       </div>
 
-      <div class="wb-bubble-list">
-        <div class="wb-bubble-item">부모님 혼자 대형병원 가시는데, 여유가 없어요.</div>
-        
-        <div class="wb-bubble-row">
-          <div class="wb-bubble-item">진료 내용을 잊으실까 걱정돼요.</div>
-          <div class="wb-bubble-item">외출시 동행할 사람이 필요해요.</div>
-        </div>
-
-        <div class="wb-bubble-item">혼자 사시는 부모님의 행정 업무 보조가 필요해요.</div>
-        <div class="wb-bubble-item">바쁜 직장 생활 때문에 매번 모셔다드릴 수 없어요.</div>
-        <div class="wb-bubble-item">거동에 어려움이 있지만, 외출하고 싶어요.</div>
+      <div class="wb-pain-tab-list" id="wbPainTabList">
+        <button type="button" class="wb-pain-tab is-active" data-solution="1">
+          <span>부모님 혼자 대형병원 가시는데, 여유가 없어요.</span>
+          <span class="wb-tab-arrow" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+        </button>
+        <button type="button" class="wb-pain-tab" data-solution="2">
+          <span>진료 내용을 잊으실까 걱정돼요.</span>
+          <span class="wb-tab-arrow" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+        </button>
+        <button type="button" class="wb-pain-tab" data-solution="3">
+          <span>거동이 불편하신데 혼자 외출하고 싶어 하세요.</span>
+          <span class="wb-tab-arrow" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+        </button>
+        <button type="button" class="wb-pain-tab" data-solution="4">
+          <span>복잡한 병원 일정과 건강 관리를 한 번에 맡기고 싶어요.</span>
+          <span class="wb-tab-arrow" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+        </button>
+        <button type="button" class="wb-pain-tab" data-solution="5">
+          <span>혼자 사시는 부모님의 복약과 생활 관리가 걱정돼요.</span>
+          <span class="wb-tab-arrow" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+        </button>
       </div>
     </div>
 
-    <!-- 우측 : 5개 해결책 카드 그리드 -->
+    <!-- 우측 : 선택된 페인포인트에 대응하는 단일 대형 솔루션 카드 -->
     <div class="wb-feature-right">
-      <div class="wb-card wb-card-1">
-        <div class="wb-card-content">
-          <div class="wb-card-title">안심 이동 지원</div>
-          <div class="wb-card-desc">자택부터 병원·외출까지 도보 및 대중교통/택시 맞춤 동행</div>
-        </div>
-      </div>
-
-      <div class="wb-card wb-card-4">
-        <div class="wb-card-content">
-          <div class="wb-card-title">맞춤형 케어 솔루션</div>
-          <div class="wb-card-desc">건강 상태와 일정을 반영한 1:1 맞춤형 케어 동행 서비스 제공</div>
-        </div>
-      </div>
-
-      <div class="wb-card wb-card-2">
-        <div class="wb-card-content">
-          <div class="wb-card-title">실시간 상황 공유</div>
-          <div class="wb-card-desc">진료 내용과 상태를 보호자에게 실시간 공유</div>
-        </div>
-      </div>
-
-      <div class="wb-card wb-card-3">
-        <div class="wb-card-content">
-          <div class="wb-card-title">전문 동행 인력 교육 이수</div>
-          <div class="wb-card-desc">전문 사회복지사, 요양보호사 전담 배정</div>
-        </div>
-      </div>
-
-      <div class="wb-card wb-card-5">
-        <div class="wb-card-content">
-          <div class="wb-card-title">맞춤형 생활 & 복약 케어</div>
-          <div class="wb-card-desc">복약 지도, 진료 수속 등 어르신 상황에 맞는 현장 밀착 지원</div>
+      <div class="wb-solution-hero-card" id="wbSolutionHeroCard">
+        <div class="wb-solution-hero-image" id="wbSolutionHeroImage" style="background-image: url('images/warm-spring-walk-holding-hands.png');"></div>
+        <div class="wb-solution-hero-body">
+          <div class="wb-solution-hero-title" id="wbSolutionHeroTitle">안심 이동 지원</div>
+          <div class="wb-solution-hero-desc" id="wbSolutionHeroDesc">자택부터 병원·외출까지 도보 및 대중교통/택시로 꼼꼼하게 동행합니다.</div>
         </div>
       </div>
     </div>
 
   </div>
 </div>
+
+<script>
+(function () {
+  var solutions = [
+    { id: '1', title: '안심 이동 지원', desc: '자택부터 병원·외출까지 도보 및 대중교통/택시로 꼼꼼하게 동행합니다.', image: 'images/warm-spring-walk-holding-hands.png' },
+    { id: '2', title: '실시간 상황 공유', desc: '진료 내용과 건강 상태를 보호자에게 실시간으로 꼼꼼히 전달합니다.', image: 'images/smartphone-warm-connection.png' },
+    { id: '3', title: '전문 동행 인력 교육 이수', desc: '체계적인 교육을 이수한 전문 사회복지사, 요양보호사가 전담 배정됩니다.', image: 'images/warm-care-training-classroom.png' },
+    { id: '4', title: '맞춤형 케어 솔루션', desc: '건강 상태와 일정을 반영한 1:1 맞춤형 케어 동행 서비스를 제공합니다.', image: 'images/tablet-living-room-together.png' },
+    { id: '5', title: '맞춤형 생활 & 복약 케어', desc: '복약 지도, 진료 수속 등 어르신 상황에 맞는 현장 밀착 지원을 제공합니다.', image: 'images/warm-medication-organizing-time.png' }
+  ];
+
+  var tabList = document.getElementById('wbPainTabList');
+  var heroCard = document.getElementById('wbSolutionHeroCard');
+  var heroImage = document.getElementById('wbSolutionHeroImage');
+  var heroTitle = document.getElementById('wbSolutionHeroTitle');
+  var heroDesc = document.getElementById('wbSolutionHeroDesc');
+  if (!tabList || !heroCard) return;
+
+  var tabs = Array.prototype.slice.call(tabList.querySelectorAll('.wb-pain-tab'));
+  var activeId = tabs.length ? tabs[0].getAttribute('data-solution') : null;
+  var swapTimer = null;
+
+  function findSolution(id) {
+    for (var i = 0; i < solutions.length; i++) {
+      if (solutions[i].id === id) return solutions[i];
+    }
+    return null;
+  }
+
+  function setActiveTab(id) {
+    tabs.forEach(function (tab) {
+      tab.classList.toggle('is-active', tab.getAttribute('data-solution') === id);
+    });
+  }
+
+  function renderSolution(id) {
+    var data = findSolution(id);
+    if (!data) return;
+    clearTimeout(swapTimer);
+    heroCard.classList.add('is-fading');
+    swapTimer = setTimeout(function () {
+      heroImage.style.backgroundImage = "url('" + data.image + "')";
+      heroTitle.textContent = data.title;
+      heroDesc.textContent = data.desc;
+      heroCard.classList.remove('is-fading');
+    }, 200);
+  }
+
+  tabs.forEach(function (tab) {
+    var id = tab.getAttribute('data-solution');
+
+    tab.addEventListener('mouseenter', function () {
+      if (id === activeId) return;
+      renderSolution(id);
+    });
+
+    tab.addEventListener('mouseleave', function () {
+      if (id === activeId) return;
+      renderSolution(activeId);
+    });
+
+    tab.addEventListener('click', function () {
+      if (id === activeId) return;
+      activeId = id;
+      setActiveTab(id);
+      renderSolution(id);
+    });
+
+    tab.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        tab.click();
+      }
+    });
+  });
+})();
+</script>
 
 <!--
 ====================================================================
@@ -2534,526 +2738,177 @@
 10.
 ====================================================================
 -->
-<!-- 위드브릿지 클레이 아바타 포함 리뷰 배너 -->
+<!-- 위드브릿지 리뷰 섹션 — 신생 서비스라 아직 쌓인 후기가 없다는 점을 솔직하게 알리는 "첫 후기 안내".
+     카드 박스 없이 공원 산책 일러스트를 섹션 전체 배경으로 깔고, 타이틀·서브 문구·버튼 덩어리를
+     일러스트의 수직·수평 정중앙(인물 뒤쪽 여백)에 배치합니다. 딱딱한 카드 대신 은은한 반투명
+     블러 그라데이션을 텍스트 뒤에 깔아 가독성을 보완합니다. -->
 <style>
   /* 부드러운 스크롤 이동 */
   html {
     scroll-behavior: smooth;
   }
 
-  /* 1. 전체 섹션 레이아웃 */
+  /* 전체 섹션 — 공원 산책 일러스트 통배경. 텍스트+버튼 덩어리를 화면 정중앙에 배치 */
   .wb-review-section {
+    position: relative;
     width: 100%;
-    padding: 100px 0;
-    background-image: url('https://i.ibb.co/9HdS0PV1/Care-manager-and-person-walking-2-K-20260912000957.jpg');
-    background-size: cover;
-    background-position: center center;
+    max-width: 100%;
+    min-height: 700px;
+    padding: 40px 0;
+    background-color: #EDF3E8; /* 일러스트가 화면 폭보다 짧게 렌더링될 때 위아래로 남는 자리를 채우는 파스텔 톤 */
+    background-image: url('images/park-bench-walk-holding-hands.png');
+    background-size: 100% auto; /* 가로폭은 항상 화면에 꽉 차고(좌우 여백 없음), 세로는 비율에 맞춰 자동 계산 */
     background-repeat: no-repeat;
+    background-position: center;
     font-family: 'Noto Sans KR', sans-serif !important;
     text-align: center;
-    position: relative;
     box-sizing: border-box;
-
-    /* 네비게이션 바 높이와 정확히 일치시켜 섹션 맨 위 배경부터 깔끔하게 정지 */
-    scroll-margin-top: 110px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    scroll-margin-top: 110px; /* 네비게이션 바 높이와 일치 */
   }
 
   .wb-review-section:target {
     scroll-margin-top: 110px;
   }
 
-  /* 2. 상단 타이틀 영역 */
-  .wb-review-header {
-    margin-bottom: 50px;
-  }
-
-  .wb-review-header .review-tag {
-    font-size: 14px;
-    font-weight: 600;
-    color: #839773;
-    margin-bottom: 8px;
-    display: block;
-    letter-spacing: 0.5px;
-  }
-
-  .wb-review-header .review-title {
-    font-size: 32px;
-    font-weight: 700;
-    color: #3b4b3c;
-    margin: 0;
-  }
-
-  /* 3. 무한 롤링 트랙 레이아웃 */
-  .wb-marquee-wrapper {
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-    margin-bottom: 50px;
-  }
-
-  .wb-marquee-container {
-    width: 100%;
-    overflow: hidden;
-    padding: 20px 0;
-    box-sizing: border-box;
-    display: flex;
+  /* 타이틀·서브 문구·버튼을 하나의 덩어리로 묶는 래퍼 — 일러스트 정중앙에 안착.
+     ::before 로 은은하게 번지는 반투명 블러 그라데이션을 깔아, 딱딱한 카드 없이도
+     배경 일러스트(인물) 위에서 글자·버튼이 또렷하게 보이도록 보완합니다. */
+  .wb-review-top {
     position: relative;
-  }
-
-  .wb-marquee-track {
-    display: flex;
-    gap: 20px;
-    width: max-content;
-    animation: wbMarquee 35s linear infinite;
-  }
-
-  .wb-marquee-container:hover .wb-marquee-track,
-  .wb-marquee-container.is-touching .wb-marquee-track {
-    animation-play-state: paused;
-  }
-
-  /* 4. 리뷰 카드 디자인 (글래스모피즘) */
-  .wb-review-card {
-    width: 320px;
-    padding: 24px;
-    border-radius: 20px;
-    background: rgba(255, 255, 255, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-    flex-shrink: 0;
+    z-index: 1;
+    width: 100%;
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 60px 40px;
+    text-align: center;
     box-sizing: border-box;
-    text-align: left;
   }
 
-  .wb-user-info {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 14px;
+  .wb-review-top::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: 56px;
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.32) 48%, rgba(255, 255, 255, 0) 78%);
+    filter: blur(10px);
+    pointer-events: none;
   }
 
-  /* 클레이 캐릭 프로필 이미지 스타일 */
-  .wb-clay-avatar {
-    width: 46px;
-    height: 46px;
-    border-radius: 50%;
-    object-fit: cover;
-    background-color: #EAEFE9;
-    border: 2px solid #FFFFFF;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-    flex-shrink: 0;
-  }
-
-  .wb-user-details h4 {
-    margin: 0;
+  .review-tag {
     font-size: 15px;
     font-weight: 700;
-    color: #2c302e;
-  }
-
-  .wb-user-details p {
-    margin: 2px 0 0 0;
-    font-size: 13px;
-    color: #717774;
-  }
-
-  .wb-content {
-    font-size: 14px;
-    line-height: 1.6;
-    color: #404542;
-    margin: 0 0 14px 0;
-    word-break: keep-all;
-  }
-
-  .wb-stars {
-    color: #ffb800;
-    font-size: 14px;
+    color: #1E2A4A;
     letter-spacing: 2px;
+    display: block;
+    margin: 0 0 18px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
   }
 
-  /* 5. 롤링 애니메이션 */
-  @keyframes wbMarquee {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
+  .review-title {
+    font-size: 42px;
+    font-weight: 800;
+    color: #1E2A4A;
+    margin: 0 0 24px;
+    letter-spacing: -0.02em;
+    line-height: 1.28;
+    word-break: keep-all;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
   }
 
-  /* 6. 하단 버튼 */
+  .wb-invite-desc {
+    font-size: 17px;
+    line-height: 1.75;
+    letter-spacing: -0.01em;
+    color: #1E2A4A;
+    margin: 0 0 48px;
+    word-break: keep-all;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  }
+
+  /* 버튼 — 서브 문구와 충분한 여백을 두고, 같은 덩어리 안에 배치 */
+  .wb-invite-actions {
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  /* 버튼 — 딥그린 솔리드 + 또렷한 아웃라인으로 배경 위에서도 시인성 확보 */
   .wb-more-btn {
-    display: inline-block;
-    padding: 12px 32px;
-    background-color: #3b4b3c;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 14px 32px;
+    background-color: #1F5C45;
     color: #ffffff !important;
-    font-size: 15px;
-    font-weight: 600;
+    font-size: 14.5px;
+    font-weight: 700;
     border-radius: 50px;
     text-decoration: none;
-    transition: all 0.3s ease;
+    transition: all 0.25s ease;
     border: none;
     cursor: pointer;
+    box-shadow: 0 6px 16px rgba(20, 40, 30, 0.25);
   }
 
   .wb-more-btn:hover {
-    background-color: #2c3a2d;
+    background-color: #184A38;
     color: #ffffff !important;
+    transform: translateY(-1px);
+  }
+
+  .wb-more-btn--ghost {
+    background-color: #FFFFFF;
+    color: #1F5C45 !important;
+    border: 2px solid #1F5C45;
+    box-shadow: 0 6px 16px rgba(20, 40, 30, 0.12);
+  }
+
+  .wb-more-btn--ghost:hover {
+    background-color: #F0F6F2;
+    color: #184A38 !important;
   }
 
   @media (max-width: 768px) {
-    .wb-review-section {
-      padding: 60px 0;
-      scroll-margin-top: 115px; /* 모바일 띠배너(38px)+고정 헤더(61px) 스택에 가려지지 않도록 */
-    }
-    .wb-review-header .review-title { font-size: 24px; }
-    .wb-review-card { width: 280px; padding: 20px; }
-  }
-
-  /* 7. 리뷰 더보기 팝업(모달) — 페이지 이동 없이 전체 후기를 모아서 보여줍니다 */
-  .wb-review-modal-overlay {
-    display: none;
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background-color: rgba(30, 35, 32, 0.65);
-    z-index: 9999;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-    box-sizing: border-box;
-    font-family: 'Noto Sans KR', sans-serif !important;
-  }
-
-  .wb-review-modal-overlay.is-open {
-    display: flex;
-  }
-
-  .wb-review-modal {
-    position: relative;
-    width: 100%;
-    max-width: 1040px;
-    max-height: 85vh;
-    background-color: #FAF8F5;
-    border-radius: 24px;
-    padding: 48px 40px 40px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
-    overflow-y: auto;
-    box-sizing: border-box;
-    text-align: center;
-  }
-
-  .wb-review-modal-close {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    width: 36px;
-    height: 36px;
-    border: none;
-    border-radius: 50%;
-    background-color: rgba(59, 75, 60, 0.08);
-    color: #3b4b3c;
-    font-size: 18px;
-    line-height: 1;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.2s ease;
-  }
-
-  .wb-review-modal-close:hover {
-    background-color: rgba(59, 75, 60, 0.16);
-  }
-
-  .wb-review-modal-header {
-    margin-bottom: 32px;
-  }
-
-  .wb-review-modal-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 20px;
-    text-align: left;
-  }
-
-  .wb-review-modal-grid .wb-review-card {
-    width: 100%;
-  }
-
-  @media (max-width: 900px) {
-    .wb-review-modal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  }
-
-  @media (max-width: 600px) {
-    .wb-review-modal { padding: 40px 20px 32px; max-height: 90vh; }
-    .wb-review-modal-grid { grid-template-columns: 1fr; }
+    .wb-review-section { min-height: 540px; padding: 32px 0; }
+    .wb-review-top { padding: 36px 24px; }
+    .wb-review-top::before { border-radius: 40px; }
+    .review-tag { font-size: 13px; margin-bottom: 12px; }
+    .review-title { font-size: 26px; margin-bottom: 16px; }
+    .wb-invite-desc { font-size: 15px; margin-bottom: 34px; }
+    .wb-invite-actions { flex-direction: column; max-width: 280px; margin: 0 auto; }
+    .wb-invite-actions .wb-more-btn { width: 100%; }
   }
 </style>
 
 <!-- id="reviews" 속성 유지 -->
 <div class="wb-review-section" id="reviews">
-  <!-- 상단 타이틀 -->
-  <div class="wb-review-header">
+  <div class="wb-review-top">
     <span class="review-tag">Review</span>
-    <h3 class="review-title">생생한 이용 후기</h3>
-  </div>
-
-  <!-- 롤링 리뷰 영역 -->
-  <div class="wb-marquee-wrapper">
-    <div class="wb-marquee-container">
-      <div class="wb-marquee-track">
-        
-        <!-- 1세트 -->
-        <div class="wb-review-card">
-          <div class="wb-user-info">
-            <img class="wb-clay-avatar" src="https://img.freepik.com/premium-photo/claymation-style-avatar-character-young-woman_931576-63048.jpg" alt="김민지 클레이 아바타">
-            <div class="wb-user-details">
-              <h4>김민지 님</h4>
-              <p>직장인 / 30대 보호자</p>
-            </div>
-          </div>
-          <p class="wb-content">바쁜 회사 일정 때문에 어머니 병원 동행이 늘 걱정이었는데, 이동부터 진료 내용 정리까지 완벽하게 챙겨주셔서 정말 안심되었습니다.</p>
-          <div class="wb-stars">★★★★★</div>
-        </div>
-
-        <div class="wb-review-card">
-          <div class="wb-user-info">
-            <img class="wb-clay-avatar" src="https://img.freepik.com/premium-photo/claymation-style-avatar-character-man_931576-63044.jpg" alt="박성호 클레이 아바타">
-            <div class="wb-user-details">
-              <h4>박성호 님</h4>
-              <p>자영업 / 40대 보호자</p>
-            </div>
-          </div>
-          <p class="wb-content">어르신을 모시는 매니저님의 태도가 너무 친절하고 따뜻했습니다. 진료 후 의사 선생님 설명도 알기 쉽게 전달해 주셔서 감동했어요.</p>
-          <div class="wb-stars">★★★★★</div>
-        </div>
-
-        <div class="wb-review-card">
-          <div class="wb-user-info">
-            <img class="wb-clay-avatar" src="https://img.freepik.com/premium-photo/claymation-style-avatar-character-elderly-woman_931576-63052.jpg" alt="이순자 클레이 아바타">
-            <div class="wb-user-details">
-              <h4>이순자 님</h4>
-              <p>서비스 이용자 / 60대</p>
-            </div>
-          </div>
-          <p class="wb-content">혼자 큰 병원 가기가 막막했는데, 동행 매니저님이 수속부터 약 처방까지 곁에서 친자식처럼 도와주셔서 편안하게 진료받았습니다.</p>
-          <div class="wb-stars">★★★★★</div>
-        </div>
-
-        <!-- 2세트 -->
-        <div class="wb-review-card">
-          <div class="wb-user-info">
-            <img class="wb-clay-avatar" src="https://img.freepik.com/premium-photo/claymation-style-avatar-character-young-woman_931576-63048.jpg" alt="김민지 클레이 아바타">
-            <div class="wb-user-details">
-              <h4>김민지 님</h4>
-              <p>직장인 / 30대 보호자</p>
-            </div>
-          </div>
-          <p class="wb-content">바쁜 회사 일정 때문에 어머니 병원 동행이 늘 걱정이었는데, 이동부터 진료 내용 정리까지 완벽하게 챙겨주셔서 정말 안심되었습니다.</p>
-          <div class="wb-stars">★★★★★</div>
-        </div>
-
-        <div class="wb-review-card">
-          <div class="wb-user-info">
-            <img class="wb-clay-avatar" src="https://img.freepik.com/premium-photo/claymation-style-avatar-character-man_931576-63044.jpg" alt="박성호 클레이 아바타">
-            <div class="wb-user-details">
-              <h4>박성호 님</h4>
-              <p>자영업 / 40대 보호자</p>
-            </div>
-          </div>
-          <p class="wb-content">어르신을 모시는 매니저님의 태도가 너무 친절하고 따뜻했습니다. 진료 후 의사 선생님 설명도 알기 쉽게 전달해 주셔서 감동했어요.</p>
-          <div class="wb-stars">★★★★★</div>
-        </div>
-
-        <div class="wb-review-card">
-          <div class="wb-user-info">
-            <img class="wb-clay-avatar" src="https://img.freepik.com/premium-photo/claymation-style-avatar-character-elderly-woman_931576-63052.jpg" alt="이순자 클레이 아바타">
-            <div class="wb-user-details">
-              <h4>이순자 님</h4>
-              <p>서비스 이용자 / 60대</p>
-            </div>
-          </div>
-          <p class="wb-content">혼자 큰 병원 가기가 막막했는데, 동행 매니저님이 수속부터 약 처방까지 곁에서 친자식처럼 도와주셔서 편안하게 진료받았습니다.</p>
-          <div class="wb-stars">★★★★★</div>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
-  <!-- 페이지 이동 없이 리뷰 전체보기 팝업(모달)을 여는 버튼 -->
-  <button type="button" class="wb-more-btn" id="wbReviewMoreBtn">리뷰 더보기</button>
-</div>
-
-<!-- 리뷰 더보기 팝업(모달): 더 다양한 이용 후기를 한 번에 모아서 보여줍니다 -->
-<div class="wb-review-modal-overlay" id="wbReviewModalOverlay" aria-hidden="true">
-  <div class="wb-review-modal" role="dialog" aria-modal="true" aria-labelledby="wbReviewModalTitle">
-    <button type="button" class="wb-review-modal-close" id="wbReviewModalClose" aria-label="닫기">✕</button>
-
-    <div class="wb-review-modal-header">
-      <span class="review-tag">Review</span>
-      <h3 class="review-title" id="wbReviewModalTitle">위드브릿지 이용 후기 모아보기</h3>
-    </div>
-
-    <div class="wb-review-modal-grid">
-
-      <div class="wb-review-card">
-        <div class="wb-user-info">
-          <img class="wb-clay-avatar" src="https://img.freepik.com/premium-photo/claymation-style-avatar-character-young-woman_931576-63048.jpg" alt="김민지 클레이 아바타">
-          <div class="wb-user-details">
-            <h4>김민지 님</h4>
-            <p>직장인 / 30대 보호자</p>
-          </div>
-        </div>
-        <p class="wb-content">바쁜 회사 일정 때문에 어머니 병원 동행이 늘 걱정이었는데, 이동부터 진료 내용 정리까지 완벽하게 챙겨주셔서 정말 안심되었습니다.</p>
-        <div class="wb-stars">★★★★★</div>
-      </div>
-
-      <div class="wb-review-card">
-        <div class="wb-user-info">
-          <img class="wb-clay-avatar" src="https://img.freepik.com/premium-photo/claymation-style-avatar-character-man_931576-63044.jpg" alt="박성호 클레이 아바타">
-          <div class="wb-user-details">
-            <h4>박성호 님</h4>
-            <p>자영업 / 40대 보호자</p>
-          </div>
-        </div>
-        <p class="wb-content">어르신을 모시는 매니저님의 태도가 너무 친절하고 따뜻했습니다. 진료 후 의사 선생님 설명도 알기 쉽게 전달해 주셔서 감동했어요.</p>
-        <div class="wb-stars">★★★★★</div>
-      </div>
-
-      <div class="wb-review-card">
-        <div class="wb-user-info">
-          <img class="wb-clay-avatar" src="https://img.freepik.com/premium-photo/claymation-style-avatar-character-elderly-woman_931576-63052.jpg" alt="이순자 클레이 아바타">
-          <div class="wb-user-details">
-            <h4>이순자 님</h4>
-            <p>서비스 이용자 / 60대</p>
-          </div>
-        </div>
-        <p class="wb-content">혼자 큰 병원 가기가 막막했는데, 동행 매니저님이 수속부터 약 처방까지 곁에서 친자식처럼 도와주셔서 편안하게 진료받았습니다.</p>
-        <div class="wb-stars">★★★★★</div>
-      </div>
-
-      <div class="wb-review-card">
-        <div class="wb-user-info">
-          <img class="wb-clay-avatar" src="https://img.freepik.com/premium-photo/claymation-style-avatar-character-man_931576-63044.jpg" alt="정우진 클레이 아바타">
-          <div class="wb-user-details">
-            <h4>정우진 님</h4>
-            <p>직장인 / 30대 보호자</p>
-          </div>
-        </div>
-        <p class="wb-content">생활 편의 대행으로 장보기와 은행 업무를 부탁드렸는데, 꼼꼼하게 처리해 주시고 영수증까지 깔끔하게 정리해 주셔서 믿음이 갔습니다.</p>
-        <div class="wb-stars">★★★★★</div>
-      </div>
-
-      <div class="wb-review-card">
-        <div class="wb-user-info">
-          <img class="wb-clay-avatar" src="https://img.freepik.com/premium-photo/claymation-style-avatar-character-young-woman_931576-63048.jpg" alt="최은아 클레이 아바타">
-          <div class="wb-user-details">
-            <h4>최은아 님</h4>
-            <p>워킹맘 / 30대 보호자</p>
-          </div>
-        </div>
-        <p class="wb-content">갑자기 야근이 생겨서 급하게 요청드렸는데도 당일에 매니저님을 배정해 주셔서 정말 큰 도움이 되었어요. 응대도 빠르고 친절했습니다.</p>
-        <div class="wb-stars">★★★★★</div>
-      </div>
-
-      <div class="wb-review-card">
-        <div class="wb-user-info">
-          <img class="wb-clay-avatar" src="https://img.freepik.com/premium-photo/claymation-style-avatar-character-elderly-woman_931576-63052.jpg" alt="한영수 클레이 아바타">
-          <div class="wb-user-details">
-            <h4>한영수 님</h4>
-            <p>서비스 이용자 / 70대</p>
-          </div>
-        </div>
-        <p class="wb-content">휠체어를 타고 있어서 이동이 늘 조심스러웠는데, 매니저님이 세심하게 살펴주셔서 불편함 없이 진료를 받을 수 있었습니다. 감사합니다.</p>
-        <div class="wb-stars">★★★★★</div>
-      </div>
-
-      <div class="wb-review-card">
-        <div class="wb-user-info">
-          <img class="wb-clay-avatar" src="https://img.freepik.com/premium-photo/claymation-style-avatar-character-man_931576-63044.jpg" alt="윤서준 클레이 아바타">
-          <div class="wb-user-details">
-            <h4>윤서준 님</h4>
-            <p>자영업 / 50대 보호자</p>
-          </div>
-        </div>
-        <p class="wb-content">복합 매칭 서비스로 병원 동행과 생활 편의를 함께 맡겼는데, 일정 조율부터 마무리까지 체계적으로 챙겨주셔서 재이용 의사가 확실히 생겼습니다.</p>
-        <div class="wb-stars">★★★★★</div>
-      </div>
-
-      <div class="wb-review-card">
-        <div class="wb-user-info">
-          <img class="wb-clay-avatar" src="https://img.freepik.com/premium-photo/claymation-style-avatar-character-young-woman_931576-63048.jpg" alt="강지혜 클레이 아바타">
-          <div class="wb-user-details">
-            <h4>강지혜 님</h4>
-            <p>직장인 / 40대 보호자</p>
-          </div>
-        </div>
-        <p class="wb-content">어머니께서 낙상 경험이 있어 많이 불안했는데, 사전에 건강 상태를 꼼꼼히 확인하고 배정해 주셔서 안심하고 맡길 수 있었습니다.</p>
-        <div class="wb-stars">★★★★★</div>
-      </div>
-
-      <div class="wb-review-card">
-        <div class="wb-user-info">
-          <img class="wb-clay-avatar" src="https://img.freepik.com/premium-photo/claymation-style-avatar-character-elderly-woman_931576-63052.jpg" alt="오태석 클레이 아바타">
-          <div class="wb-user-details">
-            <h4>오태석 님</h4>
-            <p>서비스 이용자 / 80대</p>
-          </div>
-        </div>
-        <p class="wb-content">거동이 불편해 늘 자녀에게 부탁해야 했는데, 이제는 위드브릿지 매니저님과 편하게 병원에 다닙니다. 매번 밝은 얼굴로 대해 주셔서 고맙습니다.</p>
-        <div class="wb-stars">★★★★★</div>
-      </div>
-
+    <h3 class="review-title">첫 이용 후기를 기다립니다</h3>
+    <p class="wb-invite-desc">
+      이제 막 첫걸음을 내딛는 위드브릿지는 어르신과 보호자님의 목소리에 귀 기울이고 있습니다.<br class="md:hidden">
+      따뜻했던 동행의 순간을 들려주세요.
+    </p>
+    <div class="wb-invite-actions">
+      <a href="mypage.html?tab=history" class="wb-more-btn" onclick="window.WBAuth && window.WBAuth.goIfLoggedIn(event, 'mypage.html?tab=history');">
+        이용 후기 작성하기
+      </a>
+      <a href="http://pf.kakao.com/_PKxemX" target="_blank" rel="noopener noreferrer" class="wb-more-btn wb-more-btn--ghost">
+        카카오톡 문의하기
+      </a>
     </div>
   </div>
 </div>
-
-<!-- 롤링 리뷰 터치 일시정지: :hover 는 터치 기기에 없어 PC에서만 카드를 읽는 동안 멈출 수 있었습니다.
-     터치 중에는 is-touching 클래스로 똑같이 멈추고, 손을 떼면 다시 흐르게 합니다. -->
-<script>
-  (function () {
-    var container = document.querySelector('.wb-marquee-container');
-    if (!container) return;
-    container.addEventListener('touchstart', function () { container.classList.add('is-touching'); }, { passive: true });
-    container.addEventListener('touchend', function () { container.classList.remove('is-touching'); }, { passive: true });
-  })();
-</script>
-
-<!-- 리뷰 더보기 팝업(모달) 열기/닫기: 페이지 이동 없이 전체 후기를 모아서 보여줍니다 -->
-<script>
-  (function () {
-    var openBtn = document.getElementById('wbReviewMoreBtn');
-    var overlay = document.getElementById('wbReviewModalOverlay');
-    var closeBtn = document.getElementById('wbReviewModalClose');
-    if (!openBtn || !overlay || !closeBtn) return;
-
-    function openModal(event) {
-      if (event) event.preventDefault();
-      overlay.classList.add('is-open');
-      overlay.setAttribute('aria-hidden', 'false');
-      document.body.style.overflow = 'hidden';
-    }
-
-    function closeModal() {
-      overlay.classList.remove('is-open');
-      overlay.setAttribute('aria-hidden', 'true');
-      document.body.style.overflow = '';
-    }
-
-    openBtn.addEventListener('click', openModal);
-    closeBtn.addEventListener('click', closeModal);
-
-    // 모달 바깥(어두운 배경)을 클릭하면 닫힘 — 모달 박스 내부 클릭은 무시
-    overlay.addEventListener('click', function (event) {
-      if (event.target === overlay) closeModal();
-    });
-
-    // ESC 키로도 닫을 수 있도록 지원
-    document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape' && overlay.classList.contains('is-open')) closeModal();
-    });
-  })();
-</script>
 
 <!--
 ====================================================================
@@ -3071,52 +2926,6 @@
 
 <div id="wb-footer"></div>
 <script src="/js/site-footer.js?v=1.0"></script>
-
-<script>
-  // Supabase 클라이언트 / 헤더 로그인 상태(프로필 아바타·드롭다운·로그아웃)는 auth-header.js 가 담당합니다.
-  // 여기서는 같은 클라이언트를 재사용해 페이지 고유 로직(어르신 정보 등록 여부 확인)만 처리합니다.
-  // auth-header.js 가 defer 로 로드되어 DOMContentLoaded 직전에 실행되므로, window.WBAuth 는 이 변수를
-  // 파싱 시점(스크립트 최상단, DOMContentLoaded 이전)에 바로 읽지 말고 DOMContentLoaded 핸들러 안에서
-  // 읽어야 합니다 — 미리 읽으면 항상 null 로 고정돼 버립니다.
-  let supabaseClient = null;
-
-  // 어르신 정보 등록 여부 확인 후 팝업 출력 (사용자당 1회)
-  let seniorCheckedFor = null;
-  async function checkSeniorInfo(session) {
-    if (!session || !supabaseClient || seniorCheckedFor === session.user.id) return;
-    seniorCheckedFor = session.user.id;
-
-    const { data: seniors, error } = await supabaseClient
-      .from('seniors')
-      .select('*')
-      .eq('user_id', session.user.id);
-
-    if (!error && (!seniors || seniors.length === 0)) {
-      const seniorModal = document.getElementById('seniorModal');
-      if (seniorModal) {
-        seniorModal.style.display = 'flex';
-      }
-    }
-  }
-
-  window.addEventListener('DOMContentLoaded', async () => {
-    supabaseClient = window.WBAuth ? window.WBAuth.client : null;
-    if (!supabaseClient) return;
-
-    // 현재 세션 확인 (카카오 OAuth 리다이렉트의 #access_token 도 여기서 세션으로 처리됨)
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (session) await checkSeniorInfo(session);
-
-    // 로그인/로그아웃 감지 (콜백 안에서 바로 await 하면 교착될 수 있어 setTimeout 으로 분리)
-    supabaseClient.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        setTimeout(() => checkSeniorInfo(session), 0);
-      } else if (event === 'SIGNED_OUT') {
-        seniorCheckedFor = null;
-      }
-    });
-  });
-</script>
 
 </body>
 </html>

@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>로그인 | 위드브릿지</title>
+  <link rel="icon" href="./images/withbridge_logo.png" type="image/png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
@@ -13,10 +14,9 @@
   <!-- Supabase SDK 로드 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- 공통 인증 헤더 (로그인 상태 감지 · 프로필 아바타/드롭다운). Supabase SDK 뒤에 로드해야 합니다 -->
-  <script src="/js/auth-header.js?v=1.9" charset="utf-8"></script>
+  <script src="/js/auth-header.js?v=2.1" charset="utf-8"></script>
 <script src="/js/terms-modal.js?v=1.0" charset="utf-8" defer></script>
-  <!-- 브라우저 기본 날짜/시간 피커 대신 쓰는 공통 커스텀 피커 (wb-datepicker.js 참고) -->
-  <script src="/js/wb-datepicker.js?v=1.1"></script>
+<script src="/js/notice-modal.js?v=1.0" charset="utf-8" defer></script>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -83,7 +83,7 @@
   <!-- 01. 상단 네비게이션 헤더 -->
   <!-- ==================================================================== -->
   <header style="width: 100%; background-color: #ffffff; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 50; font-family: 'Noto Sans KR', sans-serif;">
-    <div class="wb-header-row" style="max-width: 1380px; margin: 0 auto; padding: 12px 40px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: 24px;">
+    <div class="wb-header-row" style="max-width: 1380px; margin: 0 auto; padding: 6px 40px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: 24px;">
 
       <!-- 모바일 전용 햄버거 버튼 -->
       <button type="button" class="wb-mobile-toggle" id="wbMenuToggle" aria-label="메뉴 열기" aria-expanded="false" aria-controls="wbMobileDrawer" style="align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; border: none; background: transparent; cursor: pointer; justify-self: start;">
@@ -93,7 +93,7 @@
 
       <!-- 로고 영역 -->
       <a href="index.html" style="justify-self: start; display: flex; align-items: center; text-decoration: none; flex: none;">
-        <img src="/images/withbridge-logo.png" alt="위드브릿지 로고" style="height: 38px; width: auto; display: block; object-fit: contain;" />
+        <img src="./images/logo_main.png" alt="위드브릿지 로고" style="height: 48px; width: auto; display: block; object-fit: contain; margin: 0; padding: 0; position: relative; top: 3px;" />
       </a>
 
       <!-- 중앙 메뉴 링크 : 가운데 auto 칸에 놓여 좌우 1fr 칸이 같은 폭이라 항상 화면 정중앙에 옵니다 -->
@@ -102,9 +102,9 @@
         <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
         <a href="index.html#services" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">서비스</a>
         <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
-        <a href="index.html#notice" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">공지사항</a>
+        <a href="index.html#how-it-works" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">이용 방법</a>
         <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
-        <a href="index.html#reviews" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">고객후기</a>
+        <a href="index.html#notice" data-open-notice style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">공지사항</a>
         <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
         <a href="index.html#faq" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">자주 묻는 질문(FAQ)</a>
       </nav>
@@ -117,7 +117,7 @@
           <div class="auth-buttons" style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 500; color: #6B7280; white-space: nowrap;">
             <a href="login.html" style="text-decoration: none; font-weight: 700; color: #8FA482; transition: color 0.2s;">로그인</a>
             <span style="color: #d1d5db; font-size: 13.5px; font-weight: 400;">|</span>
-            <a href="login.html" style="text-decoration: none; font-weight: 500; color: #6B7280; transition: color 0.2s;">회원가입</a>
+            <a href="signup.html" style="text-decoration: none; font-weight: 500; color: #6B7280; transition: color 0.2s;">회원가입</a>
           </div>
         </div>
 
@@ -136,7 +136,7 @@
   <aside class="wb-drawer" id="wbMobileDrawer" role="dialog" aria-modal="true" aria-label="모바일 메뉴" aria-hidden="true">
     <div class="wb-drawer-topbar" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #F0F1F3; flex: none;">
       <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
-        <img src="/images/withbridge-logo.png" alt="위드브릿지 로고" style="height: 32px; width: auto; display: block; object-fit: contain;" />
+        <img src="./images/logo_main.png" alt="위드브릿지 로고" style="height: 32px; width: auto; display: block; object-fit: contain;" />
       </a>
       <button type="button" id="wbDrawerClose" aria-label="메뉴 닫기" style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: none; background: transparent; cursor: pointer;">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1D21" stroke-width="2" stroke-linecap="round"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
@@ -145,8 +145,8 @@
     <nav style="display: flex; flex-direction: column; padding: 10px 16px; gap: 2px; font-family: 'Noto Sans KR', sans-serif;">
       <a href="story.html" class="wb-drawer-link">소개</a>
       <a href="index.html#services" class="wb-drawer-link">서비스</a>
-      <a href="index.html#notice" class="wb-drawer-link">공지사항</a>
-      <a href="index.html#reviews" class="wb-drawer-link">고객후기</a>
+      <a href="index.html#how-it-works" class="wb-drawer-link">이용 방법</a>
+      <a href="index.html#notice" data-open-notice class="wb-drawer-link">공지사항</a>
       <a href="index.html#faq" class="wb-drawer-link">자주 묻는 질문(FAQ)</a>
       <a href="http://pf.kakao.com/_PKxemX" target="_blank" rel="noopener noreferrer" class="wb-drawer-link">문의하기</a>
     </nav>
@@ -154,7 +154,7 @@
       <div class="auth-buttons wb-drawer-auth-buttons" style="display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 14.5px; font-weight: 500; color: #6B7280;">
         <a href="login.html" style="color: #6B7280; text-decoration: none;">로그인</a>
         <span style="color: #d1d5db;">|</span>
-        <a href="login.html" style="color: #6B7280; text-decoration: none;">회원가입</a>
+        <a href="signup.html" style="color: #6B7280; text-decoration: none;">회원가입</a>
       </div>
     </div>
   </aside>
@@ -196,10 +196,13 @@
     <!-- 다른 로그인 영역 (초기 상태: 숨김) -->
     <div id="otherLoginArea" style="display: none;">
       <!-- 이메일/비밀번호 폼 -->
-      <form onsubmit="return false;" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px;">
-        <input type="email" placeholder="아이디" style="width: 100%; height: 48px; padding: 0 14px; border: 1px solid #E0E0E0; border-radius: 0px; font-size: 14px; outline: none; background-color: #ffffff; color: #1A1D21;">
-        <input type="password" placeholder="비밀번호" style="width: 100%; height: 48px; padding: 0 14px; border: 1px solid #E0E0E0; border-radius: 0px; font-size: 14px; outline: none; background-color: #ffffff; color: #1A1D21;">
+      <form id="emailAuthForm" onsubmit="return false;" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px;">
+        <input type="email" id="authEmail" name="authEmail" placeholder="이메일" autocomplete="email" style="width: 100%; height: 48px; padding: 0 14px; border: 1px solid #E0E0E0; border-radius: 0px; font-size: 14px; outline: none; background-color: #ffffff; color: #1A1D21;">
+        <input type="password" id="authPassword" name="authPassword" placeholder="비밀번호 (8자 이상)" autocomplete="current-password" style="width: 100%; height: 48px; padding: 0 14px; border: 1px solid #E0E0E0; border-radius: 0px; font-size: 14px; outline: none; background-color: #ffffff; color: #1A1D21;">
       </form>
+
+      <!-- 이메일/비밀번호 검증·요청 에러 메시지 (loginWithEmail 이 채웁니다) -->
+      <p id="authFormError" style="display: none; margin: 0 0 14px; font-size: 12.5px; color: #DC2626; text-align: left; line-height: 1.5;"></p>
 
       <!-- 아이디/비밀번호 찾기 링크 -->
       <div style="display: flex; justify-content: flex-end; gap: 10px; font-size: 12px; color: #999999; margin-bottom: 20px;">
@@ -211,14 +214,14 @@
       <!-- 각진 형태의 로그인 버튼들 -->
       <div style="display: flex; flex-direction: column; gap: 8px;">
         <!-- 기존 회원 로그인 (Sage Green 직각 버튼) -->
-        <button onclick="alert('소셜 로그인(카카오)을 이용해 주세요.')" style="width: 100%; height: 48px; background-color: #8FA482; color: #ffffff; border: none; padding: 0; border-radius: 0px; font-size: 14px; font-weight: 700; cursor: pointer;">
+        <button type="button" onclick="loginWithEmail()" style="width: 100%; height: 48px; background-color: #8FA482; color: #ffffff; border: none; padding: 0; border-radius: 0px; font-size: 14px; font-weight: 700; cursor: pointer;">
           기존 회원 로그인
         </button>
 
-        <!-- 회원가입 (각진 테두리 버튼) -->
-        <button onclick="loginWithKakao()" style="width: 100%; height: 48px; background-color: #ffffff; color: #1A1D21; border: 1px solid #1A1D21; padding: 0; border-radius: 0px; font-size: 14px; font-weight: 500; cursor: pointer;">
+        <!-- 회원가입 (각진 테두리 버튼) : 별도의 가입 전용 페이지(signup.html)로 이동 -->
+        <a href="signup.html" style="display: flex; align-items: center; justify-content: center; width: 100%; height: 48px; background-color: #ffffff; color: #1A1D21; border: 1px solid #1A1D21; padding: 0; border-radius: 0px; font-size: 14px; font-weight: 500; text-decoration: none; box-sizing: border-box;">
           회원가입
-        </button>
+        </a>
 
         <!-- 비회원 문의하기 (각진 테두리 버튼) -->
         <a href="http://pf.kakao.com/_PKxemX" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; justify-content: center; width: 100%; height: 48px; background-color: #ffffff; color: #1A1D21; border: 1px solid #E0E0E0; padding: 0; border-radius: 0px; font-size: 14px; font-weight: 500; text-decoration: none;">
@@ -228,30 +231,6 @@
     </div>
 
   </main>
-
-  <!-- ==================================================================== -->
-  <!-- 03. 어르신 정보 입력 팝업창 (각진 모달 형태) -->
-  <!-- ==================================================================== -->
-  <div id="seniorModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:99999; padding:16px; box-sizing:border-box;">
-    <div style="background:#F9F9F7; padding:32px; border-radius:0px; width:90%; max-width:420px; max-height:calc(100vh - 32px); overflow-y:auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 1px solid #1A1D21; box-sizing:border-box;">
-      <h3 style="color:#2C2C2C; margin-top:0; font-size:20px; font-weight: 700;">돌봄을 받으실 어르신 정보</h3>
-      <p style="color:#666; font-size:13px; margin-bottom: 20px;">원활한 병원 동행 예약을 위해 필수 정보를 입력해 주세요.</p>
-      
-      <label style="font-size:13px; font-weight:bold; display:block; margin-bottom:4px; text-align:left;">어르신 성함 *</label>
-      <input type="text" id="seniorName" placeholder="예: 홍길동" style="width:100%; margin-bottom: 15px; padding:12px; border:1px solid #ccc; border-radius:0px; box-sizing:border-box;">
-      
-      <label style="font-size:13px; font-weight:bold; display:block; margin-bottom:4px; text-align:left;">생년월일</label>
-      <input type="date" id="seniorBirth" style="width:100%; margin-bottom: 15px; padding:12px; border:1px solid #ccc; border-radius:0px; box-sizing:border-box;">
-      
-      <label style="font-size:13px; font-weight:bold; display:block; margin-bottom:4px; text-align:left;">거주지 주소 *</label>
-      <input type="text" id="seniorAddress" placeholder="예: 서울시 종로구 ..." style="width:100%; margin-bottom: 15px; padding:12px; border:1px solid #ccc; border-radius:0px; box-sizing:border-box;">
-      
-      <label style="font-size:13px; font-weight:bold; display:block; margin-bottom:4px; text-align:left;">주의사항 (선택)</label>
-      <textarea id="healthNote" placeholder="예: 휠체어 이용 필요" style="width:100%; margin-bottom: 20px; padding:12px; border:1px solid #ccc; border-radius:0px; height:80px; box-sizing:border-box;"></textarea>
-      
-      <button onclick="saveSeniorInfo()" style="width:100%; background:#8FA482; color:#fff; border:none; padding:15px; border-radius:0px; font-weight:bold; font-size:15px; cursor:pointer;">저장하고 메인으로 이동</button>
-    </div>
-  </div>
 
   <!-- ==================================================================== -->
   <!-- 11. 하단 푸터 (Footer) -->
@@ -291,9 +270,6 @@
       }
     })();
 
-    // 브라우저 기본 날짜 피커 대신 위드브릿지 커스텀 피커로 교체 (wb-datepicker.js)
-    if (window.WBDatePicker) WBDatePicker.attach(document.getElementById('seniorBirth'));
-
     // 카카오 로그인 · 회원가입 (버튼 위치와 상관없이 모두 이 함수를 거칩니다)
     async function loginWithKakao() {
       // 버튼 아래 안내 문구대로 '로그인 = 이용약관 동의'. 이 브라우저에 동의한 약관 버전만 기록합니다 (terms-modal.js)
@@ -305,49 +281,80 @@
         return;
       }
       const redirectUrl = window.location.origin + '/index.html';
-      // scopes: 'account_phone_number' — 카카오 계정에 연동된 전화번호 동의 항목을 함께 요청합니다.
-      // ⚠ 이 한 줄만으로는 번호가 들어오지 않을 수 있습니다 — 두 가지 외부 조건이 더 필요합니다:
-      //   (1) 카카오 디벨로퍼스 콘솔에서 이 앱이 "비즈 앱" 전환 + 전화번호 동의항목 심사를 통과해야
-      //       카카오가 이 scope 요청 자체를 승인합니다(코드로 해결 불가, 사업자가 콘솔에서 진행).
-      //   (2) 카카오가 동의를 받아 phone_number 를 돌려주더라도, Supabase Auth(GoTrue)의 카카오
-      //       프로바이더가 그 값을 raw_user_meta_data 로 실제로 매핑해 줘야 sql/
-      //       profile_phone_kakao_sync.sql 의 트리거가 읽을 수 있습니다 — 이 매핑 여부는 Supabase 쪽
-      //       구현에 달려 있어 이 코드만으로는 보장할 수 없습니다.
-      // 두 조건 중 하나라도 충족되지 않으면 profiles.phone 은 계속 NULL 로 남고, package.html 결제
-      // 시점의 1회 입력 플로우(set_initial_phone_if_missing)가 그 경우를 받아 처리합니다.
+      // scopes: 'account_phone_number' 는 일시적으로 제거했습니다 — 카카오 디벨로퍼스 콘솔에서
+      // 이 앱의 "비즈 앱" 전환 + 전화번호 동의항목 심사가 끝나지 않은 상태로 이 scope를 요청하면
+      // 카카오가 KOE205(설정되지 않은 동의항목 요청)로 전체 로그인을 거부합니다.
+      // 콘솔에서 해당 동의항목이 "승인" 상태가 된 뒤에만 다시 추가하세요. 전화번호가 없는 동안은
+      // package.html 결제 시점의 1회 입력 플로우(set_initial_phone_if_missing)가 대신 처리합니다.
       const { data, error } = await client.auth.signInWithOAuth({
         provider: 'kakao',
         options: {
-          redirectTo: redirectUrl,
-          scopes: 'account_phone_number'
+          redirectTo: redirectUrl
         }
       });
       if (error) alert("로그인 오류: " + error.message);
     }
 
-    // 어르신 정보 등록 여부 확인
-    async function checkSeniorInfo(user) {
-      const client = getSupabase();
-      if (!user || !client) return;
+    // ---------- 이메일/비밀번호 로그인 (회원가입은 signup.html 전용 페이지에서 처리) ----------
+    var EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    var AUTH_PASSWORD_MIN_LENGTH = 8;
 
-      const { data: seniors, error } = await client
-        .from('seniors')
-        .select('*')
-        .eq('user_id', user.id);
+    function getAuthFormError() {
+      return document.getElementById('authFormError');
+    }
+    function showAuthFormError(msg) {
+      var el = getAuthFormError();
+      if (el) { el.textContent = msg; el.style.display = 'block'; } else { alert(msg); }
+    }
+    function clearAuthFormError() {
+      var el = getAuthFormError();
+      if (el) { el.textContent = ''; el.style.display = 'none'; }
+    }
 
-      if (error) {
-        console.error("어르신 정보 조회 에러:", error.message);
+    function readEmailPasswordInputs() {
+      var emailEl = document.getElementById('authEmail');
+      var passwordEl = document.getElementById('authPassword');
+      return {
+        email: (emailEl && emailEl.value || '').trim(),
+        password: (passwordEl && passwordEl.value) || ''
+      };
+    }
+
+    // 이메일 형식 + 비밀번호 8자 이상 규칙을 검사합니다.
+    function validateEmailPassword(email, password) {
+      if (!email || !EMAIL_PATTERN.test(email)) return '올바른 이메일 주소를 입력해 주세요.';
+      if (!password || password.length < AUTH_PASSWORD_MIN_LENGTH) return '비밀번호는 ' + AUTH_PASSWORD_MIN_LENGTH + '자 이상이어야 합니다.';
+      return null;
+    }
+
+    async function loginWithEmail() {
+      clearAuthFormError();
+      var input = readEmailPasswordInputs();
+      var validationError = validateEmailPassword(input.email, input.password);
+      if (validationError) { showAuthFormError(validationError); return; }
+
+      var client = getSupabase();
+      if (!client) { showAuthFormError('Supabase SDK 로딩 중입니다. 잠시 후 다시 시도해 주세요.'); return; }
+
+      // 버튼 아래 안내 문구대로 '로그인 = 이용약관 동의' (카카오 로그인과 동일하게 처리)
+      if (window.WBTerms) window.WBTerms.recordAgreement();
+
+      var result = await client.auth.signInWithPassword({ email: input.email, password: input.password });
+      if (result.error) {
+        console.error('[이메일 로그인 오류]', result.error.message);
+        showAuthFormError('이메일 또는 비밀번호가 올바르지 않습니다.');
         return;
       }
+      // 세션이 생기면 아래 onAuthStateChange(SIGNED_IN) 핸들러가 어르신 정보 확인/이동을 이어서 처리합니다.
+    }
 
-      if (!seniors || seniors.length === 0) {
-        // 어르신 정보가 없으면 등록 모달 표시
-        const seniorModal = document.getElementById('seniorModal');
-        if (seniorModal) seniorModal.style.display = 'flex';
-      } else {
-        // 이미 정보가 등록된 회원이면 메인 페이지로 이동
-        window.location.href = "index.html";
-      }
+    // 회원가입 처리 자체는 signup.html 전용 페이지로 분리했습니다 (이 페이지는 로그인만 담당).
+
+    // 로그인 완료(이미 세션이 있거나 방금 SIGNED_IN) 시 바로 메인 페이지로 이동합니다.
+    // '돌봄을 받으실 어르신 정보' 입력은 더 이상 로그인 직후 자동으로 묻지 않고, mypage.html 에서
+    // 사용자가 직접 '어르신 추가 등록'을 눌렀을 때만 받습니다.
+    function goToMain() {
+      window.location.href = "index.html";
     }
 
     // 페이지 진입 시 로그인 세션 체크
@@ -357,53 +364,14 @@
 
       const { data: { session } } = await client.auth.getSession();
       if (session) {
-        await checkSeniorInfo(session.user);
+        goToMain();
+        return;
       }
 
-      client.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-          // 콜백 안에서 바로 await 하면 교착될 수 있어 setTimeout 으로 분리
-          setTimeout(() => checkSeniorInfo(session.user), 0);
-        } else if (event === 'SIGNED_OUT') {
-          // 로그아웃하면 어르신 정보 입력 팝업도 닫기
-          const seniorModal = document.getElementById('seniorModal');
-          if (seniorModal) seniorModal.style.display = 'none';
-        }
+      client.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN' && session) goToMain();
       });
     });
-
-    // 어르신 정보 DB 저장 후 메인 페이지 이동
-    async function saveSeniorInfo() {
-      const client = getSupabase();
-      const { data: { session } } = await client.auth.getSession();
-      if (!session) return alert("로그인이 필요합니다.");
-
-      const seniorName = document.getElementById('seniorName').value;
-      const seniorBirth = document.getElementById('seniorBirth').value;
-      const seniorAddress = document.getElementById('seniorAddress').value;
-      const healthNote = document.getElementById('healthNote').value;
-
-      if (!seniorName || !seniorAddress) {
-        return alert("성함과 주소는 필수 입력 항목입니다.");
-      }
-
-      const { error } = await client.from('seniors').insert([
-        {
-          user_id: session.user.id,
-          senior_name: seniorName,
-          senior_birth: seniorBirth || null,
-          address: seniorAddress,
-          health_note: healthNote
-        }
-      ]);
-
-      if (error) {
-        alert("저장 에러: " + error.message);
-      } else {
-        alert("어르신 정보가 성공적으로 저장되었습니다!");
-        window.location.href = "index.html";
-      }
-    }
   </script>
 </body>
 </html>

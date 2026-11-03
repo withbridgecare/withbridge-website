@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>관리자 로그 | 위드브릿지 어드민 콘솔</title>
+  <link rel="icon" href="./images/withbridge_logo.png" type="image/png">
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <!-- Supabase JS SDK v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="/admin.css?v=1.18">
+  <link rel="stylesheet" href="/mobile-nav.css?v=1.0">
+  <style>
+    /* 이 페이지 전용 — 날짜 범위 입력 두 칸을 필터 바 안에서 나란히 묶어 보이게 합니다. */
+    .admin-date-range { display: flex; align-items: center; gap: 8px; }
+    .admin-date-range input[type="date"] {
+      padding: 10px 12px; border: 1px solid var(--card-border); border-radius: 9999px;
+      background: var(--card); color: var(--ink); font: inherit; font-size: 13px;
+    }
+    .admin-date-range input[type="date"]:focus { outline: none; border-color: var(--sage-500); box-shadow: 0 0 0 3px rgba(120, 134, 107, .18); }
+    .admin-date-range span { color: var(--ink-sub); font-size: 13px; }
+    .admin-logs-select {
+      padding: 10px 14px; border: 1px solid var(--card-border); border-radius: 9999px;
+      background: var(--card); color: var(--ink); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+    .admin-logs-select:focus { outline: none; border-color: var(--sage-500); box-shadow: 0 0 0 3px rgba(120, 134, 107, .18); }
+    .admin-logs-detail { font-size: 12px; color: var(--ink-sub); word-break: break-all; }
+    .admin-readonly-notice {
+      margin: 0 0 20px; padding: 10px 14px; border-radius: var(--radius-sm);
+      background: var(--sage-50); color: var(--sage-700); font-size: 12.5px; font-weight: 600;
+    }
+
+    /* 표가 가로로 넘치지 않도록 컬럼 폭을 <colgroup> 비율로 고정하고(table-layout: fixed), 텍스트가
+       많은 칸은 .admin-settlement-table 기본값(오른쪽 정렬·줄바꿈 없음, 숫자 표 기준)을 왼쪽 정렬·
+       줄바꿈 허용으로 바꿉니다. */
+    .admin-logs-table { table-layout: fixed; }
+    .admin-logs-table th, .admin-logs-table td { text-align: left; white-space: normal; word-break: break-word; vertical-align: top; }
+    .admin-logs-target-sub { display: block; margin-top: 2px; font-size: 12px; color: var(--ink-sub); }
+    /* 세부 내용 칸 — 한 줄로 말줄임표 처리하고, title 속성으로 호버 시 전체 내용을 보여주며,
+       클릭하면 logDetailModal 에 전체 내용을 펼쳐 보여줍니다. */
+    .admin-logs-detail-trunc {
+      display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      cursor: pointer; color: var(--sage-700); text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 2px;
+      background: none; border: none; padding: 0; font: inherit; text-align: left;
+    }
+    .admin-logs-detail-trunc:hover { color: var(--sage-600); }
+    #logDetailGrid dd { white-space: pre-wrap; word-break: break-word; }
+  </style>
+</head>
+<body>
+
+  <!-- ==================================================================== -->
+  <!-- 01. 상단 헤더 — admin.html 과 같은 톤, 로그 페이지임을 분명히 하고 콘솔로 돌아가는 링크를 둡니다 -->
+  <!-- ==================================================================== -->
+  <header class="admin-header">
+    <div class="admin-header-inner">
+      <h1 class="admin-title">관리자 로그</h1>
+      <div class="admin-account" id="adminAccount" hidden>
+        <span class="admin-account-name" id="adminName">관리자</span>
+        <a class="admin-refresh-btn" href="admin.html">← 어드민 콘솔로</a>
+        <button type="button" class="admin-logout-btn" id="logoutBtn">로그아웃</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <section class="admin-card" aria-labelledby="logsTitle">
+      <div class="admin-card-head">
+        <h2 id="logsTitle">관리자 활동 이력</h2>
+        <div class="admin-card-head-actions">
+          <span class="admin-count" id="logsCount" hidden>0건</span>
+          <button type="button" class="admin-btn is-ghost" id="logsExportBtn">엑셀 다운로드</button>
+        </div>
+      </div>
+      <p class="admin-card-desc">
+        회원 정보 수정 · CS 메모 작성 · 계정 정지/활성화 등 관리자가 수행한 민감한 조작을 모두 기록합니다.
+        이 화면은 조회만 가능한 Read-Only 감사 화면입니다 — 수정·삭제 기능이 없고, DB 쪽에도 이 로그를
+        고치거나 지울 수 있는 경로가 아예 없습니다.
+      </p>
+      <p class="admin-readonly-notice">읽기 전용(Read-Only) — 이 화면과 연결된 admin_logs 테이블은 어떤 경로로도 수정·삭제할 수 없습니다.</p>
+
+      <div class="admin-filter-bar">
+        <div class="admin-date-range">
+          <span>기간</span>
+          <input type="date" id="logsDateFrom">
+          <span>~</span>
+          <input type="date" id="logsDateTo">
+        </div>
+        <select class="admin-logs-select" id="logsAdminFilter">
+          <option value="">관리자 전체</option>
+        </select>
+        <select class="admin-logs-select" id="logsActionFilter">
+          <option value="">작업 종류 전체</option>
+        </select>
+        <button type="button" class="admin-btn is-ghost" id="logsResetFilterBtn" style="flex: none;">필터 초기화</button>
+      </div>
+
+      <div class="admin-settlement-table-wrap">
+        <table class="admin-settlement-table admin-logs-table" id="logsTable">
+          <colgroup>
+            <col style="width: 15%">
+            <col style="width: 17%">
+            <col style="width: 14%">
+            <col style="width: 20%">
+            <col style="width: 34%">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>일시</th>
+              <th>관리자</th>
+              <th>작업 종류</th>
+              <th>대상</th>
+              <th>세부 내용</th>
+            </tr>
+          </thead>
+          <tbody id="logsTableBody">
+            <tr><td colspan="5" class="admin-loading">불러오는 중…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="admin-pagination" id="logsPaginationWrap" hidden></div>
+    </section>
+  </main>
+
+  <!-- 세부 내용 전체보기 모달 — "세부 내용" 칸을 클릭하면 열립니다(말줄임표로 잘린 내용을 전부 보여줌) -->
+  <div class="modal-backdrop" id="logDetailModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="logDetailModalTitle">
+      <div class="modal-head">
+        <h3 id="logDetailModalTitle">로그 상세</h3>
+        <button type="button" class="modal-close-btn" id="logDetailCloseBtn" aria-label="닫기">✕</button>
+      </div>
+      <dl class="admin-detail-grid" id="logDetailGrid"></dl>
+      <div class="modal-actions">
+        <button type="button" class="admin-btn is-ghost" id="logDetailCloseBtn2">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-toast" id="adminToast" hidden></div>
+
+  <script src="/admin-logs.js?v=1.1" defer></script>
+</body>
+</html>

@@ -27,35 +27,67 @@
       'transition:border-color .15s ease,box-shadow .15s ease,background-color .15s ease;}' +
       '.wbdp-trigger .wbdp-text.is-placeholder{color:#9CA3AF;font-weight:500;}' +
       '.wbdp-trigger:hover{border-color:#D1D5DB;}' +
-      '.wbdp-trigger:focus-visible,.wbdp-trigger.is-open{outline:none;border-color:#78866B;background:#fff;' +
-      'box-shadow:0 0 0 3px rgba(120,134,107,.2),0 2px 10px rgba(15,23,42,.05);}' +
+      '.wbdp-trigger:focus-visible,.wbdp-trigger.is-open{outline:none;border-color:#9ca3af;background:#fff;' +
+      'box-shadow:0 0 0 3px rgba(107,114,128,.15),0 2px 10px rgba(15,23,42,.05);}' +
       '.wbdp-trigger:disabled{opacity:.55;cursor:not-allowed;}' +
       '.wbdp-trigger-icon{flex:none;display:inline-flex;color:#78866B;}' +
-      '.wbdp-panel{position:absolute;z-index:200;top:calc(100% + 10px);left:0;width:320px;max-width:calc(100vw - 32px);' +
-      'background:#fff;border:1px solid #F1F2F4;border-radius:24px;box-shadow:0 20px 48px rgba(15,23,42,.16),0 4px 14px rgba(15,23,42,.06);' +
+      /* [레이아웃 재설계] 이 패널은 '케어 완료' 같은 모달(overflow-y:auto 로 스크롤되는 .modal) 안에서
+         열릴 때가 많습니다 — position:absolute 로 트리거의 부모 기준에 두면, 트리거가 모달 하단 쪽에
+         있을 때 패널이 모달의 overflow-y:auto 경계에 그대로 잘려 나가(스크롤 영역을 벗어난 부분이
+         숨겨짐) "레이아웃이 깨진다"는 증상으로 보였습니다. position:fixed 로 바꿔 뷰포트 기준 좌표로
+         직접 배치하면(openPanel()의 positionPanel() 참고) 어떤 overflow:auto 조상 안에서도 잘리지
+         않습니다. z-index 도 이 사이트의 모달 배경(.modal-backdrop 등)이 쓰는 200보다 넉넉히 높여
+         둡니다. */
+      '.wbdp-panel{position:fixed;z-index:2000;width:320px;max-width:calc(100vw - 24px);' +
+      'background:#fff;border:1px solid #F1F2F4;border-radius:24px;' +
+      'box-shadow:0 24px 56px rgba(15,23,42,.18),0 6px 16px rgba(15,23,42,.08);' +
       'padding:20px;transform:scale(.97) translateY(-4px);opacity:0;pointer-events:none;' +
       'transition:transform .15s ease,opacity .15s ease;}' +
       '.wbdp-panel.is-open{transform:scale(1) translateY(0);opacity:1;pointer-events:auto;}' +
-      '.wbdp-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;}' +
+      '.wbdp-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:16px;}' +
       '.wbdp-nav-btn{flex:none;width:32px;height:32px;border-radius:50%;border:1px solid #E5E7EB;background:#fff;' +
       'display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:#1A1D21;' +
       'transition:background-color .15s ease;}' +
       '.wbdp-nav-btn:hover{background:#F3F4F6;}' +
       '.wbdp-nav-btn:disabled{opacity:.3;cursor:not-allowed;}' +
-      '.wbdp-ym{display:flex;align-items:center;gap:6px;min-width:0;flex:1 1 auto;justify-content:center;}' +
-      '.wbdp-ym select{border:1px solid #E5E7EB;border-radius:9999px;padding:6px 10px;font:inherit;font-size:13px;' +
-      'font-weight:700;color:#1A1D21;background:#F9FAFB;cursor:pointer;flex:none;box-sizing:content-box;}' +
+      /* [레이아웃 재설계] 네이티브 <select> 는 브라우저/OS 마다 화살표 폭이 달라 글자와 겹치는 문제가
+         반복됐습니다 — select 자체를 버리고, 이 사이트의 다른 UI(트리거 버튼·필 모양 뱃지)와 같은
+         톤의 버튼 + 팝오버 목록으로 다시 만듭니다. 화살표는 항상 버튼 안의 <span> 아이콘으로 직접
+         그리므로(네이티브 렌더링에 의존하지 않음) 글자와 겹칠 수 없습니다. */
+      '.wbdp-ym{display:flex;align-items:center;flex-wrap:nowrap;gap:8px;min-width:0;flex:1 1 auto;justify-content:center;}' +
+      '.wbdp-ym-dd{position:relative;flex:none;}' +
+      '.wbdp-ym-btn{display:flex;align-items:center;justify-content:center;gap:4px;height:34px;box-sizing:border-box;' +
+      'padding:0 12px;border:1px solid #E5E7EB;border-radius:9999px;background:#F9FAFB;' +
+      'font:inherit;font-size:13.5px;font-weight:700;color:#1A1D21;cursor:pointer;white-space:nowrap;' +
+      'transition:border-color .15s ease,background-color .15s ease,box-shadow .15s ease;}' +
+      '.wbdp-ym-btn:hover{border-color:#D1D5DB;}' +
+      '.wbdp-ym-btn.is-open,.wbdp-ym-btn:focus-visible{outline:none;border-color:#9ca3af;background:#fff;' +
+      'box-shadow:0 0 0 3px rgba(107,114,128,.15);}' +
+      '.wbdp-ym-btn-chevron{flex:none;display:inline-flex;color:#9CA3AF;transition:transform .15s ease,color .15s ease;}' +
+      '.wbdp-ym-btn.is-open .wbdp-ym-btn-chevron{transform:rotate(180deg);color:#6b7280;}' +
       /* 연도는 "2026년"처럼 4자리+글자, 월은 "12월"처럼 최대 2자리+글자라 필요한 폭이 다릅니다 —
-         공통 규칙에 min-width 없이 두면(.wbdp-nav 양옆 원형 버튼과 한 줄에 끼여 좁아지는 화면에서)
-         select 가 내용보다 좁게 눌려 "2026년"이 "202"처럼 잘려 보이는 원인이 됩니다. */
-      '.wbdp-ym select.wbdp-year-select{min-width:60px;text-align:center;}' +
-      '.wbdp-ym select.wbdp-month-select{min-width:40px;text-align:center;}' +
-      '.wbdp-dow{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:2px;}' +
+         min-width 로 각각 넉넉한 최소 폭을 고정해 둬서, .wbdp-nav 양옆 원형 버튼과 한 줄에 끼여
+         좁아지는 화면에서도 글자가 잘리거나 화살표와 부딪히지 않습니다. */
+      '.wbdp-year-dd .wbdp-ym-btn{min-width:88px;}' +
+      '.wbdp-month-dd .wbdp-ym-btn{min-width:66px;}' +
+      '.wbdp-ym-pop{position:absolute;z-index:10;top:calc(100% + 6px);left:50%;width:112px;' +
+      'transform:translateX(-50%) scale(.96) translateY(-2px);background:#fff;border:1px solid #F1F2F4;' +
+      'border-radius:16px;box-shadow:0 16px 36px rgba(15,23,42,.16),0 4px 10px rgba(15,23,42,.06);' +
+      'opacity:0;pointer-events:none;transition:transform .12s ease,opacity .12s ease;}' +
+      '.wbdp-ym-pop.is-open{transform:translateX(-50%) scale(1) translateY(0);opacity:1;pointer-events:auto;}' +
+      '.wbdp-ym-pop-list{max-height:216px;overflow-y:auto;padding:6px;scrollbar-width:none;}' +
+      '.wbdp-ym-pop-list::-webkit-scrollbar{display:none;}' +
+      '.wbdp-ym-pop-item{display:block;width:100%;box-sizing:border-box;padding:9px 10px;border:none;' +
+      'border-radius:10px;background:transparent;font:inherit;font-size:13.5px;font-weight:600;color:#374151;' +
+      'text-align:center;cursor:pointer;font-variant-numeric:tabular-nums;transition:background-color .15s ease;}' +
+      '.wbdp-ym-pop-item:hover{background:#F3F4F6;}' +
+      '.wbdp-ym-pop-item.is-selected{background:#78866B;color:#fff;font-weight:800;}' +
+      '.wbdp-dow{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px;}' +
       '.wbdp-dow span{text-align:center;font-size:11.5px;font-weight:700;color:#9CA3AF;padding-bottom:6px;}' +
-      '.wbdp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}' +
+      '.wbdp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}' +
       '.wbdp-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border:none;background:transparent;' +
-      'border-radius:12px;font-size:13.5px;font-weight:600;color:#1A1D21;cursor:pointer;transition:background-color .15s ease;}' +
-      '.wbdp-day:hover:not(:disabled){background:#F3F4F6;}' +
+      'border-radius:14px;font-size:13.5px;font-weight:600;color:#1A1D21;cursor:pointer;transition:background-color .15s ease;}' +
+      '.wbdp-day:hover:not(:disabled){background:#F1F5F0;}' +
       '.wbdp-day.is-today{color:#78866B;font-weight:800;}' +
       '.wbdp-day.is-selected{background:#78866B;color:#fff;font-weight:800;}' +
       '.wbdp-day:disabled{color:#E2E4E8;cursor:not-allowed;}' +
@@ -86,6 +118,9 @@
   // ---------- 아이콘 ----------
   var ICON_CALENDAR = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="4"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>';
   var ICON_CLOCK = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>';
+  // 연/월 커스텀 드롭다운 버튼의 화살표 — 네이티브 select 화살표 대신 항상 이 아이콘 하나만 그려서
+  // 브라우저마다 다르게 렌더링되는 네이티브 화살표와 글자가 겹치는 문제를 원천적으로 없앱니다.
+  var ICON_CHEVRON_DOWN = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
   var WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
   function pad2(n) { return String(n).padStart(2, '0'); }
@@ -94,6 +129,59 @@
     if (cls) e.className = cls;
     if (html != null) e.innerHTML = html;
     return e;
+  }
+
+  // ---------- 연/월 선택용 커스텀 드롭다운 (select 대체) ----------
+  // 한 번에 하나만 열리게(연도 드롭다운을 열어 둔 채 월 드롭다운을 누르면 먼저 닫힘) openYm 로 공유합니다.
+  var openYm = null; // { dd, close() }
+  function closeYmDropdown() { if (openYm) { openYm.close(); openYm = null; } }
+
+  function createYmDropdown(cls) {
+    var wrap = el('div', 'wbdp-ym-dd ' + cls);
+    var btn = el('button', 'wbdp-ym-btn');
+    btn.type = 'button';
+    btn.setAttribute('aria-haspopup', 'listbox');
+    btn.setAttribute('aria-expanded', 'false');
+    var btnText = el('span', 'wbdp-ym-btn-text');
+    var chevron = el('span', 'wbdp-ym-btn-chevron', ICON_CHEVRON_DOWN);
+    btn.append(btnText, chevron);
+    var pop = el('div', 'wbdp-ym-pop');
+    pop.setAttribute('role', 'listbox');
+    var list = el('div', 'wbdp-ym-pop-list');
+    pop.appendChild(list);
+    wrap.append(btn, pop);
+
+    var dd = { wrap: wrap, btn: btn, btnText: btnText, list: list };
+
+    function toggle() {
+      if (openYm && openYm.dd === dd) { closeYmDropdown(); return; }
+      closeYmDropdown();
+      pop.classList.add('is-open');
+      btn.classList.add('is-open');
+      btn.setAttribute('aria-expanded', 'true');
+      var sel = list.querySelector('.is-selected');
+      if (sel) sel.scrollIntoView({ block: 'center' });
+      openYm = {
+        dd: dd,
+        close: function () { pop.classList.remove('is-open'); btn.classList.remove('is-open'); btn.setAttribute('aria-expanded', 'false'); }
+      };
+    }
+    btn.addEventListener('click', toggle);
+
+    // items: [{value, label}] — selectedValue 와 같은 항목에 is-selected, 누르면 onPick(value) 후 닫힘.
+    dd.fill = function (items, selectedValue, selectedLabel, onPick) {
+      btnText.textContent = selectedLabel;
+      list.innerHTML = '';
+      items.forEach(function (it) {
+        var item = el('button', 'wbdp-ym-pop-item', it.label);
+        item.type = 'button';
+        item.setAttribute('role', 'option');
+        if (it.value === selectedValue) item.classList.add('is-selected');
+        item.addEventListener('click', function () { closeYmDropdown(); onPick(it.value); });
+        list.appendChild(item);
+      });
+    };
+    return dd;
   }
 
   // ---------- 값 파싱/포맷 ----------
@@ -117,12 +205,35 @@
   // ---------- 모듈 상태: 패널은 한 번에 하나만 열려 있게 ----------
   var openState = null; // { panel, trigger, close() }
   function closeOpen() { if (openState) { openState.close(); openState = null; } }
+  // 패널/트리거 내부 클릭인지 판단 — wrap.contains() 만으로는 충분하지만, closest() 로도 한 번 더
+  // 확인해 어떤 경로로 들어와도(예: 향후 마크업이 바뀌어 wrap 바깥에 포털로 붙는 경우 등) 패널 내부
+  // 클릭이 바깥 클릭으로 오판되지 않도록 이중으로 막아 둡니다.
+  function isInsideOpenPanel(target) {
+    if (!openState || !target || typeof target.closest !== 'function') return false;
+    return openState.wrap.contains(target) || !!target.closest('.wbdp, .wbdp-panel, .wbdp-ym-pop');
+  }
   document.addEventListener('mousedown', function (e) {
     if (!openState) return;
-    if (openState.wrap.contains(e.target)) return;
+    if (isInsideOpenPanel(e.target)) return;
     closeOpen();
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && openState) closeOpen(); });
+  // 패널이 position:fixed 로 뷰포트 좌표에 고정되므로(아래 openPanel() 참고), 모달 안쪽처럼 트리거만
+  // 스크롤되는 상황에서는 패널이 트리거를 따라가지 못하고 그 자리에 둥 떠 보일 수 있습니다 — 스크롤이
+  // 일어나면 그냥 닫아, 다시 열 때 트리거의 새 위치에 맞춰 정확히 다시 뜨게 합니다. capture:true 로
+  // 등록해야 overflow:auto 모달 안쪽 스크롤(버블링되지 않음)도 놓치지 않고 잡습니다.
+  //
+  // [버그 수정] 이 리스너가 capture:true 라서 "어디서든" 스크롤이 일어나면 무조건 닫아 버렸는데, 연/월
+  // 드롭다운을 열 때 선택된 항목으로 스크롤하는 scrollIntoView()나, 시/분을 휠로 스크롤해서 고르는
+  // 동작까지도 전부 "스크롤"로 잡혀서 패널 내부를 만지는 순간 패널 자체가 닫혀버리는 증상이 있었습니다.
+  // 스크롤 이벤트의 target 이 지금 열려 있는 패널 내부(연/월 팝업, 시간 휠 등)면 무시하고, 패널 밖
+  // (페이지/모달 쪽)이 스크롤될 때만 닫습니다.
+  window.addEventListener('scroll', function (e) {
+    if (!openState) return;
+    if (isInsideOpenPanel(e.target)) return;
+    closeOpen();
+  }, true);
+  window.addEventListener('resize', function () { closeOpen(); });
 
   // 네이티브 input.value 를 patch 해서, 페이지 쪽 코드가 직접 `.value = ...` 로 값을 넣어도(예: 기본값
   // 미리 채우기) 트리거에 표시되는 문구가 자동으로 다시 그려지게 합니다.
@@ -154,13 +265,17 @@
     var prevBtn = el('button', 'wbdp-nav-btn', '‹'); prevBtn.type = 'button'; prevBtn.setAttribute('aria-label', '이전 달');
     var nextBtn = el('button', 'wbdp-nav-btn', '›'); nextBtn.type = 'button'; nextBtn.setAttribute('aria-label', '다음 달');
     var ym = el('div', 'wbdp-ym');
-    var ySel = document.createElement('select');
-    ySel.className = 'wbdp-year-select';
-    var mSel = document.createElement('select');
-    mSel.className = 'wbdp-month-select';
-    ym.append(ySel, el('span', '', '년'), mSel, el('span', '', '월'));
+    var yDd = createYmDropdown('wbdp-year-dd');
+    var mDd = createYmDropdown('wbdp-month-dd');
+    ym.append(yDd.wrap, mDd.wrap);
     nav.append(prevBtn, ym, nextBtn);
     container.appendChild(nav);
+    // 날짜 그리드를 눌러 달력을 넘기거나(이전/다음 달) 날짜를 고를 때는, 열려 있던 연/월 드롭다운을
+    // 먼저 닫습니다 — 네이티브 select 가 아니라 직접 띄운 팝오버라서, 다른 곳을 눌러도 저절로 닫히지
+    // 않고 그대로 겹쳐 남아 있을 수 있기 때문입니다.
+    container.addEventListener('mousedown', function (e) {
+      if (openYm && !openYm.dd.wrap.contains(e.target)) closeYmDropdown();
+    });
 
     var dow = el('div', 'wbdp-dow');
     WEEKDAYS.forEach(function (w) { dow.appendChild(el('span', '', w)); });
@@ -178,12 +293,9 @@
 
     function fillYearSelect() {
       var range = yearRange();
-      ySel.innerHTML = '';
-      for (var y = range[0]; y <= range[1]; y++) {
-        var o = document.createElement('option'); o.value = String(y); o.textContent = y + '년';
-        if (y === state.y) o.selected = true;
-        ySel.appendChild(o);
-      }
+      var items = [];
+      for (var y = range[0]; y <= range[1]; y++) items.push({ value: y, label: y + '년' });
+      yDd.fill(items, state.y, state.y + '년', function (v) { state.y = v; rerender(); });
     }
     function fillMonthSelect() {
       var lo = (min && state.y === min.y) ? min.m : 1;
@@ -192,12 +304,9 @@
       // state.m 을 범위 안으로 당겨서, 드롭다운 표시값과 실제 달력 상태가 어긋나지 않게 합니다.
       if (state.m < lo) state.m = lo;
       if (state.m > hi) state.m = hi;
-      mSel.innerHTML = '';
-      for (var m = lo; m <= hi; m++) {
-        var o = document.createElement('option'); o.value = String(m); o.textContent = m + '월';
-        if (m === state.m) o.selected = true;
-        mSel.appendChild(o);
-      }
+      var items = [];
+      for (var m = lo; m <= hi; m++) items.push({ value: m, label: m + '월' });
+      mDd.fill(items, state.m, state.m + '월', function (v) { state.m = v; rerender(); });
     }
 
     function daysInMonth(y, m) { return new Date(y, m, 0).getDate(); }
@@ -250,8 +359,6 @@
       if (state.m === 12) { state.m = 1; state.y += 1; } else { state.m += 1; }
       rerender();
     });
-    ySel.addEventListener('change', function () { state.y = +ySel.value; rerender(); });
-    mSel.addEventListener('change', function () { state.m = +mSel.value; rerender(); });
 
     rerender();
   }
@@ -476,6 +583,37 @@
       trigger.focus();
     }
 
+    // 패널은 position:fixed 라 뷰포트 좌표를 직접 계산해 넣어야 합니다(이 사이트의 '케어 완료' 같은
+    // 모달은 overflow-y:auto 로 스크롤되는데, 트리거의 부모 기준 position:absolute 로 두면 패널이
+    // 그 모달 경계에 그대로 잘려 보이는 문제가 있었습니다 — 자세한 설명은 위 .wbdp-panel 스타일 주석 참고).
+    //
+    // [레이아웃 수정] 예전에는 트리거 아래로 폈을 때 화면 밖으로 넘치면 위로 뒤집어 띄웠는데, 모달
+    // 안에서는 그렇게 위로 뒤집힌 패널의 윗부분이 모달 테두리나 위쪽 다른 필드에 가려 보이는 문제가
+    // 있었습니다(사용자 보고: '다음 진료 예약일' 입력창). 위로 뒤집는 분기를 없애고 항상 트리거
+    // 아래쪽에만(10px 여백) 열며, 혹시 뷰포트 아래 공간이 패널 전체 높이보다 부족하면 패널 자체의
+    // 최대 높이를 남은 공간에 맞춰 줄이고 내부 스크롤(overflow-y:auto)로 전부 볼 수 있게 합니다 —
+    // 이렇게 하면 패널이 항상 입력 필드 아래쪽에서, 모달 스크롤 영역 안에서도 잘리지 않고 온전히 보입니다.
+    function positionPanel() {
+      var margin = 12;
+      var tRect = trigger.getBoundingClientRect();
+      var pRect = panel.getBoundingClientRect();
+      var top = tRect.bottom + 10;
+      var available = window.innerHeight - margin - top;
+      if (available < pRect.height) {
+        panel.style.maxHeight = Math.max(available, 160) + 'px';
+        panel.style.overflowY = 'auto';
+      } else {
+        panel.style.maxHeight = '';
+        panel.style.overflowY = '';
+      }
+
+      var left = tRect.left;
+      if (left + pRect.width > window.innerWidth - margin) left = window.innerWidth - margin - pRect.width;
+      if (left < margin) left = margin;
+      panel.style.top = top + 'px';
+      panel.style.left = left + 'px';
+    }
+
     function openPanel() {
       if (trigger.disabled) return;
       if (openState && openState.trigger === trigger) return; // 이미 이 트리거가 열려 있으면 재사용
@@ -483,16 +621,7 @@
       RENDERERS[mode](panel, input, commit, opts);
       trigger.classList.add('is-open');
       panel.classList.add('is-open');
-      panel.style.left = ''; // 매번 기본값(트리거 좌측 기준)에서 다시 계산
-      // 좁은 화면에서 트리거가 화면 오른쪽 절반(예: 날짜+시간이 나란히 있는 행의 시간 칸)에 있으면
-      // 패널(최대 320px)이 뷰포트 오른쪽 밖으로 넘어가 html 의 overflow-x:hidden 에 잘려 보이지 않는
-      // 부분이 생깁니다 — 열린 뒤 실제 위치를 측정해 화면 안으로 들어오도록 보정합니다.
-      var margin = 12;
-      var rect = panel.getBoundingClientRect();
-      var overflowRight = rect.right - (window.innerWidth - margin);
-      if (overflowRight > 0) panel.style.left = (-overflowRight) + 'px';
-      var rect2 = panel.getBoundingClientRect();
-      if (rect2.left < margin) panel.style.left = (parseFloat(panel.style.left || '0') + (margin - rect2.left)) + 'px';
+      positionPanel();
       openState = {
         wrap: wrap, panel: panel, trigger: trigger,
         close: function () { trigger.classList.remove('is-open'); panel.classList.remove('is-open'); }

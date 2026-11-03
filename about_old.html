@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>위드브릿지 소개 | WithBridge</title>
+  <link rel="icon" href="./images/withbridge_logo.png" type="image/png">
   <!-- Noto Sans KR 및 Pretendard 폰트 CDN 로드 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -339,8 +340,9 @@
   <!-- 💡 Supabase 라이브러리 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- 💡 공통 인증 헤더 (로그인 상태 감지 · 프로필 아바타/드롭다운). Supabase SDK 뒤에 로드해야 합니다 -->
-  <script src="/js/auth-header.js?v=1.9" charset="utf-8"></script>
+  <script src="/js/auth-header.js?v=2.1" charset="utf-8"></script>
   <script src="/js/terms-modal.js?v=1.0" charset="utf-8" defer></script>
+  <script src="/js/notice-modal.js?v=1.0" charset="utf-8" defer></script>
 </head>
 <body>
 
@@ -393,7 +395,7 @@
        01. 상단 헤더 (Header - index.html과 100% 동일한 인라인 규격 적용)
   ==================================================================== -->
   <header style="width: 100%; background-color: #ffffff; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 50; font-family: 'Noto Sans KR', sans-serif;">
-    <div class="wb-header-row" style="max-width: 1380px; margin: 0 auto; padding: 12px 40px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: 24px;">
+    <div class="wb-header-row" style="max-width: 1380px; margin: 0 auto; padding: 6px 40px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: 24px;">
 
       <!-- 모바일 전용 햄버거 버튼 -->
       <button type="button" class="wb-mobile-toggle" id="wbMenuToggle" aria-label="메뉴 열기" aria-expanded="false" aria-controls="wbMobileDrawer" style="align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; border: none; background: transparent; cursor: pointer; justify-self: start;">
@@ -403,7 +405,7 @@
 
       <!-- 로고 영역 -->
       <a href="index.html" style="justify-self: start; display: flex; align-items: center; text-decoration: none; flex: none;">
-        <img src="/images/withbridge-logo.png" alt="위드브릿지 로고" style="height: 38px; width: auto; display: block; object-fit: contain;" />
+        <img src="./images/logo_main.png" alt="위드브릿지 로고" style="height: 48px; width: auto; display: block; object-fit: contain; margin: 0; padding: 0; position: relative; top: 3px;" />
       </a>
 
       <!-- 중앙 메뉴 링크 : 가운데 auto 칸에 놓여 좌우 1fr 칸이 같은 폭이라 항상 화면 정중앙에 옵니다 -->
@@ -412,9 +414,9 @@
         <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
         <a href="index.html#services" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">서비스</a>
         <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
-        <a href="index.html#notice" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">공지사항</a>
+        <a href="index.html#how-it-works" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">이용 방법</a>
         <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
-        <a href="index.html#reviews" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">고객후기</a>
+        <a href="index.html#notice" data-open-notice style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">공지사항</a>
         <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
         <a href="index.html#faq" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">자주 묻는 질문(FAQ)</a>
       </nav>
@@ -428,7 +430,7 @@
           <div class="auth-buttons" style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 500; color: #6B7280; white-space: nowrap;">
             <a href="login.html" style="text-decoration: none; font-weight: 500; color: #6B7280; transition: color 0.2s;">로그인</a>
             <span style="color: #d1d5db; font-size: 13.5px; font-weight: 400;">|</span>
-            <a href="login.html" style="text-decoration: none; font-weight: 500; color: #6B7280; transition: color 0.2s;">회원가입</a>
+            <a href="signup.html" style="text-decoration: none; font-weight: 500; color: #6B7280; transition: color 0.2s;">회원가입</a>
           </div>
         </div>
 
@@ -447,7 +449,7 @@
   <aside class="wb-drawer" id="wbMobileDrawer" role="dialog" aria-modal="true" aria-label="모바일 메뉴" aria-hidden="true">
     <div class="wb-drawer-topbar" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #F0F1F3; flex: none;">
       <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
-        <img src="/images/withbridge-logo.png" alt="위드브릿지 로고" style="height: 32px; width: auto; display: block; object-fit: contain;" />
+        <img src="./images/logo_main.png" alt="위드브릿지 로고" style="height: 32px; width: auto; display: block; object-fit: contain;" />
       </a>
       <button type="button" id="wbDrawerClose" aria-label="메뉴 닫기" style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: none; background: transparent; cursor: pointer;">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1D21" stroke-width="2" stroke-linecap="round"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
@@ -456,8 +458,8 @@
     <nav style="display: flex; flex-direction: column; padding: 10px 16px; gap: 2px; font-family: 'Noto Sans KR', sans-serif;">
       <a href="about.html" class="wb-drawer-link">소개</a>
       <a href="index.html#services" class="wb-drawer-link">서비스</a>
-      <a href="index.html#notice" class="wb-drawer-link">공지사항</a>
-      <a href="index.html#reviews" class="wb-drawer-link">고객후기</a>
+      <a href="index.html#how-it-works" class="wb-drawer-link">이용 방법</a>
+      <a href="index.html#notice" data-open-notice class="wb-drawer-link">공지사항</a>
       <a href="index.html#faq" class="wb-drawer-link">자주 묻는 질문(FAQ)</a>
       <a href="http://pf.kakao.com/_PKxemX" target="_blank" rel="noopener noreferrer" class="wb-drawer-link">문의하기</a>
     </nav>
@@ -465,7 +467,7 @@
       <div class="auth-buttons wb-drawer-auth-buttons" style="display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 14.5px; font-weight: 500; color: #6B7280;">
         <a href="login.html" style="color: #6B7280; text-decoration: none;">로그인</a>
         <span style="color: #d1d5db;">|</span>
-        <a href="login.html" style="color: #6B7280; text-decoration: none;">회원가입</a>
+        <a href="signup.html" style="color: #6B7280; text-decoration: none;">회원가입</a>
       </div>
     </div>
   </aside>
@@ -499,7 +501,7 @@
 
         <div class="wb-hero-visual">
           <div class="wb-hero-visual-main">
-            <img src="https://i.ibb.co/SwBC2GX8/Caregiver-interacting-with-senio-2-K-20260916105520-cleanup.png" alt="1:1 밀착 케어 이미지" />
+            <img src="images/caregiver-interacting-with-senior.png" alt="1:1 밀착 케어 이미지" />
           </div>
           <div class="wb-hero-float-card top">
             <span class="dot"></span>
@@ -521,7 +523,7 @@
 
         <div class="wb-trust2-grid">
           <div class="wb-trust2-card">
-            <img src="https://i.ibb.co/dJ5LR177/Woman-holding-clipboard-2-K-20260917001908-cleanup.png" alt="검증된 매니저 일러스트" class="wb-trust2-card-img" />
+            <img src="images/woman-holding-clipboard.png" alt="검증된 매니저 일러스트" class="wb-trust2-card-img" />
             <h3>검증된 매니저</h3>
             <ul>
               <li>엄격한 서류 검증 및 심층 면접을 통한 서비스 마인드 검증</li>
@@ -531,7 +533,7 @@
           </div>
 
           <div class="wb-trust2-card">
-            <img src="https://i.ibb.co/Cs0DqhzL/Quality-control-and-training-system-2-K-20260917005746-cleanup.png" alt="품질 관리 시스템 일러스트" class="wb-trust2-card-img" />
+            <img src="images/quality-control-and-training-system.png" alt="품질 관리 시스템 일러스트" class="wb-trust2-card-img" />
             <h3>품질 관리 시스템</h3>
             <ul>
               <li>병원 동행, 관공서·일상 업무 지원 등 상황별 맞춤 케어 매뉴얼 적용</li>
@@ -541,7 +543,7 @@
           </div>
 
           <div class="wb-trust2-card">
-            <img src="https://i.ibb.co/SD80NN51/Caregiver-and-senior-walking-tog-2-K-20260917113048-cleanup.png" alt="실시간 안심 공유 일러스트" class="wb-trust2-card-img" />
+            <img src="images/caregiver-and-senior-walking-together.png" alt="실시간 안심 공유 일러스트" class="wb-trust2-card-img" />
             <h3>실시간 안심 공유</h3>
             <ul>
               <li>집 앞 픽업부터 진료·업무 처리 후 귀가까지 전 과정을 실시간 알림톡으로 안내</li>

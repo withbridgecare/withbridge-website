@@ -103,6 +103,7 @@ button { font-family: inherit; cursor: pointer; }
   color: var(--sage-700);
   font-size: 13.5px;
   font-weight: 600;
+  text-decoration: none;
   transition: background-color .15s ease, border-color .15s ease, opacity .15s ease;
 }
 .admin-refresh-btn:hover { background: var(--sage-100); }
@@ -169,7 +170,7 @@ button { font-family: inherit; cursor: pointer; }
 .admin-summary-card.is-in-progress .admin-summary-value { color: var(--sage-600); }
 .admin-summary-card.is-cancelled .admin-summary-value { color: var(--danger); }
 
-/* 클릭 가능한 요약 카드(지금은 [취소 건수] 하나) — <button> 이라 생기는 브라우저 기본 스타일만 reset */
+/* 클릭 가능한 요약 카드(5개 전체 — 오늘 신청/입금 대기/매칭 대기/진행 중 케어/취소 건수) — <button> 이라 생기는 브라우저 기본 스타일만 reset */
 .admin-summary-card.is-clickable {
   width: 100%;
   font: inherit;
@@ -323,6 +324,9 @@ button { font-family: inherit; cursor: pointer; }
   font-weight: 700;
   white-space: nowrap;
 }
+/* 카드 제목 줄 우측에 건수 뱃지 + 보조 버튼(엑셀 다운로드 등)을 나란히 둘 때 */
+.admin-card-head-actions { display: flex; align-items: center; gap: 10px; flex: none; }
+.admin-card-head-actions .admin-btn { padding: 7px 14px; font-size: 12.5px; }
 
 /* ---------- 리스트 / 행 ---------- */
 .admin-list { display: flex; flex-direction: column; gap: 12px; }
@@ -421,6 +425,17 @@ button { font-family: inherit; cursor: pointer; }
   color: var(--danger);
   font-size: 13.5px;
   line-height: 1.6;
+}
+/* .admin-error 의 성공(초록) 버전 — 회원 상세 모달의 [회원 정보 수정]/[비밀번호 재설정 메일 발송]
+   완료 안내 등에 씁니다. */
+.admin-success {
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  background: #ECFDF5;
+  color: #047857;
+  font-size: 13.5px;
+  line-height: 1.6;
+  font-weight: 600;
 }
 /* 모달 안의 읽기 전용 요약 값(현재 결제액/환불 예정 금액 등) — input 처럼 보이지 않게 일반 텍스트로 */
 .admin-info-text {
@@ -569,6 +584,7 @@ button { font-family: inherit; cursor: pointer; }
 .admin-btn.is-danger { background: #FDF1EF; color: var(--danger); }
 .admin-btn.is-danger:hover { background: #FBE2DE; }
 .admin-btn:active { transform: scale(.98); }
+.admin-btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
 
 /* ---------- 모달 (신분증 사본 확인) ---------- */
 .modal-backdrop {
@@ -581,6 +597,13 @@ button { font-family: inherit; cursor: pointer; }
   align-items: center;
   justify-content: center;
 }
+/* 위 display: flex 가 class 선택자(author 스타일)라서, 브라우저 기본(UA) 스타일의
+   [hidden] { display: none } 보다 우선순위가 높아 그대로는 hidden 속성이 무시됩니다 — admin.js/
+   admin-logs.js 가 els.xxxModal.hidden = true/false 로만 모달을 열고 닫는데, 이 규칙이 없으면
+   페이지 로드 시 모달이 비어 있는 채로 떠 있거나(진짜로 열린 게 아니라 CSS 가 숨김을 무시해 그냥
+   계속 보이는 것), [닫기]/[X]/바깥 클릭으로 hidden = true 를 줘도 화면에서 전혀 사라지지 않습니다.
+   이 한 줄로 모든 .modal-backdrop(이 파일을 공유하는 admin.html/admin-logs.html 전부)에 적용됩니다. */
+.modal-backdrop[hidden] { display: none; }
 .modal {
   width: 100%;
   max-width: 480px;
@@ -622,6 +645,62 @@ button { font-family: inherit; cursor: pointer; }
 .modal-close-btn:hover { background: #E5E7EB; }
 .modal-sub { margin: 2px 0 12px; font-size: 13px; font-weight: 600; color: var(--ink-body); }
 
+/* 회원 상세보기 모달의 기본 정보/주소지 key-value 그리드 (admin.html #memberDetailModal) */
+.admin-detail-grid {
+  display: grid; grid-template-columns: 96px 1fr; gap: 8px 14px;
+  margin: 0 0 20px; padding: 14px 16px; background: var(--sage-50); border-radius: var(--radius-sm);
+  font-size: 13.5px;
+}
+.admin-detail-grid dt { margin: 0; color: var(--ink-sub); font-weight: 600; }
+.admin-detail-grid dd { margin: 0; color: var(--ink); font-weight: 600; word-break: break-all; }
+.admin-detail-subtitle { margin: 28px 0 10px; font-size: 14px; font-weight: 800; color: var(--ink); }
+.admin-detail-subtitle:first-of-type { margin-top: 0; }
+
+/* ---------- 번호 페이지네이션 (회원 관리 표, 10개씩) ---------- */
+.admin-pagination { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 18px; flex-wrap: wrap; }
+.admin-page-btn {
+  min-width: 34px; height: 34px; padding: 0 8px; border: 1px solid var(--card-border); border-radius: var(--radius-sm);
+  background: var(--card); color: var(--ink-body); font-size: 13px; font-weight: 700; cursor: pointer;
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+.admin-page-btn:hover:not(:disabled) { background: var(--sage-50); border-color: var(--sage-200); }
+.admin-page-btn.is-active { background: var(--sage-500); border-color: var(--sage-500); color: #fff; cursor: default; }
+.admin-page-btn:disabled { opacity: .4; cursor: not-allowed; }
+.admin-page-ellipsis { padding: 0 4px; color: var(--ink-sub); font-size: 13px; }
+
+/* ---------- 회원 상세 모달: 정보 수정 폼 / CS 메모 / 어르신·쿠폰·패키지 미니 리스트 ---------- */
+.admin-member-edit-form { margin: -6px 0 20px; padding: 16px; border: 1px solid var(--card-border); border-radius: var(--radius-sm); background: #FAFAF9; }
+.admin-member-edit-form .admin-select { margin-bottom: 12px; }
+.admin-member-notes { display: flex; flex-direction: column; gap: 8px; max-height: 180px; overflow-y: auto; margin-bottom: 10px; }
+.admin-note-item { padding: 10px 12px; border-radius: var(--radius-sm); background: var(--sage-50); font-size: 13px; line-height: 1.5; color: var(--ink); }
+.admin-note-item-meta { display: block; margin-bottom: 3px; font-size: 11.5px; font-weight: 700; color: var(--ink-sub); }
+.admin-member-note-compose { display: flex; gap: 8px; margin-bottom: 8px; }
+.admin-member-note-compose textarea { flex: 1 1 auto; margin: 0; }
+.admin-member-note-compose .admin-btn { flex: none; }
+.admin-mini-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.admin-mini-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid var(--card-border); border-radius: var(--radius-sm); font-size: 13px; }
+.admin-mini-item-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.admin-mini-item-title { font-weight: 700; color: var(--ink); }
+.admin-mini-item-sub { color: var(--ink-sub); font-size: 12px; }
+.admin-mini-item-delete {
+  flex: none; padding: 4px 10px; border: 1px solid var(--card-border); border-radius: 9999px;
+  background: #fff; color: var(--danger); font-size: 11.5px; font-weight: 700; cursor: pointer;
+}
+.admin-mini-item-delete:hover { background: #FDF1EF; border-color: #FBE2DE; }
+
+/* 쿠폰/회차 수동 지급·차감 (sql/admin_member_benefit_grants.sql) */
+.admin-benefit-grant-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 16px; }
+.admin-benefit-grant-actions .admin-btn { flex: 1 1 150px; font-size: 12.5px; padding: 8px 12px; }
+.admin-benefit-form { margin: 0 0 20px; padding: 16px; border: 1px solid var(--card-border); border-radius: var(--radius-sm); background: #FAFAF9; }
+.admin-benefit-form .admin-select { margin-bottom: 12px; }
+/* [회원 정보 수정]/[비밀번호 재설정 메일 발송]/[계정 정지] 버튼 그룹 — 위로는 .modal-actions 의
+   기본 구분선(border-top + padding-top)보다 조금 더 띄우고, 아래로는 margin-bottom 으로 여유를
+   둬서 바로 이어지는 [닫기] 버튼의 구분선과 겹쳐 붙어 보이지 않게 합니다. */
+.admin-member-detail-actions { flex-wrap: wrap; padding-top: 20px; margin-bottom: 20px; }
+.admin-member-detail-actions .admin-btn { flex: 1 1 160px; }
+.admin-badge.is-suspended { background: #FDF1EF; color: var(--danger); }
+.admin-badge.is-active-account { background: #ECFDF5; color: #047857; }
+
 /* 모달 안의 셀렉트 폼 컨트롤 (매니저 배정 등) */
 .admin-field-label { display: block; margin: 0 0 8px; font-size: 13px; font-weight: 700; color: var(--ink-body); }
 .admin-select {
@@ -644,7 +723,11 @@ button { font-family: inherit; cursor: pointer; }
 input.admin-select { cursor: text; }
 textarea.admin-select { cursor: text; resize: vertical; min-height: 72px; }
 .admin-select + .admin-field-label { margin-top: 14px; }
-.modal .admin-error { margin-top: 10px; }
+/* margin-bottom 이 없으면(Tailwind preflight 가 <p> 기본 마진을 전부 0으로 리셋해 둠) 이 에러/알림
+   박스가 바로 아래 구분선(.modal-actions 의 border-top)이나 버튼 그룹에 거의 붙어 보입니다 —
+   아래쪽에도 같은 폭의 여백을 둬 숨통을 트입니다(회원 상세 모달의 memberActionError 등). */
+.modal .admin-error,
+.modal .admin-success { margin: 10px 0 20px; }
 
 /* 환불 처리 모달의 전액/부분 환불 라디오 선택 (admin.html #adminRefundModal) */
 .admin-radio-row { display: flex; gap: 10px; margin-bottom: 14px; }

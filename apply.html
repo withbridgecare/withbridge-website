@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>시니어 병원 동행 서비스 신청서</title>
+  <link rel="icon" href="./images/withbridge_logo.png" type="image/png">
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="stylesheet" href="/mobile-nav.css?v=1.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,10 +13,10 @@
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- 공통 Supabase 클라이언트 + 헤더 로그인 상태. SDK 뒤에 로드해야 합니다 -->
-  <script src="/js/auth-header.js?v=1.9" charset="utf-8"></script>
+  <script src="/js/auth-header.js?v=2.1" charset="utf-8"></script>
   <!-- 결제 확인 Edge Function(issue-virtual-account) 호출용 — supabaseClient.functions.invoke() 대신
        명시적 fetch() 래퍼. auth-header.js 가 만든 supabaseClient 를 받아 쓰므로 그 뒤에 로드합니다 -->
-  <script src="/js/edge-function-fetch.js?v=1.0"></script>
+  <script src="/js/edge-function-fetch.js?v=1.1"></script>
   <!-- 비로그인 접근 차단: 세션 확인이 끝나기 전까지 신청서 본문을 숨겨 뒀다가(아래 <main> 의 visibility:hidden),
        비로그인으로 확인되면 안내 후 login.html 로 보내고, 로그인 상태면 본문을 보여줍니다.
        주의: getSession() 은 저장된 세션이 있으면 네트워크 없이 마이크로태스크로 즉시 끝나는데, 그 시점은 이 스크립트가
@@ -43,6 +44,22 @@
         settled = true;
         window.WBAuth.showLoginModal('apply.html');
       }
+      // 결제 대기 중인 추가 요금이 있으면 신청서 본문은 계속 숨겨 두고(showMain() 을 아예 부르지 않음),
+      // 화면 정중앙에 안내 모달만 띄웁니다 — '확인'을 눌러야만 마이페이지 '추가 요금 결제 안내'
+      // 섹션으로 이동하고, 그 외에는(배경 클릭·Esc) 닫히지 않게 해 둡니다(아래 모달 마크업/스크립트 참고).
+      function denyAccessForUnpaidExtraCharge() {
+        if (settled) return;
+        settled = true;
+        onReady(function () {
+          var overlay = document.getElementById('extraChargeLockOverlay');
+          if (!overlay) { window.location.href = 'mypage.html#extraChargeSection'; return; }
+          overlay.classList.add('is-open');
+          overlay.setAttribute('aria-hidden', 'false');
+          document.body.style.overflow = 'hidden';
+          var btn = document.getElementById('extraChargeLockConfirm');
+          if (btn) { btn.focus(); btn.onclick = function () { window.location.href = 'mypage.html#extraChargeSection'; }; }
+        });
+      }
       // localStorage 에 저장된 세션 토큰이 있는지만 보는 보조 확인(auth-header.js 의 maybeLoggedIn() 과 같은 휴리스틱).
       // getSession() 호출 자체가 실패했을 때, 로그인한 흔적이 있는데도 비로그인으로 단정해 쫓아내지 않기 위해 씁니다.
       function hasLocalSessionToken() {
@@ -54,10 +71,20 @@
         return false;
       }
 
+      // 로그인 확인 다음 단계로, 결제 대기 중인 추가 요금(care_schedules.extra_charge_status='REQUESTED')이
+      // 있으면 신청서 진입 자체를 막습니다(요구사항: 미납 추가 요금이 있는 계정은 새 예약을 신청할 수 없음).
+      // hasUnpaidExtraCharge() 자체가 실패하면(네트워크 오류 등) 막지 않고 통과시킵니다.
+      function checkExtraChargeLockThenShowMain(userId) {
+        window.WBAuth.hasUnpaidExtraCharge(userId).then(function (locked) {
+          if (locked) denyAccessForUnpaidExtraCharge();
+          else showMain();
+        });
+      }
+
       function checkSession(client) {
         client.auth.getSession().then(function (res) {
           var session = res && res.data ? res.data.session : null;
-          if (session && session.user) showMain();
+          if (session && session.user) checkExtraChargeLockThenShowMain(session.user.id);
           else denyAccess();
         }).catch(function (err) {
           console.error('[신청서 접근 확인] getSession 실패:', err);
@@ -83,12 +110,13 @@
     })();
   </script>
 <script src="/js/terms-modal.js?v=1.0" charset="utf-8" defer></script>
+<script src="/js/notice-modal.js?v=1.0" charset="utf-8" defer></script>
   <!-- 카카오(다음) 우편번호 서비스: 출발지(거주지) 주소를 자유 입력 대신 정식 도로명·지번 주소로 선택하게 함 -->
   <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
   <!-- 목적지(병원 등) 검색 모달 — 카카오 로컬 키워드 검색으로 실제 장소명 + 주소만 선택 가능 (wb-place-search.js 참고) -->
   <script src="/js/wb-place-search.js?v=1.0"></script>
   <!-- 브라우저 기본 날짜/시간 피커 대신 쓰는 공통 커스텀 피커 (wb-datepicker.js 참고) -->
-  <script src="/js/wb-datepicker.js?v=1.1"></script>
+  <script src="/js/wb-datepicker.js?v=1.6"></script>
   <!-- 포트원 V2 결제창(가상계좌 발급) SDK -->
   <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
   <style>
@@ -473,7 +501,7 @@
 -->
 <!-- 상단 네비게이션 헤더 (독립된 login.html 이동 적용본) -->
 <header style="width: 100%; background-color: #ffffff; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 50; font-family: 'Noto Sans KR', sans-serif;">
-  <div class="wb-header-row" style="max-width: 1380px; margin: 0 auto; padding: 12px 40px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: 24px;">
+  <div class="wb-header-row" style="max-width: 1380px; margin: 0 auto; padding: 6px 40px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: 24px;">
 
     <!-- 모바일 전용 햄버거 버튼 -->
     <button type="button" class="wb-mobile-toggle" id="wbMenuToggle" aria-label="메뉴 열기" aria-expanded="false" aria-controls="wbMobileDrawer" style="align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; border: none; background: transparent; cursor: pointer; justify-self: start;">
@@ -483,7 +511,7 @@
 
     <!-- 로고 영역 (클릭 시 메인 페이지로 이동하도록 index.html 적용) -->
     <a href="index.html" style="justify-self: start; display: flex; align-items: center; text-decoration: none; flex: none;">
-      <img src="/images/withbridge-logo.png" alt="위드브릿지 로고" style="height: 38px; width: auto; display: block; object-fit: contain;" />
+      <img src="./images/logo_main.png" alt="위드브릿지 로고" style="height: 48px; width: auto; display: block; object-fit: contain; margin: 0; padding: 0; position: relative; top: 3px;" />
     </a>
 
     <!-- 중앙 메뉴 링크 (소개 메뉴를 about.html로 연결) : 가운데 auto 칸에 놓여 좌우 1fr 칸이 같은 폭이라 항상 화면 정중앙에 옵니다 -->
@@ -492,9 +520,9 @@
       <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
       <a href="index.html#services" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">서비스</a>
       <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
-      <a href="index.html#notice" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">공지사항</a>
+      <a href="index.html#how-it-works" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">이용 방법</a>
       <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
-      <a href="index.html#reviews" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">고객후기</a>
+      <a href="index.html#notice" data-open-notice style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">공지사항</a>
       <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
       <a href="index.html#faq" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">자주 묻는 질문(FAQ)</a>
     </nav>
@@ -508,7 +536,7 @@
         <div class="auth-buttons" style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 500; color: #6B7280; white-space: nowrap;">
           <a href="login.html" style="text-decoration: none; font-weight: 500; color: #6B7280; transition: color 0.2s;">로그인</a>
           <span style="color: #d1d5db; font-size: 13.5px; font-weight: 400;">|</span>
-          <a href="login.html" style="text-decoration: none; font-weight: 500; color: #6B7280; transition: color 0.2s;">회원가입</a>
+          <a href="signup.html" style="text-decoration: none; font-weight: 500; color: #6B7280; transition: color 0.2s;">회원가입</a>
         </div>
       </div>
 
@@ -527,7 +555,7 @@
 <aside class="wb-drawer" id="wbMobileDrawer" role="dialog" aria-modal="true" aria-label="모바일 메뉴" aria-hidden="true">
   <div class="wb-drawer-topbar" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #F0F1F3; flex: none;">
     <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
-      <img src="/images/withbridge-logo.png" alt="위드브릿지 로고" style="height: 32px; width: auto; display: block; object-fit: contain;" />
+      <img src="./images/logo_main.png" alt="위드브릿지 로고" style="height: 32px; width: auto; display: block; object-fit: contain;" />
     </a>
     <button type="button" id="wbDrawerClose" aria-label="메뉴 닫기" style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: none; background: transparent; cursor: pointer;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1D21" stroke-width="2" stroke-linecap="round"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
@@ -536,8 +564,8 @@
   <nav style="display: flex; flex-direction: column; padding: 10px 16px; gap: 2px; font-family: 'Noto Sans KR', sans-serif;">
     <a href="story.html" class="wb-drawer-link">소개</a>
     <a href="index.html#services" class="wb-drawer-link">서비스</a>
-    <a href="index.html#notice" class="wb-drawer-link">공지사항</a>
-    <a href="index.html#reviews" class="wb-drawer-link">고객후기</a>
+    <a href="index.html#how-it-works" class="wb-drawer-link">이용 방법</a>
+    <a href="index.html#notice" data-open-notice class="wb-drawer-link">공지사항</a>
     <a href="index.html#faq" class="wb-drawer-link">자주 묻는 질문(FAQ)</a>
     <a href="http://pf.kakao.com/_PKxemX" target="_blank" rel="noopener noreferrer" class="wb-drawer-link">문의하기</a>
   </nav>
@@ -545,7 +573,7 @@
     <div class="auth-buttons wb-drawer-auth-buttons" style="display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 14.5px; font-weight: 500; color: #6B7280;">
       <a href="login.html" style="color: #6B7280; text-decoration: none;">로그인</a>
       <span style="color: #d1d5db;">|</span>
-      <a href="login.html" style="color: #6B7280; text-decoration: none;">회원가입</a>
+      <a href="signup.html" style="color: #6B7280; text-decoration: none;">회원가입</a>
     </div>
   </div>
 </aside>
@@ -616,7 +644,7 @@
                안내합니다(실제 할인은 쿠폰 드롭다운에서 자동 선택된 웰컴 쿠폰으로 적용됨 — renderCouponOptions 참고). -->
           <div class="svc-firstuse-banner">
             <span class="svc-firstuse-badge">첫 이용 혜택</span>
-            <span class="svc-firstuse-text">첫 결제 시 <strong>5,000원 웰컴 쿠폰</strong>이 자동 적용돼요.</span>
+            <span class="svc-firstuse-text">보유 중인 <strong>5,000원 웰컴 쿠폰</strong>을 아래 '할인 혜택 적용'에서 선택하면 할인받을 수 있어요.</span>
           </div>
           <div class="svc-options">
             <label class="svc">
@@ -893,6 +921,18 @@
       <h3 id="areaModalTitle">서비스 준비 중인 지역입니다</h3>
       <p id="areaModalDesc">죄송합니다. 현재 선택하신 지역은 서비스 준비 중입니다.<br>서비스 지역 외의 지역이신 경우 고객센터(010-5530-5760)로 문의해 주세요.</p>
       <button type="button" class="area-modal-btn" id="areaModalClose">확인</button>
+    </div>
+  </div>
+
+  <!-- 추가 요금 미납 예약 제한(Lock) 안내 모달 — 로그인 확인 직후 신청서 접근 게이트(위 <head> 스크립트의
+       checkExtraChargeLockThenShowMain())에서만 엶. 배경 클릭/Esc 로는 닫히지 않고(area-modal-overlay 와
+       달리 별도 핸들러를 달지 않음), [확인]을 눌러야만 마이페이지 '추가 요금 결제 안내' 섹션으로 이동합니다. -->
+  <div class="area-modal-overlay" id="extraChargeLockOverlay" aria-hidden="true">
+    <div class="area-modal" role="alertdialog" aria-modal="true" aria-labelledby="extraChargeLockTitle" aria-describedby="extraChargeLockDesc">
+      <div class="area-modal-icon" aria-hidden="true">!</div>
+      <h3 id="extraChargeLockTitle">새 예약을 진행할 수 없습니다</h3>
+      <p id="extraChargeLockDesc">결제 대기 중인 추가 요금이 있습니다. 추가 요금을 결제하신 후 새로운 예약을 신청하실 수 있습니다.</p>
+      <button type="button" class="area-modal-btn" id="extraChargeLockConfirm">확인</button>
     </div>
   </div>
 

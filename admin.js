@@ -31,6 +31,10 @@
     summaryMatchingPendingCount: $('summaryMatchingPendingCount'),
     summaryInProgressCount: $('summaryInProgressCount'),
     summaryCancelledCount: $('summaryCancelledCount'),
+    summaryTodayCard: $('summaryTodayCard'),
+    summaryPaymentPendingCard: $('summaryPaymentPendingCard'),
+    summaryMatchingPendingCard: $('summaryMatchingPendingCard'),
+    summaryInProgressCard: $('summaryInProgressCard'),
     summaryCancelledCard: $('summaryCancelledCard'),
     searchInput: $('adminSearchInput'),
     statusFilterGroup: $('adminStatusFilter'),
@@ -67,6 +71,7 @@
     inProgressCareTitle: $('inProgressCareTitle'),
     inProgressCareDesc: $('inProgressCareDesc'),
     inProgressCareShowMoreBtn: $('inProgressCareShowMoreBtn'),
+    inProgressCareDateFilter: $('inProgressCareDateFilter'),
     reassignModal: $('reassignManagerModal'),
     reassignSub: $('reassignManagerSub'),
     reassignSelect: $('reassignManagerSelect'),
@@ -147,6 +152,64 @@
     packageAdjustCloseBtn: $('packageAdjustCloseBtn'),
     packageAdjustCancelBtn: $('packageAdjustCancelBtn'),
     packageAdjustConfirmBtn: $('packageAdjustConfirmBtn'),
+
+    membersCount: $('membersCount'),
+    membersExportBtn: $('membersExportBtn'),
+    membersSearchInput: $('membersSearchInput'),
+    membersProviderFilter: $('membersProviderFilter'),
+    membersVerifiedFilter: $('membersVerifiedFilter'),
+    membersTable: $('membersTable'),
+    membersTableBody: $('membersTableBody'),
+    membersPaginationWrap: $('membersPaginationWrap'),
+    memberDetailModal: $('memberDetailModal'),
+    memberDetailModalTitle: $('memberDetailModalTitle'),
+    memberDetailModalSub: $('memberDetailModalSub'),
+    memberDetailInfoGrid: $('memberDetailInfoGrid'),
+    memberDetailBookingsBody: $('memberDetailBookingsBody'),
+    memberDetailCloseBtn: $('memberDetailCloseBtn'),
+    memberDetailCloseBtn2: $('memberDetailCloseBtn2'),
+    memberEditForm: $('memberEditForm'),
+    memberEditName: $('memberEditName'),
+    memberEditPhone: $('memberEditPhone'),
+    memberEditAddress: $('memberEditAddress'),
+    memberEditAddressDetail: $('memberEditAddressDetail'),
+    memberEditSuccess: $('memberEditSuccess'),
+    memberEditError: $('memberEditError'),
+    memberEditToggleBtn: $('memberEditToggleBtn'),
+    memberEditCancelBtn: $('memberEditCancelBtn'),
+    memberEditSaveBtn: $('memberEditSaveBtn'),
+    memberNotesList: $('memberNotesList'),
+    memberNoteInput: $('memberNoteInput'),
+    memberNoteSaveBtn: $('memberNoteSaveBtn'),
+    memberSeniorsList: $('memberSeniorsList'),
+    memberBenefitsList: $('memberBenefitsList'),
+    memberGrantCouponToggleBtn: $('memberGrantCouponToggleBtn'),
+    memberGrantCouponForm: $('memberGrantCouponForm'),
+    memberGrantCouponAmount: $('memberGrantCouponAmount'),
+    memberGrantCouponMemo: $('memberGrantCouponMemo'),
+    memberGrantCouponError: $('memberGrantCouponError'),
+    memberGrantCouponCancelBtn: $('memberGrantCouponCancelBtn'),
+    memberGrantCouponConfirmBtn: $('memberGrantCouponConfirmBtn'),
+    memberGrantPackageToggleBtn: $('memberGrantPackageToggleBtn'),
+    memberGrantPackageForm: $('memberGrantPackageForm'),
+    memberGrantPackageType: $('memberGrantPackageType'),
+    memberGrantPackageSessionHint: $('memberGrantPackageSessionHint'),
+    memberGrantPackageMemo: $('memberGrantPackageMemo'),
+    memberGrantPackageError: $('memberGrantPackageError'),
+    memberGrantPackageCancelBtn: $('memberGrantPackageCancelBtn'),
+    memberGrantPackageConfirmBtn: $('memberGrantPackageConfirmBtn'),
+    memberDeductPackageToggleBtn: $('memberDeductPackageToggleBtn'),
+    memberDeductPackageForm: $('memberDeductPackageForm'),
+    memberDeductPackageSelect: $('memberDeductPackageSelect'),
+    memberDeductPackageCount: $('memberDeductPackageCount'),
+    memberDeductPackageMemo: $('memberDeductPackageMemo'),
+    memberDeductPackageError: $('memberDeductPackageError'),
+    memberDeductPackageCancelBtn: $('memberDeductPackageCancelBtn'),
+    memberDeductPackageConfirmBtn: $('memberDeductPackageConfirmBtn'),
+    memberActionSuccess: $('memberActionSuccess'),
+    memberActionError: $('memberActionError'),
+    memberResetPasswordBtn: $('memberResetPasswordBtn'),
+    memberToggleStatusBtn: $('memberToggleStatusBtn'),
 
     adminRefundModal: $('adminRefundModal'),
     adminRefundSub: $('adminRefundSub'),
@@ -245,6 +308,24 @@
     return { days: days, label: label, level: level };
   }
 
+  // '배정 완료(진행 중) 케어 현황' 카드의 [전체]/[오늘 케어]/[지난 케어] 필터 — scheduled_at 을 "오늘 자정"
+  // 기준 날짜로만 비교합니다(시:분은 무시). 과거 날짜면 'past', 오늘이면 'today', 아직 안 온 미래 예정
+  // 건은 'future' — future 는 [전체]에서만 보이고 [오늘 케어]/[지난 케어] 어느 탭에도 집계되지 않습니다.
+  function careDateBucket(iso) {
+    var d = iso ? new Date(iso) : null;
+    if (!d || isNaN(d.getTime())) return null;
+
+    var startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    var startOfScheduled = new Date(d);
+    startOfScheduled.setHours(0, 0, 0, 0);
+
+    var days = Math.round((startOfToday.getTime() - startOfScheduled.getTime()) / 86400000);
+    if (days === 0) return 'today';
+    if (days > 0) return 'past';
+    return 'future';
+  }
+
   // ---------- 카카오 로컬(지오코딩) API: 좌표 → 주소 (mypage.html / mypage-manager.html 의 reverseGeocode() 와 동일 키·엔드포인트) ----------
   // 현장 인증 상세보기 모달에서 출발/도착 GPS 좌표를 사람이 읽는 주소로 바꿀 때 씁니다.
   // 키가 비어 있거나 호출이 실패해도 에러로 막지 않고 좌표 표기로 자연스럽게 대체됩니다.
@@ -320,6 +401,9 @@
       // 보고 있는 탭에 맞는 로더를 직접 불러 항상 로딩이 끝까지 처리되도록 합니다.
       if (currentStatusFilter === 'cancelled') loadCancelledApplications();
       else loadApplications();
+      // 요약 카드의 입금 대기/매칭 대기 숫자도 같은 cutoff 를 쓰므로(00-2 참고), 체크박스를 바꾸면
+      // 목록과 같이 다시 집계해야 두 숫자가 어긋나지 않습니다.
+      loadSummaryStats();
     });
   }
 
@@ -398,6 +482,20 @@
     });
   }
 
+  if (els.inProgressCareDateFilter) {
+    els.inProgressCareDateFilter.addEventListener('click', function (e) {
+      var btn = e.target.closest('.admin-filter-chip');
+      if (!btn) return;
+      var dateFilter = btn.getAttribute('data-date-filter');
+      if (dateFilter === currentCareDateFilter) return;
+      currentCareDateFilter = dateFilter;
+      Array.prototype.forEach.call(els.inProgressCareDateFilter.querySelectorAll('.admin-filter-chip'), function (chip) {
+        chip.classList.toggle('is-active', chip === btn);
+      });
+      renderInProgressCareList();
+    });
+  }
+
   if (els.managerSearchInput) {
     els.managerSearchInput.addEventListener('input', function () {
       currentManagerSearchText = normalizeSearchText(els.managerSearchInput.value).trim();
@@ -421,20 +519,32 @@
 
   // ============================================================
   // 00-2. 핵심 현황 요약 카드 (오늘 신청 / 입금 대기 / 매칭 대기 / 진행 중 케어 / 취소 건수)
-  //     목록 카드들과 별개로, 조건 없이 전체 건수를 직접 count 쿼리로 받습니다 — 목록 카드들은
-  //     각자의 화면 목적에 맞춰 조회 범위를 좁혀 놨기 때문에(예: 48시간 cutoff) 그 결과만으로는
-  //     "오늘 전체 신청 수" 같은 요약 숫자를 정확히 낼 수 없습니다.
-  //     취소 건수는 fetchCancelledApplicationsPage() 가 쓰는 것과 똑같은 상태값 묶음
-  //     ('CANCELLED' 보호자/관리자 수동 취소 + 'EXPIRED_CANCELLED' 48시간 자동 취소)을 세어,
-  //     이 카드 숫자와 [취소] 필터로 들어가서 보이는 목록 건수가 항상 일치하도록 맞춥니다.
+  //     '입금 대기'/'매칭 대기' 두 카드는 아래 03번 '오늘의 케어 신청 · 수동 배정 대기 목록'과 정확히
+  //     같은 대상을 세는 숫자여야 하므로(사용자가 카드를 눌러 들어갔을 때 건수가 바뀌어 보이면 안 됨),
+  //     그 목록의 fetchApplicationsPage() 가 쓰는 조건을 그대로 재사용합니다:
+  //       - manager_id IS NULL (아직 배정 안 된 건만)
+  //       - '48시간 지난 신청도 보기' 체크박스가 꺼져 있으면 접수 후 ADMIN_ACCEPT_WINDOW_HOURS 이내 건만
+  //     이 함수는 체크박스가 바뀔 때마다(아래 els.showOverdueAppsToggle 리스너) 같이 다시 불려서, 카드
+  //     숫자와 목록이 항상 같은 기준으로 맞춰집니다.
+  //     '오늘 신청'(그날 전체 신청 수)과 '취소 건수'(전체 기간, 체크박스와 무관 — 03-1 참고)는 원래부터
+  //     48시간 cutoff 대상이 아니라 그대로 둡니다. '진행 중 케어'도 이미 배정된 care_schedules 건이라
+  //     이 cutoff 와 무관합니다.
   // ============================================================
   async function loadSummaryStats() {
     var todayStartIso = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
+    var showOverdue = isShowOverdueAppsOn();
+    var acceptCutoffIso = getAcceptCutoffIso();
+
+    var pendingBaseQuery = function () {
+      var q = supabaseClient.from('service_applications').select('id', { count: 'exact', head: true }).is('manager_id', null);
+      if (!showOverdue) q = q.gt('created_at', acceptCutoffIso);
+      return q;
+    };
 
     var results = await Promise.all([
       supabaseClient.from('service_applications').select('id', { count: 'exact', head: true }).gte('created_at', todayStartIso),
-      supabaseClient.from('service_applications').select('id', { count: 'exact', head: true }).eq('status', 'PAYMENT_PENDING'),
-      supabaseClient.from('service_applications').select('id', { count: 'exact', head: true }).eq('status', 'MATCHING_PENDING'),
+      pendingBaseQuery().eq('status', 'PAYMENT_PENDING'),
+      pendingBaseQuery().neq('status', 'PAYMENT_PENDING').neq('status', 'CANCELLED').neq('status', 'EXPIRED_CANCELLED'),
       supabaseClient.from('care_schedules').select('id', { count: 'exact', head: true }).not('manager_id', 'is', null).neq('status', 'completed').neq('status', 'cancelled'),
       supabaseClient.from('service_applications').select('id', { count: 'exact', head: true }).in('status', ['CANCELLED', 'EXPIRED_CANCELLED'])
     ]);
@@ -452,17 +562,27 @@
     });
   }
 
-  // [취소 건수] 요약 카드 클릭 → 아래 상태 필터의 [취소] 칩을 그대로 눌러 줍니다. 필터 전환/목록 로드
-  // 로직을 여기 다시 옮겨 적지 않고 기존 칩의 클릭 핸들러(위 els.statusFilterGroup 리스너)를 그대로
-  // 재사용해, 두 진입점(카드 클릭 / 칩 클릭)의 동작이 항상 같게 유지됩니다.
-  if (els.summaryCancelledCard) {
-    els.summaryCancelledCard.addEventListener('click', function () {
-      var chip = els.statusFilterGroup && els.statusFilterGroup.querySelector('.admin-filter-chip[data-status="cancelled"]');
+  // 요약 카드 5개를 각각 클릭하면 아래 상태 필터의 해당 칩을 그대로 눌러 줍니다(필터 전환/목록 로드
+  // 로직을 여기 다시 옮겨 적지 않고 기존 칩의 클릭 핸들러(위 els.statusFilterGroup 리스너)를 재사용해,
+  // 두 진입점(카드 클릭 / 칩 클릭)의 동작이 항상 같게 유지됩니다), 그다음 그 칩의 결과가 실제로 보이는
+  // 카드로 화면을 스크롤합니다. '오늘 신청'은 날짜 전용 필터가 따로 없어 가장 가까운 '전체'(미배정
+  // 신청 전체)로 연결하고, '진행 중 케어'는 다른 카드(배정 완료(진행 중) 케어 현황)로 스크롤합니다.
+  var SUMMARY_CARD_LINKS = [
+    { card: els.summaryTodayCard, status: 'all', scrollTo: els.applicationsTitle },
+    { card: els.summaryPaymentPendingCard, status: 'payment_pending', scrollTo: els.applicationsTitle },
+    { card: els.summaryMatchingPendingCard, status: 'matching_pending', scrollTo: els.applicationsTitle },
+    { card: els.summaryInProgressCard, status: 'in_progress', scrollTo: els.inProgressCareTitle },
+    { card: els.summaryCancelledCard, status: 'cancelled', scrollTo: els.applicationsTitle }
+  ];
+  SUMMARY_CARD_LINKS.forEach(function (link) {
+    if (!link.card) return;
+    link.card.addEventListener('click', function () {
+      var chip = els.statusFilterGroup && els.statusFilterGroup.querySelector('.admin-filter-chip[data-status="' + link.status + '"]');
       if (chip) chip.click();
-      var target = els.applicationsTitle && els.applicationsTitle.closest('.admin-card');
+      var target = link.scrollTo && link.scrollTo.closest('.admin-card');
       if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
-  }
+  });
 
   function renderErrorState(list, message, retry) {
     list.innerHTML = '';
@@ -806,6 +926,17 @@
   //     건수가 더 많을 수 있습니다 — 그건 정상입니다).
   // ============================================================
   var ADMIN_ACCEPT_WINDOW_HOURS = 48; // mypage-manager.html 의 ACCEPT_WINDOW_HOURS 와 반드시 같은 값으로 유지
+
+  // '48시간 지난 신청도 보기' 체크박스 상태 — 목록 조회(fetchApplicationsPage)와 요약 카드(loadSummaryStats)가
+  // 항상 같은 값을 보고 같은 cutoff 를 적용하도록, 체크박스를 직접 읽는 곳을 이 함수 하나로 모읍니다.
+  function isShowOverdueAppsOn() {
+    return !!(els.showOverdueAppsToggle && els.showOverdueAppsToggle.checked);
+  }
+  // 위 체크박스가 꺼져 있을 때 적용할 "접수 48시간 이내" cutoff 시각(ISO) — 호출 시점의 Date.now() 기준이라
+  // 매번 새로 계산해야 하므로 상수가 아니라 함수로 둡니다.
+  function getAcceptCutoffIso() {
+    return new Date(Date.now() - ADMIN_ACCEPT_WINDOW_HOURS * 3600e3).toISOString();
+  }
   function isAwaitingPaymentStatus(raw) {
     return String(raw == null ? '' : raw).trim().toUpperCase() === 'PAYMENT_PENDING';
   }
@@ -902,8 +1033,8 @@
     // 48시간이 지나면 보호자가 재신청해야 하는 구조라, 체크박스가 꺼져 있는 기본 화면에서는 유효한
     // 신청만 최신순(내림차순)으로 보여줍니다 — 체크박스를 켰을 때만 cutoff 가 풀려 '경과' 뱃지가 붙은
     // 지난 건도 함께(최신 건들과 뒤섞여) 나타납니다.
-    var showOverdue = !!(els.showOverdueAppsToggle && els.showOverdueAppsToggle.checked);
-    var acceptCutoffIso = new Date(Date.now() - ADMIN_ACCEPT_WINDOW_HOURS * 3600e3).toISOString();
+    var showOverdue = isShowOverdueAppsOn();
+    var acceptCutoffIso = getAcceptCutoffIso();
     var query = supabaseClient
       .from('service_applications')
       .select('id, created_at, service_type, user_relation, senior_name, senior_age, senior_note, user_contact, address, request_details, status, manager_id, addon_codes, is_package_used, package_remaining_after')
@@ -964,7 +1095,7 @@
     var list = els.applicationsList;
     if (!list) return;
 
-    var showOverdueToggleOn = !!(els.showOverdueAppsToggle && els.showOverdueAppsToggle.checked);
+    var showOverdueToggleOn = isShowOverdueAppsOn();
 
     var rows = lastApplicationsRows.filter(function (a) {
       var paymentPending = isAwaitingPaymentStatus(a.status);
@@ -1212,11 +1343,22 @@
     var isRefunded = a.payment_status === 'REFUNDED';
     var isPartiallyRefunded = a.payment_status === 'PARTIALLY_REFUNDED';
     var isManualUnrefunded = !isAutoExpired && !isRefunded && !isPartiallyRefunded && a.payment_status === 'PAID';
-    // 잔액이 남아 있는 한(부분 환불 1회차든, 아직 한 번도 환불하지 않은 건이든) [환불 처리] 버튼을 보여줍니다.
-    var canRefund = isManualUnrefunded || isPartiallyRefunded;
     // 기존 [환불 완료 처리](admin_mark_refund_completed)로 전액 환불 처리된 과거 건은 refund_amount를
     // 채우지 않으므로, 전액 환불 표기에서는 final_amount(결제 총액)로 대신 보여줍니다.
     var refundedSoFar = a.refund_amount || (isRefunded ? (a.final_amount || 0) : 0);
+    // 환불 가능 잔액 — admin_apply_application_refund() 가 누적 환불액이 final_amount 에 도달하는 순간
+    // payment_status 를 'REFUNDED' 로 자동 승격하므로 평소엔 isPartiallyRefunded 일 때 항상 remaining > 0
+    // 이지만, 그 불변식을 버튼 노출 조건에서도 직접 한 번 더 확인합니다 — 과거 데이터나 다른 경로로 들어온
+    // 값이 있어도(예: 사유 불문 refund_amount 가 final_amount 이상으로 찍혀 있는 경우) [환불 처리] 버튼이
+    // "더 돌려줄 돈이 없는데도" 뜨는 일은 없도록 막는 안전장치입니다.
+    var remaining = Math.max((a.final_amount || 0) - (a.refund_amount || 0), 0);
+    // 잔액이 남아 있는 한(부분 환불 1회차든, 아직 한 번도 환불하지 않은 건이든) [환불 처리] 버튼을 보여줍니다.
+    var canRefund = (isManualUnrefunded || isPartiallyRefunded) && remaining > 0;
+    // remaining 이 0인데도 payment_status 가 아직 'PARTIALLY_REFUNDED' 로 남아 있는 비정상 데이터는
+    // (정상 경로로는 생기지 않지만) 버튼만 숨기고 '부분 환불 완료' 라벨을 그대로 두면 "아직 덜 끝난 것
+    // 처럼" 오해를 살 수 있어, 화면 표시만 '환불 완료'로 승격해 보여줍니다 — 실제 payment_status 값(DB)은
+    // 바꾸지 않고 이 행의 표시 용도로만 바꿉니다.
+    if (isPartiallyRefunded && remaining <= 0) { isPartiallyRefunded = false; isRefunded = true; }
 
     var badges = '';
     if (overdue && !isAutoExpired) badges += '<span class="admin-badge is-overdue">경과</span>';
@@ -1303,6 +1445,10 @@
   // 잔여 환불 가능 금액을 넘지 않는지 서버와 똑같은 기준으로 먼저 클라이언트에서 검증합니다.
   // ================================================================
   var adminRefundState = null; // { application, total, already, remaining }
+  // 모달을 연 뒤 서버에서 최신 잔액을 다시 불러오는 동안, 그 사이에 다른 행의 [환불 처리]를 또 눌렀을 때
+  // 먼저 보낸(느린) 조회 응답이 나중에 열린 모달 내용을 덮어쓰지 않도록 막는 토큰입니다 — 매번 openAdminRefundModal()
+  // 호출마다 값을 하나씩 올리고, await 가 끝난 뒤 그 호출 시점의 토큰이 "지금 모달이 보여주는 건"과 같은지 확인합니다.
+  var adminRefundOpenToken = 0;
 
   function adminRefundIsPartial() {
     return !!(els.adminRefundTypePartial && els.adminRefundTypePartial.checked);
@@ -1313,25 +1459,75 @@
     els.adminRefundPartialSection.hidden = !adminRefundIsPartial();
   }
 
-  function openAdminRefundModal(a) {
-    var total = a.final_amount || 0;
-    var already = a.refund_amount || 0;
-    var remaining = Math.max(total - already, 0);
-    adminRefundState = { application: a, total: total, already: already, remaining: remaining };
+  // 모달 입력 영역(환불 방식/금액/사유/확인 버튼) 전체를 잠그거나 풉니다 — 최신 잔액을 불러오는 중이거나,
+  // 그 결과 이미 환불이 끝나 버린 걸 발견했을 때 어떤 금액도 입력/제출할 수 없게 원천 차단합니다.
+  function setAdminRefundFormLocked(locked) {
+    els.adminRefundTypeFull.disabled = locked;
+    els.adminRefundTypePartial.disabled = locked;
+    els.adminRefundAmountInput.disabled = locked;
+    els.adminRefundReasonInput.disabled = locked;
+    els.adminRefundConfirmBtn.disabled = locked;
+  }
 
+  // [환불 처리] 버튼을 누른 그 순간의 목록 데이터(a)는 폴링 주기(최대 몇십 초) 동안 다른 관리자의 처리로
+  // 이미 낡아 있을 수 있습니다 — "환불 가능 잔액"을 목록 캐시가 아니라 지금 이 순간 서버에 다시 물어서
+  // (요구사항: 모달을 열 때마다 실시간으로 반영) 화면에 보여주는 숫자와 실제로 입력을 막는 기준(remaining)이
+  // 항상 최신 상태와 일치하게 만듭니다 — 백엔드(admin-refund-application, admin_apply_application_refund)가
+  // 어차피 한 번 더 검증하지만, 애초에 틀린 숫자를 보여주며 입력을 받는 것 자체가 사용자 경험상 문제입니다.
+  async function openAdminRefundModal(a) {
+    var myToken = ++adminRefundOpenToken;
+
+    adminRefundState = { application: a, total: a.final_amount || 0, already: a.refund_amount || 0, remaining: 0 };
     els.adminRefundSub.textContent = (a.senior_name || '어르신') + ' · ' + (a.service_type || '케어 신청');
-    els.adminRefundBalanceInfo.textContent =
-      total.toLocaleString('ko-KR') + '원 / ' + remaining.toLocaleString('ko-KR') + '원' +
-      (already > 0 ? ' (기존 환불 누적 ' + already.toLocaleString('ko-KR') + '원)' : '');
+    els.adminRefundBalanceInfo.textContent = '환불 가능 잔액을 다시 확인하는 중…';
     els.adminRefundTypeFull.checked = true;
     els.adminRefundAmountInput.value = '';
-    els.adminRefundAmountInput.max = String(remaining);
     els.adminRefundReasonInput.value = '';
     els.adminRefundError.hidden = true;
     updateAdminRefundTypeVisibility();
-    els.adminRefundConfirmBtn.disabled = false;
+    setAdminRefundFormLocked(true);
     els.adminRefundConfirmBtn.textContent = '환불 처리하기';
     els.adminRefundModal.hidden = false;
+
+    var fresh = await supabaseClient
+      .from('service_applications')
+      .select('status, payment_status, final_amount, refund_amount')
+      .eq('id', a.id)
+      .maybeSingle();
+    if (myToken !== adminRefundOpenToken) return; // 그 사이 다른 행의 모달이 열렸으면 이 응답은 버립니다.
+
+    if (fresh.error || !fresh.data) {
+      els.adminRefundBalanceInfo.textContent = '-';
+      els.adminRefundError.textContent = '환불 가능 잔액을 다시 확인하지 못했습니다: ' +
+        (fresh.error ? fresh.error.message : '해당 신청을 찾을 수 없습니다') + ' — 창을 닫고 다시 시도해 주세요.';
+      els.adminRefundError.hidden = false;
+      return; // setAdminRefundFormLocked(true) 상태 그대로 유지 — 확인 안 된 금액으로는 아예 입력을 못 받습니다.
+    }
+
+    var row = fresh.data;
+    var total = row.final_amount || 0;
+    var already = row.refund_amount || 0;
+    var remaining = Math.max(total - already, 0);
+    adminRefundState = { application: Object.assign({}, a, row), total: total, already: already, remaining: remaining };
+
+    els.adminRefundBalanceInfo.textContent =
+      total.toLocaleString('ko-KR') + '원 / ' + remaining.toLocaleString('ko-KR') + '원' +
+      (already > 0 ? ' (기존 환불 누적 ' + already.toLocaleString('ko-KR') + '원)' : '');
+    els.adminRefundAmountInput.max = String(remaining);
+
+    // 다시 확인해 보니 이미 다른 경로로 환불이 끝나 버렸거나(잔액 0) 더 이상 취소/환불 대상이 아닌 상태로
+    // 바뀐 경우 — 입력 자체를 계속 막고, 왜 막혔는지 분명히 알리고 창을 닫게 안내합니다.
+    var stillCancelled = row.status === 'CANCELLED' || row.status === 'EXPIRED_CANCELLED';
+    var stillRefundable = row.payment_status === 'PAID' || row.payment_status === 'PARTIALLY_REFUNDED';
+    if (!stillCancelled || !stillRefundable || remaining <= 0) {
+      els.adminRefundError.textContent = remaining <= 0
+        ? '다시 확인해 보니 이미 전액 환불이 완료되어 더 이상 환불할 금액이 없습니다. 창을 닫고 목록을 새로고침해 주세요.'
+        : '다시 확인해 보니 이 신청은 더 이상 환불 처리 대상이 아닙니다(상태가 바뀌었을 수 있어요). 창을 닫고 목록을 새로고침해 주세요.';
+      els.adminRefundError.hidden = false;
+      return; // 잠긴 상태 유지
+    }
+
+    setAdminRefundFormLocked(false);
   }
 
   function closeAdminRefundModal() {
@@ -1372,7 +1568,13 @@
         return;
       }
       if (amount > remaining) {
-        els.adminRefundError.textContent = '환불할 금액이 환불 가능 잔액(' + remaining.toLocaleString('ko-KR') + '원)보다 많습니다.';
+        // 초과 환불은 돈이 실제로(PortOne으로) 더 나가는 치명적인 실수라, 폼 아래 빨간 글씨만으로는
+        // 눈에 잘 안 띌 수 있어 별도 경고 팝업으로도 한 번 더 막습니다 — 둘 다 입력을 그 자리에서
+        // 막을 뿐, 어떤 경우에도 서버 호출(환불 처리하기 → admin-refund-application)로 넘어가지 않습니다.
+        var exceedMsg = '환불할 금액(' + amount.toLocaleString('ko-KR') + '원)이 환불 가능 잔액(' +
+          remaining.toLocaleString('ko-KR') + '원)보다 많습니다. 환불 가능 잔액 이하로 다시 입력해 주세요.';
+        window.alert(exceedMsg);
+        els.adminRefundError.textContent = exceedMsg;
         els.adminRefundError.hidden = false;
         return;
       }
@@ -1413,6 +1615,14 @@
         : ((detail && detail.message) || e.message || String(e));
       els.adminRefundError.textContent = '환불 처리에 실패했습니다: ' + userMsg;
       els.adminRefundError.hidden = false;
+      // 클라이언트 쪽 잔액이 열람 시점엔 맞았더라도, 그 사이 다른 관리자가 먼저 처리해 서버가 뒤늦게
+      // 초과 환불/이미 완료를 잡아낸 경우(REFUND_EXCEEDS_REMAINING/ALREADY_FULLY_REFUNDED/NOTHING_TO_REFUND
+      // — admin-refund-application) — 이때도 PortOne 호출 자체가 막혀 돈은 움직이지 않았지만, 조용히
+      // 인라인 에러만 보여주면 놓치기 쉬워 경고 팝업으로 한 번 더 알립니다.
+      var blockingCodes = ['REFUND_EXCEEDS_REMAINING', 'ALREADY_FULLY_REFUNDED', 'NOTHING_TO_REFUND', 'NOT_CANCELLED'];
+      if (detail && blockingCodes.indexOf(detail.error) !== -1) {
+        window.alert('환불 처리가 차단되었습니다: ' + userMsg);
+      }
     } finally {
       els.adminRefundConfirmBtn.disabled = false;
       els.adminRefundConfirmBtn.textContent = '환불 처리하기';
@@ -1599,6 +1809,7 @@
   var lastInProgressRows = [];
   var lastInProgressManagerById = {};
   var careViewMode = 'in_progress'; // in_progress | completed | all — 지금 lastInProgressRows 에 뭐가 들어있는지
+  var currentCareDateFilter = 'all'; // all | today | past — [전체]/[오늘 케어]/[지난 케어] 탭, careDateBucket() 기준
 
   // care_schedules 조회 컬럼 — loadInProgressCare/loadCompletedCare/loadAllCare 가 공유합니다.
   // 완료 건에만 의미가 있는 completed_at/추가 요금 컬럼은 완료 쪽 조회에만 덧붙입니다.
@@ -1606,7 +1817,12 @@
   // service_applications.schedule_id, sql/supabase_schema_latest.sql) embed 가 어느 쪽인지 모호하다는
   // 오류("more than one relationship was found")가 났습니다 — care_schedules.application_id 쪽 FK를
   // 쓰도록 'service_applications!application_id(...)' 로 명시합니다.
-  var CARE_SCHED_BASE_COLS = 'id, created_at, scheduled_at, manager_id, guardian_name, guardian_phone, senior_name, senior_age, senior_note, origin, destination, notes, status, payout_amount, payment_amount, application_id, service_applications!application_id(is_package_used, package_remaining_after)';
+  // service_applications!application_id(...) 에 payment_status/refund_amount 를 추가로 embed 합니다 —
+  // 케어 중단 시 부분 환불(admin_apply_partial_refund, sql/care_interruption_refund_system.sql)은
+  // care_schedules.status 를 'completed' 로 닫고 service_applications.payment_status 만 'PARTIALLY_
+  // REFUNDED' 로 남기는데, 이 컬럼이 없으면 이 카드(특히 '완료' 필터)에서 부분 환불이 있었다는 사실을
+  // 전혀 알 수 없어 '취소된 신청 내역' 카드(환불 완료/부분 환불 완료 뱃지)와 문구가 어긋나 보였습니다.
+  var CARE_SCHED_BASE_COLS = 'id, created_at, scheduled_at, manager_id, guardian_name, guardian_phone, senior_name, senior_age, senior_note, origin, destination, notes, status, payout_amount, payment_amount, application_id, service_applications!application_id(is_package_used, package_remaining_after, payment_status, refund_amount)';
   var CARE_SCHED_COMPLETED_COLS = CARE_SCHED_BASE_COLS + ', completed_at, extra_charge_amount, extra_charge_memo, extra_charge_status, extra_charge_requested_at, extra_charge_paid_at';
 
   // 텍스트 + 쉐브론 아이콘으로 구성된 '더보기' 버튼 라벨을 그립니다(.admin-showmore-btn 공통 사용).
@@ -1747,6 +1963,27 @@
     return '진행 중인 케어 ';
   }
 
+  // [전체]/[오늘 케어]/[지난 케어] 칩 라벨의 건수를 검색어 적용 후(날짜 필터 적용 전) 행 목록 기준으로
+  // 갱신합니다 — 탭을 바꾸기 전에도 각 탭에 몇 건이 있는지 미리 보이도록, 지금 선택된 탭 기준이 아니라
+  // 항상 세 버킷 전부를 다시 셉니다.
+  function updateInProgressCareDateFilterCounts(searchedRows) {
+    var group = els.inProgressCareDateFilter;
+    if (!group) return;
+    var todayCount = 0;
+    var pastCount = 0;
+    searchedRows.forEach(function (s) {
+      var bucket = careDateBucket(s.scheduled_at);
+      if (bucket === 'today') todayCount++;
+      else if (bucket === 'past') pastCount++;
+    });
+    var allBtn = group.querySelector('[data-date-filter="all"]');
+    var todayBtn = group.querySelector('[data-date-filter="today"]');
+    var pastBtn = group.querySelector('[data-date-filter="past"]');
+    if (allBtn) allBtn.textContent = '전체 ' + searchedRows.length + '건';
+    if (todayBtn) todayBtn.textContent = '오늘 케어 ' + todayCount + '건';
+    if (pastBtn) pastBtn.textContent = '지난 케어 ' + pastCount + '건';
+  }
+
   // 검색어 + 상태 필터를 lastInProgressRows 에 적용해 다시 그립니다. '입금대기'/'매칭대기' 필터는 이
   // 카드 범위 밖의 상태라 항상 0건으로 비워 둡니다(오늘의 케어 신청 카드 쪽에서 보여줍니다).
   async function renderInProgressCareList() {
@@ -1760,16 +1997,22 @@
     // insert 함) 이 카드에는 보여줄 게 아예 없습니다 — payment_pending/matching_pending 과 같은 이유로 비워 둡니다.
     if (currentStatusFilter === 'payment_pending' || currentStatusFilter === 'matching_pending' || currentStatusFilter === 'cancelled') {
       if (els.inProgressCareCount) { els.inProgressCareCount.textContent = '0건'; els.inProgressCareCount.hidden = false; }
+      updateInProgressCareDateFilterCounts([]);
       list.innerHTML = '<p class="admin-empty">조건에 맞는 케어가 없습니다.</p>';
       return;
     }
 
-    var rows = lastInProgressRows.filter(function (s) {
+    var searchedRows = lastInProgressRows.filter(function (s) {
       var managerText = lastInProgressManagerById[s.manager_id]
         ? lastInProgressManagerById[s.manager_id].name + ' ' + lastInProgressManagerById[s.manager_id].phone
         : '';
       return matchesSearch([s.guardian_name, s.guardian_phone, s.senior_name, managerText]);
     });
+
+    updateInProgressCareDateFilterCounts(searchedRows);
+
+    var rows = currentCareDateFilter === 'all' ? searchedRows
+      : searchedRows.filter(function (s) { return careDateBucket(s.scheduled_at) === currentCareDateFilter; });
 
     if (els.inProgressCareCount) {
       els.inProgressCareCount.textContent = rows.length + '건';
@@ -1777,7 +2020,9 @@
     }
 
     if (!rows.length) {
-      var emptyText = careViewMode === 'completed' ? '완료된 케어가 없습니다.'
+      var emptyText = currentCareDateFilter === 'today' ? '오늘 예정된 케어가 없습니다.'
+        : currentCareDateFilter === 'past' ? '지난 케어가 없습니다.'
+        : careViewMode === 'completed' ? '완료된 케어가 없습니다.'
         : careViewMode === 'all' ? '배정된 케어가 없습니다.'
         : '현재 배정되어 진행 중인 케어가 없습니다.';
       list.innerHTML = '<p class="admin-empty">' + emptyText + '</p>';
@@ -1904,6 +2149,15 @@
           (linkedApp.package_remaining_after != null ? ' · 신청 당시 잔여 ' + formatPkgCount(linkedApp.package_remaining_after) + '회' : '') +
         '</span>'
       : '';
+    // 케어 중단으로 부분 환불된 건 — '취소된 신청 내역' 카드(renderCancelledApplicationRow)가 쓰는 것과
+    // 똑같은 한글 라벨·금액 표기를 그대로 써서, 어느 화면에서 보든 같은 건이 같은 문구로 보이게 맞춥니다.
+    var refundBadge = (linkedApp && linkedApp.payment_status === 'PARTIALLY_REFUNDED')
+      ? '<span class="admin-badge is-partially-refunded">부분 환불 완료' +
+          (linkedApp.refund_amount ? ' (' + Number(linkedApp.refund_amount).toLocaleString('ko-KR') + '원)' : '') +
+        '</span>'
+      : (linkedApp && linkedApp.payment_status === 'REFUNDED'
+        ? '<span class="admin-badge is-refunded">환불 완료</span>'
+        : '');
 
     var head = document.createElement('div');
     head.className = 'admin-row-head';
@@ -1914,6 +2168,7 @@
         daysBadge +
         '<span class="admin-badge is-' + statusKey + '">' + escapeHtml(statusLabel) + '</span>' +
         packageBadge +
+        refundBadge +
       '</div>';
 
     var managerText = manager
@@ -2646,6 +2901,21 @@
     loadCareIssues();
   }
 
+  // 상단 [새로고침] 버튼 전용 — refreshAll() 은 30초 폴링/탭 재방문에서도 쓰이는 가벼운 갱신이라
+  // 패키지·회원 관리 같은 무거운 섹션은 일부러 빼 둔 반면, 이 함수는 버튼을 눌렀을 때만 돌며 요청에
+  // 명시된 모든 대상(요약 카드 5개 · 가입 승인 대기 매니저 · 오늘의 케어 신청 · 패키지 구매 회원 관리
+  // · 회원 관리)을 한 번에 다시 불러옵니다. Promise.all 로 동시에 요청해, 느린 쿼리 하나 때문에
+  // 버튼이 필요 이상으로 오래 "갱신 중…" 상태에 머무르지 않게 합니다.
+  async function refreshAllAdminData() {
+    await Promise.all([
+      loadSummaryStats(),
+      loadPendingManagers(),
+      loadApplications(),
+      loadUserPackages(),
+      loadMembers()
+    ]);
+  }
+
   var POLL_INTERVAL_MS = 30000;
   var pollTimer = null;
   function startPolling() {
@@ -2679,11 +2949,20 @@
   });
 
   if (els.refreshBtn) {
-    els.refreshBtn.addEventListener('click', function () {
+    els.refreshBtn.addEventListener('click', async function () {
+      var originalLabel = els.refreshBtn.textContent;
       els.refreshBtn.disabled = true;
-      refreshAll();
-      showToast('최신 상태를 다시 불러왔습니다.');
-      setTimeout(function () { els.refreshBtn.disabled = false; }, 600);
+      els.refreshBtn.textContent = '갱신 중...';
+      try {
+        await refreshAllAdminData();
+        showToast('최신 상태를 다시 불러왔습니다.');
+      } catch (e) {
+        console.error('[Admin] 새로고침 중 오류:', e);
+        showToast('일부 데이터를 불러오지 못했습니다.');
+      } finally {
+        els.refreshBtn.disabled = false;
+        els.refreshBtn.textContent = originalLabel;
+      }
     });
   }
 
@@ -3573,6 +3852,945 @@
     });
   }
 
+  // ============================================================
+  // 07. 회원 관리 — admin_list_members() RPC(sql/admin_member_management.sql)로 profiles + auth.users
+  //     (이메일/인증여부/가입수단/계정정지여부)를 묶어 받아 옵니다. 검색/필터는 모두 그 RPC 파라미터로
+  //     서버에서 적용되고, 10개씩 번호 페이지네이션으로 보여줍니다 — 그 RPC가 count(*) over() 로
+  //     total_count 까지 한 번에 돌려주므로 별도의 count 쿼리가 필요 없습니다.
+  // ============================================================
+  var MEMBER_PROVIDER_LABEL = { email: '이메일', kakao: '카카오' };
+  var MEMBERS_PAGE_SIZE = 10;
+
+  var lastMembersRows = [];
+  var membersTotalCount = 0;
+  var membersPage = 1; // 1-based
+  var currentMemberSearchText = '';
+  var currentMemberProviderFilter = 'all';  // all | email | kakao
+  var currentMemberVerifiedFilter = 'all';  // all | verified | unverified
+  var memberSearchDebounceTimer = null;
+
+  // banned_until 은 GoTrue가 정지 시 아주 먼 미래(≈100년)로 채우고, 정지 해제 시 null로 돌아갑니다
+  // (supabase-set-member-status Edge Function 참고) — "미래 시각이 있으면 정지 중"으로 판정합니다.
+  function isMemberSuspended(m) {
+    return !!(m.banned_until && new Date(m.banned_until).getTime() > Date.now());
+  }
+
+  async function fetchMembersPage(page) {
+    var res = await supabaseClient.rpc('admin_list_members', {
+      p_limit: MEMBERS_PAGE_SIZE,
+      p_offset: (page - 1) * MEMBERS_PAGE_SIZE,
+      p_search: currentMemberSearchText || null,
+      p_provider: currentMemberProviderFilter === 'all' ? null : currentMemberProviderFilter,
+      p_verified: currentMemberVerifiedFilter === 'all' ? null : currentMemberVerifiedFilter
+    });
+
+    if (res.error) {
+      console.error('[Admin] 회원 목록 조회 실패:', res.error.code, res.error.message,
+        '→ sql/admin_member_management.sql 을 Supabase SQL Editor 에서 실행했는지, 이 계정의 profiles.role 이 \'admin\' 인지 확인하세요.');
+      return { rows: [], total: 0, error: res.error };
+    }
+
+    var rows = res.data || [];
+    var total = rows.length ? Number(rows[0].total_count || 0) : 0;
+    return { rows: rows, total: total, error: null };
+  }
+
+  function renderMemberRow(m) {
+    var verified = !!m.email_confirmed_at;
+    var suspended = isMemberSuspended(m);
+    var providerLabel = MEMBER_PROVIDER_LABEL[m.provider] || m.provider || '-';
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + escapeHtml(m.name || '이름 미등록') + '</td>' +
+      '<td>' + escapeHtml(m.phone || '미등록') + '</td>' +
+      '<td>' + escapeHtml(m.email || '-') + '</td>' +
+      '<td><span class="admin-badge is-neutral">' + escapeHtml(providerLabel) + '</span></td>' +
+      '<td><span class="admin-badge ' + (verified ? 'is-verified' : 'is-cancelled') + '">' + (verified ? '인증' : '미인증') + '</span></td>' +
+      '<td><span class="admin-badge ' + (suspended ? 'is-suspended' : 'is-active-account') + '">' + (suspended ? '정지' : '정상') + '</span></td>' +
+      '<td>' + escapeHtml(formatDateOnly(m.created_at)) + '</td>' +
+      '<td><button type="button" class="admin-btn is-ghost member-detail-btn">상세 보기</button></td>';
+    tr.querySelector('.member-detail-btn').addEventListener('click', function () { openMemberDetailModal(m); });
+    return tr;
+  }
+
+  // 1 … (현재-2)…(현재+2) … 마지막 식의 윈도윙 — 페이지가 아주 많아져도 버튼 줄이 한없이 길어지지 않게 합니다.
+  function renderMembersPagination(totalPages) {
+    var wrap = els.membersPaginationWrap;
+    if (!wrap) return;
+    if (totalPages <= 1) { wrap.hidden = true; wrap.innerHTML = ''; return; }
+    wrap.hidden = false;
+    wrap.innerHTML = '';
+
+    function addPageBtn(label, page, opts) {
+      opts = opts || {};
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'admin-page-btn' + (opts.active ? ' is-active' : '');
+      btn.textContent = label;
+      if (opts.disabled || opts.active) btn.disabled = true;
+      if (!opts.disabled && !opts.active) btn.addEventListener('click', function () { goToMembersPage(page); });
+      wrap.appendChild(btn);
+    }
+
+    addPageBtn('‹ 이전', membersPage - 1, { disabled: membersPage <= 1 });
+
+    var windowStart = Math.max(1, membersPage - 2);
+    var windowEnd = Math.min(totalPages, membersPage + 2);
+    if (windowStart > 1) {
+      addPageBtn('1', 1, { active: false });
+      if (windowStart > 2) {
+        var ell1 = document.createElement('span');
+        ell1.className = 'admin-page-ellipsis';
+        ell1.textContent = '…';
+        wrap.appendChild(ell1);
+      }
+    }
+    for (var p = windowStart; p <= windowEnd; p++) addPageBtn(String(p), p, { active: p === membersPage });
+    if (windowEnd < totalPages) {
+      if (windowEnd < totalPages - 1) {
+        var ell2 = document.createElement('span');
+        ell2.className = 'admin-page-ellipsis';
+        ell2.textContent = '…';
+        wrap.appendChild(ell2);
+      }
+      addPageBtn(String(totalPages), totalPages, { active: false });
+    }
+
+    addPageBtn('다음 ›', membersPage + 1, { disabled: membersPage >= totalPages });
+  }
+
+  function renderMembersList() {
+    var body = els.membersTableBody;
+    if (!body) return;
+
+    if (els.membersCount) {
+      els.membersCount.textContent = membersTotalCount + '명';
+      els.membersCount.hidden = false;
+    }
+
+    if (!lastMembersRows.length) {
+      body.innerHTML = '<tr><td colspan="8" class="admin-empty">조건에 맞는 회원이 없습니다.</td></tr>';
+    } else {
+      body.innerHTML = '';
+      lastMembersRows.forEach(function (m) { body.appendChild(renderMemberRow(m)); });
+    }
+
+    renderMembersPagination(Math.max(1, Math.ceil(membersTotalCount / MEMBERS_PAGE_SIZE)));
+
+    // 상세보기 모달이 지금 보고 있는 회원이 이 페이지에도 있으면(검색/필터가 바뀌어도 그 회원이
+    // 여전히 조건에 맞는 경우), 최신 행으로 모달 상단 정보도 같이 갱신합니다.
+    if (memberDetailTarget && els.memberDetailModal && !els.memberDetailModal.hidden) {
+      var reopened = lastMembersRows.filter(function (m) { return m.id === memberDetailTarget.id; })[0];
+      if (reopened) { memberDetailTarget = reopened; renderMemberDetailInfo(reopened); }
+    }
+  }
+
+  async function goToMembersPage(page) {
+    if (page < 1) return;
+    membersPage = page;
+    await loadMembers();
+    if (els.membersTable) els.membersTable.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  async function loadMembers() {
+    var body = els.membersTableBody;
+    if (!body) return;
+    body.innerHTML = '<tr><td colspan="8" class="admin-loading">불러오는 중…</td></tr>';
+
+    var result = await fetchMembersPage(membersPage);
+    if (result.error) {
+      body.innerHTML = '<tr><td colspan="8" class="admin-empty">목록을 불러오지 못했습니다: ' + escapeHtml(result.error.message) + '</td></tr>';
+      if (els.membersPaginationWrap) els.membersPaginationWrap.hidden = true;
+      return;
+    }
+
+    lastMembersRows = result.rows;
+    membersTotalCount = result.total;
+    renderMembersList();
+  }
+
+  if (els.membersSearchInput) {
+    els.membersSearchInput.addEventListener('input', function () {
+      clearTimeout(memberSearchDebounceTimer);
+      memberSearchDebounceTimer = setTimeout(function () {
+        currentMemberSearchText = els.membersSearchInput.value.trim();
+        membersPage = 1;
+        loadMembers();
+      }, 300);
+    });
+  }
+
+  function bindMemberFilterChips(group, attr, applyFilter) {
+    if (!group) return;
+    group.addEventListener('click', function (e) {
+      var btn = e.target.closest('.admin-filter-chip');
+      if (!btn) return;
+      var value = btn.getAttribute(attr);
+      applyFilter(value);
+      Array.prototype.forEach.call(group.querySelectorAll('.admin-filter-chip'), function (chip) {
+        chip.classList.toggle('is-active', chip === btn);
+      });
+      membersPage = 1;
+      loadMembers();
+    });
+  }
+  bindMemberFilterChips(els.membersProviderFilter, 'data-provider', function (v) { currentMemberProviderFilter = v; });
+  bindMemberFilterChips(els.membersVerifiedFilter, 'data-verified', function (v) { currentMemberVerifiedFilter = v; });
+
+  // ---------- 엑셀(CSV) 다운로드 — 지금 화면에 걸려 있는 검색/필터 조건에 맞는 "전체" 목록을
+  // 내려받습니다(현재 페이지 10건만이 아님). 500건씩 끊어 반복 조회해 한 번에 너무 큰 쿼리를
+  // 던지지 않으면서도, 몇 번을 더 호출해야 할지는 서버 count 없이 "500건보다 적게 왔으면 끝"으로 판단합니다.
+  function csvEscape(value) {
+    var s = value == null ? '' : String(value);
+    if (/[",\n\r]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+
+  async function exportMembersToCsv() {
+    var btn = els.membersExportBtn;
+    if (!btn) return;
+    btn.disabled = true;
+    var originalLabel = btn.textContent;
+    btn.textContent = '다운로드 준비 중…';
+    try {
+      var allRows = [];
+      var batchSize = 500;
+      for (var offset = 0; ; offset += batchSize) {
+        var res = await supabaseClient.rpc('admin_list_members', {
+          p_limit: batchSize,
+          p_offset: offset,
+          p_search: currentMemberSearchText || null,
+          p_provider: currentMemberProviderFilter === 'all' ? null : currentMemberProviderFilter,
+          p_verified: currentMemberVerifiedFilter === 'all' ? null : currentMemberVerifiedFilter
+        });
+        if (res.error) {
+          console.error('[Admin] 회원 목록 CSV 조회 실패:', res.error.code, res.error.message);
+          showToast('엑셀 다운로드에 실패했습니다: ' + res.error.message);
+          return;
+        }
+        var batch = res.data || [];
+        allRows = allRows.concat(batch);
+        if (batch.length < batchSize) break;
+      }
+
+      if (!allRows.length) {
+        showToast('다운로드할 회원이 없습니다(현재 검색/필터 조건에 맞는 회원이 없음).');
+        return;
+      }
+
+      var header = ['이름', '휴대폰 번호', '이메일', '가입 수단', '이메일 인증', '계정 상태', '가입일자', '주소'];
+      var lines = [header.map(csvEscape).join(',')];
+      allRows.forEach(function (m) {
+        var addressText = [m.address, m.address_detail].filter(Boolean).join(' ');
+        lines.push([
+          m.name || '이름 미등록',
+          m.phone || '미등록',
+          m.email || '-',
+          MEMBER_PROVIDER_LABEL[m.provider] || m.provider || '-',
+          m.email_confirmed_at ? '인증' : '미인증',
+          isMemberSuspended(m) ? '정지' : '정상',
+          formatDateOnly(m.created_at),
+          addressText || ''
+        ].map(csvEscape).join(','));
+      });
+
+      // Excel(Windows)에서 한글이 깨지지 않도록 UTF-8 BOM을 맨 앞에 붙입니다.
+      var csvContent = '﻿' + lines.join('\r\n');
+      var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = '위드브릿지_회원목록_' + new Date().toISOString().slice(0, 10) + '.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast(allRows.length + '명의 회원 목록을 내려받았습니다.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+    }
+  }
+  if (els.membersExportBtn) els.membersExportBtn.addEventListener('click', exportMembersToCsv);
+
+  // ---------- 회원 상세보기 모달 ----------
+  var MEMBER_BOOKING_STATUS_LABEL = {
+    pending: '대기', payment_pending: '입금대기', matching_pending: '매칭대기',
+    assigned: '배정됨', in_progress: '진행중', completed: '완료', cancelled: '취소'
+  };
+  var MEMBER_PACKAGE_TYPE_LABEL = { '5_sessions': '5회권', '10_sessions': '10회권', '10_hours': '10시간권', '20_hours': '20시간권' };
+  var memberDetailTarget = null;
+  var memberEditMode = false;
+
+  function showMemberActionError(msg) {
+    if (els.memberActionSuccess) els.memberActionSuccess.hidden = true;
+    var el = els.memberActionError;
+    if (!el) return;
+    if (!msg) { el.hidden = true; return; }
+    el.textContent = msg;
+    el.hidden = false;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function showMemberActionSuccess(msg) {
+    if (els.memberActionError) els.memberActionError.hidden = true;
+    var el = els.memberActionSuccess;
+    if (!el) return;
+    if (!msg) { el.hidden = true; return; }
+    el.textContent = msg;
+    el.hidden = false;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function renderMemberDetailInfo(m) {
+    var suspended = isMemberSuspended(m);
+    if (els.memberDetailModalTitle) els.memberDetailModalTitle.textContent = (m.name || '이름 미등록') + ' 회원 상세';
+    var verified = !!m.email_confirmed_at;
+    if (els.memberDetailModalSub) {
+      els.memberDetailModalSub.textContent =
+        (MEMBER_PROVIDER_LABEL[m.provider] || m.provider || '-') + ' 가입 · ' + (verified ? '이메일 인증 완료' : '이메일 미인증') +
+        ' · 가입일 ' + formatDateOnly(m.created_at);
+    }
+    if (els.memberDetailInfoGrid) {
+      var addressText = [m.address, m.address_detail].filter(Boolean).join(' ');
+      els.memberDetailInfoGrid.innerHTML =
+        '<dt>이름</dt><dd>' + escapeHtml(m.name || '이름 미등록') + '</dd>' +
+        '<dt>휴대폰</dt><dd>' + escapeHtml(m.phone || '미등록') + '</dd>' +
+        '<dt>이메일</dt><dd>' + escapeHtml(m.email || '-') + '</dd>' +
+        '<dt>계정 상태</dt><dd><span class="admin-badge ' + (suspended ? 'is-suspended' : 'is-active-account') + '">' + (suspended ? '정지됨' : '정상') + '</span></dd>' +
+        '<dt>주소지</dt><dd>' + escapeHtml(addressText || '등록된 주소 없음') + '</dd>';
+    }
+    if (els.memberToggleStatusBtn) {
+      els.memberToggleStatusBtn.textContent = suspended ? '계정 활성화' : '계정 정지';
+      els.memberToggleStatusBtn.classList.toggle('is-danger', !suspended);
+      els.memberToggleStatusBtn.classList.toggle('is-ghost', suspended);
+    }
+  }
+
+  function closeMemberEditForm() {
+    memberEditMode = false;
+    if (els.memberEditForm) els.memberEditForm.hidden = true;
+    if (els.memberEditError) els.memberEditError.hidden = true;
+    if (els.memberEditSuccess) els.memberEditSuccess.hidden = true;
+  }
+
+  function openMemberEditForm(m) {
+    if (!els.memberEditForm) return;
+    memberEditMode = true;
+    if (els.memberEditName) els.memberEditName.value = m.name || '';
+    if (els.memberEditPhone) els.memberEditPhone.value = m.phone || '';
+    if (els.memberEditAddress) els.memberEditAddress.value = m.address || '';
+    if (els.memberEditAddressDetail) els.memberEditAddressDetail.value = m.address_detail || '';
+    if (els.memberEditError) els.memberEditError.hidden = true;
+    if (els.memberEditSuccess) els.memberEditSuccess.hidden = true;
+    els.memberEditForm.hidden = false;
+    // 클릭 즉시 모달 내부 스크롤을 이 수정 영역으로 옮겨, 아래로 긴 모달에서도 작업 화면을 바로 보여줍니다.
+    els.memberEditForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  async function saveMemberEdit() {
+    if (!memberDetailTarget) return;
+    var name = (els.memberEditName && els.memberEditName.value || '').trim();
+    var phone = (els.memberEditPhone && els.memberEditPhone.value || '').trim();
+    var address = (els.memberEditAddress && els.memberEditAddress.value || '').trim();
+    var addressDetail = (els.memberEditAddressDetail && els.memberEditAddressDetail.value || '').trim();
+
+    function showEditError(msg) {
+      if (els.memberEditSuccess) els.memberEditSuccess.hidden = true;
+      if (els.memberEditError) { els.memberEditError.textContent = msg; els.memberEditError.hidden = false; }
+    }
+    function showEditSuccess(msg) {
+      if (els.memberEditError) els.memberEditError.hidden = true;
+      if (els.memberEditSuccess) { els.memberEditSuccess.textContent = msg; els.memberEditSuccess.hidden = false; }
+    }
+    if (els.memberEditError) els.memberEditError.hidden = true;
+    if (els.memberEditSuccess) els.memberEditSuccess.hidden = true;
+    if (!name) return showEditError('이름을 입력해 주세요.');
+
+    var saveBtn = els.memberEditSaveBtn;
+    var originalLabel = saveBtn ? saveBtn.textContent : '';
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '저장 중...'; }
+    try {
+      var res = await supabaseClient.rpc('admin_update_member_profile', {
+        p_user_id: memberDetailTarget.id,
+        p_name: name,
+        p_phone: phone || null,
+        p_address: address || null,
+        p_address_detail: addressDetail || null
+      });
+      if (res.error) {
+        console.error('[Admin] 회원 정보 수정 실패:', res.error.code, res.error.message,
+          '→ sql/admin_member_management.sql 의 admin_update_member_profile() 이 적용돼 있는지 확인하세요.');
+        showEditError(res.error.message);
+        return;
+      }
+      // 폼은 닫지 않고 그대로 열어 둡니다 — 방금 저장한 내용을 바로 확인할 수 있게(스크롤도 이미
+      // 이 영역에 와 있는 상태라, 닫아 버리면 성공 메시지를 볼 수 없습니다).
+      showEditSuccess('✅ 회원 정보가 저장되었습니다.');
+      showToast('회원 정보를 수정했습니다.');
+      await loadMembers(); // 목록 재조회 — 성공 후 renderMembersList() 가 모달 상단 정보도 함께 갱신
+    } finally {
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = originalLabel; }
+    }
+  }
+
+  if (els.memberEditToggleBtn) {
+    els.memberEditToggleBtn.addEventListener('click', function () {
+      if (!memberDetailTarget) return;
+      if (memberEditMode) { closeMemberEditForm(); } else { openMemberEditForm(memberDetailTarget); }
+    });
+  }
+  if (els.memberEditCancelBtn) els.memberEditCancelBtn.addEventListener('click', closeMemberEditForm);
+  if (els.memberEditSaveBtn) els.memberEditSaveBtn.addEventListener('click', saveMemberEdit);
+
+  // ---------- CS 메모 (admin_member_notes — 운영자 전용 누적 로그) ----------
+  async function loadMemberDetailNotes(userId) {
+    var box = els.memberNotesList;
+    if (!box) return;
+    box.innerHTML = '<p class="admin-loading">불러오는 중…</p>';
+
+    var res = await supabaseClient
+      .from('admin_member_notes')
+      .select('id, note, created_at, admin_id, profiles!admin_id(name)')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (res.error) {
+      console.error('[Admin] CS 메모 조회 실패:', res.error.code, res.error.message,
+        '→ sql/admin_member_management.sql 의 admin_member_notes 테이블/정책이 적용돼 있는지 확인하세요.');
+      box.innerHTML = '<p class="admin-empty">메모를 불러오지 못했습니다: ' + escapeHtml(res.error.message) + '</p>';
+      return;
+    }
+
+    var rows = res.data || [];
+    if (!rows.length) {
+      box.innerHTML = '<p class="admin-empty">작성된 CS 메모가 없습니다.</p>';
+      return;
+    }
+
+    box.innerHTML = '';
+    rows.forEach(function (n) {
+      var adminName = (n.profiles && n.profiles.name) || '관리자';
+      var item = document.createElement('div');
+      item.className = 'admin-note-item';
+      item.innerHTML =
+        '<span class="admin-note-item-meta">' + escapeHtml(adminName) + ' · ' + escapeHtml(formatDateTime(n.created_at)) + '</span>' +
+        '<span>' + escapeHtml(n.note) + '</span>';
+      box.appendChild(item);
+    });
+  }
+
+  async function saveMemberNote() {
+    if (!memberDetailTarget || !els.memberNoteInput) return;
+    var note = els.memberNoteInput.value.trim();
+    if (!note) { showToast('메모 내용을 입력해 주세요.'); return; }
+
+    var btn = els.memberNoteSaveBtn;
+    if (btn) btn.disabled = true;
+    try {
+      var res = await supabaseClient.rpc('admin_add_member_note', {
+        p_user_id: memberDetailTarget.id,
+        p_note: note
+      });
+      if (res.error) {
+        console.error('[Admin] CS 메모 저장 실패:', res.error.code, res.error.message);
+        showToast('메모 저장에 실패했습니다: ' + res.error.message);
+        return;
+      }
+      els.memberNoteInput.value = '';
+      await loadMemberDetailNotes(memberDetailTarget.id);
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+  if (els.memberNoteSaveBtn) els.memberNoteSaveBtn.addEventListener('click', saveMemberNote);
+
+  // ---------- 등록된 어르신 프로필 (seniors) ----------
+  async function loadMemberDetailSeniors(userId) {
+    var box = els.memberSeniorsList;
+    if (!box) return;
+    box.innerHTML = '<p class="admin-loading">불러오는 중…</p>';
+
+    var res = await supabaseClient
+      .from('seniors')
+      .select('senior_name, senior_birth, gender, senior_phone, mobility_level, health_note')
+      .eq('user_id', userId);
+
+    if (res.error) {
+      console.error('[Admin] 등록된 어르신 조회 실패:', res.error.code, res.error.message,
+        '→ sql/admin_member_management.sql 의 seniors_select_admin 정책이 적용돼 있는지 확인하세요.');
+      box.innerHTML = '<p class="admin-empty">어르신 정보를 불러오지 못했습니다: ' + escapeHtml(res.error.message) + '</p>';
+      return;
+    }
+
+    var rows = res.data || [];
+    if (!rows.length) {
+      box.innerHTML = '<p class="admin-empty">등록된 어르신이 없습니다.</p>';
+      return;
+    }
+
+    box.innerHTML = '<div class="admin-mini-list"></div>';
+    var list = box.querySelector('.admin-mini-list');
+    rows.forEach(function (s) {
+      var age = null;
+      if (s.senior_birth) {
+        var birth = new Date(s.senior_birth);
+        if (!isNaN(birth.getTime())) {
+          var today = new Date();
+          age = today.getFullYear() - birth.getFullYear();
+          if (today.getMonth() < birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) age -= 1;
+        }
+      }
+      var metaParts = [age != null ? '만 ' + age + '세' : '연령 미입력'];
+      if (s.gender) metaParts.push(s.gender);
+      if (s.mobility_level) metaParts.push(s.mobility_level);
+      var item = document.createElement('div');
+      item.className = 'admin-mini-item';
+      item.innerHTML =
+        '<span class="admin-mini-item-title">' + escapeHtml(s.senior_name || '(이름 없음)') + '</span>' +
+        '<span class="admin-mini-item-sub">' + escapeHtml(metaParts.join(' · ')) + (s.senior_phone ? ' · ' + escapeHtml(s.senior_phone) : '') + '</span>';
+      list.appendChild(item);
+    });
+  }
+
+  // ---------- 보유 쿠폰(user_coupons) / 패키지(user_packages) ----------
+  var COUPON_STATUS_LABEL = { active: '사용 가능', used: '사용됨', expired: '만료' };
+  var PACKAGE_STATUS_LABEL = { active: '사용 중', exhausted: '소진', expired: '만료' };
+  // [− 회차 수동 차감] 폼의 '차감할 패키지' 드롭다운을 채우기 위해, 이 회원의 패키지 목록을
+  // 모달이 열려 있는 동안 기억해 둡니다(loadMemberDetailBenefits 가 새로 불러올 때마다 갱신).
+  var memberDetailPackages = [];
+
+  function renderMemberDeductPackageOptions() {
+    var select = els.memberDeductPackageSelect;
+    if (!select) return;
+    select.innerHTML = '';
+    var adjustable = memberDetailPackages.filter(function (p) { return Number(p.remaining_count) > 0; });
+    if (!adjustable.length) {
+      var opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = '차감할 수 있는 패키지가 없습니다';
+      select.appendChild(opt);
+      select.disabled = true;
+      return;
+    }
+    select.disabled = false;
+    adjustable.forEach(function (p) {
+      var opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = (MEMBER_PACKAGE_TYPE_LABEL[p.package_type] || p.package_type) +
+        ' (잔여 ' + formatPkgCount(p.remaining_count) + ' / ' + formatPkgCount(p.total_count) + ')';
+      select.appendChild(opt);
+    });
+  }
+
+  async function loadMemberDetailBenefits(userId) {
+    var box = els.memberBenefitsList;
+    if (!box) return;
+    box.innerHTML = '<p class="admin-loading">불러오는 중…</p>';
+
+    var couponsRes = await supabaseClient
+      .from('user_coupons')
+      .select('id, coupon_code, amount, status, expires_at')
+      .eq('user_id', userId)
+      .order('issued_at', { ascending: false });
+    var packagesRes = await supabaseClient
+      .from('user_packages')
+      .select('id, package_type, remaining_count, total_count, status, expires_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (couponsRes.error || packagesRes.error) {
+      console.error('[Admin] 쿠폰/패키지 조회 실패:', (couponsRes.error || packagesRes.error).message,
+        '→ sql/admin_member_management.sql 의 user_coupons_select_admin 정책이 적용돼 있는지 확인하세요.');
+      box.innerHTML = '<p class="admin-empty">쿠폰/패키지 정보를 불러오지 못했습니다.</p>';
+      memberDetailPackages = [];
+      renderMemberDeductPackageOptions();
+      return;
+    }
+
+    var coupons = couponsRes.data || [];
+    var packages = packagesRes.data || [];
+    memberDetailPackages = packages;
+    renderMemberDeductPackageOptions();
+
+    if (!coupons.length && !packages.length) {
+      box.innerHTML = '<p class="admin-empty">보유한 쿠폰/패키지가 없습니다.</p>';
+      return;
+    }
+
+    box.innerHTML = '<div class="admin-mini-list"></div>';
+    var list = box.querySelector('.admin-mini-list');
+    coupons.forEach(function (c) {
+      var item = document.createElement('div');
+      item.className = 'admin-mini-item';
+      item.innerHTML =
+        '<div class="admin-mini-item-info">' +
+          '<span class="admin-mini-item-title">쿠폰 · ' + won(c.amount) + '</span>' +
+          '<span class="admin-mini-item-sub">' + escapeHtml(COUPON_STATUS_LABEL[c.status] || c.status || '-') +
+          ' · ' + formatDateOnly(c.expires_at) + ' 까지</span>' +
+        '</div>' +
+        '<button type="button" class="admin-mini-item-delete" data-coupon-id="' + escapeHtml(c.id) + '">삭제</button>';
+      item.querySelector('.admin-mini-item-delete').addEventListener('click', function () { deleteMemberCoupon(c.id); });
+      list.appendChild(item);
+    });
+    packages.forEach(function (p) {
+      var item = document.createElement('div');
+      item.className = 'admin-mini-item';
+      item.innerHTML =
+        '<div class="admin-mini-item-info">' +
+          '<span class="admin-mini-item-title">' + escapeHtml(MEMBER_PACKAGE_TYPE_LABEL[p.package_type] || p.package_type) + '</span>' +
+          '<span class="admin-mini-item-sub">잔여 ' + formatPkgCount(p.remaining_count) + ' / ' + formatPkgCount(p.total_count) +
+          ' · ' + escapeHtml(PACKAGE_STATUS_LABEL[p.status] || p.status || '-') +
+          ' · ' + formatDateOnly(p.expires_at) + ' 까지</span>' +
+        '</div>';
+      list.appendChild(item);
+    });
+  }
+
+  // ---------- 쿠폰/회차 수동 지급·차감 (sql/admin_member_benefit_grants.sql) ----------
+  var MEMBER_BENEFIT_FORMS = ['memberGrantCouponForm', 'memberGrantPackageForm', 'memberDeductPackageForm'];
+  var MEMBER_BENEFIT_MEMO_MIN_LENGTH = 10;
+
+  // [+ 회차 수동 지급] 전용 — package.html 이 실제로 판매 중인 두 상품만 지급할 수 있고(5회권/10회권은
+  // 과거 판매분 보유자만 있어 신규 지급 대상에서 제외), 회차 수는 더 이상 관리자가 입력하지 않고
+  // sql/user_packages_system.sql 의 package_session_count() 와 같은 값을 화면에 안내만 합니다 —
+  // 실제 지급 회차는 서버(admin_grant_member_package() RPC)가 package_type 만으로 다시 계산하므로,
+  // 이 맵이 틀려도 "안내 문구"만 틀릴 뿐 실제 지급 수량에는 영향이 없습니다(입력 조작 자체가 불가능).
+  var MEMBER_GRANT_PACKAGE_SESSION_COUNT = { '10_hours': 5, '20_hours': 10 };
+
+  function updateGrantPackageSessionHint() {
+    var select = els.memberGrantPackageType;
+    var hint = els.memberGrantPackageSessionHint;
+    if (!select || !hint) return;
+    var packageType = select.value;
+    var sessionCount = MEMBER_GRANT_PACKAGE_SESSION_COUNT[packageType];
+    var label = MEMBER_PACKAGE_TYPE_LABEL[packageType] || packageType;
+    hint.textContent = sessionCount != null
+      ? label + ' 선택 시 ' + formatPkgCount(sessionCount) + '회가 자동으로 지급됩니다.'
+      : label + ' 의 회차 수를 확인할 수 없습니다.';
+  }
+  if (els.memberGrantPackageType) {
+    els.memberGrantPackageType.addEventListener('change', updateGrantPackageSessionHint);
+  }
+
+  function closeAllBenefitForms() {
+    MEMBER_BENEFIT_FORMS.forEach(function (key) { if (els[key]) els[key].hidden = true; });
+  }
+
+  function toggleBenefitForm(formKey) {
+    var alreadyOpen = els[formKey] && !els[formKey].hidden;
+    closeAllBenefitForms();
+    if (!alreadyOpen && els[formKey]) {
+      els[formKey].hidden = false;
+      if (formKey === 'memberGrantPackageForm') updateGrantPackageSessionHint();
+    }
+  }
+
+  if (els.memberGrantCouponToggleBtn) els.memberGrantCouponToggleBtn.addEventListener('click', function () { toggleBenefitForm('memberGrantCouponForm'); });
+  if (els.memberGrantPackageToggleBtn) els.memberGrantPackageToggleBtn.addEventListener('click', function () { toggleBenefitForm('memberGrantPackageForm'); });
+  if (els.memberDeductPackageToggleBtn) els.memberDeductPackageToggleBtn.addEventListener('click', function () { toggleBenefitForm('memberDeductPackageForm'); });
+  if (els.memberGrantCouponCancelBtn) els.memberGrantCouponCancelBtn.addEventListener('click', closeAllBenefitForms);
+  if (els.memberGrantPackageCancelBtn) els.memberGrantPackageCancelBtn.addEventListener('click', closeAllBenefitForms);
+  if (els.memberDeductPackageCancelBtn) els.memberDeductPackageCancelBtn.addEventListener('click', closeAllBenefitForms);
+
+  function showBenefitFormError(errorEl, msg) {
+    if (!errorEl) return;
+    errorEl.textContent = msg;
+    errorEl.hidden = false;
+  }
+
+  if (els.memberGrantCouponConfirmBtn) {
+    els.memberGrantCouponConfirmBtn.addEventListener('click', async function () {
+      if (!memberDetailTarget) return;
+      if (els.memberGrantCouponError) els.memberGrantCouponError.hidden = true;
+
+      var amount = Number((els.memberGrantCouponAmount && els.memberGrantCouponAmount.value || '').trim());
+      var memo = (els.memberGrantCouponMemo && els.memberGrantCouponMemo.value || '').trim();
+      if (!amount || amount <= 0) return showBenefitFormError(els.memberGrantCouponError, '지급 금액을 1원 이상으로 입력해 주세요.');
+      if (memo.length < MEMBER_BENEFIT_MEMO_MIN_LENGTH) return showBenefitFormError(els.memberGrantCouponError, '지급 사유를 ' + MEMBER_BENEFIT_MEMO_MIN_LENGTH + '자 이상 입력해 주세요.');
+
+      var btn = els.memberGrantCouponConfirmBtn;
+      btn.disabled = true;
+      try {
+        var res = await supabaseClient.rpc('admin_grant_member_coupon', {
+          p_user_id: memberDetailTarget.id, p_amount: amount, p_memo: memo
+        });
+        if (res.error) {
+          console.error('[Admin] 쿠폰 수동 지급 실패:', res.error.code, res.error.message,
+            '→ sql/admin_member_benefit_grants.sql 의 admin_grant_member_coupon() 이 적용돼 있는지 확인하세요.');
+          showBenefitFormError(els.memberGrantCouponError, '지급에 실패했습니다: ' + res.error.message);
+          return;
+        }
+        closeAllBenefitForms();
+        if (els.memberGrantCouponAmount) els.memberGrantCouponAmount.value = '';
+        if (els.memberGrantCouponMemo) els.memberGrantCouponMemo.value = '';
+        showToast(won(amount) + ' 쿠폰을 지급했습니다.');
+        await loadMemberDetailBenefits(memberDetailTarget.id);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  }
+
+  if (els.memberGrantPackageConfirmBtn) {
+    els.memberGrantPackageConfirmBtn.addEventListener('click', async function () {
+      if (!memberDetailTarget) return;
+      if (els.memberGrantPackageError) els.memberGrantPackageError.hidden = true;
+
+      var packageType = els.memberGrantPackageType && els.memberGrantPackageType.value;
+      var memo = (els.memberGrantPackageMemo && els.memberGrantPackageMemo.value || '').trim();
+      if (memo.length < MEMBER_BENEFIT_MEMO_MIN_LENGTH) return showBenefitFormError(els.memberGrantPackageError, '지급 사유를 ' + MEMBER_BENEFIT_MEMO_MIN_LENGTH + '자 이상 입력해 주세요.');
+
+      var btn = els.memberGrantPackageConfirmBtn;
+      btn.disabled = true;
+      try {
+        // 회차 수는 보내지 않습니다 — admin_grant_member_package() 가 package_type 만으로 서버에서
+        // 직접 산정합니다(관리자가 숫자를 입력해 악용/실수로 과도한 회차를 지급할 수 없게 하는 핵심).
+        var res = await supabaseClient.rpc('admin_grant_member_package', {
+          p_user_id: memberDetailTarget.id, p_package_type: packageType, p_memo: memo
+        });
+        if (res.error) {
+          console.error('[Admin] 회차 수동 지급 실패:', res.error.code, res.error.message,
+            '→ sql/admin_member_benefit_grants.sql 의 admin_grant_member_package() 이 적용돼 있는지 확인하세요.');
+          showBenefitFormError(els.memberGrantPackageError, '지급에 실패했습니다: ' + res.error.message);
+          return;
+        }
+        closeAllBenefitForms();
+        if (els.memberGrantPackageMemo) els.memberGrantPackageMemo.value = '';
+        var granted = res.data; // admin_grant_member_package() 가 반환한 실제 user_packages 행 — 서버가 정한 회차가 그대로 담겨 있음
+        showToast((MEMBER_PACKAGE_TYPE_LABEL[packageType] || packageType) + ' ' + formatPkgCount(granted && granted.total_count) + '회차를 지급했습니다.');
+        await loadMemberDetailBenefits(memberDetailTarget.id);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  }
+
+  if (els.memberDeductPackageConfirmBtn) {
+    els.memberDeductPackageConfirmBtn.addEventListener('click', async function () {
+      if (!memberDetailTarget) return;
+      if (els.memberDeductPackageError) els.memberDeductPackageError.hidden = true;
+
+      var packageId = els.memberDeductPackageSelect && els.memberDeductPackageSelect.value;
+      var count = Number((els.memberDeductPackageCount && els.memberDeductPackageCount.value || '').trim());
+      var memo = (els.memberDeductPackageMemo && els.memberDeductPackageMemo.value || '').trim();
+      if (!packageId) return showBenefitFormError(els.memberDeductPackageError, '차감할 패키지를 선택해 주세요.');
+      if (!count || count <= 0) return showBenefitFormError(els.memberDeductPackageError, '차감할 회차 수를 0보다 크게 입력해 주세요.');
+      if (memo.length < MEMBER_BENEFIT_MEMO_MIN_LENGTH) return showBenefitFormError(els.memberDeductPackageError, '차감 사유를 ' + MEMBER_BENEFIT_MEMO_MIN_LENGTH + '자 이상 입력해 주세요.');
+
+      var btn = els.memberDeductPackageConfirmBtn;
+      btn.disabled = true;
+      try {
+        var res = await supabaseClient.rpc('admin_adjust_member_sessions', {
+          p_package_id: packageId, p_delta: -count, p_memo: memo
+        });
+        if (res.error) {
+          console.error('[Admin] 회차 수동 차감 실패:', res.error.code, res.error.message,
+            '→ sql/admin_member_benefit_grants.sql 의 admin_adjust_member_sessions() 이 적용돼 있는지 확인하세요.');
+          showBenefitFormError(els.memberDeductPackageError, '차감에 실패했습니다: ' + res.error.message);
+          return;
+        }
+        closeAllBenefitForms();
+        if (els.memberDeductPackageCount) els.memberDeductPackageCount.value = '';
+        if (els.memberDeductPackageMemo) els.memberDeductPackageMemo.value = '';
+        showToast(formatPkgCount(count) + '회차를 차감했습니다.');
+        await loadMemberDetailBenefits(memberDetailTarget.id);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  }
+
+  // 쿠폰 삭제 — 지급/차감만큼 자주 쓰이지 않는 단일 조작이라, 별도 모달 대신 prompt() 로 사유만
+  // 바로 받습니다(취소하면 null 이 돌아와 아무 일도 하지 않습니다).
+  async function deleteMemberCoupon(couponId) {
+    if (!memberDetailTarget) return;
+    var memo = window.prompt('이 쿠폰을 삭제하는 사유를 ' + MEMBER_BENEFIT_MEMO_MIN_LENGTH + '자 이상 입력해 주세요(이력에 저장됩니다).');
+    if (memo === null) return; // 취소
+    memo = memo.trim();
+    if (memo.length < MEMBER_BENEFIT_MEMO_MIN_LENGTH) {
+      showToast('사유는 ' + MEMBER_BENEFIT_MEMO_MIN_LENGTH + '자 이상 입력해야 합니다. 삭제가 취소되었습니다.');
+      return;
+    }
+    if (!window.confirm('이 쿠폰을 정말 삭제하시겠습니까? 삭제 후에는 되돌릴 수 없습니다.')) return;
+
+    var res = await supabaseClient.rpc('admin_delete_member_coupon', { p_coupon_id: couponId, p_memo: memo });
+    if (res.error) {
+      console.error('[Admin] 쿠폰 삭제 실패:', res.error.code, res.error.message,
+        '→ sql/admin_member_benefit_grants.sql 의 admin_delete_member_coupon() 이 적용돼 있는지 확인하세요.');
+      showToast('쿠폰 삭제에 실패했습니다: ' + res.error.message);
+      return;
+    }
+    showToast('쿠폰을 삭제했습니다.');
+    await loadMemberDetailBenefits(memberDetailTarget.id);
+  }
+
+  async function loadMemberDetailBookings(userId) {
+    var body = els.memberDetailBookingsBody;
+    if (!body) return;
+    body.innerHTML = '<tr><td colspan="5" class="admin-loading">불러오는 중…</td></tr>';
+
+    var res = await supabaseClient
+      .from('service_applications')
+      .select('id, created_at, service_type, senior_name, senior_age, senior_note, status, final_amount')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (res.error) {
+      console.error('[Admin] 회원 예약 내역 조회 실패:', res.error.code, res.error.message);
+      body.innerHTML = '<tr><td colspan="5" class="admin-empty">예약 내역을 불러오지 못했습니다: ' + escapeHtml(res.error.message) + '</td></tr>';
+      return;
+    }
+
+    var rows = res.data || [];
+    if (!rows.length) {
+      body.innerHTML = '<tr><td colspan="5" class="admin-empty">예약 내역이 없습니다.</td></tr>';
+      return;
+    }
+
+    body.innerHTML = '';
+    rows.forEach(function (a) {
+      var statusLabel = MEMBER_BOOKING_STATUS_LABEL[a.status] || a.status || '-';
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + escapeHtml(formatDateOnly(a.created_at)) + '</td>' +
+        '<td>' + escapeHtml(a.service_type || '-') + '</td>' +
+        '<td>' + escapeHtml(seniorLabel(a)) + '</td>' +
+        '<td><span class="admin-badge is-neutral">' + escapeHtml(statusLabel) + '</span></td>' +
+        '<td>' + won(a.final_amount) + '</td>';
+      body.appendChild(tr);
+    });
+  }
+
+  // ---------- 비밀번호 재설정 메일 발송 ----------
+  var MEMBER_RESET_PASSWORD_LABEL = '비밀번호 재설정 메일 발송';
+  var MEMBER_RESET_PASSWORD_COOLDOWN_SECONDS = 30;
+  var memberResetPasswordCooldownTimer = null;
+
+  // 발송 성공 후 버튼을 30초간 잠그고 남은 시간을 그대로 보여줍니다(signup.html 의 인증 메일
+  // 재발송 카운트다운과 같은 패턴) — 짧은 시간 안에 같은 메일을 여러 번 보내는 것을 막습니다.
+  function startMemberResetPasswordCooldown() {
+    var btn = els.memberResetPasswordBtn;
+    if (!btn) return;
+    var secondsLeft = MEMBER_RESET_PASSWORD_COOLDOWN_SECONDS;
+    btn.disabled = true;
+    btn.textContent = '재발송 가능 (' + secondsLeft + '초)';
+    clearInterval(memberResetPasswordCooldownTimer);
+    memberResetPasswordCooldownTimer = setInterval(function () {
+      secondsLeft -= 1;
+      if (secondsLeft <= 0) {
+        clearInterval(memberResetPasswordCooldownTimer);
+        memberResetPasswordCooldownTimer = null;
+        btn.disabled = false;
+        btn.textContent = MEMBER_RESET_PASSWORD_LABEL;
+      } else {
+        btn.textContent = '재발송 가능 (' + secondsLeft + '초)';
+      }
+    }, 1000);
+  }
+
+  async function sendMemberPasswordReset() {
+    if (!memberDetailTarget || !memberDetailTarget.email) {
+      showMemberActionError('이 회원은 이메일이 없어 비밀번호 재설정 메일을 보낼 수 없습니다(카카오 가입 등).');
+      return;
+    }
+    showMemberActionError('');
+    var btn = els.memberResetPasswordBtn;
+    if (btn) { btn.disabled = true; btn.textContent = '발송 중...'; }
+
+    var redirectUrl = window.location.origin + '/reset-password.html';
+    var res = await supabaseClient.auth.resetPasswordForEmail(memberDetailTarget.email, { redirectTo: redirectUrl });
+
+    if (res.error) {
+      console.error('[Admin] 비밀번호 재설정 메일 발송 실패:', res.error.message);
+      showMemberActionError('메일 발송에 실패했습니다: ' + res.error.message);
+      if (btn) { btn.disabled = false; btn.textContent = MEMBER_RESET_PASSWORD_LABEL; }
+      return;
+    }
+
+    showMemberActionSuccess('✅ ' + memberDetailTarget.email + '로 비밀번호 재설정 메일을 발송했습니다. (재발송은 ' +
+      MEMBER_RESET_PASSWORD_COOLDOWN_SECONDS + '초 후 다시 가능합니다.)');
+    startMemberResetPasswordCooldown(); // 버튼 disabled/라벨은 이 카운트다운이 이어서 관리합니다.
+  }
+  if (els.memberResetPasswordBtn) els.memberResetPasswordBtn.addEventListener('click', sendMemberPasswordReset);
+
+  // ---------- 계정 정지 / 활성화 (GoTrue ban_duration — service-role Edge Function) ----------
+  async function toggleMemberStatus() {
+    if (!memberDetailTarget) return;
+    var suspended = isMemberSuspended(memberDetailTarget);
+    var action = suspended ? 'activate' : 'suspend';
+    var confirmMsg = suspended
+      ? (memberDetailTarget.name || '이 회원') + ' 계정을 다시 활성화하시겠습니까?'
+      : (memberDetailTarget.name || '이 회원') + ' 계정을 정지하시겠습니까? 정지하면 즉시 로그인할 수 없게 됩니다.';
+    if (!window.confirm(confirmMsg)) return;
+
+    showMemberActionError('');
+    var btn = els.memberToggleStatusBtn;
+    if (btn) btn.disabled = true;
+    try {
+      if (!window.WBEdgeFn) {
+        showMemberActionError('내부 오류: 계정 정지/활성화 모듈을 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.');
+        return;
+      }
+      var res = await WBEdgeFn.invoke(supabaseClient, 'admin-set-member-status', {
+        user_id: memberDetailTarget.id,
+        action: action
+      });
+      if (res.error) {
+        console.error('[Admin] 계정 ' + action + ' 실패:', res.error);
+        showMemberActionError('처리에 실패했습니다: ' + (res.error.message || 'UNKNOWN_ERROR'));
+        return;
+      }
+      showToast(action === 'suspend' ? '계정을 정지했습니다.' : '계정을 활성화했습니다.');
+      await loadMembers();
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+  if (els.memberToggleStatusBtn) els.memberToggleStatusBtn.addEventListener('click', toggleMemberStatus);
+
+  // 보고 있던 회원이 바뀌면(모달을 열거나 닫을 때) 이전 회원에게 걸려 있던 재발송 쿨다운이 다음
+  // 회원에게 그대로 넘어가 보이지 않도록 버튼/타이머를 초기화합니다.
+  function resetMemberResetPasswordButton() {
+    clearInterval(memberResetPasswordCooldownTimer);
+    memberResetPasswordCooldownTimer = null;
+    if (els.memberResetPasswordBtn) {
+      els.memberResetPasswordBtn.disabled = false;
+      els.memberResetPasswordBtn.textContent = MEMBER_RESET_PASSWORD_LABEL;
+    }
+  }
+
+  function openMemberDetailModal(m) {
+    if (!els.memberDetailModal) return;
+    memberDetailTarget = m;
+    closeMemberEditForm();
+    closeAllBenefitForms();
+    showMemberActionError('');
+    resetMemberResetPasswordButton();
+    renderMemberDetailInfo(m);
+    els.memberDetailModal.hidden = false;
+    loadMemberDetailBookings(m.id);
+    loadMemberDetailNotes(m.id);
+    loadMemberDetailSeniors(m.id);
+    loadMemberDetailBenefits(m.id);
+  }
+
+  function closeMemberDetailModal() {
+    if (els.memberDetailModal) els.memberDetailModal.hidden = true;
+    closeMemberEditForm();
+    closeAllBenefitForms();
+    resetMemberResetPasswordButton();
+    memberDetailTarget = null;
+  }
+
+  if (els.memberDetailCloseBtn) els.memberDetailCloseBtn.addEventListener('click', closeMemberDetailModal);
+  if (els.memberDetailCloseBtn2) els.memberDetailCloseBtn2.addEventListener('click', closeMemberDetailModal);
+  if (els.memberDetailModal) {
+    els.memberDetailModal.addEventListener('click', function (e) {
+      if (e.target === els.memberDetailModal) closeMemberDetailModal();
+    });
+  }
+
   // ---------- 진입 ----------
   (async function init() {
     var access = await verifyAdminAccess();
@@ -3587,6 +4805,7 @@
     loadActiveManagers();
     loadManagerSettlements();
     loadUserPackages();
+    loadMembers();
     loadCareIssues();
     subscribeServiceApplicationChanges();
     subscribeCareScheduleChanges();

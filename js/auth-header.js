@@ -13,8 +13,30 @@
 (function () {
   'use strict';
 
-  var SUPABASE_URL = 'https://layvjisfeivkzowopkco.supabase.co';
-  var SUPABASE_ANON_KEY = 'sb_publishable_M7wpIAR7-aXvG78Xv-WBoQ_q1wj_FcR';
+  // Dev/Prod Supabase 프로젝트 전환 — withbridge-dev 로 테스트할 때 코드를 고치지 않고 "어느
+  // 도메인에서 열렸는지"만으로 맞는 프로젝트를 자동으로 바라보게 합니다. 같은 값이 저장소 루트의
+  // .env.development/.env.production 에 사람이 읽을 문서로도 남아 있습니다 — 이 사이트는 빌드
+  // 과정이 없는 정적 HTML/JS라 그 파일을 직접 읽을 수 없어, 여기 두 세트 값으로 직접 분기합니다.
+  // PROD_HOSTNAMES 가 아니면 전부 dev 로 간주합니다("모르면 dev"가 안전한 기본값 — localhost·
+  // Vercel 프리뷰 배포가 실수로 프로덕션 DB를 건드리지 않게). 단, DEV 값을 아직 안 채웠으면(여전히
+  // placeholder) 깨지는 대신 조용히 프로덕션으로 폴백합니다 — DEV 값을 채우기 전까지는 지금까지와
+  // 동작이 완전히 같습니다.
+  var ENV_CONFIG = (function () {
+    var PROD = { url: 'https://layvjisfeivkzowopkco.supabase.co', anonKey: 'sb_publishable_M7wpIAR7-aXvG78Xv-WBoQ_q1wj_FcR' };
+    // withbridge-dev 프로젝트 생성 후 Project Settings → API 값으로 아래 두 줄만 바꿔 넣으세요.
+    var DEV = { url: 'https://<YOUR-DEV-PROJECT-REF>.supabase.co', anonKey: '<YOUR-DEV-PROJECT-ANON-KEY>' };
+    // 커스텀 도메인을 연결하면 그 도메인도 여기 추가하세요(예: 'www.withbridge.co.kr').
+    var PROD_HOSTNAMES = ['withbridgewebsite.vercel.app'];
+    var isProdHost = PROD_HOSTNAMES.indexOf(location.hostname) !== -1;
+    var devConfigured = DEV.url.indexOf('<YOUR-') === -1;
+    if (isProdHost || !devConfigured) {
+      if (!isProdHost) console.warn('[WBAuth] DEV Supabase 값이 아직 설정되지 않아 프로덕션 프로젝트로 폴백합니다. js/auth-header.js 상단 ENV_CONFIG.DEV 를 withbridge-dev 값으로 채우세요.');
+      return PROD;
+    }
+    return DEV;
+  })();
+  var SUPABASE_URL = ENV_CONFIG.url;
+  var SUPABASE_ANON_KEY = ENV_CONFIG.anonKey;
 
   var DEFAULT_AVATAR = 'data:image/svg+xml;utf8,' + encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44">' +
@@ -970,6 +992,31 @@
   // '내 정보 수정'은 모달이 아니라 전용 페이지(profile-edit.html)로 이동합니다 — 드롭다운/드로어의
   // .wb-dd-subitem 링크가 바로 그 주소를 가리키므로, 여기서 따로 열고 닫을 것이 없습니다.
 
+  // 추가 요금 미납 예약 제한(Lock) — 결제 대기 중인 추가 요금(care_schedules.extra_charge_status=
+  // 'REQUESTED')이 하나라도 있으면 새 예약을 막습니다. 마이페이지 '추가 요금 결제 안내' 섹션
+  // (mypage.html loadExtraCharges())이 쓰는 것과 똑같은 조건이라, 그 섹션에 보이는 건수와 이 잠금
+  // 여부가 항상 일치합니다 — apply.html 진입 시점과 mypage.html '예약하기'/'+추가 신청' 클릭 시점
+  // 양쪽에서 이 함수 하나를 공용으로 씁니다. 조회 자체가 실패하면(네트워크 오류 등) 막지 않고
+  // 통과시킵니다 — 일시적 오류로 정상 이용자의 예약을 못 하게 하는 쪽이 더 나쁜 실패이기 때문입니다.
+  async function hasUnpaidExtraCharge(userId) {
+    if (!userId) return false;
+    try {
+      var res = await client
+        .from('care_schedules')
+        .select('id', { count: 'exact', head: true })
+        .eq('guardian_id', userId)
+        .eq('extra_charge_status', 'REQUESTED');
+      if (res.error) {
+        console.warn('[추가 요금 미납 확인] 조회 실패 — 막지 않고 통과시킵니다:', res.error.code, res.error.message);
+        return false;
+      }
+      return (res.count || 0) > 0;
+    } catch (e) {
+      console.warn('[추가 요금 미납 확인] 예외 — 막지 않고 통과시킵니다:', e);
+      return false;
+    }
+  }
+
   // 로그인 상태면 targetUrl 로 바로 이동하고, 비로그인이면 안내 모달을 띄워 '확인'을 누르면 login.html?redirect=targetUrl 로 보내
   // 로그인을 마치면 targetUrl 로 돌아오게 합니다. '예약하기' 류 버튼의 onclick 에서 공용으로 씁니다.
   async function goIfLoggedIn(event, targetUrl) {
@@ -988,6 +1035,7 @@
     client: client, logout: logout, checkIsManager: checkIsManager, checkIsAdmin: checkIsAdmin,
     getUserMode: getUserMode, setUserMode: setUserMode, navigate: navigate, claimPendingApplications: claimPendingApplications,
     rememberPostLoginRedirect: rememberPostLoginRedirect, goIfLoggedIn: goIfLoggedIn,
+    hasUnpaidExtraCharge: hasUnpaidExtraCharge,
     showLoginModal: showLoginModal, showCallModal: showCallModal, handlePhoneClick: handlePhoneClick,
     loggingOut: false
   };

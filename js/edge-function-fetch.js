@@ -23,8 +23,21 @@
   // 속성이 없어지거나 달라지면, 이 함수가 "조용히" 아무 요청도 보내지 않고 여기서 바로 에러를
   // 반환해 버립니다(그러면 Edge Function 로그에는 당연히 아무것도 안 남습니다 — 요청이 브라우저를
   // 떠난 적이 없으니까요). 그래서 URL/anon key 는 추측하지 않고 이 두 상수로 고정합니다.
-  var SUPABASE_URL = 'https://layvjisfeivkzowopkco.supabase.co';
-  var SUPABASE_ANON_KEY = 'sb_publishable_M7wpIAR7-aXvG78Xv-WBoQ_q1wj_FcR';
+  // js/auth-header.js 의 ENV_CONFIG 와 완전히 같은 분기를 그대로 둡니다(그 파일 주석 참고) — 둘이
+  // 어긋나면 로그인에 쓰는 프로젝트와 결제 확인 Edge Function 을 부르는 프로젝트가 서로 달라져
+  // "로그인은 되는데 결제 확인만 404"처럼 진단하기 어려운 상태가 됩니다. DEV 값을 바꿀 땐 반드시
+  // 이 파일과 js/auth-header.js 양쪽을 같이 고치세요.
+  var ENV_CONFIG = (function () {
+    var PROD = { url: 'https://layvjisfeivkzowopkco.supabase.co', anonKey: 'sb_publishable_M7wpIAR7-aXvG78Xv-WBoQ_q1wj_FcR' };
+    var DEV = { url: 'https://<YOUR-DEV-PROJECT-REF>.supabase.co', anonKey: '<YOUR-DEV-PROJECT-ANON-KEY>' };
+    var PROD_HOSTNAMES = ['withbridgewebsite.vercel.app'];
+    var isProdHost = PROD_HOSTNAMES.indexOf(location.hostname) !== -1;
+    var devConfigured = DEV.url.indexOf('<YOUR-') === -1;
+    if (isProdHost || !devConfigured) return PROD;
+    return DEV;
+  })();
+  var SUPABASE_URL = ENV_CONFIG.url;
+  var SUPABASE_ANON_KEY = ENV_CONFIG.anonKey;
 
   async function invoke(supabaseClient, functionName, body) {
     // 이 줄이 브라우저 콘솔에 안 보인다면 invoke() 자체가 호출되지 않은 것입니다 — 호출부(try/catch)가

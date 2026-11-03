@@ -106,6 +106,8 @@ header {
 }
 .wb-drawer-topbar img {
   height: 40px !important;
+  position: relative !important;
+  top: 2px !important;
 }
 .wb-drawer-topbar button#wbDrawerClose {
   position: absolute !important;

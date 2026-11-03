@@ -10,6 +10,18 @@
 --      읽어 옵니다(두 트리거 다 같은 BEFORE INSERT 라서 Postgres 가 트리거 이름 알파벳 순으로
 --      실행하므로, 'consume' 가 'snapshot' 보다 먼저 실행됨이 보장됩니다).
 --
+--      [버그 수정] 처음 버전은 new.package_id 1건의 remaining_count 만 읽어서, 보호자가 패키지를
+--      여러 개 보유한 경우(만료일이 가장 빠른 패키지부터 차감 — apply.html 의 activePackage 선택)
+--      실제로 차감된 "그 패키지 한 장"의 잔여만 스냅샷에 남았습니다. 그런데 apply.html 이 신청 시점에
+--      보호자에게 보여주는 "잔여 N회"(activePackageTotalRemaining, 보유한 모든 활성 패키지의
+--      remaining_count 합계)는 다른 수치라서, 예를 들어 "소진 직전인 패키지 A(1회 남음) + 방금 산
+--      패키지 B(10회 남음)"를 보유한 보호자가 신청하면 A에서 1회가 차감되어 A의 remaining_count 는
+--      0이 되고, 어드민에는 "신청 당시 잔여 0회"로 찍혀 버립니다 — 보호자는 실제로 B의 10회를 그대로
+--      보유하고 있는데도 어드민 화면만 보면 회차가 하나도 안 남은 것처럼 보이는 버그였습니다.
+--      지금 버전은 new.package_id 한 건이 아니라 "이 보호자(new.user_id)가 보유한 모든 활성(active)
+--      패키지의 remaining_count 합계"를 스냅샷으로 저장해, apply.html/mypage.html 이 보호자에게
+--      보여주는 "잔여 N회"와 항상 같은 수치가 어드민에도 찍히도록 맞췄습니다.
+--
 --   2) user_packages / admin_care_adjustments 에 관리자 조회·수동 조정 권한을 추가합니다.
 --      - user_packages_select_admin: 관리자가 전체 보호자의 패키지를 조회(어드민 "패키지 구매
 --        회원 관리" 섹션).
@@ -36,9 +48,16 @@ create or replace function public.snapshot_package_remaining_after() returns tri
 language plpgsql security definer set search_path = public as $$
 begin
   if new.is_package_used and new.package_id is not null then
-    select remaining_count into new.package_remaining_after
+    -- new.package_id 한 건이 아니라 이 보호자가 보유한 모든 '활성' 패키지의 remaining_count 합계를
+    -- 읽습니다 — apply.html 이 신청 당시 보여주는 "잔여 N회"(activePackageTotalRemaining)와 같은
+    -- 기준이어야, 보호자가 패키지를 여러 개 가지고 있을 때(소진 직전 패키지부터 차감) 어드민 화면에
+    -- 엉뚱하게 "0회"로 찍히는 일이 없습니다. consume_package_on_application() 가 이미 해당 패키지의
+    -- remaining_count 를 1 줄여 둔 뒤라(알파벳 순으로 이 트리거보다 먼저 실행), 이 합계에는 그 차감이
+    -- 그대로 반영됩니다.
+    select coalesce(sum(remaining_count), 0) into new.package_remaining_after
       from public.user_packages
-     where id = new.package_id;
+     where user_id = new.user_id
+       and status = 'active';
   end if;
   return new;
 end $$;

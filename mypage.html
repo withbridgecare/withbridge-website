@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>마이페이지 | 위드브릿지</title>
+  <link rel="icon" href="./images/withbridge_logo.png" type="image/png">
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="stylesheet" href="/mobile-nav.css?v=1.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,13 +13,14 @@
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- 공통 Supabase 클라이언트 (index.html / login.html 과 같은 세션 공유). SDK 뒤에 로드해야 합니다 -->
-  <script src="/js/auth-header.js?v=1.9" charset="utf-8"></script>
+  <script src="/js/auth-header.js?v=2.1" charset="utf-8"></script>
   <!-- 결제 확인 Edge Function(confirm-extra-charge-payment) 호출용 — supabaseClient.functions.invoke()
        대신 명시적 fetch() 래퍼. auth-header.js 가 만든 supabaseClient 를 받아 쓰므로 그 뒤에 로드합니다 -->
-  <script src="/js/edge-function-fetch.js?v=1.0"></script>
+  <script src="/js/edge-function-fetch.js?v=1.1"></script>
 <script src="/js/terms-modal.js?v=1.0" charset="utf-8" defer></script>
+<script src="/js/notice-modal.js?v=1.0" charset="utf-8" defer></script>
   <!-- 브라우저 기본 날짜/시간 피커 대신 쓰는 공통 커스텀 피커 (wb-datepicker.js 참고) -->
-  <script src="/js/wb-datepicker.js?v=1.1"></script>
+  <script src="/js/wb-datepicker.js?v=1.6"></script>
   <!-- 카카오(다음) 우편번호 서비스: 어르신 프로필의 '거주지 주소'를 자유 입력 대신 정식 도로명 주소로 선택하게 함 -->
   <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
   <!-- '자주 가는 병원' 검색 모달 — 카카오 로컬 키워드 검색으로 실제 장소명 + 주소만 선택 가능 (wb-place-search.js 참고) -->
@@ -231,9 +233,12 @@
     }
     .benefit-coupon-item {
       display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 9px 12px;
-      background: var(--brand-soft); border-radius: 10px; font-size: 13px; font-weight: 600; color: var(--brand-dark); word-break: keep-all;
+      border-radius: 10px; font-size: 13px; font-weight: 600; word-break: keep-all;
     }
-    .benefit-coupon-item .bc-expiry { flex: none; font-size: 12px; font-weight: 500; color: var(--ink-sub); }
+    /* 미사용 쿠폰만 브랜드 색으로 강조하고, 사용 완료/기간 만료 쿠폰은 중립 톤으로 가라앉힙니다 */
+    .benefit-coupon-item.is-unused { background: var(--brand-soft); color: var(--brand-dark); }
+    .benefit-coupon-item.is-used, .benefit-coupon-item.is-expired { background: var(--surface-soft); color: var(--ink-sub); font-weight: 500; }
+    .benefit-coupon-item .bc-status { flex: none; font-size: 12px; font-weight: 500; color: inherit; opacity: .8; }
     .benefit-coupon-empty { padding: 4px 2px; font-size: 13px; color: var(--ink-sub); }
     @media (max-width: 640px) {
       .benefit-coupon-list { left: 0; right: 0; width: auto; }
@@ -743,8 +748,9 @@
     .field input, .field textarea {
       width: 100%; min-width: 0; box-sizing: border-box; padding: 12px 14px; border: 1px solid var(--input-border); border-radius: var(--radius-sm);
       font: inherit; color: var(--ink); background: #fff; outline: none;
+      transition: border-color .15s ease, box-shadow .15s ease;
     }
-    .field input:focus, .field textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(120,134,107,.18); }
+    .field input:focus, .field textarea:focus { border-color: #9ca3af; box-shadow: 0 0 0 3px rgba(107,114,128,.15); }
     .field textarea { height: 84px; resize: vertical; }
     /* 성별 / 거동 상태 상세 라디오 그룹 — 어르신 등록 모달 */
     .field-options { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 2px; }
@@ -912,6 +918,7 @@
     /* 취소/환불된 건의 금액 뱃지: 실제로 청구되지 않았다는 걸 한눈에 알 수 있게 취소선 + 흐린 색 처리 */
     .badge.is-strike { text-decoration: line-through; color: var(--ink-sub); background: var(--neutral-badge-bg); }
     .cal-case-time { font-size: 16px; font-weight: 800; }
+    .cal-case-time-label { display: block; margin-bottom: 2px; font-size: 12px; font-weight: 600; color: var(--ink-sub); }
     .cal-case-time small { margin-left: 6px; font-size: 13px; font-weight: 500; color: var(--ink-sub); }
     .cal-case .sched-foot { margin-top: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 14px; color: var(--ink-sub); }
     .receipt-link {
@@ -946,6 +953,18 @@
       display: flex; align-items: center; justify-content: center;
     }
     .extra-charge-paid-confirm { display: block; width: 100%; }
+
+    /* 추가 요금 미납 예약 제한(Lock) 안내: '예약하기'/'+추가 신청' 클릭 시 결제 대기 중인 추가 요금이
+       있으면 띄우는 모달 — 위 결제 완료 알림과 같은 .modal-backdrop/.modal/.btn-confirm 공용 컴포넌트를
+       재사용하고, 경고 톤만 다르게 줍니다(이 사이트의 다른 경고 문구와 같은 --danger 계열, line 167 참고). */
+    .extra-charge-lock-overlay { z-index: 9999; }
+    .extra-charge-lock-modal { text-align: center; }
+    .extra-charge-lock-icon {
+      width: 48px; height: 48px; margin: 0 auto 14px; border-radius: 50%;
+      background: #FDF1EF; color: var(--danger); font-size: 22px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .extra-charge-lock-confirm { display: block; width: 100%; }
 
     /* ---------- 케어 리포트 상세 모달: 헤더 정보 카드 · 동행 타임라인 · 진료/약제 · 컨디션 태그 · 증빙 사진 · 만족도 평가 ---------- */
     .rv-modal { max-width: 560px; }
@@ -1044,9 +1063,9 @@
     .rv-rate-textarea {
       display: block; width: 100%; margin: 0 0 10px; padding: 10px 12px; border: 1px solid var(--card-border);
       border-radius: var(--radius-sm); background: #fff; color: var(--ink); font: inherit; font-size: 13.5px;
-      line-height: 1.5; resize: vertical; box-sizing: border-box;
+      line-height: 1.5; resize: vertical; box-sizing: border-box; transition: border-color .15s ease, box-shadow .15s ease;
     }
-    .rv-rate-textarea:focus { outline: none; border-color: var(--brand-line); }
+    .rv-rate-textarea:focus { outline: none; border-color: #9ca3af; box-shadow: 0 0 0 3px rgba(107,114,128,.15); }
     .rv-rate-error { margin: 0 0 8px; font-size: 12.5px; font-weight: 600; color: var(--danger, #C0392B); }
     .rv-rate-done { margin: 0; font-size: 13.5px; font-weight: 700; color: var(--brand-dark); }
     .rv-rate-done-text { display: block; margin-top: 6px; font-size: 13px; font-weight: 400; color: var(--ink-body); word-break: keep-all; }
@@ -1141,7 +1160,7 @@
 -->
 <!-- 상단 네비게이션 헤더 (독립된 login.html 이동 적용본) -->
 <header style="width: 100%; background-color: #ffffff; border-bottom: 1px solid #F0F1F3; position: sticky; top: 0; z-index: 50; font-family: 'Noto Sans KR', sans-serif;">
-  <div class="wb-header-row" style="max-width: 1380px; margin: 0 auto; padding: 12px 40px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: 24px;">
+  <div class="wb-header-row" style="max-width: 1380px; margin: 0 auto; padding: 6px 40px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: 24px;">
 
     <!-- 모바일 전용 햄버거 버튼 -->
     <button type="button" class="wb-mobile-toggle" id="wbMenuToggle" aria-label="메뉴 열기" aria-expanded="false" aria-controls="wbMobileDrawer" style="align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; border: none; background: transparent; cursor: pointer; justify-self: start;">
@@ -1151,7 +1170,7 @@
 
     <!-- 로고 영역 (클릭 시 메인 페이지로 이동하도록 index.html 적용) -->
     <a href="index.html" style="justify-self: start; display: flex; align-items: center; text-decoration: none; flex: none;">
-      <img src="/images/withbridge-logo.png" alt="위드브릿지 로고" style="height: 38px; width: auto; display: block; object-fit: contain;" />
+      <img src="./images/logo_main.png" alt="위드브릿지 로고" style="height: 48px; width: auto; display: block; object-fit: contain; margin: 0; padding: 0; position: relative; top: 3px;" />
     </a>
 
     <!-- 중앙 메뉴 링크 (소개 메뉴를 about.html로 연결) : 가운데 auto 칸에 놓여 좌우 1fr 칸이 같은 폭이라 항상 화면 정중앙에 옵니다 -->
@@ -1160,9 +1179,9 @@
       <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
       <a href="index.html#services" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">서비스</a>
       <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
-      <a href="index.html#notice" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">공지사항</a>
+      <a href="index.html#how-it-works" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">이용 방법</a>
       <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
-      <a href="index.html#reviews" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">고객후기</a>
+      <a href="index.html#notice" data-open-notice style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">공지사항</a>
       <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
       <a href="index.html#faq" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">자주 묻는 질문(FAQ)</a>
     </nav>
@@ -1176,16 +1195,16 @@
         <div class="auth-buttons" style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 500; color: #6B7280; white-space: nowrap;">
           <a href="login.html" style="text-decoration: none; font-weight: 500; color: #6B7280; transition: color 0.2s;">로그인</a>
           <span style="color: #d1d5db; font-size: 13.5px; font-weight: 400;">|</span>
-          <a href="login.html" style="text-decoration: none; font-weight: 500; color: #6B7280; transition: color 0.2s;">회원가입</a>
+          <a href="signup.html" style="text-decoration: none; font-weight: 500; color: #6B7280; transition: color 0.2s;">회원가입</a>
         </div>
       </div>
 
       <!-- 예약하기 버튼 (핵심 액션, 브랜드 세이지그린으로 강조) -->
-      <a href="apply.html" style="flex: none; display: inline-block; padding: 10px 22px; background-color: #8FA482; color: #ffffff; border-radius: 9999px; font-size: 14.5px; font-weight: 700; text-decoration: none; box-shadow: 0 4px 14px rgba(143, 164, 130, 0.35); transition: background-color 0.2s, transform 0.2s;">예약하기</a>
+      <a href="apply.html" id="bookNowBtnDesktop" style="flex: none; display: inline-block; padding: 10px 22px; background-color: #8FA482; color: #ffffff; border-radius: 9999px; font-size: 14.5px; font-weight: 700; text-decoration: none; box-shadow: 0 4px 14px rgba(143, 164, 130, 0.35); transition: background-color 0.2s, transform 0.2s;">예약하기</a>
     </div>
 
     <!-- 모바일 전용 예약하기 버튼 -->
-    <a href="apply.html" class="wb-mobile-cta" style="justify-self: end; padding: 8px 16px; background-color: #8FA482; color: #ffffff; border-radius: 9999px; font-size: 13.5px; font-weight: 700; text-decoration: none; white-space: nowrap;">예약하기</a>
+    <a href="apply.html" id="bookNowBtnMobile" class="wb-mobile-cta" style="justify-self: end; padding: 8px 16px; background-color: #8FA482; color: #ffffff; border-radius: 9999px; font-size: 13.5px; font-weight: 700; text-decoration: none; white-space: nowrap;">예약하기</a>
 
   </div>
 </header>
@@ -1195,7 +1214,7 @@
 <aside class="wb-drawer" id="wbMobileDrawer" role="dialog" aria-modal="true" aria-label="모바일 메뉴" aria-hidden="true">
   <div class="wb-drawer-topbar" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #F0F1F3; flex: none;">
     <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
-      <img src="/images/withbridge-logo.png" alt="위드브릿지 로고" style="height: 32px; width: auto; display: block; object-fit: contain;" />
+      <img src="./images/logo_main.png" alt="위드브릿지 로고" style="height: 32px; width: auto; display: block; object-fit: contain;" />
     </a>
     <button type="button" id="wbDrawerClose" aria-label="메뉴 닫기" style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: none; background: transparent; cursor: pointer;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1D21" stroke-width="2" stroke-linecap="round"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
@@ -1204,8 +1223,8 @@
   <nav style="display: flex; flex-direction: column; padding: 10px 16px; gap: 2px; font-family: 'Noto Sans KR', sans-serif;">
     <a href="story.html" class="wb-drawer-link">소개</a>
     <a href="index.html#services" class="wb-drawer-link">서비스</a>
-    <a href="index.html#notice" class="wb-drawer-link">공지사항</a>
-    <a href="index.html#reviews" class="wb-drawer-link">고객후기</a>
+    <a href="index.html#how-it-works" class="wb-drawer-link">이용 방법</a>
+    <a href="index.html#notice" data-open-notice class="wb-drawer-link">공지사항</a>
     <a href="index.html#faq" class="wb-drawer-link">자주 묻는 질문(FAQ)</a>
     <a href="http://pf.kakao.com/_PKxemX" target="_blank" rel="noopener noreferrer" class="wb-drawer-link">문의하기</a>
   </nav>
@@ -1213,7 +1232,7 @@
     <div class="auth-buttons wb-drawer-auth-buttons" style="display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 14.5px; font-weight: 500; color: #6B7280;">
       <a href="login.html" style="color: #6B7280; text-decoration: none;">로그인</a>
       <span style="color: #d1d5db;">|</span>
-      <a href="login.html" style="color: #6B7280; text-decoration: none;">회원가입</a>
+      <a href="signup.html" style="color: #6B7280; text-decoration: none;">회원가입</a>
     </div>
   </div>
 </aside>
@@ -1255,7 +1274,8 @@
           </div>
         </div>
 
-        <!-- 내 혜택 정보: 보유 쿠폰 수(user_coupons, status='active') · 보유 적립금(profiles.points_balance) -->
+        <!-- 내 혜택 정보: 지금 사용 가능한 쿠폰 수(user_coupons, status='active' & 미만료) · 보유 적립금(profiles.points_balance).
+             칸을 펼치면 미사용/사용 완료/기간 만료를 포함한 쿠폰 전체 내역이 뜹니다(loadBenefitSummary 참고). -->
         <div class="mp-header-benefits" id="benefitSection" hidden>
           <div class="benefit-stats">
             <button type="button" class="benefit-stat is-toggle" id="benefitCouponStat" aria-expanded="false" aria-controls="benefitCouponList">
@@ -1764,6 +1784,19 @@
     </div>
   </div>
 
+  <!-- 추가 요금 미납 예약 제한(Lock) 안내: '예약하기'/'+추가 신청' 클릭을 가로채서(guardBooking() 참고)
+       결제 대기 중인 추가 요금이 있으면 새 예약 진행 대신 이 모달을 띄웁니다. 배경 클릭/Esc 로는 닫히지
+       않고(다른 확인형 모달과 달리 별도 핸들러를 달지 않음), [확인]을 눌러야만 아래 '추가 요금 결제
+       안내' 섹션(#extraChargeSection)으로 스크롤·포커스 이동합니다. -->
+  <div class="modal-backdrop extra-charge-lock-overlay" id="extraChargeLockOverlay" hidden>
+    <div class="modal modal-sm extra-charge-lock-modal" role="dialog" aria-modal="true" aria-labelledby="extraChargeLockModalTitle">
+      <div class="extra-charge-lock-icon" aria-hidden="true">!</div>
+      <h3 id="extraChargeLockModalTitle">새 예약을 진행할 수 없습니다</h3>
+      <p class="modal-sub">결제 대기 중인 추가 요금이 있습니다. 추가 요금을 결제하신 후 새로운 예약을 신청하실 수 있습니다.</p>
+      <button type="button" class="btn btn-confirm extra-charge-lock-confirm" id="extraChargeLockConfirmBtn">확인</button>
+    </div>
+  </div>
+
   <!-- ==================================================================== -->
   <!-- 06. 자바스크립트 (Supabase 연동) -->
   <!-- ==================================================================== -->
@@ -1997,6 +2030,32 @@
       loadCare(true);     // 하단 '케어 현황'도 같은 시점에 다시 동기화
     });
 
+    // 추가 요금 미납 예약 제한(Lock) — '예약하기'/'+추가 신청' 클릭을 가로채, 결제 대기 중인 추가
+    // 요금이 있으면 새 예약 진행을 막고 안내 모달을 띄웁니다. window.WBAuth.hasUnpaidExtraCharge()
+    // (js/auth-header.js)는 apply.html 진입 시점 게이트에서도 그대로 쓰는 같은 조건이라, 이 마이페이지
+    // 버튼과 apply.html 직접 진입 양쪽의 잠금 기준이 항상 일치합니다.
+    document.getElementById('extraChargeLockConfirmBtn').addEventListener('click', () => {
+      document.getElementById('extraChargeLockOverlay').hidden = true;
+      const section = document.getElementById('extraChargeSection');
+      if (!section) return;
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      section.setAttribute('tabindex', '-1');
+      section.focus({ preventScroll: true });
+    });
+    async function guardBooking(event) {
+      // currentUser 확인이 아직 안 끝났으면(드문 경우) 막지 않고 평소처럼 링크를 그대로 따라갑니다.
+      if (!currentUser || !window.WBAuth || !window.WBAuth.hasUnpaidExtraCharge) return;
+      event.preventDefault();
+      const targetUrl = event.currentTarget.href;
+      const locked = await window.WBAuth.hasUnpaidExtraCharge(currentUser.id);
+      if (locked) document.getElementById('extraChargeLockOverlay').hidden = false;
+      else window.location.href = targetUrl;
+    }
+    ['bookNowBtnDesktop', 'bookNowBtnMobile', 'applyMoreBtn'].forEach((id) => {
+      const btn = document.getElementById(id);
+      if (btn) btn.addEventListener('click', guardBooking);
+    });
+
     // ---------- 프로필 요약 ----------
     // (헤더의 로그인 상태 UI 는 index.html 과 동일하게 auth-header.js 가 그립니다)
     function renderProfile(user) {
@@ -2041,10 +2100,18 @@
     // ---------- 내 혜택 정보 (보유 쿠폰 · 적립금, sql/user_points.sql · sql/welcome_coupons.sql) ----------
     const COUPON_LABELS = { WELCOME_2000: '첫 동행 웰컴 쿠폰' }; // apply.html 의 같은 상수와 동일하게 유지
     let guardianPhone = ''; // 어르신 등록 모달의 '보호자 연락처와 동일' 체크박스에서 사용 (loadBenefitSummary 가 채움)
-    function couponExpiryText(iso) {
+    function formatYmd(iso) {
       const d = iso ? new Date(iso) : null;
       if (!d || isNaN(d.getTime())) return '';
-      return '~' + d.getFullYear() + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + String(d.getDate()).padStart(2, '0');
+      return d.getFullYear() + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + String(d.getDate()).padStart(2, '0');
+    }
+    // 쿠폰 1건의 화면 표시 상태 — DB에는 만료를 'expired' 로 자동 전환하는 배치가 없어(user_packages 와 달리),
+    // status='active' 인데 expires_at 이 이미 지난 경우까지 여기서 직접 '기간 만료'로 판정합니다.
+    function couponStatusInfo(c) {
+      if (c.status === 'used') return { text: '사용 완료 · ' + formatYmd(c.used_at), cls: 'is-used' };
+      const isExpired = c.status === 'expired' || (c.expires_at && new Date(c.expires_at).getTime() <= Date.now());
+      if (isExpired) return { text: '기간 만료 · ' + formatYmd(c.expires_at), cls: 'is-expired' };
+      return { text: '미사용 · ' + formatYmd(c.expires_at) + '까지', cls: 'is-unused' };
     }
     async function loadBenefitSummary() {
       const section = document.getElementById('benefitSection');
@@ -2053,9 +2120,10 @@
 
       const [{ data: profile, error: profileErr }, { data: coupons, error: couponsErr }] = await Promise.all([
         supabaseClient.from('profiles').select('points_balance, phone').eq('id', currentUser.id).maybeSingle(),
-        supabaseClient.from('user_coupons').select('id, coupon_code, amount, expires_at')
-          .eq('user_id', currentUser.id).eq('status', 'active').gt('expires_at', new Date().toISOString())
-          .order('expires_at', { ascending: true })
+        // 미사용/사용 완료/기간 만료를 모두 포함한 전체 쿠폰 내역을 가져와 renderBenefitCoupons 에서 상태별로 보여줍니다.
+        supabaseClient.from('user_coupons').select('id, coupon_code, amount, status, expires_at, used_at')
+          .eq('user_id', currentUser.id)
+          .order('issued_at', { ascending: false })
       ]);
 
       if (profileErr) {
@@ -2072,7 +2140,9 @@
         document.getElementById('benefitCouponCount').textContent = '-';
         renderBenefitCoupons([]);
       } else {
-        document.getElementById('benefitCouponCount').textContent = (coupons || []).length + '장';
+        // 상단 숫자는 "지금 쓸 수 있는" 쿠폰 장수만 — 펼친 목록(renderBenefitCoupons)에는 사용 완료/만료 내역도 함께 보여줍니다.
+        const usableCount = (coupons || []).filter((c) => couponStatusInfo(c).cls === 'is-unused').length;
+        document.getElementById('benefitCouponCount').textContent = usableCount + '장';
         renderBenefitCoupons(coupons || []);
       }
     }
@@ -2080,14 +2150,15 @@
       const list = document.getElementById('benefitCouponList');
       list.textContent = '';
       if (!coupons.length) {
-        list.appendChild(h('p', 'benefit-coupon-empty', '지금 사용할 수 있는 쿠폰이 없어요.'));
+        list.appendChild(h('p', 'benefit-coupon-empty', '보유한 쿠폰이 없어요.'));
         return;
       }
       coupons.forEach((c) => {
-        const item = h('div', 'benefit-coupon-item');
+        const info = couponStatusInfo(c);
+        const item = h('div', 'benefit-coupon-item ' + info.cls);
         const label = COUPON_LABELS[c.coupon_code] || c.coupon_code;
         item.appendChild(h('span', '', label + ' - ' + won(c.amount) + '원 할인'));
-        item.appendChild(h('span', 'bc-expiry', couponExpiryText(c.expires_at)));
+        item.appendChild(h('span', 'bc-status', info.text));
         list.appendChild(item);
       });
     }
@@ -2319,9 +2390,16 @@
       const d = new Date(iso);
       return isNaN(d.getTime()) ? null : new Date(d.getTime() + 9 * 60 * 60 * 1000);
     }
+    // 24시간제("17:05")는 오전/오후 구분이 없어 한눈에 읽히지 않는다는 피드백으로, 12시간제 +
+    // 오전/오후 접두사("오후 05:05")로 통일합니다 — 이 함수를 쓰는 모든 화면(케어 일정 카드, 케어
+    // 리포트, 동행 타임라인 등)에 한 번에 적용됩니다.
     const fmtTime = (iso) => {
       const k = toKst(iso);
-      return k ? String(k.getUTCHours()).padStart(2, '0') + ':' + String(k.getUTCMinutes()).padStart(2, '0') : '';
+      if (!k) return '';
+      const h24 = k.getUTCHours();
+      const period = h24 < 12 ? '오전' : '오후';
+      const h12 = h24 % 12 || 12;
+      return period + ' ' + String(h12).padStart(2, '0') + ':' + String(k.getUTCMinutes()).padStart(2, '0');
     };
     function serviceInfo(type) {
       const t = String(type || '');
@@ -2379,6 +2457,14 @@
       const hasKo = (...words) => words.some((w) => s.includes(w));
       let st;
       if (isEn('expired_cancelled')) st = { label: '자동 취소 · 환불 완료', tone: 'cancel' };
+      // 'PARTIALLY_REFUNDED' 는 신청 자체가 취소된 게 아니라, 현장에서 케어가 중단돼 관리자가 부분
+      // 환불을 처리한 건입니다(admin_apply_partial_refund, sql/care_interruption_refund_system.sql) —
+      // 이 분기가 없으면 이 값이 아래 '처음 보는 값' 기본값으로 떨어져 tone:'wait' 가 되고, hasManager
+      // 보정과 resolveCareStep() 의 진행 단계 표시에 덮여 '배정 완료'/'케어 완료'처럼 보여서, 실제로는
+      // 부분 환불이 있었다는 사실이 화면에서 완전히 사라지는 문제가 있었습니다. tone:'cancel' 로 분류해
+      // effectiveStatusInfo() 가 이 label 을 그대로 쓰도록(진행 단계로 덮어쓰지 않도록) 만들고, admin.html
+      // '취소된 신청 내역' 카드가 쓰는 것과 똑같은 한글 라벨('부분 환불 완료')을 써서 두 화면의 문구를 맞춥니다.
+      else if (isEn('partially_refunded')) st = { label: '부분 환불 완료', tone: 'cancel' };
       else if (isEn('cancelled', 'canceled', 'cancel') || hasKo('취소')) st = { label: '취소됨', tone: 'cancel' };
       else if (isEn('payment_pending', 'pending_payment')) st = { label: '입금 대기 중', tone: 'wait' };
       else if (!s || isEn('pending', 'new', 'received', 'submitted', 'waiting', 'requested', 'matching_pending', 'waiting_matching') || hasKo('접수', '대기', '신청')) st = { label: '매칭 대기 중', tone: 'wait' };
@@ -2394,21 +2480,25 @@
       return st;
     }
 
-    // ---------- DB status 값 → 5단계 매핑 (타임라인 프로그레스바 · 상단 뱃지가 모두 이 하나만 봅니다) ----------
-    // care_schedules.status 는 늘 영문(pending/assigned/departed/arrived/completed, supabase-manager-schema.sql 참고)이지만,
-    // service_applications.status 나 수기로 입력된 값은 한글·다른 영문 동의어(예: 'moving'/'이동중')로 들어올 수 있어
-    // 대소문자·공백과 무관하게 관대하게 매칭합니다. null 이면 이 값만으로는 단계를 알 수 없다는 뜻입니다.
-    // 케어 현황 카드의 5단계 스태퍼와 케어 리포트 모달의 동행 타임라인이 항상 같은 문구를 보여주도록, 서비스
-    // 종류별 5단계 라벨을 이 하나의 상수로 통일합니다. 카드 쪽은 careStepLabelsFor(a)(효과 뱃지
+    // ---------- DB status 값 → 7단계 매핑 (타임라인 프로그레스바 · 상단 뱃지가 모두 이 하나만 봅니다) ----------
+    // care_schedules.status 는 늘 영문(pending/assigned/departed/arrived/treatment_done/returning/completed,
+    // sql/care_schedule_5step_status.sql 참고)이지만, service_applications.status 나 수기로 입력된 값은
+    // 한글·다른 영문 동의어(예: 'moving'/'이동중')로 들어올 수 있어 대소문자·공백과 무관하게 관대하게
+    // 매칭합니다. null 이면 이 값만으로는 단계를 알 수 없다는 뜻입니다.
+    // 케어 현황 카드의 7단계 스태퍼와 케어 리포트 모달의 동행 타임라인이 항상 같은 문구를 보여주도록, 서비스
+    // 종류별 7단계 라벨을 이 하나의 상수로 통일합니다. 카드 쪽은 careStepLabelsFor(a)(효과 뱃지
     // effectiveStatusInfo/careProgressBar)가, 모달 쪽은 reportTimelineStepsFor(a)(renderReportTimeline/
     // verifyLinksRow)가 둘 다 이 상수만 보고 라벨을 고릅니다 — 서로 다른 문구를 쓰려면 반드시 여기부터
     // 고쳐야 하고, 절대 각자 따로 배열을 만들지 마세요(그게 지금까지의 라벨 불일치 원인이었습니다).
+    // mypage-manager.html 의 FLOW(출발→병원 도착→진료/대행 완료→귀가 이동→케어 완료, 매니저가 실제로
+    // 누르는 5개 인증 버튼)와 1:1로 맞물리도록 '접수 완료'/'배정 완료' 두 단계를 앞에 붙여 7단계로 둡니다.
     const CARE_STEP_LABELS_BY_TYPE = {
-      hospital: ['접수 완료', '배정 완료', '이동 중', '병원 도착', '케어 완료'],
-      life:     ['접수 완료', '배정 완료', '이동 중', '현장 도착', '대행 완료'],
-      mixed:    ['접수 완료', '배정 완료', '이동 중', '목적지 도착', '케어 완료']
+      hospital: ['접수 완료', '배정 완료', '출발 완료', '병원 도착', '진료/대행 완료', '귀가 이동', '케어 완료'],
+      life:     ['접수 완료', '배정 완료', '출발 완료', '현장 도착', '대행 업무 완료', '귀가 이동', '대행 완료'],
+      mixed:    ['접수 완료', '배정 완료', '출발 완료', '목적지 도착', '진료/대행 완료', '귀가 이동', '케어 완료']
     };
     const CARE_STEP_LABELS = CARE_STEP_LABELS_BY_TYPE.hospital; // cat 을 모를 때의 기본값/폴백
+    const CARE_STEP_LAST = CARE_STEP_LABELS.length - 1; // 6 — '케어 완료'(또는 '대행 완료') 인덱스
     function careStepLabelsFor(a) {
       const cat = (serviceInfo(a && a.service_type) || {}).cat;
       return CARE_STEP_LABELS_BY_TYPE[cat] || CARE_STEP_LABELS;
@@ -2419,13 +2509,19 @@
       const isEn = (...words) => words.includes(s);
       const hasKo = (...words) => words.some((w) => s.includes(w));
       // 순서 중요: '배정완료'/'케어완료'처럼 서로 다른 단계의 라벨에 모두 '완료'가 들어 있으므로,
-      // 더 구체적인 표현(케어 완료 · 병원 도착 · 이동 중 · 배정)을 먼저 검사하고 일반적인 '완료'는 마지막에 봅니다.
-      if (isEn('completed', 'complete', 'done', 'finished', 'care_completed') || hasKo('케어완료', '케어 완료')) return 4;
-      if (isEn('arrived', 'arrived_at_hospital') || hasKo('병원도착', '병원 도착', '도착')) return 3;
-      if (isEn('departed', 'on_the_way', 'ontheway', 'moving', 'in_transit') || hasKo('이동중', '이동 중')) return 2;
+      // 더 구체적인 표현(케어 완료 · 귀가 이동 · 진료/대행 완료 · 병원 도착 · 출발 · 배정)을 먼저 검사하고
+      // 일반적인 '완료'는 마지막에 봅니다. treatment_done/returning 은 care_schedule_5step_status.sql 로
+      // care_schedules.status(와 그 미러인 service_applications.status)에 추가된 값인데, 예전에는 이 함수가
+      // 이 두 값을 전혀 몰라서 null 을 돌려줬고, 그래서 매니저가 '진료/대행 완료'·'귀가 이동'을 눌러도 보호자
+      // 화면은 statusInfo() 의 catch-all 로 떨어져 '배정 완료'로 역행해 보이는 버그가 있었습니다(이제 고정).
+      if (isEn('completed', 'complete', 'done', 'finished', 'care_completed') || hasKo('케어완료', '케어 완료')) return 6;
+      if (isEn('returning', 'return_departure', 'returning_home') || hasKo('귀가이동', '귀가 이동', '복귀이동', '복귀 이동')) return 5;
+      if (isEn('treatment_done', 'treatment_complete') || hasKo('진료완료', '진료 완료', '진료/대행 완료', '대행업무완료', '대행 업무 완료')) return 4;
+      if (isEn('arrived', 'arrived_at_hospital') || hasKo('병원도착', '병원 도착', '현장도착', '현장 도착', '목적지도착', '목적지 도착', '도착')) return 3;
+      if (isEn('departed', 'on_the_way', 'ontheway', 'moving', 'in_transit') || hasKo('출발완료', '출발 완료', '이동중', '이동 중', '출발')) return 2;
       if (isEn('matched', 'assigned', 'accepted') || hasKo('배정완료', '배정 완료', '배정', '매칭')) return 1;
       if (isEn('pending', 'new', 'received', 'submitted', 'waiting', 'requested', 'applied', 'payment_pending', 'pending_payment', 'matching_pending', 'waiting_matching') || hasKo('접수완료', '접수 완료', '접수', '대기', '신청')) return 0;
-      if (hasKo('완료')) return 4; // 위 어느 것에도 안 걸린 값만 최후 수단으로 '완료' 취급
+      if (hasKo('완료')) return CARE_STEP_LAST; // 위 어느 것에도 안 걸린 값만 최후 수단으로 '완료' 취급
       return null;
     }
 
@@ -2434,13 +2530,13 @@
     function scheduleStatusInfo(raw) {
       const step = normalizeCareStep(raw);
       if (step == null || step <= 1) return null; // 'pending'/'assigned' 등은 기존 statusInfo() 결과를 그대로 사용
-      return { label: CARE_STEP_LABELS[step], tone: step === 4 ? 'done' : 'live', assigned: true };
+      return { label: CARE_STEP_LABELS[step], tone: step === CARE_STEP_LAST ? 'done' : 'live', assigned: true };
     }
 
     // care_schedules(a._schedule.schedule_status) 와 service_applications(a.status) 두 신호 중 더 진행된
     // 쪽을 신뢰합니다. advance_care_status()/record_care_verification() RPC(supabase-fix-status-sync.sql)가
     // 매니저가 상태를 바꿀 때마다 service_applications.status 에도 같은 값을 미러링해 두므로, care_schedules
-    // 쪽을 못 읽는 상황(RLS·조인 문제로 a._schedule 이 비어 있어도)에서도 이 값 하나만으로 3~5단계를 알 수
+    // 쪽을 못 읽는 상황(RLS·조인 문제로 a._schedule 이 비어 있어도)에서도 이 값 하나만으로 3~6단계를 알 수
     // 있는 이중 안전장치입니다. 둘 다 없으면 null(이 함수만으로는 단계를 모른다는 뜻 — 호출부가 다른 신호로 판단).
     function resolveCareStep(a) {
       const scheduleStep = a._schedule && normalizeCareStep(a._schedule.schedule_status);
@@ -2608,7 +2704,7 @@
       // 예전에 '일정 변경 제안'을 수락해 로컬로 남겨 둔 '배정 완료' 값이 있어도, 매니저가 실제로 출발/병원
       // 도착까지 진행했다면 그 낡은 로컬 값이 최신 진행 상황을 계속 가리면 안 되므로 이 확인이 먼저입니다.
       const step = resolveCareStep(a);
-      if (step != null && step >= 2) return { label: careStepLabelsFor(a)[step], tone: step === 4 ? 'done' : 'live', assigned: true };
+      if (step != null && step >= 2) return { label: careStepLabelsFor(a)[step], tone: step === CARE_STEP_LAST ? 'done' : 'live', assigned: true };
       const proposal = proposalStatusInfo(a);
       if (proposal) return proposal;
       return base;
@@ -2945,7 +3041,10 @@
         // 아직 최신 마이그레이션을 안 돌린 프로젝트를 위해, 없는 컬럼만 하나씩 빼고 재시도합니다 (queryReports() 와 같은 패턴).
         // payment_status/refunded_at: sql/matching_expiry_auto_refund.sql 이 추가 — '취소됨'/'환불 완료' 배지
         // 분기(effectiveStatusInfo)와 '지난 이용 내역' 카드의 환불 안내 문구(careCalCaseCard)에 씁니다.
-        const APP_OPTIONAL_COLS = ['applicant_email', 'manager_id', 'accepted_at', 'schedule_id', 'payment_status', 'refunded_at'];
+        // refund_amount: sql/care_interruption_refund_system.sql(부분 환불) · sql/admin_application_refund_
+        // system.sql(관리자 전액/부분 환불)이 누적으로 채움 — careCalCaseCard 의 '부분 환불 완료' 문구에
+        // 환불액을 같이 보여주는 데 씁니다.
+        const APP_OPTIONAL_COLS = ['applicant_email', 'manager_id', 'accepted_at', 'schedule_id', 'payment_status', 'refunded_at', 'refund_amount'];
         let appsRemaining = APP_OPTIONAL_COLS.slice();
         let apps, error;
         for (;;) {
@@ -2994,11 +3093,11 @@
         await attachManagers(list);
         await attachSchedules(list);
         // [Guardian] 데이터 흐름 투명화: 이 신청이 실제로 어떤 status 값을 들고 화면에 도착했는지 매번 찍습니다.
-        // effectiveStep 이 null 이면 이 신청은 아직 어느 5단계에도 매핑되지 않는다는 뜻입니다.
+        // effectiveStep 이 null 이면 이 신청은 아직 어느 7단계에도 매핑되지 않는다는 뜻입니다.
         list.forEach((a) => {
           const raw = (a._schedule && a._schedule.schedule_status) || a.status;
           console.log('[Guardian] Fetched status:', raw, '| application:', a.id,
-            '| care_schedules 연결:', !!a._schedule, '| 정규화된 step(0~4):', normalizeCareStep(raw));
+            '| care_schedules 연결:', !!a._schedule, '| 정규화된 step(0~6):', normalizeCareStep(raw));
         });
 
         const sig = careSignature(list);
@@ -3173,7 +3272,7 @@
     function careStepIndex(a, st) {
       const step = resolveCareStep(a);
       if (step != null) return step;
-      if (st.tone === 'done') return 4;
+      if (st.tone === 'done') return CARE_STEP_LAST;
       if (st.assigned) return 1;
       return 0;
     }
@@ -3196,7 +3295,7 @@
     }
 
     // 배정 전(매칭 대기 중) 카드에 보여줄 축소판 3단계 타임라인: 신청 완료(완료) → 매니저 배정 중(진행 중,
-    // CARE_WINDOW_HOURS 시간 내 확정 안내) → 동행 시작(아직 도달 전). 5단계 careProgressBar 와 같은
+    // CARE_WINDOW_HOURS 시간 내 확정 안내) → 동행 시작(아직 도달 전). 7단계 careProgressBar 와 같은
     // .stepper/.step 스타일을 그대로 재사용해 배정 전/후가 하나의 톤앤매너로 이어집니다.
     function pendingTimeline() {
       const stepper = h('ol', 'stepper app-stepper pending-stepper');
@@ -3319,7 +3418,7 @@
       }
 
       // 케어 진행 단계: 카드 상단(제목 바로 아래)에서 지금이 정확히 어느 단계인지 한 번에 보여줍니다.
-      // 배정 이후에는 5단계 상세 타임라인, 매칭 대기 중에는 '신청 완료 → 매니저 배정 대기 중' 2단계 축소판.
+      // 배정 이후에는 7단계 상세 타임라인, 매칭 대기 중에는 '신청 완료 → 매니저 배정 대기 중' 2단계 축소판.
       // 취소·제안 대기 등 예외 상태에는 진행 표시 자체가 의미가 없어 표시하지 않습니다. 취소된 건은
       // 이 '진행 중인 케어' 목록 자체에 올라오지 않으므로(renderCare 의 activeApps 필터 참고) 여기서는
       // 'wait'/'assigned'/'done' 만 신경 쓰면 됩니다 — 취소건의 배지·안내는 '지난 이용 내역' 달력
@@ -4242,7 +4341,15 @@
       const isCancelled = st.tone === 'cancel';
       const card = h('div', 'cal-case');
       const top = h('div', 'cal-case-top');
-      const time = h('div', 'cal-case-time', fmtTime(careScheduleDateIso(a)));
+      // 시간 앞에 "무슨 시각인지"를 밝히는 라벨을 붙입니다 — 라벨 없이 시간만 보이면(예전 "17:05") 이게
+      // 희망한 시각인지 실제 완료 시각인지 헷갈린다는 피드백 때문입니다. careScheduleDateIso() 는 완료/
+      // 취소 여부와 무관하게 항상 scheduled_at(예정됐던 시각)을 우선하므로, 완료 건은 "실제로 그 시각에
+      // 진행된 케어"라는 뜻으로 '케어 이용 시각', 취소 건은 "예정됐었지만 취소된 시각"이라는 뜻으로
+      // '희망 일시'로 구분합니다.
+      const timeLabel = isDone ? '케어 이용 시각' : isCancelled ? '희망 일시' : '케어 희망 시각';
+      const time = h('div', 'cal-case-time');
+      time.appendChild(h('span', 'cal-case-time-label', timeLabel));
+      time.appendChild(document.createTextNode(fmtTime(careScheduleDateIso(a))));
       time.appendChild(h('small', '', a.service_type || '동행 서비스'));
       top.appendChild(time);
       const badges = h('div', 'cal-case-badges');
@@ -4260,11 +4367,27 @@
       if (isCancelled) {
         // 환불 여부에 따라 문구만 다르게(배지와 같은 기준 — effectiveStatusInfo 가 이미 payment_status
         // 를 반영해 둔 라벨/톤입니다). 취소된 건은 실제 서비스가 없었으므로 리포트·영수증 버튼을 두지 않습니다.
-        foot.appendChild(h('span', '', a.payment_status === 'REFUNDED'
+        // 환불이 '언제' 완료됐는지도 같이 보여줍니다 — refunded_at 은 48시간 자동환불(expire_unmatched_
+        // application)과 관리자 수동 환불 완료 처리(admin_mark_refund_completed) 둘 다 채우는 컬럼이라,
+        // 경로와 무관하게 항상 정확합니다. 환불 전(아직 PAID거나 결제 자체가 없던 취소)은 그런 시각이
+        // 없으므로(cancelled_at 컬럼 자체가 없음) 표시하지 않습니다.
+        // 'PARTIALLY_REFUNDED'는 신청이 취소된 게 아니라 케어 진행 중 중단되어 일부만 환불된 경우라
+        // (statusInfo() 주석 참고), "이 신청은 취소되었습니다"로 묶으면 실제로는 서비스가 진행됐다는
+        // 사실과 어긋나므로 별도 문구로 분리합니다.
+        let cancelMsg = a.payment_status === 'REFUNDED'
           ? '결제하신 금액의 환불이 완료되었습니다.'
-          : a.payment_status === 'PAID'
-            ? '이 신청은 취소되었습니다. 결제하신 금액의 환불은 관리자 확인 후 처리됩니다.'
-            : '이 신청은 취소되었습니다.'));
+          : a.payment_status === 'PARTIALLY_REFUNDED'
+            ? '케어 진행 중 중단되어, 결제하신 금액 중 일부가 환불되었습니다.'
+            : a.payment_status === 'PAID'
+              ? '이 신청은 취소되었습니다. 결제하신 금액의 환불은 관리자 확인 후 처리됩니다.'
+              : '이 신청은 취소되었습니다.';
+        if (a.payment_status === 'PARTIALLY_REFUNDED' && a.refund_amount) {
+          cancelMsg += ' (환불액: ' + won(a.refund_amount) + '원)';
+        }
+        if (a.payment_status === 'REFUNDED' && a.refunded_at) {
+          cancelMsg += ' (환불 완료 일시: ' + fmtReportDate(a.refunded_at) + ' ' + fmtTime(a.refunded_at) + ')';
+        }
+        foot.appendChild(h('span', '', cancelMsg));
       } else if (!isDone) {
         foot.appendChild(h('span', '', '현재 ' + st.label + ' 상태예요. 케어가 완료되면 리포트를 확인할 수 있어요.'));
       } else if (report) {
@@ -5096,6 +5219,26 @@
       params.delete('tab');
       const newSearch = params.toString();
       history.replaceState(null, '', location.pathname + (newSearch ? '?' + newSearch : '') + location.hash);
+    })();
+
+    // index.html '웰컴 쿠폰' 버튼의 '내 쿠폰함 보기' 바로가기(mypage.html?openCoupons=1) — 도착하면
+    // 헤더 카드의 '보유 쿠폰' 칸을 펼치고 그 위치로 스크롤해 줍니다. loadBenefitSummary() 가 아직
+    // benefitCouponList 를 채우지 못했을 수 있으므로 약간의 지연 후 펼칩니다. 새로고침해도 다시
+    // 펼쳐지지 않도록(package.html 결제 완료 배너와 같은 패턴) 확인한 즉시 쿼리 파라미터를 지웁니다.
+    (function openCouponsFromQuery() {
+      const params = new URLSearchParams(location.search);
+      if (params.get('openCoupons') !== '1') return;
+      params.delete('openCoupons');
+      const newSearch = params.toString();
+      history.replaceState(null, '', location.pathname + (newSearch ? '?' + newSearch : '') + location.hash);
+      setTimeout(() => {
+        const stat = document.getElementById('benefitCouponStat');
+        const list = document.getElementById('benefitCouponList');
+        if (!stat || !list) return;
+        list.hidden = false;
+        stat.setAttribute('aria-expanded', 'true');
+        stat.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 400);
     })();
 
     // '지난 이용 내역' 상단 소형 필터([전체]/[이용 완료]/[취소/환불]) — careHistoryFilter 상태만 바꾸고
