@@ -177,6 +177,16 @@
     .nt-info a { color: var(--brand-dark); font-weight: 700; text-decoration: none; border-bottom: 1px solid #C9D6C4; white-space: nowrap; }
     .nt-login { grid-column: 1 / -1; margin: 0; padding-top: 10px; border-top: 1px dashed #C9D6C4; font-size: 13px; font-weight: 600; color: var(--brand-dark); word-break: break-all; }
     .nt-login::before { content: '✓'; display: inline-block; margin-right: 6px; font-weight: 800; color: var(--accent); }
+    /* 로그인이 필요해 접수할 수 없는 상태 — 완료를 뜻하는 기본 '✓' 체크 대신 주의를 끄는 색으로 바꾸고,
+       안내 뒤에 바로 로그인 버튼을 붙여 지금 바로 로그인할 수 있게 합니다. */
+    .nt-login.is-warning { color: #9A3412; }
+    .nt-login.is-warning::before { content: '!'; color: #C2410C; }
+    .nt-login-cta {
+      display: inline-block; margin-left: 8px; padding: 4px 14px; border-radius: 999px;
+      background: var(--brand-dark); color: #fff !important; font-weight: 700; font-size: 12.5px;
+      text-decoration: none; white-space: nowrap;
+    }
+    .nt-login-cta:hover { background: #184A38; }
 
     /* 48시간 미매칭 자동 취소/환불 안심 문구 박스: 신청서 상단(제목 아래)과 하단(제출 버튼 바로 위) 두 곳에
        같은 내용을 반복해 — 신청 전과 결제 직전 모두에서 눈에 띄도록 함 */
@@ -583,7 +593,6 @@
     <a href="index.html#how-it-works" class="wb-drawer-link">이용 방법</a>
     <a href="index.html#notice" data-open-notice class="wb-drawer-link">공지사항</a>
     <a href="index.html#faq" class="wb-drawer-link">자주 묻는 질문(FAQ)</a>
-    <a href="http://pf.kakao.com/_PKxemX" target="_blank" rel="noopener noreferrer" class="wb-drawer-link">문의하기</a>
   </nav>
   <div style="padding: 18px 20px 24px; border-top: 1px solid #F0F1F3; display: flex; flex-direction: column; gap: 14px; flex: none; font-family: 'Noto Sans KR', sans-serif;">
     <div class="auth-buttons wb-drawer-auth-buttons" style="display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 14.5px; font-weight: 500; color: #6B7280;">
@@ -1773,30 +1782,31 @@
 
       if (!supabaseClient) { showFormError('신청 모듈을 불러오지 못했어요.'); return; }
 
+      // ★ 제출 직전 세션 재확인(Pre-submission Guard) — resolveIdentity() 는 캐시된 로컬 세션이 아니라
+      // supabaseClient.auth.getUser() 로 서버에 직접 물어 확인하므로, 폼을 열어 둔 사이 다른 탭에서
+      // 로그아웃했거나 세션이 만료된 경우 여기서 반드시 걸러집니다. 신청서는 더 이상 비로그인으로
+      // 접수할 수 없으므로(게스트 체크아웃 폐지), id 가 없으면 접수 자체를 막고 로그인 페이지로 보냅니다.
+      const { id: userId, email: applicantEmail } = await resolveIdentity();
+      if (!userId) {
+        alert('로그인이 만료되었거나 로그아웃되었습니다. 다시 로그인해 주세요.');
+        window.location.href = 'login.html';
+        return;
+      }
+
       submitting = true;
       const btn = $('submitBtn');
       btn.disabled = true;
       btn.textContent = '제출 중…';
 
       // 테이블의 실제 컬럼 이름으로 바꿔 저장. insert 결과를 다시 읽지 않습니다 (신청 내용은 보안상 조회 권한이 없음)
-      //
-      // ★ user_id 연결 (마이페이지 '케어 현황'에 내 신청이 나타나려면 필요):
-      //  * 로그인한 상태면 서버가 확인한 사용자(auth.getUser())의 id 를 user_id 에 담아 저장합니다. 보내는 값은 '본인 id'뿐입니다.
-      //  * 비로그인이면 신청서 id 를 이 브라우저가 미리 만들어 함께 저장하고, 그 id 를 기억해 둡니다(localStorage).
-      //    나중에 카카오 로그인/회원가입을 하면 auth-header.js 가 그 id 로 claim_service_applications() 를 호출해 내 계정에 연결합니다.
-      //  * DB 가 user_id 지정을 막으면(42501) 신청을 잃지 않도록 user_id 없이 한 번 더 저장하되, 위와 같이 id 를 기억해 두었다가
-      //    연결합니다. 이 경우 콘솔에 경고를 남깁니다 (→ supabase-claim-applications.sql 실행).
+      // user_id 는 위에서 서버로 재확인한 로그인 계정의 id 이고, 이제 로그인하지 않으면 여기까지 오지
+      // 않으므로 항상 값이 있습니다.
       // 출발지/목적지를 미리 지오코딩(Task B) — 실패해도(주소가 'test'처럼 실제로 없는 값 등) null 로만
       // 남고 신청 제출 자체는 막지 않습니다. 매니저가 나중에 위치 인증을 시도할 때 다시 한번 시도됩니다.
       const [originPoint, destPoint] = await Promise.all([
         geocodeAddress(values.route_origin), geocodeAddress(values.route_destination)
       ]);
       const row = toDbRow(values, originPoint, destPoint);
-      // applicant_email: user_id 와 같은 getUser() 호출에서 나온, 서버가 아는 로그인 계정의 이메일입니다.
-      // user_id 연결이 이런저런 이유로 끊겨도(아래 42501 폴백, 또는 이후 어떤 원인으로든) 마이페이지가
-      // '인증된 이메일 일치'로 이 신청을 다시 찾을 수 있는 보조 경로입니다(service_applications_select_own
-      // 정책 참고). 인증 여부는 서버(my_verified_email())가 조회 시점에 다시 확인하므로 여기서는 그대로 보냅니다.
-      const { id: userId, email: applicantEmail } = await resolveIdentity();
       const applicationId = newUuid();
       const insertRow = (r) => supabaseClient.from('service_applications').insert([r]);
       let linkedToAccount = !!userId;
@@ -2379,17 +2389,35 @@
       }
     }
 
+    // 로그인이 필요한 서비스로 전환 — 신청서는 이제 로그인한 계정에만 접수됩니다(비로그인/게스트 신청 폐지).
+    // 다른 탭·창에서 로그아웃하거나 세션이 만료되면 supabase-js 가 로컬스토리지 변화를 감지해 이 탭에도
+    // 똑같이 'SIGNED_OUT' 이벤트를 쏴 주므로, 그 즉시 경고 후 로그인 페이지로 보내 "로그아웃된 계정으로
+    // 그대로 접수되는" 보안 허점을 막습니다. 제출 시점의 최종 방어는 submit 핸들러 쪽 가드(resolveIdentity
+    // 재확인)가 맡고, 여기는 "화면에 떠 있는 동안 로그아웃되는" 경로를 실시간으로 막는 역할입니다.
+    if (supabaseClient) {
+      supabaseClient.auth.onAuthStateChange((event) => {
+        if (event === 'SIGNED_OUT') {
+          alert('로그인이 만료되었거나 로그아웃되었습니다. 다시 로그인해 주세요.');
+          window.location.href = 'login.html';
+        }
+      });
+    }
+
     // 로그인한 경우: 계정과 자동 연결된다는 안내 + 완료 화면의 '마이페이지' 버튼
     (async function init() {
       if (!supabaseClient) return;
       const { data: { session } } = await supabaseClient.auth.getSession();
       const note = $('loginNote');
       if (!session) {
-        // 비로그인: 그대로 신청할 수 있고, 나중에 로그인하면 이 브라우저에서 낸 신청이 마이페이지에 자동으로 연결된다는 안내
-        note.textContent = '로그인하지 않고 신청하셔도 돼요. 신청 후 카카오로 로그인하시면 이 신청이 마이페이지에 자동으로 연결됩니다.';
+        // 비로그인: 더 이상 신청서를 접수할 수 없습니다 — 로그인을 유도하고, 실제 차단은 submit
+        // 핸들러의 세션 재확인 가드가 담당합니다(여기서 폼 자체를 숨기지 않는 이유는 로그인 전에도
+        // 어떤 서비스인지 미리 둘러볼 수 있게 하기 위함입니다).
+        note.className = 'nt-login is-warning';
+        note.innerHTML = '로그인이 필요한 서비스입니다.<a href="login.html" class="nt-login-cta">로그인하기</a>';
         note.hidden = false;
         return;
       }
+      note.className = 'nt-login'; // 로그인 상태(위 is-warning 과 반대) — 다른 탭 로그아웃 후 다시 로그인했을 때도 깔끔히 되돌아가도록 명시적으로 리셋
       loadSeniorProfiles(session.user.id);
       note.textContent = '로그인한 계정' + (session.user.email ? '(' + session.user.email + ')' : '') + '과 연결되어 접수됩니다.';
       note.hidden = false;
