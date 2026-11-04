@@ -67,7 +67,7 @@
           '</div>' +
           '<div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">' +
             '<span style="font-weight: 700; color: #ffffff !important;">이메일</span>' +
-            '<a href="mailto:withbridge.care@gmail.com" style="color: #ffffff !important; font-weight: 500; text-decoration: none;">withbridge.care@gmail.com</a>' +
+            '<a href="mailto:withbridge.care@outlook.kr" style="color: #ffffff !important; font-weight: 500; text-decoration: none;">withbridge.care@outlook.kr</a>' +
           '</div>' +
           '<div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">' +
             '<span style="font-weight: 700; color: #ffffff !important;">운영시간</span>' +

@@ -13,7 +13,7 @@
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- 공통 Supabase 클라이언트 + 헤더 로그인 상태. SDK 뒤에 로드해야 합니다 -->
-  <script src="/js/auth-header.js?v=2.1" charset="utf-8"></script>
+  <script src="/js/auth-header.js?v=2.2" charset="utf-8"></script>
   <!-- 결제 확인 Edge Function(issue-virtual-account) 호출용 — supabaseClient.functions.invoke() 대신
        명시적 fetch() 래퍼. auth-header.js 가 만든 supabaseClient 를 받아 쓰므로 그 뒤에 로드합니다 -->
   <script src="/js/edge-function-fetch.js?v=1.1"></script>
@@ -213,6 +213,19 @@
     .senior-quickfill-card label { display: block; margin: 0 0 8px; font-size: 15px; font-weight: 800; color: var(--brand-dark); word-break: keep-all; }
     .senior-quickfill-hint { margin: 8px 2px 0; font-size: 13px; color: var(--brand-dark); font-weight: 600; word-break: keep-all; }
 
+    /* 어르신 정보 저장 카드 — 성함·연락처·거동 상태·자택 주소·자주 가는 병원·요청 상세 내용까지 다
+       입력한 뒤, 그 입력 묶음의 맨 끝에서 바로 눈에 띄도록 위 '어르신 프로필 원클릭 불러오기' 카드
+       (senior-quickfill-card)와 짝을 이루는 같은 비주얼(연한 브랜드 배경 + 좌측 강조선)을 씁니다 —
+       "이번에 입력한 어르신 정보를 프로필에 저장"과 "저장해 둔 프로필을 불러오기"는 서로 반대 방향의
+       같은 기능이라, 두 카드가 서로 짝처럼 보이는 게 자연스럽습니다. .field 클래스를 함께 써서
+       .field > label.consent-row(이용약관/개인정보 동의와 같은 커스텀 체크박스 스타일)와
+       .consent-help(안내 문구 들여쓰기)를 그대로 재사용합니다. */
+    .senior-save-card {
+      margin: 4px 0 28px; padding: 18px 20px; background: var(--brand-soft);
+      border: 1px solid var(--brand-line); border-left: 5px solid var(--brand); border-radius: 14px;
+    }
+    .senior-save-card .consent-row span { font-weight: 700; color: var(--brand-dark); }
+
     .options { display: flex; flex-wrap: wrap; gap: 10px; }
     .opt { position: relative; cursor: pointer; }
     .opt input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
@@ -320,6 +333,9 @@
     .ds-row span:last-child { font-weight: 700; color: var(--ink); }
     .ds-final { margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--accent); font-size: 16px; font-weight: 800; color: var(--ink); }
     .ds-final span:last-child { font-size: 21px; font-weight: 800; color: var(--accent-dark); }
+    /* 패키지 차감 선택 시 '최종 결제 금액' 바로 아래 — 지금 보이는 숫자가 결제 전액이 아니라 선택
+       옵션 금액뿐이라는 걸 한 번 더 명확히 알립니다(refreshDiscountSummary 참고). */
+    .ds-package-note { margin: 8px 0 0; font-size: 12.5px; color: var(--brand-dark); font-weight: 600; word-break: keep-all; }
 
     textarea.text-input { display: block; min-height: 120px; resize: vertical; line-height: 1.6; }
     .hint { margin: 6px 2px 0; font-size: 13px; color: var(--ink-sub); word-break: keep-all; }
@@ -774,6 +790,21 @@
           <p class="err" id="e-mobility" hidden></p>
         </fieldset>
 
+        <!-- 어르신 성함·연락처·거동 상태·자택 주소·자주 가는 병원·요청 상세 내용까지 어르신 관련
+             입력이 모두 끝나는 지점(거동 상태 바로 다음, 성격이 다른 '선택 추가 옵션' 결제 항목이
+             시작되기 전)에 두어, 위 '어르신 프로필 원클릭 불러오기' 카드와 짝을 이루는 같은 박스
+             UI(senior-save-card)로 눈에 띄게 둡니다. 로그인한 사용자에게만 보여줍니다(비로그인
+             신청은 저장할 계정이 없음, init() 이 세션 확인 뒤 hidden 을 풀어 줍니다). 기본값은 체크
+             해제 — 무조건 저장이 아니라 보호자가 직접 선택해야 저장됩니다(saveSeniorProfileFromApplication
+             참고). -->
+        <div class="field senior-save-card" id="f-save-senior-profile" hidden>
+          <label class="consent-row">
+            <input type="checkbox" id="saveSeniorProfile" name="saveSeniorProfile">
+            <span>입력한 어르신 정보를 '어르신 프로필'에 저장하기</span>
+          </label>
+          <p class="consent-help">성함·연락처·거동 상태·자택 주소·자주 가는 병원·요청 상세 내용을 마이페이지 '어르신 프로필 관리'에 저장합니다. 다음 신청부터는 위 '어르신 프로필 원클릭 불러오기'로 바로 채울 수 있어요.</p>
+        </div>
+
         <!-- 선택 추가 옵션(Add-on) — 긴급 매칭 서비스. 보유 패키지 차감을 고른 경우에도 선택할
              수 있습니다 — 패키지는 기본 서비스 요금만 차감하므로, 추가 옵션을 고르면 그 금액은 결제
              없이 접수되고 '결제 대기(추가금)'로 표시가 접수되어 매니저 수락 이후 '추가 요금 결제 안내'
@@ -867,6 +898,9 @@
             <div class="ds-row" id="dsCouponRow" hidden><span>쿠폰 할인</span><span id="dsCoupon">-</span></div>
             <div class="ds-row" id="dsPointsRow" hidden><span>적립금 사용</span><span id="dsPoints">-</span></div>
             <div class="ds-row ds-final"><span>최종 결제 금액</span><span id="dsFinal">-</span></div>
+            <!-- 패키지 차감 선택 시에만 보임 — "지금 보이는 금액이 전액이 아니라 선택 옵션 금액뿐"임을
+                 한 번 더 명확히 알립니다(refreshDiscountSummary 참고). -->
+            <p class="ds-package-note" id="dsPackageNote" hidden></p>
           </div>
           <!-- 48시간 미매칭 자동 취소/환불 안심 문구 (하단) — 상단과 같은 문구, 결제 직전에 한 번 더 확인시킴 -->
           <div class="refund-policy">
@@ -1101,10 +1135,15 @@
         pointsInputEl.value = '';
         pointsInputEl.disabled = true;
         pointsMaxBtnEl.disabled = true;
-        $('discountSummary').hidden = true;
-      } else {
-        refreshDiscountSummary();
       }
+      // 패키지 차감이든 아니든 refreshDiscountSummary() 하나가 전부 다시 그립니다 — 예전에는 여기서
+      // '패키지 차감 → 요약 박스 통째로 숨김'만 했는데, 그 뒤 선택 추가 옵션 체크박스의 change
+      // 리스너가 refreshDiscountSummary() 를 독립적으로 또 불러서(패키지 모드를 전혀 모른 채 기본
+      // 요금 50,000원 + 옵션 10,000원 = 60,000원으로) 요약 박스를 다시 보여주는 버그가 있었습니다
+      // (보호자가 "패키지 차감인데도 6만 원을 전부 내야 하나" 오해하는 원인). 지금은
+      // refreshDiscountSummary() 자신이 매번 패키지 모드를 직접 확인해서 분기하므로, 어떤 입력이
+      // 바뀌어 다시 호출돼도 항상 같은 결과를 보여줍니다.
+      refreshDiscountSummary();
       updateSubmitButtonLabel();
     }
     form.querySelectorAll('input[name="payment_method"]').forEach((el) => {
@@ -1145,11 +1184,40 @@
     function refreshDiscountSummary() {
       const price = currentServicePrice();
       const summary = $('discountSummary');
+      const packageNote = $('dsPackageNote');
       if (!price) {
         summary.hidden = true;
+        packageNote.hidden = true;
         updateDiscountInputsEnabled(false);
         return;
       }
+
+      // 패키지 차감 선택 시: 기본 요금(50,000원 등)은 이미 선결제된 회차에서 차감되고 이 결제창에서
+      // 돈이 전혀 움직이지 않으므로(결제 자체가 없음), '기본 금액' 자리에 실제 금액 대신 "패키지 1회
+      // 차감(0원)"이라고 명시하고, 쿠폰/적립금(적용 대상이 아님 — updatePackageModeUi 가 이미 값을
+      // 비우고 입력을 막아 둠)은 숨긴 채 '최종 결제 금액'에는 선택 추가 옵션 금액만 더합니다 — 그
+      // 옵션 금액만 매니저 수락 후 별도로 결제받기 때문입니다(packageHint/toDbRow 참고). 예전에는
+      // 이 분기가 없어서, 패키지 차감을 고른 뒤 추가 옵션을 체크하면(그 체크박스의 change 리스너가
+      // 이 함수를 그대로 다시 불러) 기본 요금 50,000원이 그대로 더해져 "6만 원을 전부 내야 하는
+      // 줄" 오해를 샀습니다.
+      if (isPackageDeductionChosen()) {
+        updateDiscountInputsEnabled(false);
+        const addon = addonTotal();
+        $('dsBase').textContent = '패키지 1회 차감 (0원)';
+        $('dsAddonRow').hidden = addon <= 0;
+        $('dsAddon').textContent = '+' + won(addon) + '원';
+        $('dsCouponRow').hidden = true;
+        $('dsPointsRow').hidden = true;
+        $('dsFinal').textContent = won(addon) + '원';
+        packageNote.textContent = addon > 0
+          ? '※ 패키지 1회가 차감되며, 선택 옵션 금액(' + won(addon) + '원)만 매니저 수락 후 별도 결제됩니다.'
+          : '※ 패키지 1회가 차감되며, 결제 없이 바로 접수됩니다.';
+        packageNote.hidden = false;
+        summary.hidden = false;
+        return;
+      }
+
+      packageNote.hidden = true;
       updateDiscountInputsEnabled(true);
 
       const coupon = selectedCoupon();
@@ -1764,6 +1832,17 @@
           // 이미 로그인한 상태(DB 가 user_id 저장을 거부한 경우)라면 기다리지 않고 지금 바로 연결
           if (userId && window.WBAuth && window.WBAuth.claimPendingApplications) window.WBAuth.claimPendingApplications();
         }
+        // [입력한 어르신 정보를 '어르신 프로필'에 저장하기] 체크박스가 선택되어 있을 때만, 로그인한
+        // 사용자 본인(userId = auth.uid()) 기준으로 seniors 에 저장합니다 — 무조건 저장이 아니라
+        // 선택적 저장입니다. 신청 접수(위 insertRow)는 이미 끝났으므로, 결제 흐름을 기다리지 않게
+        // await 하지 않고 백그라운드로 실행합니다(실패해도 saveSeniorProfileFromApplication 내부에서
+        // 콘솔 경고만 남기고 신청 자체에는 영향 없음).
+        const saveProfileCheckbox = $('saveSeniorProfile');
+        console.log('[신청서] 어르신 프로필 저장 체크박스 상태 — userId=' + userId +
+          ', checkbox 존재=' + !!saveProfileCheckbox + ', checked=' + (saveProfileCheckbox && saveProfileCheckbox.checked));
+        if (userId && saveProfileCheckbox && saveProfileCheckbox.checked) {
+          saveSeniorProfileFromApplication(userId);
+        }
       }
 
       if (error) {
@@ -2197,6 +2276,109 @@
       });
     }
 
+    // 제출 성공([f-save-senior-profile] 체크박스가 켜져 있을 때만 호출) 직후, 지금 입력칸에 있는
+    // 어르신 정보를 '어르신 프로필 관리'(seniors 테이블)에 저장합니다. 신청서(service_applications)
+    // insert 는 이미 끝난 뒤라, 여기서 실패해도 접수 결과에는 영향을 주지 않고 콘솔 경고만 남깁니다.
+    // mypage.html 의 등록/수정 모달과 같은 컬럼(address/address_detail, frequent_hospital/
+    // frequent_hospital_detail)에 나눠 저장하기 위해, toDbRow() 가 쓰는 합쳐진 route_origin/
+    // route_destination(주소+상세주소 한 문자열) 대신 입력칸을 직접 다시 읽습니다.
+    async function saveSeniorProfileFromApplication(userId) {
+      // 이 함수가 실제로 호출됐는지부터 명확히 남깁니다 — 저장이 안 될 때 "체크박스는 켜져 있었는데
+      // 이 로그 자체가 안 보인다"면 호출 지점(제출 핸들러의 saveProfileCheckbox.checked 분기)이 문제고,
+      // 이 로그는 보이는데 그 아래 실패 로그가 뜬다면 DB 쪽(RLS/컬럼) 문제라는 걸 바로 구분할 수 있습니다.
+      console.log('[신청서][어르신 프로필 저장] 시작 — 전달받은 userId=' + userId + ' (typeof ' + typeof userId + ')');
+
+      const name = $('seniorName').value.trim();
+      if (!name) {
+        console.warn('[신청서][어르신 프로필 저장] 어르신 성함이 비어 있어 저장을 건너뜁니다(필수 입력인데 비어 있으면 안 되는 상태 — 폼 검증을 다시 확인하세요).');
+        return;
+      }
+
+      const payload = {
+        senior_name: name,
+        senior_phone: $('seniorPhone').value.trim() || null,
+        mobility_level: (form.querySelector('input[name="mobility"]:checked') || {}).value || null,
+        address: $('routeOrigin').value.trim() || null,
+        address_detail: $('routeOriginDetail').value.trim() || null,
+        frequent_hospital: $('routeDestination').value.trim() || null,
+        frequent_hospital_detail: $('routeDestinationDetail').value.trim() || null,
+        health_note: $('details').value.trim() || null
+      };
+
+      try {
+        // userId 가 "이 insert 를 실제로 실행할 supabaseClient 세션의 auth.uid()"와 정말 같은지 여기서
+        // 한 번 더 직접 확인합니다 — resolveIdentity() 가 돌려준 값과, 지금 이 호출 시점에 supabaseClient
+        // 가 들고 있는 세션이 (토큰 갱신 레이스 등으로) 서로 달라지면 RLS 의 auth.uid() = user_id 검사가
+        // "내가 방금 넣은 user_id"와 다른 사용자로 통과 시도를 해 42501 로 거부됩니다 — 그 경우를
+        // "userId 가 비어서 실패"와 구분하기 위해 반드시 콘솔에 명확히 남깁니다. try 안으로 옮겨서,
+        // getSession() 자체가 예외를 던지는 드문 경우까지도 맨 아래 catch 가 잡아 로그로 남깁니다.
+        const { data: { session: liveSession } } = await supabaseClient.auth.getSession();
+        const liveUid = liveSession && liveSession.user && liveSession.user.id;
+        console.log('[신청서][어르신 프로필 저장] 지금 supabaseClient 세션의 auth.uid() 추정값=' + liveUid +
+          ' vs 전달받은 userId=' + userId + ' → ' + (liveUid === userId ? '일치' : '⚠ 불일치!'));
+        if (!liveUid) {
+          console.error('[신청서][어르신 프로필 저장] 중단 — 지금 세션에서 로그인 사용자를 확인할 수 없습니다(liveUid 없음). ' +
+            '신청 자체는 정상 접수됐지만, 세션이 끊겼거나 만료되어 어르신 프로필은 저장되지 않습니다.');
+          return;
+        }
+        if (liveUid !== userId) {
+          console.warn('[신청서][어르신 프로필 저장] userId 불일치를 감지해 liveUid 로 대신 저장합니다(더 신뢰할 수 있는 값 — ' +
+            '지금 이 순간 실제로 insert 를 실행할 세션 기준).');
+          userId = liveUid;
+        }
+
+        // '원클릭 불러오기'로 기존 프로필을 선택한 채 저장했다면 그 프로필을 그대로 갱신하고, 직접
+        // 입력했다면 같은 이름의 프로필이 이미 있는지 확인해 중복 등록을 막습니다(완전히 같은 이름일
+        // 때만 "같은 어르신"으로 간주 — 그 이상의 정교한 매칭은 하지 않습니다).
+        let existingId = selectedSeniorProfile ? selectedSeniorProfile.senior_id : null;
+        if (!existingId) {
+          const { data: existing, error: lookupError } = await supabaseClient
+            .from('seniors').select('senior_id').eq('user_id', userId).eq('senior_name', name).maybeSingle();
+          if (lookupError) {
+            // 이 조회 실패가 "같은 이름 중복 확인"만 못 하게 막을 뿐 INSERT 시도 자체를 멈추지는
+            // 않지만, RLS/권한 문제의 첫 신호일 수 있어 반드시 로그로 남깁니다(예전 버전은 이 에러를
+            // 완전히 무시했습니다).
+            console.error('[신청서][어르신 프로필 저장] 기존 프로필 조회 실패(중복 확인을 건너뛰고 새로 등록 시도) — 전체 에러:',
+              lookupError, '\nJSON:', JSON.stringify(lookupError));
+          }
+          existingId = existing ? existing.senior_id : null;
+        }
+
+        var requestRow = Object.assign({ user_id: userId }, payload);
+        console.log('[신청서][어르신 프로필 저장] ' + (existingId ? ('UPDATE(senior_id=' + existingId + ') 실행 — 보낼 값:')
+          : 'INSERT 실행 — 보낼 행(user_id 포함):'), existingId ? payload : requestRow);
+
+        const { data: savedRow, error } = existingId
+          ? await supabaseClient.from('seniors').update(payload).eq('senior_id', existingId).eq('user_id', userId).select().maybeSingle()
+          : await supabaseClient.from('seniors').insert([requestRow]).select().maybeSingle();
+
+        if (error) {
+          // code/message/details/hint 뿐 아니라 에러 객체 전체(raw)와 JSON 문자열까지 전부 남깁니다 —
+          // destructuring 으로 일부 필드만 뽑으면 status/statusText 등 다른 단서가 누락될 수 있습니다.
+          // sql/seniors_rls_fix.sql 을 아직 실행하지 않았다면 42501(RLS)이 가장 유력한 원인이고,
+          // 42703/PGRST204(컬럼 없음)이면 같은 파일의 2)번(확장 컬럼)을 아직 안 돌린 것입니다.
+          var msg = String(error.message || '') + ' ' + String(error.details || '') + ' ' + String(error.hint || '');
+          var userIdColumnHint = /user_id/i.test(msg)
+            ? ' ⚠ 에러 문구에 user_id 가 직접 언급됩니다 — 실제 seniors 테이블의 보호자 식별 컬럼명이 ' +
+              'user_id 가 아니라 guardian_id 등 다른 이름일 가능성이 있습니다. Supabase 대시보드 → ' +
+              'Table Editor → seniors 테이블의 실제 컬럼명을 확인하고, 다르다면 이 함수(그리고 mypage.html ' +
+              '의 loadSeniors/openSeniorModal 저장 로직)의 user_id 를 그 이름으로 맞춰 고쳐야 합니다.'
+            : '';
+          console.error('[신청서][어르신 프로필 저장] 실패(신청 자체는 정상 접수됨) — code=' + error.code +
+            ', message=' + error.message + ', details=' + error.details + ', hint=' + error.hint +
+            '\n→ 42501 이면 sql/seniors_rls_fix.sql 실행 여부와, 위에서 찍힌 "세션 일치 여부" 로그를 확인하세요. ' +
+            '42703/PGRST204 면 seniors 테이블에 ' + Object.keys(requestRow).join(', ') + ' 컬럼이 전부 있는지 확인하세요.' +
+            userIdColumnHint,
+            '\n보낸 행:', requestRow, '\n원본 에러 객체:', error, '\nJSON:', JSON.stringify(error));
+          return;
+        }
+        console.log('[신청서][어르신 프로필 저장] ' + (existingId ? '갱신' : '새로 등록') + ' 성공 — senior_id=' +
+          (savedRow && savedRow.senior_id) + ', user_id=' + (savedRow && savedRow.user_id));
+      } catch (e) {
+        console.error('[신청서][어르신 프로필 저장] 예외(신청 자체는 정상 접수됨) — 원본:', e, '\nJSON:', JSON.stringify(e, Object.getOwnPropertyNames(e || {})));
+      }
+    }
+
     // 로그인한 경우: 계정과 자동 연결된다는 안내 + 완료 화면의 '마이페이지' 버튼
     (async function init() {
       if (!supabaseClient) return;
@@ -2212,6 +2394,11 @@
       note.textContent = '로그인한 계정' + (session.user.email ? '(' + session.user.email + ')' : '') + '과 연결되어 접수됩니다.';
       note.hidden = false;
       $('doneMypage').hidden = false;
+      // 저장할 계정이 있어야 의미가 있으므로, 로그인했을 때만 '어르신 프로필에 저장하기' 체크박스를
+      // 보여줍니다 — 등록된 프로필이 하나도 없어도(첫 신청) 지금 입력하는 내용으로 처음 등록할 수
+      // 있게 조건 없이 보여줍니다(위 '원클릭 불러오기' 카드와 달리 기존 프로필 존재 여부를 따지지 않음).
+      const saveProfileBox = $('f-save-senior-profile');
+      if (saveProfileBox) saveProfileBox.hidden = false;
 
       // 보유 적립금 조회 (profiles_select_own RLS 정책이 본인 행만 돌려줌)
       const { data: profile, error: profileErr } = await supabaseClient

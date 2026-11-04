@@ -13,7 +13,7 @@
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- 공통 Supabase 클라이언트 (index.html / login.html 과 같은 세션 공유). SDK 뒤에 로드해야 합니다 -->
-  <script src="/js/auth-header.js?v=2.1" charset="utf-8"></script>
+  <script src="/js/auth-header.js?v=2.2" charset="utf-8"></script>
   <!-- 결제 확인 Edge Function(confirm-extra-charge-payment) 호출용 — supabaseClient.functions.invoke()
        대신 명시적 fetch() 래퍼. auth-header.js 가 만든 supabaseClient 를 받아 쓰므로 그 뒤에 로드합니다 -->
   <script src="/js/edge-function-fetch.js?v=1.1"></script>
@@ -2366,6 +2366,15 @@
       const total = (data || []).reduce((sum, p) => sum + (p.remaining_count || 0), 0);
       const totalHours = total * PACKAGE_HOURS_PER_SESSION;
       document.getElementById('packageRemainingTotal').textContent = totalHours + '시간 (' + total + '회분)';
+
+      // careCalCaseCard() 의 패키지 복구 안내 문구가 "지금 실제 보유 횟수"를 그대로 보여줄 수 있도록
+      // 캐시해 둡니다. 값이 바뀌었을 때만(최초 로드 포함) 달력을 다시 그려, loadMyPackages() 가
+      // loadCare() 보다 늦게 끝나 '이용 내역' 카드가 먼저 숫자 없이 그려진 경우에도 바로 뒤이어
+      // 올바른 숫자로 갱신됩니다 — renderCareCalendar() 는 가벼운 DOM 재구성이라 다시 불러도 안전합니다.
+      if (myPackageTotalRemaining !== total) {
+        myPackageTotalRemaining = total;
+        renderCareCalendar();
+      }
     }
 
     // ---------- 케어 현황 ----------
@@ -2381,6 +2390,10 @@
       '복합 매칭 서비스 (동행 + 생활편의)': { price: 60000, badge: '복합 서비스', cat: 'mixed' }
     };
     const won = (n) => Number(n).toLocaleString('ko-KR');
+    // user_packages.remaining_count 는 0.5회 단위 조정을 지원해 numeric(5,1) 로 내려옵니다(sql/
+    // care_interruption_refund_system.sql) — admin.js 의 formatPkgCount() 와 같은 규칙으로, 정수면
+    // 소수점 없이, 0.5 단위면 그대로 보여줍니다. careCalCaseCard 의 패키지 복구 안내 문구에 씁니다.
+    const formatPkgCount = (n) => { const v = Number(n || 0); return (v % 1 === 0) ? String(v) : v.toFixed(1); };
     // DB의 timestamptz 값을 '항상 한국 시간(KST, UTC+9)' 기준으로 읽기 위한 공통 변환 — Date.getHours() 등
     // 로컬 getter 는 이 코드를 보는 브라우저/OS 의 시간대 설정을 따르므로, 개발 환경이 KST 가 아니면 같은
     // DB 값이라도 mypage-manager.html 과 다른 시각으로 보이는 원인이 됩니다. KST 는 서머타임이 없는 고정
@@ -2687,6 +2700,26 @@
       // 안 됩니다(실제로 이 확인이 없으면 activeApps 필터가 effectiveStatusInfo().tone 만 보고 판단하므로
       // 그런 건을 걸러내지 못했습니다).
       const base = statusInfo(a.status, !!a.manager_id);
+
+      // 48시간 자동 취소·환불 cron/수동 배치(sql/matching_expiry_auto_refund.sql,
+      // supabase/functions/cancel-expired-applications)가 아직 DB status 를 'EXPIRED_CANCELLED'로
+      // 바꾸지 못한 "경과" 건입니다 — 결제는 끝났는데(payment_status='PAID') 48시간 동안 매니저가
+      // 배정되지 않은 채 매칭 대기(base.tone==='wait')로 남아 있다면, 정책상 이미 자동 취소·환불이
+      // 확정된 것이나 마찬가지입니다. DB 전환을 기다리지 않고 여기서 먼저 보여줘야, withinCareWindow()
+      // 가 48시간 지난 '대기' 건을 '진행 중' 카드에서 뺀 뒤에도 이 건이 '지난 이용 내역'으로 자동
+      // 이관되어(tone:'cancel') 계속 보입니다 — 그렇지 않으면 cron 이 지연되는 동안 이 신청이 두 목록
+      // 어디에도 없이 통째로 사라진 것처럼 보입니다(2026-11 실제 발생 사례).
+      // 결제 전(PAYMENT_PENDING, 미입금 가상계좌)인 건은 대상이 아닙니다 — 그건 별도의(더 짧은) 미입금
+      // 만료 로직(cancel_expired_virtual_accounts, sql/payment_confirmation_functions.sql) 대상이고,
+      // 아직 돈이 움직이지 않았으므로 "환불 예정"이라는 문구 자체가 맞지 않습니다.
+      if (base.tone === 'wait' && !a.manager_id && a.payment_status === 'PAID') {
+        const iso = a.matching_started_at || careRefIso(a);
+        const t = iso ? new Date(iso).getTime() : NaN;
+        if (!isNaN(t) && t < careCutoffMs()) {
+          return { label: '만료 처리 중 (자동 취소·환불 예정)', tone: 'cancel', pendingExpiry: true };
+        }
+      }
+
       if (base.tone === 'cancel') {
         // 수동 취소(일반 '취소됨' 라벨) 건을 관리자가 admin.html 에서 [환불 처리]/[환불 완료 처리]로
         // 환불 완료 처리하면 payment_status 가 'REFUNDED' 로 바뀝니다 — 그 경우 배지/안내 문구를
@@ -2695,6 +2728,13 @@
         // 즉 수동 취소 케이스에만 덮어씁니다).
         if (base.label === '취소됨' && a.payment_status === 'REFUNDED') {
           return Object.assign({}, base, { label: '환불 완료' });
+        }
+        // 패키지 차감 예약이 취소돼 회차가 이미 복구된 건(package_restored, sql/
+        // package_restore_on_cancellation.sql 의 트리거가 세팅) — 결제 환불과는 별개로, "돌려받은 게
+        // 있다"는 사실을 배지에서도 바로 알 수 있게 합니다. is_package_used 건은 보통 payment_status
+        // 가 비어 있어(패키지는 결제 단계를 거치지 않음) 위 REFUNDED 분기에는 걸리지 않습니다.
+        if (base.label === '취소됨' && a.is_package_used && a.package_restored) {
+          return Object.assign({}, base, { label: '패키지 복구 완료' });
         }
         return base;
       }
@@ -3044,7 +3084,20 @@
         // refund_amount: sql/care_interruption_refund_system.sql(부분 환불) · sql/admin_application_refund_
         // system.sql(관리자 전액/부분 환불)이 누적으로 채움 — careCalCaseCard 의 '부분 환불 완료' 문구에
         // 환불액을 같이 보여주는 데 씁니다.
-        const APP_OPTIONAL_COLS = ['applicant_email', 'manager_id', 'accepted_at', 'schedule_id', 'payment_status', 'refunded_at', 'refund_amount'];
+        // matching_started_at: sql/matching_expiry_auto_refund.sql 이 추가 — 결제 완료 후 MATCHING_PENDING
+        // 으로 전환된 시각(48시간 자동 취소·환불의 카운트 시작점)입니다. cron/수동 배치가 아직 돌지 않아
+        // DB status 가 여전히 'MATCHING_PENDING'인 채로 48시간을 넘긴 건을 effectiveStatusInfo() 가 화면에서
+        // 먼저 '만료 처리 중'으로 보여주는 데 씁니다(withinCareWindow() 가 이 건을 통째로 숨겨 '진행 중'
+        // 카드와 '지난 이용 내역' 양쪽에서 사라져 버리던 문제의 수정 — DB 전환을 기다리지 않습니다).
+        // is_package_used/package_restored: sql/user_packages_system.sql · sql/
+        // package_restore_on_cancellation.sql — 패키지 차감 신청이 취소됐을 때 회차가 정상적으로
+        // 복구됐는지(effectiveStatusInfo 의 배지, careCalCaseCard 의 안내 문구)에 씁니다. 그 복구
+        // 순간의 전/후 잔여 스냅샷 컬럼(package_remaining_before/after_restore)은 일부러 조회하지
+        // 않습니다 — "이번에 차감했던 패키지 한 장" 기준 고정값일 뿐이라, 패키지를 여러 장 보유한
+        // 보호자에게는 "현재 총 잔여"와 달라 보여 혼동을 줬습니다. careCalCaseCard 는 그 대신
+        // myPackageTotalRemaining(loadMyPackages() 가 실시간으로 집계해 두는 현재 보유 총합)을 써서
+        // "취소 전/후 잔여"를 항상 지금 이 순간의 실제 숫자와 정확히 맞춰 보여줍니다.
+        const APP_OPTIONAL_COLS = ['applicant_email', 'manager_id', 'accepted_at', 'schedule_id', 'payment_status', 'refunded_at', 'refund_amount', 'matching_started_at', 'is_package_used', 'package_restored'];
         let appsRemaining = APP_OPTIONAL_COLS.slice();
         let apps, error;
         for (;;) {
@@ -3167,6 +3220,11 @@
       el.classList.toggle('is-soon', ms <= 6 * 3600e3);
     }
     let lastCareApps = []; // 지금 그려진 신청 목록 (48시간이 지난 카드를 자동으로 걷어내기 위해 보관)
+    // 로그인한 보호자가 지금 실제로 보유한 패키지 잔여 횟수 총합 — loadMyPackages() 가 user_packages 를
+    // 조회할 때마다 갱신합니다. careCalCaseCard() 의 패키지 취소/복구 안내 문구가 이 값을 그대로 읽어,
+    // "복구 후 잔여"가 항상 지금 이 순간의 실제 보유 횟수와 정확히 같도록 맞춥니다(고정된 과거 스냅샷이
+    // 아님) — null 이면 아직 조회 전이라는 뜻이라, 그 경우 문구에서 숫자를 빼고 결과만 보여줍니다.
+    let myPackageTotalRemaining = null;
     function tickCare() {
       const body = document.getElementById('careBody');
       if (!body) return;
@@ -3845,6 +3903,17 @@
       box.textContent = '';
       box.appendChild(h('div', 'empty', '어르신 정보를 불러오는 중…'));
 
+      // currentUser.id 가 "지금 이 순간 supabaseClient 가 실제로 들고 있는 세션의 auth.uid()"와
+      // 정말 같은지 먼저 확인합니다 — apply.html 의 saveSeniorProfileFromApplication() 가 겪었던 것과
+      // 같은 종류의 문제(로그인 직후 한 번 저장해 둔 currentUser 가 그 뒤 세션과 어긋나는 경우)를
+      // 조회 쪽에서도 똑같이 의심해 봐야 하기 때문입니다. INSERT 는 이미 성공했다고 확인됐으니, 이
+      // 로그에서 둘이 다르게 나온다면 "저장할 때의 user_id"와 "지금 조회할 때 쓰는 user_id"가 서로
+      // 다른 계정이라는 뜻이고, 그게 바로 0건으로 보이는 이유일 수 있습니다.
+      const { data: { session: liveSession } } = await supabaseClient.auth.getSession();
+      const liveUid = liveSession && liveSession.user && liveSession.user.id;
+      console.log('[어르신 프로필] 조회 시작 — currentUser.id=' + (currentUser && currentUser.id) +
+        ' vs 지금 세션의 auth.uid()=' + liveUid + ' → ' + (liveUid === (currentUser && currentUser.id) ? '일치' : '⚠ 불일치!'));
+
       const { data: seniors, error } = await supabaseClient
         .from('seniors')
         .select('*')
@@ -3853,7 +3922,12 @@
       box.textContent = '';
 
       if (error) {
-        console.error('어르신 정보 조회 에러:', error.message);
+        // code/details/hint 까지 남겨야 "RLS가 막은 것"과 "정말 테이블이 비어 있는 것"을 구분할 수
+        // 있습니다 — 전자는 42501, 후자는 error 자체가 없고 그냥 seniors.length === 0 입니다.
+        console.error('어르신 정보 조회 에러 — user_id=' + currentUser.id + ', code=' + error.code +
+          ', message=' + error.message + ', details=' + error.details + ', hint=' + error.hint,
+          '\n→ 42501(RLS)이면 sql/seniors_rls_fix.sql 을 Supabase SQL Editor 에서 실행했는지 확인하세요.',
+          '\n원본 에러 객체:', error);
         const err = h('div', 'error-box', '어르신 정보를 불러오지 못했습니다. ');
         const retry = h('button', 'btn btn-sm btn-ghost', '다시 시도');
         retry.type = 'button';
@@ -3861,6 +3935,33 @@
         err.appendChild(retry);
         box.appendChild(err);
         return;
+      }
+
+      // 0건이 "정말 등록된 어르신이 없어서"인지 "RLS/쿼리 조건 때문에 있는데 안 보이는 것"인지
+      // 조회 자체는 에러 없이 성공했을 때도 바로 구분할 수 있도록, 조회 기준(user_id)과 받아온 건수를
+      // 항상 남깁니다 — apply.html 의 saveSeniorProfileFromApplication() 로그와 비교해 "저장은 됐는데
+      // 조회가 안 되는지" vs "저장 자체가 안 됐는지"를 가를 때 씁니다.
+      console.log('[어르신 프로필] user_id=' + currentUser.id + ' 기준 조회(.eq 필터 적용) — ' + (seniors || []).length + '건:', seniors);
+
+      if (!seniors || seniors.length === 0) {
+        // 진단: .eq('user_id', currentUser.id) 필터를 완전히 빼고 다시 조회합니다 — RLS 의
+        // seniors_select_own 정책이 이미 "user_id = auth.uid() 인 행만" 허용하므로, 이 결과는
+        // 이론상 위 필터링된 조회와 정확히 같아야 합니다(필터가 RLS 와 완전히 중복되는 조건이기
+        // 때문). 그런데 둘이 다르게 나온다면(여기서 1건 이상 나옴) currentUser.id 값 자체가 그
+        // 행들의 실제 user_id 와 다르다는 뜻이고, 그 값들을 그대로 로그에 남겨 바로 비교할 수 있게
+        // 합니다. 반대로 여기서도 0건이면 RLS 가 통째로 막고 있거나 정말 빈 테이블이라는 뜻입니다.
+        const probe = await supabaseClient.from('seniors').select('senior_id, user_id, senior_name').limit(10);
+        if (probe.error) {
+          console.warn('[어르신 프로필][진단] 필터 없는 재조회도 실패 — code=' + probe.error.code + ', message=' + probe.error.message);
+        } else if ((probe.data || []).length) {
+          console.warn('[어르신 프로필][진단] ⚠ RLS를 통과한 행이 ' + probe.data.length + '건 있는데도 ' +
+            '.eq(\'user_id\', \'' + currentUser.id + '\') 필터에서는 0건입니다 — 이 행들의 실제 user_id 값을 ' +
+            'currentUser.id 와 직접 비교해 보세요:', probe.data);
+        } else {
+          console.log('[어르신 프로필][진단] 필터를 완전히 뺀 조회도 0건입니다 — RLS(seniors_select_own)가 전혀 ' +
+            '적용되지 않았거나(그러면 정책이 없는 게 아니라 "아무 행도 안 보임"이라 42501 과는 다른 증상), ' +
+            '이 계정의 seniors 행이 정말 하나도 없는 상태입니다. sql/seniors_rls_fix.sql 실행 여부를 확인하세요.');
+        }
       }
 
       if (!seniors || seniors.length === 0) {
@@ -3994,21 +4095,21 @@
       const list = h('ul', 'list');
 
       if (seniors.length > 1) {
-        if (!seniors.some((s) => s.id === activeSeniorId)) activeSeniorId = seniors[0].id;
+        if (!seniors.some((s) => s.senior_id === activeSeniorId)) activeSeniorId = seniors[0].senior_id;
         const tabs = h('div', 'senior-tabs');
         tabs.setAttribute('role', 'tablist');
         tabs.setAttribute('aria-label', '어르신 선택');
         seniors.forEach((s) => {
-          const isActive = s.id === activeSeniorId;
+          const isActive = s.senior_id === activeSeniorId;
           const tabBtn = h('button', 'senior-tab' + (isActive ? ' is-active' : ''), s.senior_name || '(이름 없음)');
           tabBtn.type = 'button';
           tabBtn.setAttribute('role', 'tab');
           tabBtn.setAttribute('aria-selected', String(isActive));
-          tabBtn.addEventListener('click', () => { activeSeniorId = s.id; renderSeniorTabsAndCard(seniors); });
+          tabBtn.addEventListener('click', () => { activeSeniorId = s.senior_id; renderSeniorTabsAndCard(seniors); });
           tabs.appendChild(tabBtn);
         });
         box.appendChild(tabs);
-        list.appendChild(seniorCard(seniors.find((s) => s.id === activeSeniorId) || seniors[0]));
+        list.appendChild(seniorCard(seniors.find((s) => s.senior_id === activeSeniorId) || seniors[0]));
       } else {
         list.appendChild(seniorCard(seniors[0]));
       }
@@ -4374,18 +4475,46 @@
         // 'PARTIALLY_REFUNDED'는 신청이 취소된 게 아니라 케어 진행 중 중단되어 일부만 환불된 경우라
         // (statusInfo() 주석 참고), "이 신청은 취소되었습니다"로 묶으면 실제로는 서비스가 진행됐다는
         // 사실과 어긋나므로 별도 문구로 분리합니다.
-        let cancelMsg = a.payment_status === 'REFUNDED'
-          ? '결제하신 금액의 환불이 완료되었습니다.'
-          : a.payment_status === 'PARTIALLY_REFUNDED'
-            ? '케어 진행 중 중단되어, 결제하신 금액 중 일부가 환불되었습니다.'
-            : a.payment_status === 'PAID'
-              ? '이 신청은 취소되었습니다. 결제하신 금액의 환불은 관리자 확인 후 처리됩니다.'
-              : '이 신청은 취소되었습니다.';
+        // pendingExpiry: effectiveStatusInfo() 가 DB 전환(EXPIRED_CANCELLED)을 기다리지 않고 화면에서
+        // 먼저 보여주는 "48시간 경과, 배치 처리 대기 중" 상태입니다 — 아직 실제로 취소·환불된 게
+        // 아니므로(그래서 payment_status 는 여전히 'PAID') 아래 일반 취소 문구를 쓰면 "이미
+        // 취소되었습니다"라고 사실과 다르게 단정하게 됩니다. 전용 안내 문구로 분리합니다.
+        // is_package_used: 패키지 차감으로 접수된 신청은 결제 단계를 거치지 않아 payment_status 가
+        // 거의 항상 비어 있습니다(consume_package_on_application, sql/user_packages_system.sql) —
+        // 그래서 아래 payment_status 분기로는 "환불"이 아니라 "패키지 복구" 여부를 보여줄 수 없고,
+        // package_restored(sql/package_restore_on_cancellation.sql 트리거가 세팅) 를 따로 확인해
+        // 돈 대신 돌려받은 회차를 안내합니다. 결제 분기보다 먼저 확인합니다.
+        let cancelMsg = st.pendingExpiry
+          ? '48시간 내 매니저가 배정되지 않아 자동 취소·환불 처리를 기다리고 있어요. 잠시 후 다시 확인해 주세요.'
+          : a.is_package_used
+            ? (a.package_restored
+                ? '사용하신 패키지 횟수 1회가 정상적으로 복구되었습니다.'
+                : '이 신청은 취소되었습니다. 사용하신 패키지 횟수가 곧 복구될 예정입니다.')
+          : a.payment_status === 'REFUNDED'
+            ? '결제하신 금액의 환불이 완료되었습니다.'
+            : a.payment_status === 'PARTIALLY_REFUNDED'
+              ? '케어 진행 중 중단되어, 결제하신 금액 중 일부가 환불되었습니다.'
+              : a.payment_status === 'PAID'
+                ? '이 신청은 취소되었습니다. 결제하신 금액의 환불은 관리자 확인 후 처리됩니다.'
+                : '이 신청은 취소되었습니다.';
         if (a.payment_status === 'PARTIALLY_REFUNDED' && a.refund_amount) {
           cancelMsg += ' (환불액: ' + won(a.refund_amount) + '원)';
         }
         if (a.payment_status === 'REFUNDED' && a.refunded_at) {
           cancelMsg += ' (환불 완료 일시: ' + fmtReportDate(a.refunded_at) + ' ' + fmtTime(a.refunded_at) + ')';
+        }
+        // 패키지 복구 안내에 "취소 전 잔여 → 복구 후 잔여"를 다시 붙이되, 이번에는 취소 당시 고정된
+        // 스냅샷(package_remaining_before/after_restore)이 아니라 myPackageTotalRemaining(지금 이
+        // 순간 user_packages 에서 집계한 실제 보유 총합, loadMyPackages() 가 갱신)을 그대로 씁니다 —
+        // "복구 후 잔여" = 지금 보유 총합(= 패키지 섹션에 보이는 숫자와 항상 정확히 같음),
+        // "취소 전 잔여" = 그 총합 − 1(이 1회를 돌려받지 않았다면 지금 총합보다 정확히 1만큼 적었을
+        // 것이라는 뜻 — 다른 패키지 구매/소진이 그 사이 몇 번 있었어도 "이 복구가 지금 총합에 기여한
+        // 몫"은 항상 정확히 1이므로 오차가 없습니다). 아직 집계 전(null)이면 숫자 없이 결과만 보여줍니다.
+        if (a.is_package_used && a.package_restored && myPackageTotalRemaining != null) {
+          // 그 사이 다른 패키지를 전부 소진했다면(이론상) total-1 이 음수가 될 수 있어 0으로 clamp —
+          // "잔여 -1회"처럼 말이 안 되는 숫자를 보여주는 사고를 막습니다.
+          cancelMsg += ' (취소 전 잔여 ' + formatPkgCount(Math.max(myPackageTotalRemaining - 1, 0)) + '회 → 복구 후 잔여 ' +
+            formatPkgCount(myPackageTotalRemaining) + '회)';
         }
         foot.appendChild(h('span', '', cancelMsg));
       } else if (!isDone) {

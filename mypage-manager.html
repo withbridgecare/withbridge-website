@@ -13,7 +13,7 @@
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- 공통 Supabase 클라이언트 + 매니저 자격 확인(checkIsManager). SDK 뒤에 로드해야 합니다 -->
-  <script src="/js/auth-header.js?v=2.1" charset="utf-8"></script>
+  <script src="/js/auth-header.js?v=2.2" charset="utf-8"></script>
 <script src="/js/terms-modal.js?v=1.0" charset="utf-8" defer></script>
 <script src="/js/notice-modal.js?v=1.0" charset="utf-8" defer></script>
   <!-- 브라우저 기본 날짜/시간 피커 대신 쓰는 공통 커스텀 피커 (wb-datepicker.js 참고) -->
@@ -247,6 +247,10 @@
     .tag { padding: 3px 10px; border-radius: 9999px; background: var(--brand-soft); color: var(--brand-dark); font-size: 12px; font-weight: 700; }
     .tag.is-verified { background: var(--brand); color: #fff; } /* 완료 상태: 솔리드 브랜드톤으로 강조 */
     .tag.is-pending { background: var(--earth-bg); color: var(--earth-fg); } /* 확인 대기: 예외적 어스톤 */
+    /* 평균 평점 배지("★ 3.0 (리뷰 2개)") — 다른 상태 배지와 헷갈리지 않도록 별점 전용 색(금색,
+       mypage.html 만족도 평가 패널의 #F5B942 와 동일)으로 구분합니다. */
+    .tag.is-rating { background: #FFF7E0; color: #92661B; }
+    .tag.is-rating .tag-star { color: #F5B942; }
 
     /* 자동 상태 배지: 구분선 없이 여백으로만 프로필과 떨어뜨리고, 카드 우측 끝에 깔끔하게 정렬합니다.
        사람이 조작하는 토글이 아니라 renderActivity() 가 오늘 일정을 보고 자동으로 채우는 표시 전용 칩입니다. */
@@ -2351,6 +2355,15 @@
             .select('certification, certification_verified, activity_status')
             .eq('id', user.id).maybeSingle());
         },
+        // 프로필 카드의 "★ 평균 평점 (리뷰 N개)" — manager_my_review_stats() RPC(sql/
+        // manager_review_stats.sql)가 내가 맡은 케어(care_schedules.manager_id = auth.uid())의
+        // care_reviews 만 집계해 돌려줍니다. 리뷰가 없으면 { avg_rating: null, review_count: 0 }
+        // 행이 그대로 와서(집계 함수는 매칭이 없어도 행 1개를 돌려줌) renderProfile() 이 '리뷰 없음'
+        // 으로 안전하게 처리합니다.
+        async loadReviewStats() {
+          const rows = must(await supabaseClient.rpc('manager_my_review_stats'));
+          return (rows && rows[0]) || { avg_rating: null, review_count: 0 };
+        },
         async setActivity(status) {
           const row = must(await supabaseClient.from('managers')
             .update({ activity_status: status }).eq('id', user.id)
@@ -2677,6 +2690,9 @@
       const wait = () => new Promise((r) => setTimeout(r, 250));
       return {
         async loadManager() { await wait(); return manager; },
+        // 데모 값("★ 3.0 (리뷰 2개)")도 실제 RPC가 돌려주는 모양({ avg_rating, review_count })과
+        // 똑같이 맞춰, renderProfile() 쪽 렌더링 분기가 실제/데모 모드에서 같은 코드로 동작합니다.
+        async loadReviewStats() { await wait(); return { avg_rating: 3.0, review_count: 2 }; },
         async setActivity(status) { await wait(); manager.activity_status = status; return { activity_status: status }; },
         async hasActiveSchedule() {
           await wait();
@@ -2747,11 +2763,11 @@
     }
 
     async function loadAll() {
-      const [manager, requests, assigned, completed, reports] = await Promise.all([
+      const [manager, requests, assigned, completed, reports, reviewStats] = await Promise.all([
         settle(api.loadManager()), settle(api.loadRequests()), settle(api.loadAssigned()),
-        settle(api.loadCompleted()), settle(api.loadReports())
+        settle(api.loadCompleted()), settle(api.loadReports()), settle(api.loadReviewStats())
       ]);
-      data = { manager, requests, assigned, completed, reports };
+      data = { manager, requests, assigned, completed, reports, reviewStats };
       // 보호자가 '일정 변경 제안'을 수락해 로컬로 확정한 신청은 실제 care_schedules 행이 없으므로,
       // 여기서 합성 일정을 만들어 오늘/다가오는 배정 목록에 함께 나타나게 합니다.
       if (!data.assigned.error && !data.requests.error) {
@@ -2823,6 +2839,20 @@
         const badge = h('span', cls, text);
         if (cert) badge.title = cert; // 마우스를 올리면 자격증 이름(예: 요양보호사)
         tags.appendChild(badge);
+      }
+
+      // 자격 배지 옆에 "★ 평균 평점 (리뷰 N개)" — data.reviewStats 는 loadAll() 에서 함께 불러옵니다
+      // (manager_my_review_stats() RPC, sql/manager_review_stats.sql). 조회 자체가 실패해도(권한·
+      // 함수 미배포 등) 프로필 전체를 막지 않고 이 배지만 조용히 생략합니다.
+      if (!data.reviewStats || !data.reviewStats.error) {
+        const rs = data.reviewStats ? data.reviewStats.value : null;
+        const hasReviews = rs && rs.review_count > 0 && rs.avg_rating != null;
+        const ratingBadge = h('span', 'tag is-rating');
+        ratingBadge.appendChild(h('span', 'tag-star', '★'));
+        ratingBadge.appendChild(document.createTextNode(
+          hasReviews ? ' ' + Number(rs.avg_rating).toFixed(1) + ' (리뷰 ' + rs.review_count + '개)' : ' - (리뷰 없음)'
+        ));
+        tags.appendChild(ratingBadge);
       }
 
       renderActivity();

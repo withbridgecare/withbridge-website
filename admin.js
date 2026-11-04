@@ -45,6 +45,7 @@
     applicationsTitle: $('applicationsTitle'),
     applicationsDesc: $('applicationsDesc'),
     showOverdueAppsToggle: $('showOverdueAppsToggle'),
+    runExpiryBatchBtn: $('runExpiryBatchBtn'),
     activeManagersList: $('activeManagersList'),
     activeManagersCount: $('activeManagersCount'),
     managerSearchInput: $('managerSearchInput'),
@@ -405,6 +406,10 @@
       // 목록과 같이 다시 집계해야 두 숫자가 어긋나지 않습니다.
       loadSummaryStats();
     });
+  }
+
+  if (els.runExpiryBatchBtn) {
+    els.runExpiryBatchBtn.addEventListener('click', function () { runExpiryBatchNow(els.runExpiryBatchBtn); });
   }
 
   // '완료' 필터를 누르면 이 카드가 '배정 완료(진행 중) 케어 현황' → '케어 완료 내역'으로 바뀌어
@@ -1188,6 +1193,18 @@
     assignBtn.addEventListener('click', function () { openAssignModal(a); });
     actions.appendChild(assignBtn);
 
+    // MATCHING_PENDING(결제 완료, 배정 대기) 건만 — PAYMENT_PENDING(미입금) 건은 애초에
+    // expire_unmatched_application() 의 대상 조건을 만족하지 않으므로 버튼을 두지 않습니다.
+    if (!paymentPending) {
+      var forceExpireBtn = document.createElement('button');
+      forceExpireBtn.type = 'button';
+      forceExpireBtn.className = 'admin-btn is-ghost';
+      forceExpireBtn.textContent = '만료/환불 테스트';
+      forceExpireBtn.title = '48시간 경과 여부와 무관하게 이 건 하나만 지금 바로 만료 처리하고 PortOne 환불을 실행합니다.';
+      forceExpireBtn.addEventListener('click', function () { forceExpireApplication(a, forceExpireBtn); });
+      actions.appendChild(forceExpireBtn);
+    }
+
     row.appendChild(head);
     row.appendChild(meta);
     row.appendChild(actions);
@@ -1248,12 +1265,41 @@
     try {
       // ADMIN_LIST_PAGE_SIZE+1건을 받아, 실제로 다음 페이지가 더 남아 있는지(cancelledHasMore)를
       // 별도 count 쿼리 없이 판단합니다(오늘의 케어 신청 카드의 fetchApplicationsPage() 와 같은 패턴).
-      var res = await supabaseClient
-        .from('service_applications')
-        .select('id, created_at, service_type, user_relation, senior_name, senior_age, senior_note, user_contact, address, request_details, status, payment_status, final_amount, refund_amount')
-        .in('status', ['CANCELLED', 'EXPIRED_CANCELLED'])
-        .order('created_at', { ascending: false })
-        .range(cancelledOffset, cancelledOffset + ADMIN_LIST_PAGE_SIZE);
+      // status 가 정확히 'CANCELLED'/'EXPIRED_CANCELLED' 인 행뿐 아니라, 수기로 넣은 테스트 행이나
+      // 과거 동의어 데이터(sql/service_application_status_standardization.sql 의 백필 당시 존재하지
+      // 않았던 값 등)에 남아 있을 수 있는 다른 취소류 표기(예: USER_CANCELLED, ADMIN_CANCELLED,
+      // 소문자 cancelled, '취소' 포함 문구)까지 전부 포괄하도록 ilike 로 느슨하게 매칭합니다 —
+      // .in() 정확 일치였던 이전 버전은 이런 변형 값이 있으면 목록 자체에서부터 빠져 있었습니다.
+      // is_package_used/package_id/package_restored: sql/user_packages_system.sql · sql/
+      // package_restore_on_cancellation.sql — 패키지 차감 건은 환불할 '돈'이 없어(final_amount가 항상
+      // 비어 있음) 아래 isManualUnrefunded 판단만으로는 절대 버튼을 보여줄 수 없는 케이스입니다. 이
+      // 컬럼들로 "패키지 복구 완료/필요" 전용 배지·버튼을 따로 그립니다(renderCancelledApplicationRow
+      // 참고). package_remaining_before_restore/after_restore: 취소로 회차가 복구되는 순간의 전/후
+      // 잔여 횟수지만, "이 패키지 건 한 장만의 스냅샷"이라 보호자가 패키지를 여러 장 보유하면 혼동을
+      // 줄 수 있어 본문에는 쓰지 않고 배지 title(마우스 오버)의 "해당 패키지 건 기준" 상세로만 남깁니다
+      // (renderCancelledApplicationRow 참고). 본문에 보여줄 "취소 전/후 잔여"는 바로 아래에서 이
+      // 페이지의 패키지 차감 건들의 user_id 로 user_packages 를 실시간 재집계해(_packageTotalRemaining)
+      // 만듭니다 — "지금 이 순간의 실제 보유 총합" 기준이라 한 치의 오차가 없습니다.
+      // 아직 그 마이그레이션을 안 돌린 환경에서도 목록 자체는 계속 보이도록, 42703(컬럼 없음)이면
+      // 이 컬럼들만 하나씩 빼고 한 번 더 시도합니다(패키지 배지/이력 없이 나머지는 그대로 표시).
+      var CANCELLED_APP_BASE_COLS = 'id, created_at, user_id, service_type, user_relation, senior_name, senior_age, senior_note, user_contact, address, request_details, status, payment_status, final_amount, refund_amount';
+      var cancelledAppPackageCols = ['is_package_used', 'package_id', 'package_restored', 'package_remaining_before_restore', 'package_remaining_after_restore'];
+      var res;
+      for (;;) {
+        var cancelledCols = CANCELLED_APP_BASE_COLS + (cancelledAppPackageCols.length ? ', ' + cancelledAppPackageCols.join(', ') : '');
+        res = await supabaseClient
+          .from('service_applications')
+          .select(cancelledCols)
+          .or('status.ilike.%cancel%,status.ilike.%취소%')
+          .order('created_at', { ascending: false })
+          .range(cancelledOffset, cancelledOffset + ADMIN_LIST_PAGE_SIZE);
+        if (!res.error || res.error.code !== '42703' || !cancelledAppPackageCols.length) break;
+        var missingMsg = String(res.error.message || '');
+        var missingIdx = cancelledAppPackageCols.findIndex(function (c) { return missingMsg.includes(c); });
+        console.warn('[Admin] 취소된 신청 조회 — 패키지 관련 컬럼이 없습니다(42703): ' + missingMsg +
+          ' → sql/package_restore_on_cancellation.sql 을 실행하세요. 그 컬럼 없이 다시 시도합니다.');
+        cancelledAppPackageCols.splice(missingIdx >= 0 ? missingIdx : 0, 1);
+      }
 
       if (requestSeq !== cancelledApplicationsRequestSeq) return; // 그 사이 더 최근 호출이 시작됨 — 이 결과는 버림
 
@@ -1269,6 +1315,40 @@
       cancelledHasMore = rawRows.length > ADMIN_LIST_PAGE_SIZE;
       var pageRows = rawRows.slice(0, ADMIN_LIST_PAGE_SIZE);
       cancelledOffset += pageRows.length;
+
+      // 패키지 차감 건의 "취소 전/후 잔여"를 그 보호자의 지금 이 순간 실제 보유 총합(user_packages
+      // 전체 합계)으로 보여주기 위해, 이 페이지에 있는 패키지 차감 건들의 user_id 를 모아 한 번에
+      // 조회합니다(건별로 따로 조회하면 N+1 쿼리) — user_packages_select_admin 정책(sql/
+      // admin_package_management.sql)이 관리자에게 전체 보호자의 행을 열어 두므로 가능합니다.
+      var packageUserIds = pageRows
+        .filter(function (r) { return r.is_package_used && r.user_id; })
+        .map(function (r) { return r.user_id; })
+        .filter(function (id, i, arr) { return arr.indexOf(id) === i; });
+      if (packageUserIds.length) {
+        var pkgTotalsRes = await supabaseClient
+          .from('user_packages')
+          .select('user_id, remaining_count')
+          .in('user_id', packageUserIds)
+          .eq('status', 'active')
+          .gt('remaining_count', 0);
+        if (pkgTotalsRes.error) {
+          console.warn('[Admin] 보호자별 패키지 현재 잔여 합계 조회 실패(이 숫자 없이도 나머지 목록은 계속 표시됩니다):',
+            pkgTotalsRes.error.code, pkgTotalsRes.error.message,
+            '→ user_packages_select_admin 정책(sql/admin_package_management.sql)이 있는지 확인하세요.');
+        } else {
+          var pkgTotalsByUserId = {};
+          (pkgTotalsRes.data || []).forEach(function (p) {
+            pkgTotalsByUserId[p.user_id] = (pkgTotalsByUserId[p.user_id] || 0) + Number(p.remaining_count || 0);
+          });
+          pageRows.forEach(function (r) {
+            if (r.is_package_used && r.user_id) {
+              // 활성 패키지가 하나도 없으면(전부 소진/만료) 맵에 키 자체가 없으므로 0으로 둡니다 —
+              // 그 경우에도 "지금 실제로 0회"라는 사실이므로 숨기지 않고 그대로 보여줍니다.
+              r._packageTotalRemaining = pkgTotalsByUserId.hasOwnProperty(r.user_id) ? pkgTotalsByUserId[r.user_id] : 0;
+            }
+          });
+        }
+      }
 
       lastCancelledApplicationsRows = lastCancelledApplicationsRows.concat(pageRows);
       renderCancelledApplicationsList();
@@ -1335,23 +1415,84 @@
     //      수동 확인([환불 완료 처리])으로 맞춘 경우 모두 이 뱃지로 잡힙니다.
     //   3) 부분 환불 완료 — payment_status='PARTIALLY_REFUNDED'. refund_amount 만큼 이미 돌아갔고,
     //      final_amount - refund_amount 만큼 추가로 환불할 잔액이 남아 있어 [환불 처리] 버튼을 계속 보여줍니다.
-    //   4) 환불 미처리 — 결제까지 끝난 뒤(payment_status='PAID') CANCELLED 로 바뀌었지만 아직 한 번도
-    //      환불을 처리하지 않은 건. payment_status 가 비어 있으면(결제 전에 취소된 건) 환불할 돈 자체가
-    //      없으므로 어떤 뱃지도 붙이지 않습니다.
+    //   4) 환불 미처리 — 결제까지 끝난 뒤 CANCELLED 로 바뀌었지만 아직 한 번도 환불을 처리하지 않은 건.
+    //      돌려줄 돈 자체가 없으면(final_amount 가 없거나 0) 환불 관련 뱃지를 붙이지 않습니다.
+    //
+    //      ⚠ "환불할 돈이 남아 있는지"는 remaining = final_amount − refund_amount 로만 판단합니다.
+    //      payment_status 문자열(PAID/REFUNDED/PARTIALLY_REFUNDED/null/그 외 예상 못한 값·대소문자
+    //      차이)은 "이미 처리된 상태를 사람이 읽기 좋게 보여주는 라벨"일 뿐, 돈이 남았는지의 유일한
+    //      판단 기준이 아닙니다 — 실제로 PortOne을 호출하는 admin_apply_application_refund() RPC
+    //      (sql/admin_application_refund_system.sql)도 payment_status 를 전혀 보지 않고
+    //      final_amount/refund_amount 잔액만으로 판단합니다. 이 컬럼 도입 이전 데이터(백필 안 됨 —
+    //      matching_expiry_auto_refund.sql 주석 참고)나 SQL Editor 로 직접 넣은 테스트 행(test3,
+    //      test4 등)은 payment_status 가 비어 있거나 기대와 다른 대소문자/값으로 들어있기 쉬우므로,
+    //      payment_status 를 화이트리스트로 검사하던 이전 버전은 이런 행을 계속 놓쳤습니다. 이제는
+    //      "REFUNDED 로 명시적으로 끝난 게 아니고 remaining > 0" 이면 무조건 환불 대상으로 봅니다.
     var cancellationReason = String(a.cancellation_reason || '');
     var isAutoExpired = a.status === 'EXPIRED_CANCELLED' || cancellationReason.indexOf('48시간') !== -1;
-    var isRefunded = a.payment_status === 'REFUNDED';
-    var isPartiallyRefunded = a.payment_status === 'PARTIALLY_REFUNDED';
-    var isManualUnrefunded = !isAutoExpired && !isRefunded && !isPartiallyRefunded && a.payment_status === 'PAID';
-    // 기존 [환불 완료 처리](admin_mark_refund_completed)로 전액 환불 처리된 과거 건은 refund_amount를
-    // 채우지 않으므로, 전액 환불 표기에서는 final_amount(결제 총액)로 대신 보여줍니다.
-    var refundedSoFar = a.refund_amount || (isRefunded ? (a.final_amount || 0) : 0);
+    // status 가 'CANCEL'을 포함하거나(CANCELLED/EXPIRED_CANCELLED/USER_CANCELLED/ADMIN_CANCELLED/
+    // 소문자 cancelled 등 어떤 변형이든) '취소'를 포함하면 전부 "취소류"로 봅니다 — 이 행이 이미
+    // fetchCancelledApplicationsPage() 의 ilike 필터를 통과해 이 목록에 들어왔다는 전제상 항상
+    // true 여야 하지만, 혹시 다른 경로로 이 함수가 호출될 가능성까지 대비해 한 번 더 직접 확인합니다.
+    var isCancelledLike = /cancel/i.test(String(a.status || '')) || String(a.status || '').indexOf('취소') !== -1;
+
+    // 금액 필드는 테스트/레거시 데이터에서 문자열("50000")이거나 null 일 수 있어 Number() 로 한 번
+    // 정규화합니다 — NaN(숫자로 변환 안 되는 값)도 0으로 떨어지도록 (Number(x)||0) 패턴을 씁니다.
+    var finalAmount = Number(a.final_amount) || 0;
+    var refundAmountSoFar = Number(a.refund_amount) || 0;
+    // payment_status 는 사람이 수기로 넣었을 수도 있어 대소문자/앞뒤 공백 차이를 흡수합니다.
+    var paymentStatusNorm = String(a.payment_status || '').trim().toUpperCase();
+
+    var isRefunded = paymentStatusNorm === 'REFUNDED';
+    var isPartiallyRefunded = paymentStatusNorm === 'PARTIALLY_REFUNDED';
     // 환불 가능 잔액 — admin_apply_application_refund() 가 누적 환불액이 final_amount 에 도달하는 순간
     // payment_status 를 'REFUNDED' 로 자동 승격하므로 평소엔 isPartiallyRefunded 일 때 항상 remaining > 0
     // 이지만, 그 불변식을 버튼 노출 조건에서도 직접 한 번 더 확인합니다 — 과거 데이터나 다른 경로로 들어온
     // 값이 있어도(예: 사유 불문 refund_amount 가 final_amount 이상으로 찍혀 있는 경우) [환불 처리] 버튼이
     // "더 돌려줄 돈이 없는데도" 뜨는 일은 없도록 막는 안전장치입니다.
-    var remaining = Math.max((a.final_amount || 0) - (a.refund_amount || 0), 0);
+    var remaining = Math.max(finalAmount - refundAmountSoFar, 0);
+    // "수동 처리 필요" 상태 = 취소류 상태이고, 이미 REFUNDED/PARTIALLY_REFUNDED 로 명시되지 않았고,
+    // 아직 돌려줄 돈이 남아 있는 모든 건 — payment_status 가 null/'PAID'/예상 못한 다른 값이어도,
+    // status 가 'CANCELLED'/'EXPIRED_CANCELLED' 정확히 일치가 아니어도(예: 다른 취소 변형 값) 전부
+    // 여기 포함됩니다.
+    //
+    // ⚠ 이전 버전은 여기에 "!isAutoExpired" 를 넣어, status='EXPIRED_CANCELLED'(48시간 자동취소) 인
+    // 건은 무조건 이 분기에서 제외했습니다 — "cancel-expired-applications Edge Function이 성공해야만
+    // 이 상태가 되니 항상 payment_status='REFUNDED'도 같이 따라온다"는 가정 때문인데, 이 가정은 실제
+    // 자동 배치를 거치지 않고 SQL Editor 로 status 만 'EXPIRED_CANCELLED'로 수기 입력한 테스트 행
+    // (test3/test4 등)에는 성립하지 않습니다 — payment_status 는 여전히 비어 있고 remaining > 0인데
+    // isAutoExpired=true 라는 이유만으로 [환불 처리] 버튼이 영구히 숨겨졌습니다. 이제는 "실제로
+    // 환불까지 끝났는지(isRefunded)"만으로 제외하고, "자동취소 라벨이 붙었는지(isAutoExpired)"는
+    // 버튼 노출과 무관한 표시용 뱃지로만 씁니다.
+    var isManualUnrefunded = isCancelledLike && !isRefunded && !isPartiallyRefunded && remaining > 0;
+    if (isManualUnrefunded && paymentStatusNorm !== 'PAID') {
+      console.warn('[Admin] 취소 건 id=' + a.id + ' 은 payment_status=' + JSON.stringify(a.payment_status) +
+        ' 이지만 final_amount=' + finalAmount + ', refund_amount=' + refundAmountSoFar + ' 로 계산한 잔액(' +
+        remaining + '원)이 있어 환불 대상으로 판단했습니다 — payment_status 추적 이전 데이터 또는 수기 입력 ' +
+        '테스트 행일 수 있으니, [환불 처리] 전에 실제 결제 여부를 한 번 확인해 주세요.');
+    }
+    // 어떤 조건에 걸려 버튼이 보이는지/안 보이는지를 바로 확인할 수 있도록, 이 행의 원본 데이터와
+    // 계산된 플래그를 그대로 콘솔에 남깁니다 — test3/test4 처럼 특정 건만 버튼이 다르게 나올 때
+    // 개발자 도구 콘솔에서 "[Admin][환불버튼 디버그]"로 검색해 바로 비교할 수 있습니다.
+    console.log('[Admin][환불버튼 디버그] id=' + a.id + ', user_contact=' + a.user_contact + ' — 원본 행:', a,
+      '/ 계산값:', {
+        status: a.status,
+        payment_status_raw: a.payment_status,
+        payment_status_norm: paymentStatusNorm,
+        final_amount_raw: a.final_amount,
+        final_amount: finalAmount,
+        refund_amount_raw: a.refund_amount,
+        refund_amount: refundAmountSoFar,
+        remaining: remaining,
+        isCancelledLike: isCancelledLike,
+        isAutoExpired: isAutoExpired,
+        isRefunded: isRefunded,
+        isPartiallyRefunded: isPartiallyRefunded,
+        isManualUnrefunded: isManualUnrefunded
+      });
+    // 기존 [환불 완료 처리](admin_mark_refund_completed)로 전액 환불 처리된 과거 건은 refund_amount를
+    // 채우지 않으므로, 전액 환불 표기에서는 final_amount(결제 총액)로 대신 보여줍니다.
+    var refundedSoFar = refundAmountSoFar || (isRefunded ? finalAmount : 0);
     // 잔액이 남아 있는 한(부분 환불 1회차든, 아직 한 번도 환불하지 않은 건이든) [환불 처리] 버튼을 보여줍니다.
     var canRefund = (isManualUnrefunded || isPartiallyRefunded) && remaining > 0;
     // remaining 이 0인데도 payment_status 가 아직 'PARTIALLY_REFUNDED' 로 남아 있는 비정상 데이터는
@@ -1360,13 +1501,69 @@
     // 바꾸지 않고 이 행의 표시 용도로만 바꿉니다.
     if (isPartiallyRefunded && remaining <= 0) { isPartiallyRefunded = false; isRefunded = true; }
 
+    // 패키지 차감 건(is_package_used=true)은 애초에 현금 결제가 없어(consume_package_on_application,
+    // sql/user_packages_system.sql — 패키지 신청은 final_amount 를 전혀 채우지 않음) remaining 이
+    // 항상 0입니다 — 위 isManualUnrefunded/canRefund 는 "돌려줄 돈이 있는가"만 보므로 이런 건은
+    // 절대 true 가 될 수 없고, [환불 처리] 버튼이 안 보이는 게 오히려 정상입니다(PortOne 에 돌려줄
+    // 돈 자체가 없음). 대신 "패키지 1회가 복구됐는지"를 별도 배지·버튼으로 보여줍니다 —
+    // package_restored 는 sql/package_restore_on_cancellation.sql 의 트리거가 취소 순간 자동으로
+    // true 로 세팅하므로, 평소엔 true 여야 정상이고, false 로 보인다면 그 트리거가 아직 이 환경에
+    // 배포되지 않았거나(취소가 먼저 일어난 뒤에 그 SQL을 실행한 경우) 수동 보정이 필요하다는 뜻입니다
+    // — 그래서 [패키지 횟수 수동 복구 확인] 버튼을 따로 둡니다(admin_restore_package_session RPC).
+    var isPackageUsed = !!a.is_package_used;
+    var isPackageRestored = !!a.package_restored;
+    var needsPackageRestore = isPackageUsed && isCancelledLike && !isPackageRestored;
+
     var badges = '';
     if (overdue && !isAutoExpired) badges += '<span class="admin-badge is-overdue">경과</span>';
     if (isAutoExpired) badges += '<span class="admin-badge is-auto-expired">48시간 자동취소</span>';
     if (isRefunded) badges += '<span class="admin-badge is-refunded">환불 완료</span>';
     if (isPartiallyRefunded) badges += '<span class="admin-badge is-partially-refunded">부분 환불 완료</span>';
-    if (isManualUnrefunded) badges += '<span class="admin-badge is-manual-unrefunded">수동 취소 (PG 환불 필요)</span>';
-    if (!isAutoExpired && !isRefunded && !isPartiallyRefunded && !isManualUnrefunded) badges += '<span class="admin-badge is-cancelled">취소됨</span>';
+    if (isManualUnrefunded) {
+      // payment_status 가 비어 있는데 final_amount 만으로 환불 대상 판단한 행은 title 로 그 사실을
+      // 마우스 오버 시 바로 알 수 있게 합니다(위 console.warn 과 같은 내용 — 운영자가 매번 콘솔을
+      // 열어보지 않아도 되도록).
+      var manualBadgeTitle = paymentStatusNorm === 'PAID'
+        ? ''
+        : ' title="payment_status=' + escapeHtml(JSON.stringify(a.payment_status)) + ' — final_amount(' +
+          finalAmount.toLocaleString('ko-KR') + '원) 기준 잔액으로 환불 대상 판단. 실제 결제 여부를 확인하세요."';
+      badges += '<span class="admin-badge is-manual-unrefunded"' + manualBadgeTitle + '>수동 취소 (PG 환불 필요)</span>';
+    }
+    // 패키지 전/후 잔여 이력 — 두 가지를 구분합니다:
+    //   1) "이 패키지 건 한 장" 기준 스냅샷(package_remaining_before/after_restore, 복구되는 순간에만
+    //      sql/package_restore_on_cancellation.sql §2/§4 가 채움) — 보호자가 패키지를 여러 장 보유하면
+    //      (예: 5회권 2장) 그 중 한 장만의 잔여라 "현재 총 잔여"와 달라 보여 혼동을 줬던 숫자입니다.
+    //      운영자가 더 깊이 들여다볼 때만 보라고 배지 title(마우스 오버)에만 남깁니다.
+    //   2) "지금 이 순간 그 보호자가 실제로 보유한 패키지 잔여 총합" — fetchCancelledApplicationsPage()
+    //      가 user_packages 를 이 보호자의 user_id 기준으로 실시간 집계해 a._packageTotalRemaining 에
+    //      붙여 둔 값입니다. 본문에는 이 값으로 "취소 전 잔여 O회 → 복구 후 잔여 O회"를 보여줍니다 —
+    //      "복구 후 잔여"는 항상 지금 보유 총합과 정확히 같고(한 치의 오차 없음), "취소 전 잔여"는 그
+    //      총합 − 1(이 복구 1건이 지금 총합에 기여한 몫은 항상 정확히 1이므로, 그 사이 다른 패키지
+    //      구매·소진이 몇 번 있었어도 어긋나지 않습니다).
+    var hasPackageHistory = a.package_remaining_before_restore != null && a.package_remaining_after_restore != null;
+    var packageHistoryTooltip = hasPackageHistory
+      ? '해당 패키지 건 기준(다른 신청의 차감·복구는 포함 안 됨): ' + formatPkgCount(a.package_remaining_before_restore) +
+        '회 → ' + formatPkgCount(a.package_remaining_after_restore) + '회.'
+      : '';
+    var hasLivePackageTotal = isPackageRestored && a._packageTotalRemaining != null;
+    var packageHistoryText = hasLivePackageTotal
+      // 그 사이 다른 패키지를 전부 소진했다면(이론상) total-1 이 음수가 될 수 있어 0으로 clamp —
+      // "잔여 -1회"처럼 말이 안 되는 숫자가 운영자 화면에 뜨는 사고를 막습니다.
+      ? '취소 전 잔여 ' + formatPkgCount(Math.max(a._packageTotalRemaining - 1, 0)) + '회 → 복구 후 잔여 ' +
+        formatPkgCount(a._packageTotalRemaining) + '회'
+      : '';
+    if (isPackageUsed) {
+      var packageBadgeTitle = packageHistoryTooltip ? ' title="' + escapeHtml(packageHistoryTooltip) + '"' : '';
+      badges += isPackageRestored
+        ? '<span class="admin-badge is-package-restored"' + packageBadgeTitle + '>패키지 1회 복구 완료</span>'
+        : '<span class="admin-badge is-package-restore-needed">패키지 복구 필요</span>';
+    }
+    // '취소됨' 일반 배지는 위 뱃지들 중 이 건의 상태를 설명하는 게 하나도 없을 때만 보여줍니다 —
+    // 패키지 전용 배지(is-package-restored/is-package-restore-needed)도 "이 건이 취소됐다"는 의미를
+    // 이미 포함하므로 isPackageUsed 도 제외 조건에 추가합니다(중복 표시 방지).
+    if (!isAutoExpired && !isRefunded && !isPartiallyRefunded && !isManualUnrefunded && !isPackageUsed) {
+      badges += '<span class="admin-badge is-cancelled">취소됨</span>';
+    }
 
     var head = document.createElement('div');
     head.className = 'admin-row-head';
@@ -1383,18 +1580,27 @@
       '<dt>주소</dt><dd>' + escapeHtml(a.address || '-') + '</dd>' +
       '<dt>요청 사항</dt><dd>' + escapeHtml(a.request_details || '-') + '</dd>' +
       (isRefunded ? '<dt>환불 내역</dt><dd>전액 취소 완료 (' + refundedSoFar.toLocaleString('ko-KR') + '원)</dd>' : '') +
-      (isPartiallyRefunded ? '<dt>환불 내역</dt><dd>부분 환불 완료 (' + refundedSoFar.toLocaleString('ko-KR') + '원)</dd>' : '');
+      (isPartiallyRefunded ? '<dt>환불 내역</dt><dd>부분 환불 완료 (' + refundedSoFar.toLocaleString('ko-KR') + '원)</dd>' : '') +
+      // 패키지 차감 건의 회차 이력 — 모바일 등 title(마우스 오버)이 안 되는 환경에서도 바로 읽히도록
+      // 본문에도 둡니다. "지금 이 순간의 실제 보유 총합" 기준이라(a._packageTotalRemaining), 이
+      // 숫자는 보호자가 마이페이지에서 보는 패키지 잔여 숫자와 항상 정확히 일치합니다.
+      (isPackageUsed && packageHistoryText ? '<dt>패키지 이력</dt><dd>' + escapeHtml(packageHistoryText) + '</dd>' : '');
 
-    row.appendChild(head);
-    row.appendChild(meta);
+    // 환불 가능 잔액이 남아 있는 건에 [환불 처리] 버튼을, 패키지 차감 건 중 아직 회차가 복구되지 않은
+    // 건에 [패키지 횟수 수동 복구 확인] 버튼을 보여줍니다 — 이 둘은 서로 독립적인 조건이라(현금 환불 vs
+    // 패키지 회차 복구) canRefund 가 false 여도(패키지 건은 항상 그렇습니다 — 위 설명 참고)
+    // needsPackageRestore 만으로 버튼이 떠야 하므로, actions 컨테이너를 하나만 만들고 둘 다 독립적으로
+    // append 합니다.
+    var actions = document.createElement('div');
+    actions.className = 'admin-row-actions';
+    var hasAnyAction = false;
 
-    // 환불 가능 잔액이 남아 있는 건에 [환불 처리] 버튼을 보여줍니다 — 전액/부분 환불 모달을 열어
-    // PortOne 환불 API를 바로 호출합니다(openAdminRefundModal, supabase/functions/admin-refund-application).
-    // '수동 취소' 건에는 PortOne에 결제 기록이 없는 예외적인 경우(무통장 입금을 수동 확인 처리한 건 등)를
-    // 대비해 기존 수동 확인([환불 완료 처리])도 보조 버튼으로 함께 둡니다.
+    // 전액/부분 환불 모달을 열어 PortOne 환불 API를 바로 호출합니다(openAdminRefundModal, supabase/
+    // functions/admin-refund-application). '수동 취소' 건에는 PortOne에 결제 기록이 없는 예외적인
+    // 경우(무통장 입금을 수동 확인 처리한 건 등)를 대비해 기존 수동 확인([환불 완료 처리])도 보조
+    // 버튼으로 함께 둡니다.
     if (canRefund) {
-      var actions = document.createElement('div');
-      actions.className = 'admin-row-actions';
+      hasAnyAction = true;
       var refundBtn = document.createElement('button');
       refundBtn.type = 'button';
       refundBtn.className = 'admin-btn is-primary';
@@ -1410,11 +1616,49 @@
         manualBtn.addEventListener('click', function () { markRefundCompleted(a, manualBtn); });
         actions.appendChild(manualBtn);
       }
-
-      row.appendChild(actions);
     }
 
+    // 패키지 차감 건인데 package_restored 가 아직 false 인 경우 — 정상 경로라면 취소되는 순간 트리거가
+    // 이미 true 로 바꿔 두므로 거의 뜨지 않지만, 그 SQL(sql/package_restore_on_cancellation.sql)을
+    // 아직 실행하지 않은 환경이거나 트리거 적용 전에 취소된 과거 건에서는 뜰 수 있습니다 —
+    // admin_restore_package_session() RPC 로 그 자리에서 바로 회차를 복구합니다.
+    if (needsPackageRestore) {
+      hasAnyAction = true;
+      var packageRestoreBtn = document.createElement('button');
+      packageRestoreBtn.type = 'button';
+      packageRestoreBtn.className = 'admin-btn is-ghost';
+      packageRestoreBtn.textContent = '패키지 횟수 수동 복구 확인';
+      packageRestoreBtn.title = '패키지 차감 예약이 취소됐는데 아직 회차가 돌아오지 않은 건입니다. 누르면 보유 패키지의 잔여 횟수를 1회 복구합니다.';
+      packageRestoreBtn.addEventListener('click', function () { restorePackageSession(a, packageRestoreBtn); });
+      actions.appendChild(packageRestoreBtn);
+    }
+
+    row.appendChild(head);
+    row.appendChild(meta);
+    if (hasAnyAction) row.appendChild(actions);
+
     return row;
+  }
+
+  // [패키지 횟수 수동 복구 확인] — admin_restore_package_session() RPC(sql/
+  // package_restore_on_cancellation.sql)가 is_admin() + "패키지 차감 건 + 취소류 상태 + 아직 미복구"
+  // 조건을 다시 확인한 뒤에만 user_packages.remaining_count 를 1 올리고 이 신청의 package_restored 를
+  // true 로 남깁니다 — 중복 클릭해도 두 번째부터는 이미 true 라 아무 일도 하지 않습니다(멱등).
+  async function restorePackageSession(a, btn) {
+    var ok = window.confirm('이 신청에서 차감됐던 패키지 1회를 지금 복구할까요?');
+    if (!ok) return;
+
+    btn.disabled = true;
+    var res = await supabaseClient.rpc('admin_restore_package_session', { p_application_id: a.id });
+    if (res.error) {
+      console.error('[Admin] 패키지 횟수 수동 복구 실패:', res.error.code, res.error.message,
+        '→ sql/package_restore_on_cancellation.sql 을 Supabase SQL Editor 에서 실행했는지 확인하세요.');
+      showToast('패키지 횟수 복구에 실패했습니다: ' + res.error.message);
+      btn.disabled = false;
+      return;
+    }
+    showToast('패키지 1회를 복구했습니다.');
+    loadCancelledApplications();
   }
 
   // [환불 완료 처리]: PG사 콘솔에서 환불을 이미 마쳤다는 걸 관리자가 직접 확인한 뒤 누르는 버튼 —
@@ -1628,6 +1872,87 @@
       els.adminRefundConfirmBtn.textContent = '환불 처리하기';
     }
   });
+
+  // 48시간 미매칭 자동 취소/환불 배치(supabase/functions/cancel-expired-applications)를 pg_cron 없이
+  // 지금 바로 수동 실행합니다 — pg_cron/pg_net이 꺼져 있거나(로컬 127.0.0.1 등), 등록된 cron이 URL/Vault
+  // 설정 문제로 조용히 실패하고 있는 환경에서도 같은 로직(48시간 경과분 전체 조회 → PortOne 환불 →
+  // EXPIRED_CANCELLED 전환 → 안내 메일)을 그대로 확인할 수 있게 해 줍니다(sql/matching_expiry_auto_refund.sql
+  // 참고). body 없이 호출하면 cron과 똑같이 "지금 48시간이 지난 모든 건"을 처리합니다.
+  async function runExpiryBatchNow(btn) {
+    var ok = window.confirm(
+      '48시간 미매칭 자동 취소/환불 배치를 지금 수동으로 실행합니다. 대상 건이 있으면 실제로 PortOne 환불이 ' +
+      '발생합니다. 계속할까요?'
+    );
+    if (!ok) return;
+
+    btn.disabled = true;
+    var originalText = btn.textContent;
+    btn.textContent = '실행 중…';
+    try {
+      var res = await supabaseClient.functions.invoke('cancel-expired-applications', { body: {} });
+      if (res.error) throw res.error;
+      var data = res.data || {};
+      var okCount = (data.results || []).filter(function (r) { return r.ok; }).length;
+      var failCount = (data.results || []).length - okCount;
+      showToast('만료 배치 실행 완료: 대상 ' + (data.checked || 0) + '건 중 처리 성공 ' + okCount + '건' +
+        (failCount ? ', 실패 ' + failCount + '건(콘솔 로그 확인)' : '') + '.');
+      if (failCount) console.warn('[Admin] 만료 배치 중 일부 실패:', data.results);
+      loadApplications();
+      loadCancelledApplications();
+      loadSummaryStats();
+    } catch (e) {
+      var detail = (e && e.context && typeof e.context.json === 'function') ? await e.context.json().catch(function () { return null; }) : null;
+      var isFetchFailure = e && e.name === 'FunctionsFetchError';
+      console.error('[Admin] 만료 배치 수동 실행 실패 — name=' + (e && e.name) + ', message=' + (e && e.message) + ':',
+        '\n  함수 응답 본문(detail):', detail, '\n  원본 에러 객체:', e);
+      var userMsg = isFetchFailure
+        ? 'Edge Function(cancel-expired-applications)에 연결할 수 없습니다. 함수가 배포되어 있는지(supabase functions deploy cancel-expired-applications) 확인하세요.'
+        : ((detail && detail.message) || e.message || String(e));
+      showToast('만료 배치 실행에 실패했습니다: ' + userMsg);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  }
+
+  // 특정 신청 "한 건"만 48시간 경과 여부와 무관하게 지금 바로 만료/환불 플로우에 태웁니다(테스트용) —
+  // 위 runExpiryBatchNow() 와 같은 Edge Function을 쓰되 body.application_id 를 지정하는 점만 다릅니다.
+  // 서버 쪽(expire_unmatched_application RPC)이 status='MATCHING_PENDING' && manager_id is null 을 다시
+  // 검증하므로, 이미 배정/취소된 건을 실수로 건드릴 위험은 없습니다.
+  async function forceExpireApplication(a, btn) {
+    var ok = window.confirm(
+      '이 신청(' + (a.service_type || '케어 신청') + ' · ' + (a.user_contact || '') + ')을 48시간 경과 여부와 ' +
+      '무관하게 지금 바로 만료 처리하고, PortOne으로 실제 환불을 실행합니다. 계속할까요?'
+    );
+    if (!ok) return;
+
+    btn.disabled = true;
+    try {
+      var res = await supabaseClient.functions.invoke('cancel-expired-applications', { body: { application_id: a.id } });
+      if (res.error) throw res.error;
+      var data = res.data || {};
+      var result = (data.results || [])[0];
+      if (result && result.ok) {
+        showToast('만료/환불 처리가 완료되었습니다.');
+      } else {
+        showToast('만료/환불 처리에 실패했습니다: ' + (result && result.detail ? JSON.stringify(result.detail) : '알 수 없는 오류(콘솔 로그 확인)'));
+      }
+      loadApplications();
+      loadCancelledApplications();
+      loadSummaryStats();
+    } catch (e) {
+      var detail = (e && e.context && typeof e.context.json === 'function') ? await e.context.json().catch(function () { return null; }) : null;
+      var isFetchFailure = e && e.name === 'FunctionsFetchError';
+      console.error('[Admin] 단건 만료/환불 처리 실패 — name=' + (e && e.name) + ', message=' + (e && e.message) + ':',
+        '\n  함수 응답 본문(detail):', detail, '\n  원본 에러 객체:', e);
+      var userMsg = isFetchFailure
+        ? 'Edge Function(cancel-expired-applications)에 연결할 수 없습니다. 함수가 배포되어 있는지 확인하세요.'
+        : ((detail && detail.message) || e.message || String(e));
+      showToast('만료/환불 처리에 실패했습니다: ' + userMsg);
+    } finally {
+      btn.disabled = false;
+    }
+  }
 
   // PAYMENT_PENDING 건을 관리자가 수동으로 입금 확인 처리 — admin_confirm_manual_payment() RPC
   // (sql/admin_manual_payment_telegram_notify.sql — 이 함수의 유일한 정의)가 is_admin() 검증과 함께
@@ -2979,6 +3304,15 @@
   //     manager_applications(승인된 신청서)에 적힌 이름/연락처를 보조 값으로 함께 조회해
   //     profiles 쪽이 비어 있을 때만 대신 채웁니다. 둘 다 없으면(신청 이력 자체가 없는 진짜
   //     테스트 행) '미등록'으로 남는 것이 맞습니다 — DB 에 아예 없는 값을 지어낼 수는 없습니다.
+  //
+  //     카드 고도화(배정된 케어 건수 / 완료 건수 / 평균 평점·리뷰 건수 / 근무 상태 수동 전환)는
+  //     sql/admin_active_manager_enhancements.sql 의 두 RPC 에 의존합니다 —
+  //     admin_manager_care_overview()(집계 조회) 와 admin_set_manager_activity_status()(수동 전환).
+  //     그 파일이 아직 실행되지 않은 DB 에서는 집계 쪽만 조용히 0/평가없음으로 비워지고(콘솔 경고만),
+  //     근무 상태 전환 버튼은 PGRST202 에러 토스트로 안내합니다 — 둘 다 이름/연락처 목록 자체를
+  //     막지는 않습니다. 활동 가능 지역(activity_areas)은 managers 에 별도 컬럼을 만들지 않고
+  //     manager_applications.activity_areas(이미 있는 지원서 컬럼, sql/manager_applications_v2.sql)를
+  //     위 이름/연락처 보조 조회에 얹어 그대로 재사용합니다.
   // ============================================================
   // 매니저 목록(이름/연락처 보강 포함)을 공통으로 조회합니다 — 이 카드의 목록 렌더링과
   // 03-1 번 매니저 수동 배정 모달의 선택 목록이 이 함수 하나를 함께 씁니다.
@@ -3043,7 +3377,7 @@
 
     var appsRes = await supabaseClient
       .from('manager_applications')
-      .select('user_id, name, phone, status, reviewed_at')
+      .select('user_id, name, phone, activity_areas, status, reviewed_at')
       .in('user_id', ids)
       .order('reviewed_at', { ascending: false });
 
@@ -3067,7 +3401,10 @@
     var infoById = {};
     (appsRes.data || []).forEach(function (a) {
       if (a.status !== 'approved') return;
-      if (!infoById[a.user_id]) infoById[a.user_id] = { name: a.name, phone: a.phone }; // 최신순 정렬이라 먼저 나온 값을 채택
+      // 최신순 정렬이라 먼저 나온 값을 채택. activity_areas 는 지원서(가입 당시) 값을 그대로
+      // 쓰는 것이라 managers 테이블에 따로 복사해 두지 않습니다(sql/
+      // admin_active_manager_enhancements.sql 참고) — 재지원이 들어오면 자연히 최신 값으로 갱신됩니다.
+      if (!infoById[a.user_id]) infoById[a.user_id] = { name: a.name, phone: a.phone, activity_areas: a.activity_areas };
     });
 
     var rows = rawRows.map(function (m) {
@@ -3085,13 +3422,49 @@
         name: resolvedName,
         phone: resolvedPhone,
         certification: m.certification,
+        activity_areas: fallback.activity_areas || [],
         activity_status: m.activity_status,
         last_active_at: m.last_active_at || null,
-        approved_at: m.approved_at
+        approved_at: m.approved_at,
+        // 아래 필드들은 fetchManagerCareOverviewById() 응답으로 loadActiveManagers() 에서 채워집니다
+        // (관리자 전용 RPC 라 별도 왕복으로 분리 — 이 함수는 이름/연락처 보강만 책임집니다).
+        // email 도 마찬가지로 이 RPC 쪽에서 옵니다 — profiles 에는 email 컬럼이 없고 auth.users 는
+        // 클라이언트가 직접 조회할 수 없어, 여기(fetchActiveManagersWithNames)의 profiles/
+        // manager_applications 조회로는 가져올 수 없습니다.
+        email: null,
+        assigned_care_count: 0,
+        completed_care_count: 0,
+        avg_rating: null,
+        review_count: 0
       };
     });
 
     return { error: null, rows: rows };
+  }
+
+  // 매니저별 [가입/로그인 계정 이메일 / 배정된 케어 건수 / 완료 건수 / 평균 평점 · 리뷰 건수] 를 한
+  // 번에 집계해 오는 admin_manager_care_overview() RPC(sql/admin_active_manager_enhancements.sql)
+  // 결과를 manager_id 로 바로 찾아볼 수 있는 맵으로 변환합니다. RPC 자체가 is_admin() 을 체크하므로
+  // (fail closed) 여기서는 응답을 그대로 맵으로 바꾸는 것만 책임집니다.
+  async function fetchManagerCareOverviewById() {
+    var res = await supabaseClient.rpc('admin_manager_care_overview');
+    if (res.error) {
+      console.warn('[Admin] 매니저 케어 현황 집계 실패(admin_manager_care_overview):', res.error.code, res.error.message,
+        '→ sql/admin_active_manager_enhancements.sql 을 Supabase SQL Editor 에서 실행했는지 확인하세요. ' +
+        '이메일/배정 건수/평점 없이 나머지 목록은 계속 표시됩니다.');
+      return {};
+    }
+    var byId = {};
+    (res.data || []).forEach(function (r) {
+      byId[r.manager_id] = {
+        email: r.email || null,
+        assigned_care_count: r.assigned_care_count || 0,
+        completed_care_count: r.completed_care_count || 0,
+        avg_rating: r.avg_rating,
+        review_count: r.review_count || 0
+      };
+    });
+    return byId;
   }
 
   async function loadActiveManagers() {
@@ -3100,7 +3473,9 @@
     list.innerHTML = '<p class="admin-loading">불러오는 중…</p>';
     if (els.activeManagersCount) els.activeManagersCount.hidden = true;
 
-    var result = await fetchActiveManagersWithNames();
+    var results = await Promise.all([fetchActiveManagersWithNames(), fetchManagerCareOverviewById()]);
+    var result = results[0];
+    var overviewById = results[1];
 
     if (result.error) {
       console.error('[Admin] 활동 매니저 조회 실패:', result.error.code, result.error.message,
@@ -3110,6 +3485,15 @@
     }
 
     var rows = result.rows;
+    rows.forEach(function (m) {
+      var overview = overviewById[m.id];
+      if (!overview) return;
+      m.email = overview.email;
+      m.assigned_care_count = overview.assigned_care_count;
+      m.completed_care_count = overview.completed_care_count;
+      m.avg_rating = overview.avg_rating;
+      m.review_count = overview.review_count;
+    });
     activeManagersCache = rows;
 
     if (!rows.length) {
@@ -3178,6 +3562,17 @@
     filtered.forEach(function (m) { list.appendChild(renderActiveManagerRow(m)); });
   }
 
+  // 평균 평점을 ★/☆ 문자로 그립니다(없으면 '평가 없음') — 매니저 정산 상세 모달의 detail-stars 와
+  // 같은 반올림 표시 방식이지만, 거기는 1건당 rating(정수)이고 여기는 avg_rating(소수)이라 별 개수는
+  // Math.round 로 반올림해서 정합니다. 숫자 자체(예: "4.3")는 별과 함께 그대로 보여줍니다.
+  function renderManagerRatingHtml(avgRating, reviewCount) {
+    if (avgRating == null || !reviewCount) return '평가 없음';
+    var avgNum = Number(avgRating); // RPC(numeric) 응답이 문자열로 올 수 있어 숫자로 변환 후 사용
+    var filled = Math.min(5, Math.max(0, Math.round(avgNum)));
+    var stars = '<span class="manager-rating-stars">' + '★'.repeat(filled) + '☆'.repeat(5 - filled) + '</span>';
+    return stars + ' ' + avgNum.toFixed(1) + ' (' + reviewCount + '건)';
+  }
+
   function renderActiveManagerRow(m) {
     var row = document.createElement('div');
     row.className = 'admin-row';
@@ -3185,24 +3580,50 @@
     var isOnline = m.activity_status === 'online';
     var dutyBadgeClass = isOnline ? 'is-verified' : 'is-neutral';
     var dutyBadgeText = isOnline ? '근무 중' : '휴식 중';
+    var assignedCount = m.assigned_care_count || 0;
+
+    // 연락처 옆에 가입/로그인 계정 이메일(auth.users.email)을 "휴대폰 | 이메일" 형식으로 함께
+    // 표기합니다 — admin_manager_care_overview() RPC(sql/admin_active_manager_enhancements.sql)가
+    // 돌려주는 email 을 그대로 씁니다. 카카오 등 이메일 scope 동의 없이 가입한 계정은 비어 있을 수
+    // 있어 그 경우만 '이메일 미등록'으로 남겨 둡니다.
+    var contactLine = escapeHtml(m.phone) + ' | ' + escapeHtml(m.email || '이메일 미등록');
 
     var head = document.createElement('div');
     head.className = 'admin-row-head';
     head.innerHTML =
       '<div><div class="admin-row-name">' + escapeHtml(m.name) + '</div>' +
-      '<div class="admin-row-sub">' + escapeHtml(m.phone) + '</div></div>' +
-      '<span class="admin-badge ' + dutyBadgeClass + '">' + dutyBadgeText + '</span>';
+      '<div class="admin-row-sub">' + contactLine + '</div></div>' +
+      '<div class="admin-badge-group">' +
+      '<span class="admin-badge is-care-count">배정된 케어 ' + assignedCount + '건</span>' +
+      '<span class="admin-badge ' + dutyBadgeClass + '">' + dutyBadgeText + '</span>' +
+      '</div>';
 
     var meta = document.createElement('dl');
     meta.className = 'admin-row-meta';
     meta.innerHTML =
       '<dt>자격증</dt><dd>' + escapeHtml(m.certification || '미등록') + '</dd>' +
+      '<dt>활동 가능 지역</dt><dd>' + escapeHtml((m.activity_areas || []).join(', ') || '미등록') + '</dd>' +
+      '<dt>평균 평점</dt><dd>' + renderManagerRatingHtml(m.avg_rating, m.review_count) + '</dd>' +
+      '<dt>완료 건수</dt><dd>' + (m.completed_care_count || 0) + '건</dd>' +
       '<dt>근무 상태</dt><dd>' + dutyBadgeText + '</dd>' +
       '<dt>최근 활동</dt><dd>' + (m.last_active_at ? formatDateTime(m.last_active_at) : '활동 이력 없음') + '</dd>' +
       '<dt>승인일</dt><dd>' + (m.approved_at ? formatDateTime(m.approved_at) : '정보 없음') + '</dd>';
 
     var actions = document.createElement('div');
     actions.className = 'admin-row-actions';
+
+    // 관리자가 현장 상황에 따라 근무 상태를 직접 토글 — admin_set_manager_activity_status() RPC
+    // 역시 managers_break_guard 트리거를 그대로 통과하므로, 진행 중인 케어가 있는 매니저를 '휴식 중'
+    // 으로 강제 전환하려 하면 매니저 본인이 토글할 때와 똑같이 거부됩니다(의도된 동작).
+    var dutyToggleBtn = document.createElement('button');
+    dutyToggleBtn.type = 'button';
+    dutyToggleBtn.className = 'admin-btn is-ghost';
+    dutyToggleBtn.textContent = isOnline ? '휴식 중으로 전환' : '근무 중으로 전환';
+    dutyToggleBtn.addEventListener('click', function () {
+      setManagerDutyStatus(m.id, isOnline ? 'break' : 'online', dutyToggleBtn);
+    });
+    actions.appendChild(dutyToggleBtn);
+
     var revokeBtn = document.createElement('button');
     revokeBtn.type = 'button';
     revokeBtn.className = 'admin-btn is-danger';
@@ -3214,6 +3635,41 @@
     row.appendChild(meta);
     row.appendChild(actions);
     return row;
+  }
+
+  // 관리자가 카드의 [근무 중으로 전환]/[휴식 중으로 전환] 버튼으로 매니저의 activity_status 를
+  // 직접 바꿉니다. admin_set_manager_activity_status() RPC(sql/admin_active_manager_enhancements.sql)
+  // 하나만 호출하고, 성공하면 목록을 통째로 다시 불러와(최근 활동일시 등 트리거가 바꾼 값까지 포함)
+  // 화면을 맞춥니다 — revokeManager() 와 같은 패턴입니다.
+  async function setManagerDutyStatus(managerId, targetStatus, btn) {
+    var targetLabel = targetStatus === 'online' ? '근무 중' : '휴식 중';
+    var ok = window.confirm('이 매니저의 근무 상태를 \'' + targetLabel + '\'(으)로 변경할까요?');
+    if (!ok) return;
+
+    btn.disabled = true;
+    try {
+      var res = await supabaseClient.rpc('admin_set_manager_activity_status', {
+        p_manager_id: managerId,
+        p_status: targetStatus
+      });
+
+      if (res.error) {
+        console.error('[Admin] 매니저 근무 상태 변경 실패:', res.error.code, res.error.message,
+          res.error.code === 'PGRST202'
+            ? '→ admin_set_manager_activity_status() 함수가 없습니다. sql/admin_active_manager_enhancements.sql 을 실행했는지 확인하세요.'
+            : '');
+        showToast('근무 상태 변경에 실패했습니다: ' + res.error.message);
+        btn.disabled = false;
+        return;
+      }
+
+      showToast('근무 상태를 \'' + targetLabel + '\'(으)로 변경했습니다.');
+      await loadActiveManagers();
+    } catch (e) {
+      console.error('[Admin] 매니저 근무 상태 변경 중 오류:', e);
+      showToast('근무 상태 변경 중 오류가 발생했습니다: ' + (e && e.message ? e.message : e));
+      btn.disabled = false;
+    }
   }
 
   // 권한 해제는 managers 행을 지우지 않습니다(DELETE 아님) — certification_verified 를 false 로

@@ -26,7 +26,7 @@
 <!-- 💡 Supabase 라이브러리 추가 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 <!-- 💡 공통 인증 헤더 (로그인 상태 감지 · 프로필 아바타/드롭다운). Supabase SDK 뒤에 로드해야 합니다 -->
-<script src="/js/auth-header.js?v=2.1" charset="utf-8" defer></script>
+<script src="/js/auth-header.js?v=2.2" charset="utf-8" defer></script>
 <script src="/js/terms-modal.js?v=1.0" charset="utf-8" defer></script>
 <script src="/js/notice-modal.js?v=1.0" charset="utf-8" defer></script>
 
@@ -2759,7 +2759,8 @@
     background-image: url('images/park-bench-walk-holding-hands.png');
     background-size: 100% auto; /* 가로폭은 항상 화면에 꽉 차고(좌우 여백 없음), 세로는 비율에 맞춰 자동 계산 */
     background-repeat: no-repeat;
-    background-position: center;
+    background-position: center center;
+    background-attachment: scroll; /* iOS Safari 는 fixed 를 주소창 접힘/펼침 때마다 재계산하며 배경을 찌그러뜨리거나 잘라내므로 명시적으로 scroll 고정 */
     font-family: 'Noto Sans KR', sans-serif !important;
     text-align: center;
     box-sizing: border-box;
@@ -2879,7 +2880,13 @@
   }
 
   @media (max-width: 768px) {
-    .wb-review-section { min-height: 540px; padding: 32px 0; }
+    .wb-review-section {
+      min-height: 620px;
+      padding: 32px 0;
+      background-attachment: scroll; /* iOS Safari 가 fixed 를 뷰포트 높이 변화(주소창)마다 다시 그리며 생기는 찌그러짐/잘림 방지 */
+      background-size: cover; /* 모바일 폭에서 100% auto 로는 일러스트 높이가 글자·버튼 블록보다 짧아 위아래가 파스텔 배경색으로 비어 보이던 것을 꽉 채워 보완 */
+      background-position: center center;
+    }
     .wb-review-top { padding: 36px 24px; }
     .wb-review-top::before { border-radius: 40px; }
     .review-tag { font-size: 13px; margin-bottom: 12px; }

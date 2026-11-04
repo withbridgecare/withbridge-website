@@ -9,16 +9,36 @@
 // 돌아가지 않으므로, 반드시 PortOne 환불 API 호출이 성공한 뒤에만 DB를 전환합니다
 // (sql/matching_expiry_auto_refund.sql 참고).
 //
-// 호출자: pg_cron(같은 파일 맨 아래 스케줄)만 호출합니다. 실제로 환불을 일으키는 엔드포인트라 게이트웨이의
-// JWT 검증만으로는 부족해, Authorization 헤더가 이 프로젝트의 SUPABASE_SERVICE_ROLE_KEY 와 정확히
-// 일치할 때만 처리합니다(일반 로그인 사용자/익명 키로는 호출할 수 없음).
-import { createAdminClient } from "../_shared/supabaseClients.ts";
+// 호출자: 다음 둘 중 하나만 허용합니다(일반 로그인 사용자/익명 키로는 호출할 수 없음).
+//   1) pg_cron(같은 파일 맨 아래 스케줄) — Authorization 헤더가 이 프로젝트의
+//      SUPABASE_SERVICE_ROLE_KEY 와 정확히 일치할 때. 이 경로는 body 를 무시하고 항상
+//      list_expired_unmatched_applications()(48시간 경과분 전체)를 처리합니다.
+//   2) 로그인한 관리자(admin.html) — admin-refund-application 과 동일한 패턴으로 (1) auth.getUser() 로
+//      토큰을 GoTrue에 직접 검증하고 (2) service-role 클라이언트로 profiles.role === 'admin' 을
+//      확인합니다(fail closed). pg_cron 이 로컬(127.0.0.1)이나 플랜 제약으로 동작하지 않는 환경에서도
+//      admin.html 의 버튼으로 같은 로직을 수동 실행해 테스트할 수 있게 하기 위한 경로입니다.
+//      - body 에 application_id 가 없으면: cron 과 동일하게 48시간 경과분 전체를 처리합니다
+//        ("지금 배치 수동 실행" 버튼).
+//      - body 에 application_id 가 있으면: 경과 시간과 무관하게 그 신청 "하나"만 대상으로 삼습니다
+//        (status='MATCHING_PENDING' && manager_id is null 조건은 그대로 유지 — expire_unmatched_application()
+//        자체가 이 조건을 다시 검증하므로 이미 매칭/취소된 건을 잘못 건드릴 수 없습니다). 특정 테스트
+//        신청 건을 48시간을 기다리지 않고 바로 환불 플로우에 태울 때 씁니다(행별 "만료/환불 테스트" 버튼).
+import { createAdminClient, createUserClient } from "../_shared/supabaseClients.ts";
 import { portoneFetch, PortOneApiError } from "../_shared/portone.ts";
 import { sendEmail, ResendApiError } from "../_shared/resend.ts";
 import { buildRefundEmail } from "../_shared/refundEmailTemplate.ts";
 
+const CORS_HEADERS: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 function json(status: number, body: unknown): Response {
-  return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+  });
 }
 
 interface ApplicationRow {
@@ -80,23 +100,85 @@ async function notifyRefund(
 }
 
 Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
   if (req.method !== "POST") return json(405, { error: "METHOD_NOT_ALLOWED" });
 
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const authHeader = req.headers.get("Authorization") ?? "";
-  if (!serviceRoleKey || authHeader !== `Bearer ${serviceRoleKey}`) {
-    return json(401, { error: "NOT_AUTHORIZED" });
+  const isCronCall = !!serviceRoleKey && authHeader === `Bearer ${serviceRoleKey}`;
+
+  // body 는 두 호출 경로 모두에서 선택적으로 읽습니다 — cron 은 보통 '{}' 를 보내 application_id 가
+  // 없고, 관리자 수동 실행은 특정 건을 지정할 수도(단건 테스트), 안 할 수도(배치 전체 재실행) 있습니다.
+  let body: { application_id?: string } = {};
+  try {
+    const raw = await req.text();
+    if (raw) body = JSON.parse(raw);
+  } catch {
+    return json(400, { error: "INVALID_JSON" });
   }
 
   const admin = createAdminClient();
 
-  const { data: targets, error: listErr } = await admin.rpc("list_expired_unmatched_applications");
-  if (listErr) {
-    console.error("[cancel-expired-applications] list_expired_unmatched_applications 실패:", listErr);
-    return json(500, { error: "LIST_FAILED", message: listErr.message });
+  if (!isCronCall) {
+    // cron 이 아니면 로그인한 관리자여야만 통과합니다 — admin-refund-application 과 동일한 이중 확인
+    // (GoTrue 로 토큰 자체를 검증 + service-role 클라이언트로 profiles.role 조회, fail closed).
+    if (!authHeader) return json(401, { error: "NOT_AUTHENTICATED" });
+
+    const userClient = createUserClient(authHeader);
+    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !userData?.user) {
+      console.error("[cancel-expired-applications] 호출자 인증 확인 실패(토큰 만료/무효 가능성):", userErr);
+      return json(401, { error: "NOT_AUTHENTICATED", message: "로그인 세션을 확인할 수 없습니다. 다시 로그인한 뒤 시도해 주세요." });
+    }
+
+    const { data: profile, error: profileErr } = await admin
+      .from("profiles")
+      .select("role")
+      .eq("id", userData.user.id)
+      .maybeSingle();
+    if (profileErr) {
+      console.error("[cancel-expired-applications] profiles 조회 실패 — user_id=" + userData.user.id + ":", profileErr);
+      return json(500, { error: "PROFILE_LOOKUP_FAILED", message: profileErr.message });
+    }
+    const normalizedRole = String(profile?.role ?? "").trim().toLowerCase();
+    if (normalizedRole !== "admin") {
+      console.error("[cancel-expired-applications] 관리자 권한 없음 — user_id=" + userData.user.id + ", email=" + userData.user.email);
+      return json(403, { error: "NOT_ADMIN", message: "관리자 권한이 없는 계정입니다." });
+    }
   }
 
-  const rows: ApplicationRow[] = targets ?? [];
+  let rows: ApplicationRow[];
+  if (!isCronCall && body.application_id) {
+    // 관리자가 특정 건 하나만 지정 — 48시간 경과 여부와 무관하게 그 건을 바로 대상으로 삼되, 아래
+    // expire_unmatched_application() RPC 가 status='MATCHING_PENDING' && manager_id is null 조건을
+    // 다시 검증하므로(이 파일 상단 주석 참고) 이미 매칭되었거나 취소된 건을 잘못 건드릴 수 없습니다.
+    const { data: row, error: rowErr } = await admin
+      .from("service_applications")
+      .select("id, user_id, applicant_email, service_type, senior_name, created_at, status, manager_id")
+      .eq("id", body.application_id)
+      .maybeSingle();
+    if (rowErr) {
+      console.error("[cancel-expired-applications] 단건 조회 실패:", rowErr);
+      return json(500, { error: "APPLICATION_LOOKUP_FAILED", message: rowErr.message });
+    }
+    if (!row) return json(404, { error: "APPLICATION_NOT_FOUND" });
+    if (row.status !== "MATCHING_PENDING" || row.manager_id) {
+      return json(409, {
+        error: "NOT_EXPIRABLE",
+        message: `이 신청은 만료/환불 대상이 아닙니다(status=${row.status}, manager_id=${row.manager_id ?? "null"}). ` +
+          "이미 매니저가 배정되었거나(MATCHED), 이미 취소/만료 처리된 건일 수 있습니다.",
+      });
+    }
+    rows = [row as ApplicationRow];
+  } else {
+    const { data: targets, error: listErr } = await admin.rpc("list_expired_unmatched_applications");
+    if (listErr) {
+      console.error("[cancel-expired-applications] list_expired_unmatched_applications 실패:", listErr);
+      return json(500, { error: "LIST_FAILED", message: listErr.message });
+    }
+    rows = targets ?? [];
+  }
+
   const results: Array<{ application_id: string; ok: boolean; detail?: unknown }> = [];
 
   for (const row of rows) {

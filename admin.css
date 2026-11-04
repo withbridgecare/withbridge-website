@@ -541,7 +541,14 @@ button { font-family: inherit; cursor: pointer; }
    팔레트는 피하고 중간 톤(파란 계열)으로 둡니다. */
 .admin-badge.is-partially-refunded { background: #EFF6FF; color: #1D4ED8; }
 .admin-badge.is-manual-unrefunded { background: #F3F4F6; color: #92400E; }
+/* 패키지 차감 취소 건 — 돈이 아니라 회차가 돌아왔는지를 보여주는 전용 배지. 복구 완료(초록,
+   is-refunded와 같은 팔레트) / 복구 필요(주황, is-overdue와 같은 경고 팔레트)로 구분합니다. */
+.admin-badge.is-package-restored { background: #ECFDF5; color: #047857; }
+.admin-badge.is-package-restore-needed { background: #FFF7ED; color: #C2410C; }
 .admin-badge-group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex: none; }
+/* '활동 중인 케어 매니저' 카드 — 현재 배정되어 대기/진행 중인 케어 건수. 근무 상태 배지(is-verified/
+   is-neutral)와 헷갈리지 않도록 패키지 배지(is-package)와 같은 남색 계열을 재사용합니다. */
+.admin-badge.is-care-count { background: #E0E7FF; color: #3730A3; }
 /* 배정 완료(진행 중) 케어 현황판의 단계 배지: 배정됨 → 출발 → 도착 → 진료/대행 완료 → 귀가 이동 순으로
    (파랑 → 주황 → 초록 계열이 점점 짙어짐), 케어 완료(is-completed, 379행 근처)에서 중립 회색으로 톤다운됩니다. */
 .admin-badge.is-assigned       { background: #EFF6FF; color: #1D4ED8; }
@@ -585,6 +592,17 @@ button { font-family: inherit; cursor: pointer; }
 .admin-btn.is-danger:hover { background: #FBE2DE; }
 .admin-btn:active { transform: scale(.98); }
 .admin-btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+
+/* '지금 48시간 만료 배치 수동 실행' 버튼 — .admin-toggle-row(flex 컨테이너) 안에 놓이면서
+   기본 .admin-btn 의 flex: 1(flex-basis: 0)을 그대로 물려받아 버튼 폭이 0에 가깝게 눌리고,
+   긴 라벨이 글자/단어 단위로 세로 줄바꿈되는 문제가 있었습니다. flex 를 끄고 고정 폭 기준을
+   줘서 한 줄로 가로 배치되게 합니다. */
+.btn-manual-expiry {
+  flex: none;
+  min-width: 220px;
+  white-space: nowrap;
+  padding: 8px 14px;
+}
 
 /* ---------- 모달 (신분증 사본 확인) ---------- */
 .modal-backdrop {
@@ -944,6 +962,8 @@ textarea.admin-select { cursor: text; resize: vertical; min-height: 72px; }
 #packageGroupDetailModal { z-index: 295; }
 .pkg-detail-adjust-btn { padding: 6px 12px; font-size: 12.5px; }
 .settlement-detail-table .detail-stars { display: block; color: #F5B942; letter-spacing: 1px; }
+/* '활동 중인 케어 매니저' 카드의 평균 평점 — 매니저 정산 상세 모달의 detail-stars 와 같은 색. */
+.manager-rating-stars { color: #F5B942; letter-spacing: 1px; }
 .settlement-detail-table .detail-review-text { display: block; margin-top: 3px; font-size: 12px; font-weight: 400; color: var(--ink-sub); word-break: keep-all; }
 
 /* ---------- 토스트 ---------- */

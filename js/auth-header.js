@@ -21,22 +21,40 @@
   // Vercel 프리뷰 배포가 실수로 프로덕션 DB를 건드리지 않게). 단, DEV 값을 아직 안 채웠으면(여전히
   // placeholder) 깨지는 대신 조용히 프로덕션으로 폴백합니다 — DEV 값을 채우기 전까지는 지금까지와
   // 동작이 완전히 같습니다.
+  //
+  // ⚠ DEV 값이 비어 있는 지금은, apply.html/mypage.html 을 포함한 "이 파일을 로드하는 모든 페이지"가
+  // 예외 없이 똑같은 PROD 로 폴백합니다(아래 if 조건이 isProdHost 값과 무관하게 항상 true가 됨 —
+  // `!devConfigured` 가 이미 true 라서). 즉 지금 이 코드 상태에서는 apply.html 과 mypage.html 이
+  // "서로 다른 Supabase 프로젝트를 본다"는 일이 구조적으로 아예 일어날 수 없습니다 — 두 페이지 다
+  // window.WBAuth.client 하나(이 즉시실행함수가 끝에서 한 번만 만드는 클라이언트)를 그대로 가져다
+  // 쓰므로, "어르신 프로필이 마이페이지에 안 보이는" 문제의 원인은 이 DEV/PROD 분기가 아닙니다 —
+  // 실제 원인 후보는 mypage.html loadSeniors() 에 이미 추가된 세션/user_id 교차 확인 로그 쪽을
+  // 먼저 보세요. 이 경고 자체는 "아직 DEV 프로젝트를 안 만들었다"는 안내일 뿐, 두 페이지 사이의
+  // 불일치를 뜻하지 않습니다.
   var ENV_CONFIG = (function () {
     var PROD = { url: 'https://layvjisfeivkzowopkco.supabase.co', anonKey: 'sb_publishable_M7wpIAR7-aXvG78Xv-WBoQ_q1wj_FcR' };
-    // withbridge-dev 프로젝트 생성 후 Project Settings → API 값으로 아래 두 줄만 바꿔 넣으세요.
+    // withbridge-dev 프로젝트를 실제로 만들어 쓸 계획이라면, Supabase 대시보드 → 그 프로젝트 →
+    // Project Settings → API 에 있는 "Project URL"과 "anon public" 키를 복사해 아래 두 줄에 그대로
+    // 채우세요(placeholder 를 지우고 실제 값으로 바꾸는 것 — 이 리포지토리 안에는 그 값이 어디에도
+    // 없어, Claude 가 대신 채워 넣을 수 없습니다. 추측값을 넣으면 로그인 자체가 깨집니다).
     var DEV = { url: 'https://<YOUR-DEV-PROJECT-REF>.supabase.co', anonKey: '<YOUR-DEV-PROJECT-ANON-KEY>' };
     // 커스텀 도메인을 연결하면 그 도메인도 여기 추가하세요(예: 'www.withbridge.co.kr').
     var PROD_HOSTNAMES = ['withbridgewebsite.vercel.app'];
     var isProdHost = PROD_HOSTNAMES.indexOf(location.hostname) !== -1;
     var devConfigured = DEV.url.indexOf('<YOUR-') === -1;
     if (isProdHost || !devConfigured) {
-      if (!isProdHost) console.warn('[WBAuth] DEV Supabase 값이 아직 설정되지 않아 프로덕션 프로젝트로 폴백합니다. js/auth-header.js 상단 ENV_CONFIG.DEV 를 withbridge-dev 값으로 채우세요.');
+      if (!isProdHost) console.warn('[WBAuth] DEV Supabase 값이 아직 설정되지 않아 프로덕션 프로젝트로 폴백합니다(이 페이지뿐 아니라 ' +
+        'auth-header.js 를 로드하는 모든 페이지가 동일하게 폴백하므로, 페이지 간 프로젝트 불일치는 아닙니다). ' +
+        'DEV 를 실제로 쓰려면 js/auth-header.js 상단 ENV_CONFIG.DEV 를 withbridge-dev 프로젝트의 실제 URL/anon key 로 채우세요.');
       return PROD;
     }
     return DEV;
   })();
   var SUPABASE_URL = ENV_CONFIG.url;
   var SUPABASE_ANON_KEY = ENV_CONFIG.anonKey;
+  // 지금 이 페이지가 실제로 어느 프로젝트를 바라보는지 항상 남깁니다 — apply.html 콘솔과 mypage.html
+  // 콘솔에서 이 한 줄을 각각 확인하면, 둘이 같은 URL 인지 바로(추측 없이) 눈으로 비교할 수 있습니다.
+  console.log('[WBAuth] 이 페이지가 사용 중인 Supabase 프로젝트 URL=' + SUPABASE_URL);
 
   var DEFAULT_AVATAR = 'data:image/svg+xml;utf8,' + encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44">' +

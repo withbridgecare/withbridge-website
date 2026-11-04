@@ -42,5 +42,7 @@ verify_jwt = true
 [functions.cancel-expired-applications]
 # pg_cron이 service_role 키를 Authorization 헤더에 담아 호출합니다(sql/matching_expiry_auto_refund.sql
 # 맨 아래 스케줄). service_role 키도 유효하게 서명된 JWT라 게이트웨이 검증을 통과하고, 함수 내부에서
-# 한 번 더 그 키 자체인지 정확히 비교해 일반 사용자/익명 키 호출을 막습니다.
+# 한 번 더 그 키 자체인지 정확히 비교해 일반 사용자/익명 키 호출을 막습니다. 로그인한 관리자의 access
+# token 도 같은 이유로 게이트웨이 검증은 통과하며, 함수 내부에서 profiles.role='admin' 을 다시 확인한
+# 뒤에만 수동 실행(cron 미동작 환경에서의 테스트용) 경로를 허용합니다.
 verify_jwt = true
