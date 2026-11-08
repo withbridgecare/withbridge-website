@@ -13,7 +13,7 @@
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- 공통 Supabase 클라이언트 + 매니저 자격 확인(checkIsManager). SDK 뒤에 로드해야 합니다 -->
-  <script src="/js/auth-header.js?v=2.2" charset="utf-8"></script>
+  <script src="/js/auth-header.js?v=2.3" charset="utf-8"></script>
 <script src="/js/terms-modal.js?v=1.0" charset="utf-8" defer></script>
 <script src="/js/notice-modal.js?v=1.0" charset="utf-8" defer></script>
   <!-- 브라우저 기본 날짜/시간 피커 대신 쓰는 공통 커스텀 피커 (wb-datepicker.js 참고) -->
@@ -2063,13 +2063,14 @@
     const PHONE_RE = /01[016-9][-. ]?\d{3,4}[-. ]?\d{4}/;
     // request_details("희망 일시: …\n어르신 거동 상태: …\n요청 상세: …")를 항목별로 분리 (마이페이지와 같은 형식)
     function parseRequestDetails(text) {
-      const out = { when: '', mobility: '', note: '' };
+      const out = { when: '', mobility: '', purpose: '', note: '' };
       const src = String(text == null ? '' : text).trim();
       if (!src) return out;
-      const KEYS = { '희망 일시': 'when', '어르신 거동 상태': 'mobility', '요청 상세': 'note' };
+      // '세부 목적' = '1시간 콕집 라이트 케어' 선택 시에만 apply.html 이 추가로 적는 줄(어떤 단기 케어인지)
+      const KEYS = { '희망 일시': 'when', '어르신 거동 상태': 'mobility', '세부 목적': 'purpose', '요청 상세': 'note' };
       let current = null, matched = false;
       src.split('\n').forEach((line) => {
-        const m = /^\s*(희망 일시|어르신 거동 상태|요청 상세)\s*:\s*(.*)$/.exec(line);
+        const m = /^\s*(희망 일시|어르신 거동 상태|세부 목적|요청 상세)\s*:\s*(.*)$/.exec(line);
         if (m) { current = KEYS[m[1]]; matched = true; out[current] = m[2].trim(); }
         else if (current === 'note') out.note += '\n' + line;
       });
@@ -2085,7 +2086,7 @@
       if (!src) return { service: '', when: '', mobility: '', note: '' };
       const m = /^\s*\[([^\]]*)\]\s*\n?([\s\S]*)$/.exec(src);
       const det = parseRequestDetails(m ? m[2] : src);
-      return { service: m ? m[1].trim() : '', when: det.when, mobility: det.mobility, note: det.note };
+      return { service: m ? m[1].trim() : '', when: det.when, mobility: det.mobility, purpose: det.purpose, note: det.note };
     }
     // 선택 추가 옵션(Add-on) 코드 → 사람이 읽는 이름. apply.html 의 ADDONS, sql/user_coupons_checkout.sql
     // 의 expected_addon_total() 과 반드시 같은 코드 문자열을 써야 합니다(admin.js 에도 같은 맵이 있습니다
@@ -2104,7 +2105,7 @@
       return {
         source: 'application', id: a.id, created_at: a.created_at,
         service_type: a.service_type || '동행 서비스', user_relation: a.user_relation || '',
-        when_text: det.when, mobility: det.mobility, notes: det.note,
+        when_text: det.when, mobility: det.mobility, purpose: det.purpose, notes: det.note,
         addons: addonLabels(a.addon_codes),
         origin: sep >= 0 ? addr.slice(0, sep).trim() : '', destination: sep >= 0 ? addr.slice(sep + 3).trim() : addr,
         guardian_name: name || '보호자', guardian_phone: phone ? phone[0] : '',
@@ -3364,6 +3365,8 @@
         fieldRow(applicantLabel, escapeHtml(applicantValue)),
         isApp && r.user_relation ? fieldRow('관계', escapeHtml(r.user_relation)) : '',
         isApp && addons.length ? fieldRow('선택 옵션', escapeHtml(addons.join(', '))) : '',
+        // '1시간 콕집 라이트 케어' 선택 시에만 보호자가 고른 세부 목적(apply.html 드롭다운) — 다른 서비스는 항상 빈 값
+        r.purpose ? fieldRow('세부 목적', escapeHtml(r.purpose)) : '',
         scheduleNoteHtml ? fieldRow('희망 일시 안내', scheduleNoteHtml) : '',
         fieldRow('신청 시각', `<span${createdIso ? ` data-rel="${escapeHtml(createdIso)}"` : ''}>${escapeHtml(appliedText)}</span>${escapeHtml(acceptCaption)}`),
         // 요청 사항은 길어질 수 있어 그리드 마지막 줄에 두고(:last-child) 전체 폭을 차지하게 합니다 — 항상
@@ -3737,6 +3740,7 @@
       if (det.service || s.service_type) addDetailRow('서비스', det.service || s.service_type);
       if (det.when) addDetailRow('희망 일시', det.when);
       if (det.mobility) addDetailRow('거동 상태', det.mobility);
+      if (det.purpose) addDetailRow('세부 목적', det.purpose);
       addDetailRow('요청 사항', det.note || '요청사항 없음');
       card.appendChild(detail);
 

@@ -13,7 +13,7 @@
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- 공통 Supabase 클라이언트 + 헤더 로그인 상태. SDK 뒤에 로드해야 합니다 -->
-  <script src="/js/auth-header.js?v=2.2" charset="utf-8"></script>
+  <script src="/js/auth-header.js?v=2.3" charset="utf-8"></script>
   <!-- 결제 확인 Edge Function(issue-virtual-account) 호출용 — supabaseClient.functions.invoke() 대신
        명시적 fetch() 래퍼. auth-header.js 가 만든 supabaseClient 를 받아 쓰므로 그 뒤에 로드합니다 -->
   <script src="/js/edge-function-fetch.js?v=1.1"></script>
@@ -117,7 +117,7 @@
   <script src="/js/wb-place-search.js?v=1.0"></script>
   <!-- 브라우저 기본 날짜/시간 피커 대신 쓰는 공통 커스텀 피커 (wb-datepicker.js 참고) -->
   <script src="/js/wb-datepicker.js?v=1.6"></script>
-  <!-- 포트원 V2 결제창(가상계좌 발급) SDK -->
+  <!-- 포트원 V2 결제창(카드/간편결제/계좌이체) SDK -->
   <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
   <style>
     :root {
@@ -130,11 +130,12 @@
       --accent: #556B2F;               /* 선택된 항목/주요 버튼의 강조색 (흰 글씨 대비 6:1 이상) */
       --accent-dark: #455822;
       --control-border: #858E9C;       /* 입력창·선택 버튼의 테두리 (흰 배경과 3.3:1 → 경계가 또렷하게 보임) */
-      --bg: #FAF8F5;
-      --card: #FFFFFF;
+      --bg: #F2F4F6;                   /* mypage.html 과 완전히 같은 연회색(슬레이트) 배경 */
+      --card: #FFFFFF;                 /* mypage.html '추가 요금 결제 안내'/'내 케어 패키지' 카드와 동일한 흰색 */
+      --card-border: #E5E7EB;          /* mypage.html --card-border 와 동일 */
       --line: #EBE7E0;
       --danger: #C0392B;
-      --radius: 20px;
+      --radius: 16px;                  /* mypage.html --radius 와 동일 */
     }
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
@@ -150,17 +151,23 @@
     /* ---------- 페이지 ---------- */
     .ap-main { padding: 40px 24px 80px; }
     .ap-wrap { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
-    .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 32px; box-shadow: 0 4px 16px rgba(0,0,0,.02); }
+    /* mypage.html '추가 요금 결제 안내'/'내 케어 패키지' 카드(.card)와 완전히 같은 레시피 —
+       흰 배경 + 연한 회색 테두리(1px #E5E7EB) + 16px 라운드 + 같은 그림자값(0 4px 12px rgba(0,0,0,.05)).
+       연회색 페이지 배경(--bg: #F2F4F6) 위에 이 카드 하나만 떠 있고, 안의 입력 항목들(fee-box/notice 등)은
+       별도 테두리 없이 배경색만 있는 평면 콜아웃으로 단일 레이어를 유지합니다. */
+    .card { background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,.05); }
 
     /* 헤더 섹션 */
     .ap-title { margin: 0 0 12px; font-size: 28px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.35; word-break: keep-all; }
     .ap-lead { margin: 0 0 24px; font-size: 16px; color: #475569; word-break: keep-all; }
 
-    /* 안내 배너: 하나의 큰 카드 안에서 제목 바로 아래에 붙는 '작은' 연한 초록 콜아웃 (서비스 지역 · 소요 시간 · 문의 · 로그인 이메일) */
+    /* 안내 배너: 테두리 없이 은은한 배경색과 여백만으로 구분되는 콜아웃(서비스 지역 · 소요 시간 · 문의 · 로그인 이메일).
+       예전에는 바깥 테두리 + 좌측 강조선 + 내부 구분선 2개(총 4겹)가 겹쳐 있어 시각적으로 번잡했습니다 —
+       전부 걷어내고 배경색 하나로만 영역을 구분합니다. */
     .notice {
-      display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 10px 26px;
-      margin: 0 0 30px; padding: 16px 20px; background: #F3F7F1; border: 1px solid var(--brand-line); border-left: 5px solid var(--brand);
-      border-radius: 12px; font-size: 13.5px; line-height: 1.55; color: #374151;
+      display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 14px 26px;
+      margin: 0 0 30px; padding: 20px 24px; background: #F3F7F1;
+      border-radius: 16px; font-size: 13.5px; line-height: 1.55; color: #374151;
     }
     .nt-title { margin: 0 0 2px; font-size: 14.5px; font-weight: 800; color: var(--brand-dark); }
     .nt-sub { margin: 0 0 8px; color: #4B5563; word-break: keep-all; }
@@ -170,12 +177,13 @@
     .nt-areas span { word-break: keep-all; }
     .nt-notes { grid-column: 1 / -1; }
     .nt-note { margin: 0 0 2px; font-size: 12.5px; color: var(--ink-sub); word-break: keep-all; }
-    .nt-info { align-self: start; margin: 0; padding: 0 0 0 26px; list-style: none; border-left: 1px solid #D5E0D0; display: flex; flex-direction: column; gap: 6px; }
+    /* 오른쪽 열(안내 사항/문의)은 구분선 없이 여백만으로 왼쪽 열과 떨어뜨립니다 */
+    .nt-info { align-self: start; margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
     .nt-info li { position: relative; padding-left: 14px; word-break: keep-all; }
     .nt-info li::before { content: '•'; position: absolute; left: 1px; color: var(--brand); font-weight: 700; }
     .nt-info b { color: var(--ink); }
     .nt-info a { color: var(--brand-dark); font-weight: 700; text-decoration: none; border-bottom: 1px solid #C9D6C4; white-space: nowrap; }
-    .nt-login { grid-column: 1 / -1; margin: 0; padding-top: 10px; border-top: 1px dashed #C9D6C4; font-size: 13px; font-weight: 600; color: var(--brand-dark); word-break: break-all; }
+    .nt-login { grid-column: 1 / -1; margin: 4px 0 0; font-size: 13px; font-weight: 600; color: var(--brand-dark); word-break: break-all; }
     .nt-login::before { content: '✓'; display: inline-block; margin-right: 6px; font-weight: 800; color: var(--accent); }
     /* 로그인이 필요해 접수할 수 없는 상태 — 완료를 뜻하는 기본 '✓' 체크 대신 주의를 끄는 색으로 바꾸고,
        안내 뒤에 바로 로그인 버튼을 붙여 지금 바로 로그인할 수 있게 합니다. */
@@ -188,15 +196,15 @@
     }
     .nt-login-cta:hover { background: #184A38; }
 
-    /* 48시간 미매칭 자동 취소/환불 안심 문구 박스: 신청서 상단(제목 아래)과 하단(제출 버튼 바로 위) 두 곳에
-       같은 내용을 반복해 — 신청 전과 결제 직전 모두에서 눈에 띄도록 함 */
+    /* 48시간 미매칭 자동 취소/환불 안심 문구 박스 — 폼 상단에 한 번만 보여줍니다. 결제 직전(제출
+       버튼 바로 위)에는 같은 박스를 반복하지 않고 .submit-area-note 로 짧게만 한 번 더 상기시킵니다. */
     .refund-policy {
-      display: flex; align-items: flex-start; gap: 10px; margin: 0 0 24px; padding: 14px 18px;
-      border-radius: 12px; background: #EEF3E6; border: 1.5px solid var(--accent);
+      display: flex; align-items: flex-start; gap: 10px; margin: 0 0 24px; padding: 16px 20px;
+      border-radius: 14px; background: #EEF3E6;
       font-size: 13.5px; line-height: 1.6; color: var(--brand-dark); font-weight: 700; word-break: keep-all;
     }
     .refund-policy .rp-icon { flex: none; width: 20px; height: 20px; margin-top: 1px; color: var(--accent-dark); }
-    .submit-area .refund-policy { margin: 0 0 20px; }
+    .submit-area-note { margin: 0 0 16px; font-size: 12.5px; color: var(--ink-sub); line-height: 1.5; word-break: keep-all; }
 
     /* 입력 폼 */
     .field { border: none; margin: 0 0 28px; padding: 0; min-width: 0; }
@@ -209,6 +217,12 @@
     }
     .text-input::placeholder { color: #666666; opacity: 1; }   /* 입력 예시: 이전(#94A3B8)보다 훨씬 진하게 (opacity 1: 브라우저 기본 흐림 방지) */
     .text-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(85,107,47,.22); }
+    /* 읽기 전용 입력칸(주소 검색 결과, 로그인 계정에서 자동 채운 신청자 성함/연락처 등) — 수정할 수
+       없다는 것을 배경색으로 바로 알 수 있게 합니다. */
+    .text-input[readonly] { background: #F3F4F6; color: var(--ink-sub); cursor: not-allowed; }
+    .text-input[readonly]:focus { box-shadow: none; }
+    /* 로그인 계정 정보로 자동 채워져 잠긴 입력칸 바로 아래 뜨는 안내 — initApplicantContactFromAccount() 참고 */
+    .contact-lock-note { margin: 6px 2px 0; font-size: 12.5px; color: var(--brand-dark); font-weight: 600; word-break: keep-all; }
     .field.has-error .text-input { border-color: var(--danger); }
     .field.has-error .wbdp-trigger { border-color: var(--danger); }
     #seniorProfileSelect:not([hidden]) { margin-bottom: 10px; }
@@ -218,21 +232,21 @@
        날짜/시간·방문 병원만 고르면 되도록 합니다. */
     .senior-quickfill-card {
       margin: 0 0 28px; padding: 18px 20px; background: var(--brand-soft);
-      border: 1px solid var(--brand-line); border-left: 5px solid var(--brand); border-radius: 14px;
+      border-radius: 16px;
     }
     .senior-quickfill-card label { display: block; margin: 0 0 8px; font-size: 15px; font-weight: 800; color: var(--brand-dark); word-break: keep-all; }
     .senior-quickfill-hint { margin: 8px 2px 0; font-size: 13px; color: var(--brand-dark); font-weight: 600; word-break: keep-all; }
 
     /* 어르신 정보 저장 카드 — 성함·연락처·거동 상태·자택 주소·자주 가는 병원·요청 상세 내용까지 다
        입력한 뒤, 그 입력 묶음의 맨 끝에서 바로 눈에 띄도록 위 '어르신 프로필 원클릭 불러오기' 카드
-       (senior-quickfill-card)와 짝을 이루는 같은 비주얼(연한 브랜드 배경 + 좌측 강조선)을 씁니다 —
+       (senior-quickfill-card)와 짝을 이루는 같은 비주얼(테두리 없는 연한 브랜드 배경)을 씁니다 —
        "이번에 입력한 어르신 정보를 프로필에 저장"과 "저장해 둔 프로필을 불러오기"는 서로 반대 방향의
        같은 기능이라, 두 카드가 서로 짝처럼 보이는 게 자연스럽습니다. .field 클래스를 함께 써서
        .field > label.consent-row(이용약관/개인정보 동의와 같은 커스텀 체크박스 스타일)와
        .consent-help(안내 문구 들여쓰기)를 그대로 재사용합니다. */
     .senior-save-card {
       margin: 4px 0 28px; padding: 18px 20px; background: var(--brand-soft);
-      border: 1px solid var(--brand-line); border-left: 5px solid var(--brand); border-radius: 14px;
+      border-radius: 16px;
     }
     .senior-save-card .consent-row span { font-weight: 700; color: var(--brand-dark); }
 
@@ -251,7 +265,7 @@
     .opt input:focus-visible + span { outline: 3px solid rgba(85,107,47,.5); outline-offset: 2px; }
     .field.has-error .opt span { border-color: #D98E85; }
 
-    /* 결제 수단 버튼(패키지/카드/간편결제/계좌이체/가상계좌): 문구 길이가 달라도 높이·폰트 크기가
+    /* 결제 수단 버튼(패키지/카드/간편결제/계좌이체): 문구 길이가 달라도 높이·폰트 크기가
        같아야 한 줄로 깔끔하게 정렬됨 — 잔여 횟수는 별도 뱃지 없이 버튼 문구에 자연스럽게 포함 */
     #f-payment .opt span { height: 46px; padding: 0 18px; font-size: 15px; white-space: nowrap; }
 
@@ -283,43 +297,22 @@
     .consent-help a { color: var(--brand-dark); font-weight: 700; }
     .consent-row a { color: var(--accent-dark); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }   /* '이용약관' 링크 (누르면 약관 팝업) */
 
-    /* 첫 이용 혜택 배지 — 서비스 카드의 기본 요금에는 정상가만 두고, 5,000원 혜택은 여기서만 안내 */
-    .svc-firstuse-banner {
-      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-      background: #EEF3E6; border: 1.5px solid var(--accent); border-radius: 12px;
-      padding: 10px 14px; margin-bottom: 12px;
-    }
-    .svc-firstuse-badge {
-      flex: none; display: inline-flex; align-items: center; padding: 4px 11px; border-radius: 9999px;
-      background: var(--accent); color: #fff; font-size: 12px; font-weight: 800; letter-spacing: .2px; white-space: nowrap;
-    }
     .svc-firstuse-text { font-size: 13.5px; color: #334155; }
     .svc-firstuse-text strong { color: var(--accent-dark); font-weight: 800; }
 
-    /* 서비스 선택 카드 */
-    .svc-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-    .svc { position: relative; display: block; cursor: pointer; }
-    .svc input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
-    /* 선택 상태는 라디오의 :checked 로 표시합니다 (스크립트 없이 동작 → 뒤로 가기로 선택이 복원돼도 그대로 보임).
-       선택되면: 진한 강조색 2px 테두리 + 옅은 배경색 + 우측 상단 체크(✓) 배지 */
-    .svc-card { position: relative; display: flex; flex-direction: column; gap: 6px; height: 100%; padding: 16px 16px 14px; border: 2px solid var(--control-border); border-radius: 14px; background: #fff; transition: all .15s; }
-    .svc:hover .svc-card { border-color: var(--accent); }
-    .svc input:checked + .svc-card { border-color: var(--accent); background: #EEF3E6; box-shadow: 0 0 0 3px rgba(85,107,47,.16); }
-    .svc-card::after { /* 체크 배지: 선택 전에는 숨김 */
-      content: '✓'; position: absolute; top: 10px; right: 10px; width: 24px; height: 24px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center; background: var(--accent); color: #fff; font-size: 14px; font-weight: 800; line-height: 1;
-      transform: scale(0); opacity: 0; transition: transform .15s, opacity .15s;
-    }
-    .svc input:checked + .svc-card::after { transform: scale(1); opacity: 1; }
-    .svc input:focus-visible + .svc-card { outline: 3px solid rgba(85,107,47,.5); outline-offset: 2px; }
-    .svc-name { padding-right: 28px; font-size: 15.5px; font-weight: 700; line-height: 1.35; word-break: keep-all; }  /* 오른쪽은 체크 배지 자리 */
-    .svc-price { font-size: 14px; font-weight: 800; color: var(--accent-dark); }
-    .svc-desc { font-size: 13px; line-height: 1.5; color: #3F4650; word-break: keep-all; }  /* 설명 글씨를 더 진하게 */
-    .field.has-error .svc-card { border-color: #D98E85; }
+    /* 서비스 선택 — 세로형 카드 대신 공간을 차지하지 않는 슬림한 드롭다운 하나. select 자체는
+       공용 .text-input(흰 배경 · 1px 테두리 · rounded-xl 12px)을 그대로 쓰므로 별도 스타일이 필요 없습니다. */
+    .svc-select-wrap { display: flex; flex-direction: column; gap: 12px; }
+    /* '1시간 콕집 라이트 케어' 선택 시에만 나타나는 세부 목적 드롭다운 — 같은 마이페이지 톤(흰 배경·
+       rounded-2xl)의 옅은 박스로 메인 드롭다운에 종속된 선택임을 보여줍니다. */
+    .svc-onehour-purpose { padding: 14px 16px; border: 1px solid #E5E7EB; border-radius: 16px; background: #fff; animation: svc-purpose-in .18s ease; }
+    .svc-onehour-purpose .sub-label { margin-bottom: 8px; }
+    .svc-onehour-purpose #oneHourCustomInput { margin-top: 10px; }
+    @keyframes svc-purpose-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
     /* 총 예상 금액 배너: 선택 전에는 안내 문구(점선), 선택하면 굵은 금액이 강조되는 배너 */
-    .fee-box { margin-top: 14px; padding: 16px 20px; border-radius: 14px; background: #EEF3E6; border: 2px solid var(--accent); border-left-width: 8px; }
-    .fee-box.is-empty { background: #FBFCFA; border: 2px dashed var(--control-border); color: var(--ink-sub); font-size: 14.5px; }
+    .fee-box { margin-top: 14px; padding: 16px 20px; border-radius: 14px; background: #EEF3E6; }
+    .fee-box.is-empty { background: #FBFCFA; border: 1px dashed var(--control-border); color: var(--ink-sub); font-size: 14.5px; }
     .fee-main { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; letter-spacing: -0.02em; }
     .fee-label { font-size: 15px; font-weight: 700; color: var(--ink); }
     .fee-amount { font-size: 26px; font-weight: 800; color: var(--accent-dark); line-height: 1.2; }
@@ -338,7 +331,7 @@
     .fee-points-hint { margin: 6px 0 0; font-size: 12.5px; color: var(--ink-sub); word-break: keep-all; }
 
     /* 결제 버튼 위 최종 결제 금액 요약 (쿠폰/적립금 입력과 실시간 연동) */
-    .discount-summary { margin-bottom: 20px; padding: 16px 20px; border-radius: 14px; background: var(--brand-soft); border: 1px solid var(--brand-line); }
+    .discount-summary { margin-bottom: 20px; padding: 18px 20px; border-radius: 14px; background: var(--brand-soft); }
     .ds-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 14px; color: var(--ink-sub); padding: 3px 0; }
     .ds-row span:last-child { font-weight: 700; color: var(--ink); }
     .ds-final { margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--accent); font-size: 16px; font-weight: 800; color: var(--ink); }
@@ -435,15 +428,8 @@
     .done h2:focus { outline: none; }   /* 접수 후 스크린리더용으로 제목에 포커스를 주는데, 눈에 보이는 테두리는 필요 없음 */
     .done p { margin: 0 0 6px; color: #475569; word-break: keep-all; }
     .done .who { margin: 16px auto 0; padding: 12px 16px; max-width: 420px; border-radius: 12px; background: var(--brand-soft); color: var(--brand-dark); font-weight: 700; word-break: break-all; }
-    /* 가상계좌 입금 안내 (결제창에서 계좌 발급이 끝난 뒤 표시) */
+    /* 즉시결제(카드/간편결제/계좌이체) 완료 안내 */
     .done .payment-success { margin: 18px auto 0; padding: 14px 18px; max-width: 420px; border-radius: 12px; background: var(--brand-soft); color: var(--brand-dark); font-weight: 700; }
-    .va-box { margin: 18px auto 0; padding: 18px 20px; max-width: 420px; border-radius: 14px; background: #EEF3E6; border: 2px solid var(--accent); text-align: left; }
-    .va-box h3 { margin: 0 0 12px; font-size: 15px; font-weight: 800; color: var(--accent-dark); }
-    .va-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin: 0 0 6px; font-size: 14.5px; }
-    .va-row:last-of-type { margin-bottom: 0; }
-    .va-row .va-label { color: var(--ink-sub); flex: none; }
-    .va-row .va-value { font-weight: 800; color: #1f2937; text-align: right; word-break: break-all; }
-    .va-deadline { margin: 12px 0 0; font-size: 12.5px; font-weight: 700; color: #B45309; }
     /* 비로그인 신청 안내: 나중에 로그인하면 이 신청이 마이페이지에 연결됨 */
     .done .done-login { margin: 18px auto 0; max-width: 420px; font-size: 13.5px; line-height: 1.6; color: #475569; }
     .done .done-login a { color: var(--brand-dark); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
@@ -466,9 +452,8 @@
       .ap-title { font-size: 23px; }
       .ap-lead { font-size: 15px; }
       .notice { grid-template-columns: minmax(0, 1fr); padding: 14px 16px; }
-      .nt-info { padding: 10px 0 0; border-left: 0; border-top: 1px dashed #C9D6C4; }
+      .nt-info { padding: 10px 0 0; }
       .opt span { padding: 11px 16px; }
-      .svc-options { grid-template-columns: minmax(0, 1fr); }
       .done { padding: 36px 20px; }
     }
   </style>
@@ -609,13 +594,15 @@
     <div class="ap-wrap">
 
       <!-- ================================================================ -->
-      <!-- 01. 신청서: 하나의 큰 카드 안에 [제목 · 설명] → [안내 배너] → [입력 양식] 이 이어집니다 -->
+      <!-- 01. 신청서: 하나의 큰 카드 안에 [제목 · 설명] → [안내 배너] → [입력 양식] 이 위에서 아래로
+           이어지는 단일 페이지 폼입니다(다단계 Wizard 를 되돌림 — 2026-11 이전 구조로 복원). -->
       <!-- ================================================================ -->
       <div class="card" id="applyCard">
         <h1 class="ap-title" id="applyTitle">시니어 병원 동행 서비스 신청서</h1>
         <p class="ap-lead">병원 예약부터 진료 동행, 약 수령 및 안전한 귀가까지 전문 동행 매니저가 함께합니다. 정확하고 안전한 동행을 위해 아래 항목을 작성해 주세요.</p>
 
-        <!-- 48시간 미매칭 자동 취소/환불 안심 문구 (상단) — 하단(제출 버튼 위)과 같은 문구가 한 번 더 나옵니다 -->
+        <!-- 48시간 미매칭 자동 취소/환불 안심 문구 (상단) — 하단(제출 버튼 위)에는 같은 내용을 반복하지
+             않고 짧은 한 줄 문구로만 한 번 더 상기시킵니다(.submit-area-note 참고). -->
         <div class="refund-policy">
           <svg class="rp-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
             <path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"></path>
@@ -665,37 +652,34 @@
              요금은 index.html 의 '이용 요금 안내'(기본 2시간)와 같은 값이며, 화면 안내용일 뿐 저장하지 않습니다 -->
         <fieldset class="field" id="f-service">
           <legend>서비스 선택 (Service Type) <span class="req">*</span></legend>
-          <!-- 기본 요금란에는 정상가만 깔끔하게 표시하고, 5,000원 첫 이용 혜택은 이 배지 한 곳에서만
-               안내합니다(실제 할인은 쿠폰 드롭다운에서 자동 선택된 웰컴 쿠폰으로 적용됨 — renderCouponOptions 참고). -->
-          <div class="svc-firstuse-banner">
-            <span class="svc-firstuse-badge">첫 이용 혜택</span>
-            <span class="svc-firstuse-text">보유 중인 <strong>5,000원 웰컴 쿠폰</strong>을 아래 '할인 혜택 적용'에서 선택하면 할인받을 수 있어요.</span>
-          </div>
-          <div class="svc-options">
-            <label class="svc">
-              <input type="radio" name="service" value="시니어 병원 동행" data-price="50000">
-              <span class="svc-card">
-                <span class="svc-name">시니어 병원 동행</span>
-                <span class="svc-price">50,000원 / 2시간</span>
-                <span class="svc-desc">접수·수납·약국 동행, 진료 내용 보호자 피드백</span>
-              </span>
-            </label>
-            <label class="svc">
-              <input type="radio" name="service" value="생활 편의 대행" data-price="40000">
-              <span class="svc-card">
-                <span class="svc-name">생활 편의 대행</span>
-                <span class="svc-price">40,000원 / 2시간</span>
-                <span class="svc-desc">관공서·은행 업무, 장보기, 산책·말벗, 스마트폰 교육</span>
-              </span>
-            </label>
-            <label class="svc">
-              <input type="radio" name="service" value="복합 매칭 서비스 (동행 + 생활편의)" data-price="60000">
-              <span class="svc-card">
-                <span class="svc-name">복합 매칭 서비스 (동행 + 생활편의)</span>
-                <span class="svc-price">60,000원 / 2시간</span>
-                <span class="svc-desc">병원 진료 후 약국·은행·장보기까지 원스톱 케어</span>
-              </span>
-            </label>
+          <!-- 세로형 카드 4개 나열 대신, 공간을 차지하지 않는 슬림한 드롭다운 하나로 서비스를 고릅니다.
+               선택에 따른 상세 설명은 아래 fee-box(요금)·routeHint(주소 입력 안내)가 이어서 보여줍니다. -->
+          <div class="svc-select-wrap">
+            <select class="text-input" id="serviceType" name="service">
+              <option value="">선택해주세요</option>
+              <option value="1시간 라이트 케어">[NEW] 1시간 콕집 라이트 케어 (30,000원 / 1시간)</option>
+              <option value="시니어 병원 동행">시니어 병원 동행 (50,000원 / 2시간)</option>
+              <option value="생활 편의 대행">생활 편의 대행 (40,000원 / 2시간)</option>
+              <option value="복합 매칭 서비스 (동행 + 생활편의)">복합 매칭 서비스 (동행 + 생활편의) (60,000원 / 2시간)</option>
+            </select>
+            <!-- '1시간 콕집 라이트 케어' 선택 시에만 표시 — 세부 유형 선택(택 1). applyService/f-service 의
+                 change 리스너가 토글합니다. 값은 request_details 에 '세부 목적: …' 줄로 함께 저장되고
+                 (toDbRow), 마이페이지·매니저·어드민 화면이 같은 키로 다시 읽어 노출합니다. -->
+            <div class="svc-onehour-purpose" id="oneHourPurposeWrap" hidden>
+              <label class="sub-label" for="oneHourPurpose">세부 이용 목적 선택 <span class="req">(필수)</span></label>
+              <select class="text-input" id="oneHourPurpose" name="oneHourPurpose">
+                <option value="">선택해주세요</option>
+                <option value="수면내시경/검사 후 안전 귀가 케어">수면내시경/검사 후 안전 귀가 케어</option>
+                <option value="아파트 단지 내 안심 산책 및 말벗">아파트 단지 내 안심 산책 및 말벗</option>
+                <option value="집 앞 마트 생필품 장보기 및 간단 업무 대행">집 앞 마트 생필품 장보기 및 간단 업무 대행</option>
+                <option value="기타 (직접 입력)">기타 (직접 입력)</option>
+              </select>
+              <!-- '기타 (직접 입력)' 선택 시에만 표시 — updateOneHourCustomInputUi()가 토글합니다.
+                   값은 request_details 에 '세부 목적: 기타 (입력내용)' 형태로 합쳐 저장되고(toDbRow),
+                   마이페이지·매니저·어드민 화면은 그 줄을 그대로 '세부 목적'으로 다시 읽어 보여줍니다. -->
+              <input class="text-input" type="text" id="oneHourCustomInput" name="oneHourCustomInput" maxlength="80" hidden
+                     placeholder="1시간 이내 가능한 가벼운 케어 내용을 적어주세요 (예: 약국 서류 수령 보조 등 / ※ 무거운 짐 운반·전문 청소 제외)">
+            </div>
           </div>
           <div class="fee-box is-empty" id="feeBox" aria-live="polite">서비스를 선택하시면 총 예상 금액이 표시됩니다.</div>
           <p class="svc-firstuse-text" style="margin-top:6px;">* 위드브릿지의 모든 동행에는 매니저 안심케어(배상책임) 혜택이 기본 포함되어 있습니다.</p>
@@ -737,8 +721,25 @@
               <input class="text-input" type="tel" id="contactPhone" name="contactPhone" maxlength="13" autocomplete="tel" inputmode="numeric" placeholder="예: 010-1234-5678">
             </div>
           </div>
+          <!-- 로그인 계정(profiles)에 성함/연락처가 등록돼 있으면 initApplicantContactFromAccount() 가
+               위 두 입력칸을 읽기 전용으로 잠그고 이 안내를 보여줍니다 — 계정 정보가 없거나 비로그인이면
+               평소처럼 직접 입력합니다. -->
+          <p class="contact-lock-note" id="contactLockNote" hidden>로그인된 계정 정보로 자동 접수됩니다.</p>
           <p class="err" id="e-contact" hidden></p>
         </div>
+
+        <!-- 거동 상태는 '일정 및 장소' 필드들보다 앞(어르신 정보 묶음 끝)에 둡니다 —
+             id/name/검증 로직은 그대로입니다. -->
+        <fieldset class="field" id="f-mobility">
+          <legend>어르신 거동 상태 <span class="req">*</span></legend>
+          <div class="options">
+            <label class="opt"><input type="radio" name="mobility" value="혼자 걸음 가능"><span>혼자 걸음 가능</span></label>
+            <label class="opt"><input type="radio" name="mobility" value="지팡이·보행기 사용"><span>지팡이·보행기 사용</span></label>
+            <label class="opt"><input type="radio" name="mobility" value="휠체어 사용"><span>휠체어 사용</span></label>
+            <label class="opt"><input type="radio" name="mobility" value="매니저 부축 필수"><span>매니저 부축 필수</span></label>
+          </div>
+          <p class="err" id="e-mobility" hidden></p>
+        </fieldset>
 
         <div class="field" id="f-datetime">
           <label for="datetimeDate">희망 날짜 및 시간 <span class="req">*</span></label>
@@ -788,24 +789,12 @@
           <textarea class="text-input" id="details" name="details" rows="4" maxlength="1000" placeholder="예: 진료과, 장보기 목록, 은행 업무 등 구체적인 요청을 적어 주세요."></textarea>
         </div>
 
-        <fieldset class="field" id="f-mobility">
-          <legend>어르신 거동 상태 <span class="req">*</span></legend>
-          <div class="options">
-            <label class="opt"><input type="radio" name="mobility" value="혼자 걸음 가능"><span>혼자 걸음 가능</span></label>
-            <label class="opt"><input type="radio" name="mobility" value="지팡이·보행기 사용"><span>지팡이·보행기 사용</span></label>
-            <label class="opt"><input type="radio" name="mobility" value="휠체어 사용"><span>휠체어 사용</span></label>
-            <label class="opt"><input type="radio" name="mobility" value="매니저 부축 필수"><span>매니저 부축 필수</span></label>
-          </div>
-          <p class="err" id="e-mobility" hidden></p>
-        </fieldset>
-
         <!-- 어르신 성함·연락처·거동 상태·자택 주소·자주 가는 병원·요청 상세 내용까지 어르신 관련
-             입력이 모두 끝나는 지점(거동 상태 바로 다음, 성격이 다른 '선택 추가 옵션' 결제 항목이
-             시작되기 전)에 두어, 위 '어르신 프로필 원클릭 불러오기' 카드와 짝을 이루는 같은 박스
-             UI(senior-save-card)로 눈에 띄게 둡니다. 로그인한 사용자에게만 보여줍니다(비로그인
-             신청은 저장할 계정이 없음, init() 이 세션 확인 뒤 hidden 을 풀어 줍니다). 기본값은 체크
-             해제 — 무조건 저장이 아니라 보호자가 직접 선택해야 저장됩니다(saveSeniorProfileFromApplication
-             참고). -->
+             입력이 모두 끝나는 지점(주소 입력 바로 다음)에 두어, 위 '어르신 프로필 원클릭 불러오기'
+             카드와 짝을 이루는 같은 박스 UI(senior-save-card)로 눈에 띄게 둡니다. 로그인한 사용자에게만
+             보여줍니다(비로그인 신청은 저장할 계정이 없음, init() 이 세션 확인 뒤 hidden 을 풀어 줍니다).
+             기본값은 체크 해제 — 무조건 저장이 아니라 보호자가 직접 선택해야 저장됩니다
+             (saveSeniorProfileFromApplication 참고). -->
         <div class="field senior-save-card" id="f-save-senior-profile" hidden>
           <label class="consent-row">
             <input type="checkbox" id="saveSeniorProfile" name="saveSeniorProfile">
@@ -864,7 +853,6 @@
             <label class="opt"><input type="radio" name="payment_method" value="카드" checked><span>카드</span></label>
             <label class="opt"><input type="radio" name="payment_method" value="간편결제"><span>간편결제</span></label>
             <label class="opt"><input type="radio" name="payment_method" value="계좌이체"><span>계좌이체</span></label>
-            <label class="opt"><input type="radio" name="payment_method" value="가상계좌"><span>가상계좌</span></label>
           </div>
           <p class="hint" id="packageHint" hidden>패키지로 예약하면 결제 없이 바로 접수되고, 보유 회차에서 1회가 차감됩니다. 쿠폰·적립금은 이 예약에는 적용되지 않습니다. 선택 추가 옵션을 고르면 그 금액만 매니저 수락 후 별도로 결제받습니다.</p>
           <p class="err" id="e-payment" hidden></p>
@@ -911,16 +899,11 @@
                  한 번 더 명확히 알립니다(refreshDiscountSummary 참고). -->
             <p class="ds-package-note" id="dsPackageNote" hidden></p>
           </div>
-          <!-- 48시간 미매칭 자동 취소/환불 안심 문구 (하단) — 상단과 같은 문구, 결제 직전에 한 번 더 확인시킴 -->
-          <div class="refund-policy">
-            <svg class="rp-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-              <path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"></path>
-              <path d="m9 12 2 2 4-4"></path>
-            </svg>
-            <span>48시간 이내 매니저가 배정되지 않을 경우 신청이 자동 취소되며, 결제금액은 100% 자동 환불됩니다. 안심하고 신청해 주세요.</span>
-          </div>
+          <!-- 48시간 환불 안심 문구는 상단에서 이미 전체 박스로 한 번 안내했으므로, 결제 직전에는
+               같은 박스를 반복하지 않고 짧은 문구로만 한 번 더 상기시킵니다(반복 노출 최소화). -->
+          <p class="submit-area-note">* 48시간 내 미배정 시 결제금액 100% 자동 환불 · 실비(교통비, 주차비 등)는 별도로 부과될 수 있습니다.</p>
           <div class="form-error" id="formError" role="alert" hidden></div>
-          <button type="submit" class="submit" id="submitBtn">신청서 제출하기</button>
+          <button type="submit" class="submit" id="submitBtn">신청서 및 결제하기</button>
         </div>
         </form>
       </div><!-- /#applyCard -->
@@ -936,16 +919,8 @@
         <p style="font-size:12.5px; color:#94A3B8;">(위드브릿지 전속 안심케어 혜택 자동 적용)</p>
         <div class="who" id="doneService"></div>
         <div class="who" id="doneContact"></div>
-        <!-- 카드/간편결제 등 즉시결제가 성공했을 때만 채워짐 — 가상계좌 입금 안내 박스와는 항상 둘 중 하나만 보임 (showDone 참고) -->
+        <!-- 카드/간편결제/계좌이체 즉시결제가 성공했을 때 채워짐 (showDone 참고) -->
         <p class="payment-success" id="donePaymentNotice" hidden></p>
-        <!-- 결제창에서 가상계좌 발급이 끝난 뒤에만 채워짐 (showDone 참고) -->
-        <div class="va-box" id="doneVirtualAccount" hidden>
-          <h3>아래 가상계좌로 입금해 주세요</h3>
-          <div class="va-row"><span class="va-label">은행</span><span class="va-value" id="vaBankName"></span></div>
-          <div class="va-row"><span class="va-label">계좌번호</span><span class="va-value" id="vaAccountNumber"></span></div>
-          <div class="va-row"><span class="va-label">입금 금액</span><span class="va-value" id="vaAmount"></span></div>
-          <p class="va-deadline" id="vaDeadline"></p>
-        </div>
         <!-- 비로그인(또는 계정 연결 없이) 접수된 경우에만 표시: 로그인하면 이 신청이 마이페이지에 자동 연결됩니다 -->
         <p class="done-login" id="doneLoginHint" hidden>로그인하지 않고 신청하셨어요. <a href="login.html">카카오로 로그인</a>하시면 이 신청이 마이페이지에 자동으로 연결돼요.</p>
         <div class="done-actions">
@@ -1028,15 +1003,29 @@
     // 화면 라디오 값(한글) → 포트원 V2 requestPayment() 의 payMethod 값. requestPayment() 는 호출마다
     // payMethod 를 하나 필수로 받으므로("payMethod는 필수 파라미터입니다" 오류), 결제창을 열기 전에
     // 여기서 먼저 고르게 합니다.
-    const PAY_METHOD_MAP = { '카드': 'CARD', '간편결제': 'EASY_PAY', '계좌이체': 'TRANSFER', '가상계좌': 'VIRTUAL_ACCOUNT' };
+    const PAY_METHOD_MAP = { '카드': 'CARD', '간편결제': 'EASY_PAY', '계좌이체': 'TRANSFER' };
 
     // 서비스별 설정: 기본 요금(2시간 기준)과, 선택에 따라 바뀌는 입력 안내 문구
     //  * 서비스 이름 = DB 의 service_type 값 (supabase-manager-schema.sql 의 check 와 같아야 함)
     //  * 요금은 index.html 의 '이용 요금 안내'와 같은 값. 화면 안내용일 뿐 DB 에 저장하지 않습니다
     const SERVICES = {
+      // 2시간 최소 이용 조건 때문에 이탈하는 보호자(수면내시경 귀가, 퇴원 수속, 단기 외출 등)를 위한
+      // 신규 1시간 상품. 가격/이름은 index.html 의 '1시간 콕집 라이트 케어' 카드·계산기와 반드시
+      // 같은 값으로 유지하세요 — 서버 쪽 정가도 sql/one_hour_light_care_service.sql 의
+      // expected_service_price()에 같은 이름으로 등록돼 있어야 결제 승인이 AMOUNT_MISMATCH 로 막히지 않습니다.
+      '1시간 라이트 케어': {
+        price: 30000,
+        overtimeRate: 15000,
+        durationLabel: '(기본 1시간)',
+        destLabel: '목적지 / 방문 장소',
+        destPlaceholder: '예: 길병원(수면내시경 귀가) 또는 단지 내 산책, 집 앞 마트',
+        routeHint: '수면내시경/검사 후 귀가하실 병원, 산책하실 장소, 장보실 마트 등을 적어 주세요.',
+        detailsPlaceholder: '예: 수면내시경 후 보호자 동반 귀가, 단지 내 30분 산책, 장보기 목록(우유 2개, 두부 1모 등)'
+      },
       '시니어 병원 동행': {
         price: 50000,
         overtimeRate: 12500,
+        durationLabel: '(기본 2시간)',
         destLabel: '목적지 (병원명)',
         destPlaceholder: '예: 길병원',
         routeHint: '방문하실 병원의 정확한 이름을 적어 주시면 매칭에 도움이 돼요.',
@@ -1045,6 +1034,7 @@
       '생활 편의 대행': {
         price: 40000,
         overtimeRate: 10000,
+        durationLabel: '(기본 2시간)',
         destLabel: '목적지 (방문 장소·업무)',
         destPlaceholder: '방문할 병원, 관공서, 은행명을 입력해 주세요',
         routeHint: '방문 장소(관공서·은행·마트 등)와 간단한 업무를 적어 주세요. 자세한 내용은 아래 ‘요청 상세 내용’에 적어 주셔도 좋아요.',
@@ -1053,6 +1043,7 @@
       '복합 매칭 서비스 (동행 + 생활편의)': {
         price: 60000,
         overtimeRate: 15000,
+        durationLabel: '(기본 2시간)',
         destLabel: '목적지 (병원 → 이후 방문 장소)',
         destPlaceholder: '예: 길병원 → 약국 → 우리은행',
         routeHint: '병원 진료 후 들르실 곳(약국·은행·마트 등)을 순서대로 적어 주세요.',
@@ -1123,7 +1114,7 @@
     }
     // 제출 버튼 글자: 패키지 차감을 고르면 '결제'라는 표현 대신 '차감 예약'임을 분명히 알립니다.
     function defaultSubmitLabel() {
-      return isPackageDeductionChosen() ? '잔여 횟수 차감 예약하기' : '신청서 제출하기';
+      return isPackageDeductionChosen() ? '잔여 횟수 차감 예약하기' : '신청서 및 결제하기';
     }
     function updateSubmitButtonLabel() {
       const btn = $('submitBtn');
@@ -1160,7 +1151,7 @@
     });
 
     function currentServicePrice() {
-      const svc = SERVICES[form.querySelector('input[name="service"]:checked')?.value];
+      const svc = SERVICES[$('serviceType').value];
       return svc ? svc.price : null;
     }
     const ADDON_CHECKBOX_IDS = { urgent: 'addonUrgent' };
@@ -1198,6 +1189,7 @@
         summary.hidden = true;
         packageNote.hidden = true;
         updateDiscountInputsEnabled(false);
+        updateSubmitButtonLabel();
         return;
       }
 
@@ -1223,6 +1215,7 @@
           : '※ 패키지 1회가 차감되며, 결제 없이 바로 접수됩니다.';
         packageNote.hidden = false;
         summary.hidden = false;
+        updateSubmitButtonLabel();
         return;
       }
 
@@ -1261,6 +1254,7 @@
       $('dsPoints').textContent = '-' + won(pointsUsedValue) + '원';
       $('dsFinal').textContent = won(finalAmount) + '원';
       summary.hidden = false;
+      updateSubmitButtonLabel();
     }
 
     pointsInputEl.addEventListener('input', () => {
@@ -1326,11 +1320,31 @@
       e.target.value = formatPhoneDigits(digits);
     });
 
+    // 세부 목적 드롭다운에서 '기타 (직접 입력)'을 선택했을 때만 보이는 자유 입력칸. 다른 항목으로
+    // 바꾸면 값도 같이 비워 — 숨겨진 입력값이 그대로 제출돼 저장되는 일을 막습니다.
+    const ONE_HOUR_CUSTOM_VALUE = '기타 (직접 입력)';
+    function updateOneHourCustomInputUi(purpose) {
+      const isCustom = purpose === ONE_HOUR_CUSTOM_VALUE;
+      $('oneHourCustomInput').hidden = !isCustom;
+      if (!isCustom) $('oneHourCustomInput').value = '';
+    }
+
     // 선택한 서비스에 맞게 '기본 요금'과 입력 안내(라벨·예시·힌트)를 갱신
+    // '1시간 콕집 라이트 케어' 선택 시에만 세부 목적 드롭다운을 보여줍니다. 다른 서비스로 바꾸면 값도
+    // 같이 초기화해 — 뒤에 숨겨진 선택값이 그대로 제출돼 저장되는 일을 막습니다.
+    function updateOneHourPurposeUi(name) {
+      const isOneHour = name === '1시간 라이트 케어';
+      $('oneHourPurposeWrap').hidden = !isOneHour;
+      if (!isOneHour) $('oneHourPurpose').value = '';
+      updateOneHourCustomInputUi($('oneHourPurpose').value);
+    }
+    $('oneHourPurpose').addEventListener('change', (e) => updateOneHourCustomInputUi(e.target.value));
+
     function applyService(name) {
       const svc = SERVICES[name];
       const fee = $('feeBox');
       fee.textContent = '';
+      updateOneHourPurposeUi(name);
       if (!svc) { // 아직 선택 전 (또는 알 수 없는 값)
         pointsUsedValue = 0;
         fee.className = 'fee-box is-empty';
@@ -1348,7 +1362,7 @@
       main.className = 'fee-main';
       const label = document.createElement('span'); label.className = 'fee-label'; label.textContent = '총 예상 금액:';
       const amount = document.createElement('span'); amount.className = 'fee-amount'; amount.textContent = won(svc.price) + '원';
-      const unit = document.createElement('span'); unit.className = 'fee-unit'; unit.textContent = '(기본 2시간)';
+      const unit = document.createElement('span'); unit.className = 'fee-unit'; unit.textContent = svc.durationLabel || '(기본 2시간)';
       main.append(label, ' ', amount, ' ', unit);
       const note = document.createElement('p');
       note.className = 'fee-note';
@@ -1525,7 +1539,13 @@
       const desiredDate = $('datetimeDate').value;
       const desiredTime = $('datetimeTime').value;
       return {
-        service_type: radio('service'),
+        service_type: $('serviceType').value,
+        // '1시간 콕집 라이트 케어' 선택 시에만 보이는 세부 목적 드롭다운(oneHourPurposeWrap) — 다른
+        // 서비스에서는 항상 숨김+빈 값(updateOneHourPurposeUi)이라 그대로 읽어도 안전합니다.
+        one_hour_purpose: $('oneHourPurpose').value || '',
+        // '기타 (직접 입력)' 선택 시에만 보이는 자유 입력칸 — 다른 항목에서는 항상 숨김+빈 값
+        // (updateOneHourCustomInputUi)이라 그대로 읽어도 안전합니다.
+        one_hour_custom: $('oneHourCustomInput').value.trim(),
         relationship: radio('relationship'),
         senior_name: $('seniorName').value.trim(),
         // 어르신 프로필 드롭다운에서 실제 프로필을 선택했을 때만 채워집니다('직접 입력'이거나 드롭다운
@@ -1583,7 +1603,9 @@
     //   address         ← 출발지 / 목적지 를 ' / ' 로 합친 값 (마이페이지가 이 구분자로 다시 나눠 읽습니다).
     //                     이제 두 칸으로 입력받으므로 구분자가 항상 정확히 들어갑니다
     //   request_details ← 요청 상세 내용. 테이블에 전용 컬럼이 없는 '희망 날짜 및 시간'과 '어르신 거동 상태'도
-    //                     여기에 줄을 나눠 함께 저장합니다 (운영자가 한 칸에서 모두 확인)
+    //                     여기에 줄을 나눠 함께 저장합니다 (운영자가 한 칸에서 모두 확인). '1시간 라이트
+    //                     케어'를 선택했을 때는 세부 목적 드롭다운 값도 '세부 목적: …' 줄로 같이 들어갑니다 —
+    //                     mypage.html/mypage-manager.html 의 parseRequestDetails()가 같은 키로 다시 분리해 보여줍니다.
     //   privacy_agreed  ← 개인정보 수집 동의
     //   coupon_id       ← 쿠폰 드롭다운(f-discount)에서 고른 user_coupons.id (선택 안 하면 null)
     //   coupon_discount ← 그 쿠폰의 할인액 스냅샷(첫 이용 웰컴 쿠폰은 5,000원 고정이지만, 나중에 금액이
@@ -1612,6 +1634,15 @@
       const lines = ['희망 일시: ' + v.desired_datetime, '어르신 거동 상태: ' + v.mobility];
       if (v.senior_gender) lines.push('어르신 성별: ' + v.senior_gender);
       if (v.senior_phone) lines.push('어르신 연락처: ' + v.senior_phone);
+      // '1시간 라이트 케어' 선택 시에만 값이 있고, mypage.html·mypage-manager.html·admin.js 가 같은
+      // '세부 목적:' 키로 다시 읽어 보호자/매니저/어드민 화면에 노출합니다. '기타 (직접 입력)'을
+      // 골랐으면 직접 쓴 내용을 괄호 안에 합쳐 '기타 (입력내용)' 형태로 저장합니다.
+      if (v.service_type === '1시간 라이트 케어' && v.one_hour_purpose) {
+        const purposeText = v.one_hour_purpose === ONE_HOUR_CUSTOM_VALUE
+          ? '기타 (' + v.one_hour_custom + ')'
+          : v.one_hour_purpose;
+        lines.push('세부 목적: ' + purposeText);
+      }
       if (v.request_details) lines.push('요청 상세: ' + v.request_details);
       const price = SERVICES[v.service_type] ? SERVICES[v.service_type].price : 0;
       // 패키지 차감 예약은 이미 선결제된 회차로 기본 요금을 충당하는 것이라 쿠폰/적립금은 적용되지 않습니다
@@ -1657,6 +1688,8 @@
     function validate(v) {
       const errors = {};
       if (!SERVICE_NAMES.includes(v.service_type)) errors.service = '신청하실 서비스를 선택해 주세요.';
+      else if (v.service_type === '1시간 라이트 케어' && !v.one_hour_purpose) errors.service = '1시간 라이트 케어의 세부 목적을 선택해 주세요.';
+      else if (v.service_type === '1시간 라이트 케어' && v.one_hour_purpose === ONE_HOUR_CUSTOM_VALUE && !v.one_hour_custom) errors.service = '기타 단기 케어 내용을 입력해 주세요.';
       if (!RELATIONSHIPS.includes(v.relationship)) errors.relationship = '어르신과의 관계를 선택해 주세요.';
       if (!v.senior_name) errors['senior-name'] = '어르신 성함을 입력해 주세요.';
       const phoneDigits = v.applicant_phone.replace(/\D/g, '').length;
@@ -1706,7 +1739,7 @@
       if (first) {
         const box = $('f-' + first);
         box.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        const focusable = box.querySelector('input');
+        const focusable = box.querySelector('input, select');
         if (focusable) focusable.focus({ preventScroll: true });
       }
     }
@@ -1894,14 +1927,14 @@
         const addonNotice = row.addon_total > 0
           ? (' 선택하신 추가 옵션(' + won(row.addon_total) + '원)은 매니저 수락 후 별도로 결제받습니다.')
           : '';
-        showDone(values, linkedToAccount ? 'linked' : (userId ? 'linking' : 'anonymous'), null,
+        showDone(values, linkedToAccount ? 'linked' : (userId ? 'linking' : 'anonymous'),
           '보유 패키지에서 1회가 차감되어 예약이 접수되었습니다. (잔여 ' + remainingAfter + '회)' + addonNotice);
         return;
       }
 
-      // ---- 신청서 저장 완료 → 완료 화면으로 넘어가기 전에 포트원 V2 결제창(가상계좌 발급)을 띄움 ----
-      // 결제창 응답은 참고용일 뿐 그대로 신뢰하지 않습니다 — 실제 계좌번호/금액은 Edge Function
-      // (issue-virtual-account)이 포트원 API를 서버에서 다시 조회해 확인한 값만 화면에 표시합니다
+      // ---- 신청서 저장 완료 → 완료 화면으로 넘어가기 전에 포트원 V2 결제창(카드/간편결제/계좌이체)을 띄움 ----
+      // 결제창 응답은 참고용일 뿐 그대로 신뢰하지 않습니다 — 실제 승인 여부는 Edge Function
+      // (issue-virtual-account)이 포트원 API를 서버에서 다시 조회해 확인한 값만 믿습니다
       // (supabase/functions/issue-virtual-account, sql/payment_confirmation_functions.sql 참고).
       btn.textContent = '결제창 여는 중…';
 
@@ -1945,8 +1978,6 @@
             phoneNumber: values.applicant_phone.replace(/\D/g, ''),
             email: applicantEmail || undefined
           },
-          // virtualAccount 옵션은 payMethod 가 'VIRTUAL_ACCOUNT' 일 때만 의미가 있으므로 그때만 같이 보냅니다.
-          ...(payMethod === 'VIRTUAL_ACCOUNT' ? { virtualAccount: { accountExpiry: { validHours: 24 } } } : {}),
           customData: { application_id: applicationId }
         });
       } catch (e) {
@@ -1992,7 +2023,6 @@
       // 결제사/수단에 따라 승인이 포트원 서버에 반영되기까지 아주 짧게 지연될 수 있어(즉시결제인데도 조회
       // 시점엔 아직 'READY'인 경우) — 그래서 생기는 'PAYMENT_NOT_APPROVED' 응답만 몇 초 간격으로 다시
       // 조회합니다(그 외 오류는 재시도해도 결과가 바뀌지 않으므로 바로 포기합니다).
-      const isVirtualAccount = payMethod === 'VIRTUAL_ACCOUNT';
       btn.textContent = '결제 확인 중…';
       const RECHECK_DELAYS_MS = [1500, 3000, 5000]; // 최초 1회 + 최대 3회 재시도, 총 대기 최대 9.5초
       // supabaseClient.functions.invoke() 대신 WBEdgeFn.invoke() (js/edge-function-fetch.js) 로 명시적
@@ -2024,24 +2054,19 @@
       btn.disabled = false;
       btn.textContent = '신청서 제출하기';
 
-      // 가상계좌 '안내 박스'는 실제로 계좌 번호가 있는 가상계좌/무통장 입금에서만 띄웁니다 — 카드 등
-      // 즉시결제는 서버가 'PAID' 로 확인했을 때도, 드물게 확인이 늦어 재시도 끝에도 실패했을 때도(결제창
-      // 자체는 이미 성공을 알려 줬으므로) "카드 결제가 성공적으로 완료되었습니다"만 보여줍니다. 그 늦은
-      // 확인이 실제로 상태를 바꿀 때까지는 portone-webhook 이 뒤이어 재확인·반영합니다.
-      let virtualAccount = null;
+      // 카드/간편결제/계좌이체는 전부 즉시결제라, 서버가 'PAID' 로 확인했을 때도, 드물게 확인이 늦어
+      // 재시도 끝에도 실패했을 때도(결제창 자체는 이미 성공을 알려 줬으므로) "결제가 성공적으로
+      // 완료되었습니다"를 보여줍니다. 그 늦은 확인이 실제로 상태를 바꿀 때까지는 portone-webhook 이
+      // 뒤이어 재확인·반영합니다.
       let paymentNotice = null;
       if (vaError) {
         console.error('[결제] issue-virtual-account 재시도 끝에도 실패:', vaError);
-        if (isVirtualAccount) virtualAccount = 'ERROR';
-        else paymentNotice = '카드 결제가 성공적으로 완료되었습니다.';
+        paymentNotice = '결제가 성공적으로 완료되었습니다.';
       } else if (vaData && vaData.status === 'PAID') {
-        paymentNotice = isVirtualAccount ? '결제가 완료되었습니다.' : '카드 결제가 성공적으로 완료되었습니다.';
-      } else if (vaData && vaData.virtual_account) {
-        virtualAccount = vaData.virtual_account;
-        alert('가상계좌가 발급됐습니다. 24시간 이내에 안내된 계좌로 입금해 주세요.');
+        paymentNotice = '결제가 성공적으로 완료되었습니다.';
       }
 
-      showDone(values, linkedToAccount ? 'linked' : (userId ? 'linking' : 'anonymous'), virtualAccount, paymentNotice);
+      showDone(values, linkedToAccount ? 'linked' : (userId ? 'linking' : 'anonymous'), paymentNotice);
     });
 
     // ---------- 로그인 확인 · 비로그인 신청 기억 ----------
@@ -2084,43 +2109,19 @@
     }
 
     // mode: 'linked'(로그인 계정에 바로 연결됨 · 안내 없음) | 'anonymous'(비로그인 → 로그인하면 연결) | 'linking'(로그인 상태인데 연결을 한 번 더 진행 중)
-    // virtualAccount: issue-virtual-account 가 돌려준 { bank_name, account_number, amount, expired_at } 객체면 입금 안내를 보여주고,
-    //   'ERROR'(결제창은 성공했지만 서버 확인이 실패) 면 계좌 정보 대신 문의 안내를, 그 외(카드 등 즉시결제·스팸 함정 등 결제 자체를
-    //   안 한 경우)엔 박스를 숨깁니다 — 가상계좌가 아닌 결제 수단은 이 '계좌' 자체가 없으므로, virtualAccount 가 'ERROR'라도
-    //   이 박스를 띄우면 안 됩니다(요구사항). 그래서 호출하는 쪽(제출 핸들러)이 가상계좌 수단일 때만 virtualAccount 를 채웁니다.
-    // paymentNotice: 카드/간편결제 등 즉시결제가 성공했을 때 보여줄 문구(그 외엔 null) — 가상계좌 안내 박스와 배타적으로 노출됩니다.
+    // paymentNotice: 결제(카드/간편결제/계좌이체) 또는 패키지 차감이 완료됐을 때 보여줄 문구(그 외엔 null)
     const ANON_HINT_HTML = $('doneLoginHint').innerHTML;
-    function showDone(values, mode, virtualAccount, paymentNotice) {
+    function showDone(values, mode, paymentNotice) {
       const svc = SERVICES[values.service_type];
       const addonNote = values.addon_total > 0 ? (' · 선택 옵션 ' + won(values.addon_total) + '원') : '';
       const couponNote = values.coupon_discount > 0 ? (' · 쿠폰 ' + won(values.coupon_discount) + '원 할인') : '';
       const pointsNote = values.points_used > 0 ? (' · 적립금 ' + won(values.points_used) + '원 사용') : '';
-      $('doneService').textContent = '신청 서비스: ' + values.service_type + (svc ? ' · 총 예상 금액 ' + won(svc.price) + '원 (기본 2시간)' + addonNote + couponNote + pointsNote : '');
+      $('doneService').textContent = '신청 서비스: ' + values.service_type + (svc ? ' · 총 예상 금액 ' + won(svc.price) + '원 ' + (svc.durationLabel || '(기본 2시간)') + addonNote + couponNote + pointsNote : '');
       $('doneContact').textContent = values.applicant_name + ' (' + values.applicant_phone + ')';
 
       const paymentNoticeEl = $('donePaymentNotice');
       if (paymentNotice) { paymentNoticeEl.textContent = paymentNotice; paymentNoticeEl.hidden = false; }
       else paymentNoticeEl.hidden = true;
-
-      const vaBox = $('doneVirtualAccount');
-      if (virtualAccount && typeof virtualAccount === 'object') {
-        $('vaBankName').textContent = virtualAccount.bank_name || '-';
-        $('vaAccountNumber').textContent = virtualAccount.account_number || '-';
-        $('vaAmount').textContent = virtualAccount.amount ? won(virtualAccount.amount) + '원' : '-';
-        const deadline = virtualAccount.expired_at ? new Date(virtualAccount.expired_at) : null;
-        $('vaDeadline').textContent = (deadline && !isNaN(deadline.getTime()))
-          ? '입금 기한: ' + deadline.toLocaleString('ko-KR', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + '까지 (미입금 시 자동 취소될 수 있어요)'
-          : '입금 기한: 발급 후 2시간 이내';
-        vaBox.hidden = false;
-      } else if (virtualAccount === 'ERROR') {
-        $('vaBankName').textContent = '-';
-        $('vaAccountNumber').textContent = '-';
-        $('vaAmount').textContent = '-';
-        $('vaDeadline').textContent = '계좌 정보를 불러오지 못했어요. 고객센터(010-5530-5760)로 문의해 주시면 안내해 드릴게요.';
-        vaBox.hidden = false;
-      } else {
-        vaBox.hidden = true;
-      }
 
       const hint = $('doneLoginHint');
       if (mode === 'anonymous') { hint.innerHTML = ANON_HINT_HTML; hint.hidden = false; }
@@ -2144,10 +2145,25 @@
       $('doneTitle').focus({ preventScroll: true }); // 스크린리더가 '신청서가 접수되었습니다'를 읽도록 (화면은 움직이지 않음)
     }
 
-    // 뒤로 가기/새로고침으로 브라우저가 이미 선택된 서비스를 복원했다면 요금·안내도 그에 맞게 표시
+    // index.html 요금 계산기의 [이 조건으로 바로 예약하기](bookWithCalc())에서 ?service=...&urgent=1
+    // 로 넘어온 경우, 그 조건을 그대로 반영합니다. service 값은 SERVICES 의 키(=service_type)와
+    // 정확히 같은 문자열이어야 하며(계산기가 자동으로 그렇게 인코딩함), 모르는 값이면(직접 URL을
+    // 수정한 경우 등) 조용히 무시하고 기존처럼 직접 선택하게 둡니다.
+    (function prefillFromCalculator() {
+      const params = new URLSearchParams(location.search);
+      const serviceParam = params.get('service');
+      if (serviceParam && SERVICES[serviceParam]) {
+        $('serviceType').value = serviceParam;
+      }
+      if (params.get('urgent') === '1') {
+        const urgentBox = $(ADDON_CHECKBOX_IDS.urgent);
+        if (urgentBox) urgentBox.checked = true;
+      }
+    })();
+
+    // 뒤로 가기/새로고침으로 브라우저가 이미 선택된 서비스를 복원했다면(위 쿼리 prefill 포함) 요금·안내도 그에 맞게 표시
     (function restoreSelection() {
-      const checked = form.querySelector('input[name="service"]:checked');
-      if (checked) applyService(checked.value);
+      if ($('serviceType').value) applyService($('serviceType').value);
     })();
 
     // 만 나이 계산 — mypage.html '어르신 프로필 관리'(seniorCard())의 calcAge() 와 완전히 동일한 로직입니다.
@@ -2403,6 +2419,53 @@
       });
     }
 
+    // 로그인 계정 정보로 '신청자 성함/연락처'를 채우고, 실제로 계정에서 가져온 값만 읽기 전용으로
+    // 잠급니다 — 로그인된 사람이 임의로 다른 사람 이름/번호를 적어 접수하는 것을 막기 위함입니다.
+    // profiles 에 값이 없는 항목(특히 phone — 카카오 로그인만으로는 거의 항상 비어 있음)은 본인의
+    // 가장 최근 신청서 값으로 보조 채움하되, 그건 계정 정보가 아니라 "그때 직접 입력한 값"일 뿐이라
+    // 잠그지 않습니다 — 둘 다 없는 사람(첫 신청 + 계정에 번호 없음)이 로그인 연락처를 영원히 입력할
+    // 방법이 없어지는 것을 막기 위한 안전장치입니다.
+    async function initApplicantContactFromAccount(profile, userId) {
+      const nameInput = $('contactName');
+      const phoneInput = $('contactPhone');
+      const lockNote = $('contactLockNote');
+
+      let fallbackApp = null;
+      if (!(profile && profile.name) || !(profile && profile.phone)) {
+        const { data: lastApp, error: lastAppErr } = await supabaseClient
+          .from('service_applications')
+          .select('applicant_name, applicant_phone')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (lastAppErr) {
+          console.warn('[신청서] 이전 신청 내역 조회 실패 — 신청자 성함/연락처 보조 채움을 건너뜁니다:', lastAppErr.code, lastAppErr.message);
+        } else {
+          fallbackApp = lastApp;
+        }
+      }
+
+      let lockedAny = false;
+      if (profile && profile.name) {
+        nameInput.value = profile.name;
+        nameInput.readOnly = true;
+        lockedAny = true;
+      } else if (!nameInput.value.trim() && fallbackApp && fallbackApp.applicant_name) {
+        nameInput.value = fallbackApp.applicant_name; // 계정 정보가 아니라 이전 입력값이므로 잠그지 않음
+      }
+
+      if (profile && profile.phone) {
+        phoneInput.value = profile.phone;
+        phoneInput.readOnly = true;
+        lockedAny = true;
+      } else if (!phoneInput.value.trim() && fallbackApp && fallbackApp.applicant_phone) {
+        phoneInput.value = fallbackApp.applicant_phone; // 계정 정보가 아니라 이전 입력값이므로 잠그지 않음
+      }
+
+      lockNote.hidden = !lockedAny;
+    }
+
     // 로그인한 경우: 계정과 자동 연결된다는 안내 + 완료 화면의 '마이페이지' 버튼
     (async function init() {
       if (!supabaseClient) return;
@@ -2428,9 +2491,10 @@
       const saveProfileBox = $('f-save-senior-profile');
       if (saveProfileBox) saveProfileBox.hidden = false;
 
-      // 보유 적립금 조회 (profiles_select_own RLS 정책이 본인 행만 돌려줌)
+      // 보유 적립금 조회 (profiles_select_own RLS 정책이 본인 행만 돌려줌) — 신청자 성함/연락처
+      // 자동 채움에도 쓰므로 phone 도 함께 가져옵니다.
       const { data: profile, error: profileErr } = await supabaseClient
-        .from('profiles').select('points_balance, name').eq('id', session.user.id).maybeSingle();
+        .from('profiles').select('points_balance, name, phone').eq('id', session.user.id).maybeSingle();
       if (profileErr) {
         console.warn('[적립금] points_balance 조회 실패 — 적립금 사용 입력란을 비활성 상태로 둡니다. → sql/user_coupons_checkout.sql 을 실행했는지 확인하세요:',
           profileErr.code, profileErr.message);
@@ -2438,24 +2502,14 @@
         currentPointsBalance = (profile && Number.isFinite(profile.points_balance)) ? profile.points_balance : 0;
       }
 
-      // 신청자 성함·연락처 자동 채움 — profiles.phone 은 카카오 로그인 시 채워지지 않아 거의 항상 비어
-      // 있으므로, 매번 입력해야 했던 진짜 원인인 '이전에 직접 입력해 둔 값'을 본인 신청서(service_applications,
-      // RLS: 본인 행만 조회 가능) 중 가장 최근 1건에서 가져와 다시 씁니다. 처음 신청하는 경우에는 그 신청
-      // 내역이 없으니 profiles.name(카카오 이름)만 성함 칸에 보조로 채웁니다. 이미 값이 있으면(사용자가
-      // 수정했거나 비로그인 상태에서 미리 입력해 둔 경우) 덮어쓰지 않습니다.
-      const { data: lastApp, error: lastAppErr } = await supabaseClient
-        .from('service_applications')
-        .select('applicant_name, applicant_phone')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (lastAppErr) {
-        console.warn('[신청서] 이전 신청 내역 조회 실패 — 신청자 성함/연락처 자동 채움을 건너뜁니다:', lastAppErr.code, lastAppErr.message);
-      } else {
-        if (!$('contactName').value.trim()) $('contactName').value = (lastApp && lastApp.applicant_name) || (profile && profile.name) || '';
-        if (!$('contactPhone').value.trim() && lastApp && lastApp.applicant_phone) $('contactPhone').value = lastApp.applicant_phone;
-      }
+      // 신청자 성함·연락처 자동 채움 + 계정 정보 잠금 — 로그인 계정(profiles)에 이름/번호가 등록돼
+      // 있으면 그 값을 최우선으로 쓰고, 그 입력칸을 읽기 전용으로 잠가 "로그인 계정과 다른 사람 행세로
+      // 접수"하는 것을 막습니다(initApplicantContactFromAccount). profiles.phone 은 카카오 로그인만으로는
+      // 거의 항상 비어 있으므로(카카오 OAuth 메타데이터에 번호 자체가 없음), 계정에 없는 항목만
+      // 본인 신청서(service_applications, RLS: 본인 행만 조회 가능) 중 가장 최근 1건의 값으로 보조
+      // 채움하되 — 이건 "그때 직접 입력했던 값"일 뿐 계정 정보가 아니므로 잠그지 않고 그대로 수정
+      // 가능하게 둡니다. 둘 다 없으면 평소처럼 빈 칸으로 직접 입력합니다.
+      await initApplicantContactFromAccount(profile, session.user.id);
 
       // 지금 쓸 수 있는 쿠폰 조회 (user_coupons_select_own RLS 정책이 본인 행만 돌려줌) — status='active'
       // 이고 아직 만료되지 않은 것만. coupon_code → 화면에 보여줄 이름은 COUPON_LABELS 에서 찾고, 모르는

@@ -15,12 +15,14 @@
 -- ----------------------------------------------------------------------------
 -- 0) is_admin(): 지금 로그인한 사용자가 profiles.role = 'admin' 인지 (is_manager() 와 같은 패턴)
 --    SECURITY DEFINER 로 정의해 profiles 의 RLS(자기 행만 select) 와 무관하게 판정합니다.
+--    role = 'super_admin'(sql/super_admin_management.sql)도 admin 전용 화면/기능을 그대로 쓸 수
+--    있어야 하므로 여기 포함합니다 — super_admin 은 admin 의 상위 권한이지 별개 권한이 아닙니다.
 -- ----------------------------------------------------------------------------
 create or replace function public.is_admin() returns boolean
 language sql stable security definer set search_path = public as $$
   select exists (
     select 1 from public.profiles p
-    where p.id = auth.uid() and p.role = 'admin'
+    where p.id = auth.uid() and p.role in ('admin', 'super_admin')
   );
 $$;
 revoke all on function public.is_admin() from public, anon;

@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>기관·기업 제휴 | 위드브릿지</title>
+  <meta name="description" content="요양원·주야간보호센터·복지관·의료기관을 위한 위드브릿지 동행 인력 연계 및 제휴 안내.">
+  <link rel="icon" href="./images/withbridge_logo.png" type="image/png">
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="/mobile-nav.css?v=1.0">
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- 공통 Supabase 클라이언트 + 헤더 로그인 상태(프로필/로그아웃 전환). SDK 뒤에 로드해야 합니다 -->
+  <script src="/js/auth-header.js?v=2.3" charset="utf-8"></script>
+  <style>
+    :root{
+      --ink:#191F28;
+      --ink-2:#333D4B;
+      --sage:#78866B;
+      --sage-dark:#5F6B55;
+      --sage-soft:#EEF1EA;
+      --sub:#8B95A1;
+      --sub-strong:#6B7684;
+      --line:#E5E7EB;
+      --bg:#F7F8F9;
+      --white:#FFFFFF;
+      --danger:#D64545;
+      --radius:16px;
+      --radius-sm:10px;
+      --shadow:0 1px 2px rgba(25,31,40,.04),0 8px 24px rgba(25,31,40,.06);
+      --max:1200px;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,system-ui,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:var(--ink);background:var(--white);-webkit-font-smoothing:antialiased;line-height:1.6;word-break:keep-all}
+    a{color:inherit;text-decoration:none}
+    img,svg{display:block}
+    button,input,select,textarea{font:inherit;color:inherit}
+    .wrap{max-width:var(--max);margin:0 auto;padding:0 24px}
+    .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+    :focus-visible{outline:2px solid var(--sage);outline-offset:3px;border-radius:6px}
+
+    /* ───── Buttons / badges ───── */
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:52px;padding:0 24px;border-radius:12px;font-weight:600;font-size:16px;border:0;cursor:pointer;transition:background .15s,transform .15s}
+    .btn:active{transform:scale(.98)}
+    .btn-primary{background:var(--sage);color:#fff}
+    .btn-primary:hover{background:var(--sage-dark)}
+    .btn-ghost{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.18)}
+    .btn-ghost:hover{background:rgba(255,255,255,.14)}
+    .badge{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 12px;border-radius:999px;font-size:13px;font-weight:600;background:var(--sage-soft);color:var(--sage-dark)}
+    .badge .dot{width:6px;height:6px;border-radius:50%;background:var(--sage)}
+
+    /* ───── Hero (빌딩 풀 배경 + 차콜 오버레이, 우측에 실시간 진행 리포트 미리보기) ───── */
+    .hero{position:relative;color:#fff;overflow:hidden;background:linear-gradient(rgba(25,31,40,.82),rgba(25,31,40,.82)),url('/images/hero-building.jpg');background-size:cover;background-position:center;background-repeat:no-repeat}
+    .hero .wrap{position:relative;padding-top:96px;padding-bottom:72px}
+    .hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:56px;align-items:center}
+    .hero .badge{background:rgba(120,134,107,.18);color:#C9D2BF}
+    .hero h1{margin:20px 0 20px;font-size:clamp(32px,4.6vw,52px);line-height:1.25;letter-spacing:-.035em;font-weight:700}
+    .hero h1 em{font-style:normal;color:#A9B79C}
+    .hero p.lead{margin:0 0 36px;font-size:18px;color:#B0B8C1;max-width:540px}
+    .hero-cta{display:flex;flex-wrap:wrap;gap:12px}
+
+    /* hero report card visual */
+    .report{background:#fff;color:var(--ink);border-radius:20px;padding:24px;box-shadow:0 24px 64px rgba(0,0,0,.35);max-width:440px;margin-left:auto;width:100%}
+    .report-head{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:16px;border-bottom:1px solid var(--line)}
+    .report-head small{display:block;font-size:12px;color:var(--sub-strong);font-weight:500}
+    .report-head strong{font-size:17px;letter-spacing:-.02em}
+    .live{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--sage-dark);background:var(--sage-soft);padding:4px 10px;border-radius:999px}
+    .live i{width:6px;height:6px;border-radius:50%;background:var(--sage);animation:pulse 1.6s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+    .steps{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:2px}
+    .steps li{display:grid;grid-template-columns:24px 1fr auto;gap:12px;align-items:center;padding:8px 0;font-size:14px}
+    .steps .ic{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;border:1.5px solid var(--line);background:#fff}
+    .steps li.done .ic{background:var(--sage);border-color:var(--sage)}
+    .steps li.now .ic{border-color:var(--sage);box-shadow:0 0 0 4px var(--sage-soft)}
+    .steps li.now .ic::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--sage)}
+    .steps li span.t{color:var(--sub-strong);font-size:12px;font-variant-numeric:tabular-nums}
+    .steps li.todo{color:var(--sub)}
+    .steps li.now{font-weight:700}
+
+    .promises{list-style:none;margin:64px 0 0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .promise{display:flex;flex-direction:column;height:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:var(--radius);padding:24px 24px 26px;transition:background .2s,border-color .2s}
+    .promise:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.16)}
+    .p-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}
+    .p-ic{flex:none;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:rgba(255,255,255,.06);color:#C9D2BF}
+    .p-title{margin:0 0 8px;font-size:17px;line-height:1.4;font-weight:700;letter-spacing:-.02em;color:#fff}
+    .p-desc{margin:0;font-size:14px;line-height:1.6;color:#B0B8C1;word-break:keep-all;text-wrap:pretty}
+    .p-tag{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.06em;background:var(--sage);color:#fff;white-space:nowrap}
+    .p-tag::before{content:"";width:5px;height:5px;border-radius:50%;background:#fff;animation:pulse 1.6s infinite}
+    .promise.featured{background:rgba(120,134,107,.14);border-color:rgba(120,134,107,.45)}
+    .promise.featured .p-ic{background:var(--sage);color:#fff}
+    @media (max-width:1199px){.promises{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width:960px){
+      .hero-grid{grid-template-columns:1fr;gap:40px}
+      .report{margin:0;max-width:none}
+    }
+    @media (max-width:560px){
+      .hero .wrap{padding-top:56px;padding-bottom:48px}
+      .hero p.lead{font-size:16px}
+      .hero-cta .btn{flex:1}
+      .promises{grid-template-columns:1fr;margin-top:40px}
+      .promise{padding:20px}
+      .p-desc br{display:none}
+    }
+
+    /* ───── Sections ───── */
+    section.block{padding:112px 0}
+    section.block.alt{background:var(--bg)}
+    .sec-head{max-width:640px;margin-bottom:56px}
+    .sec-head .eyebrow{font-size:14px;font-weight:700;color:var(--sage-dark);letter-spacing:.02em}
+    .sec-head h2{margin:10px 0 14px;font-size:clamp(26px,3.2vw,38px);line-height:1.3;letter-spacing:-.03em}
+    .sec-head p{margin:0;color:var(--sub-strong);font-size:17px}
+    @media (max-width:560px){section.block{padding:72px 0}.sec-head{margin-bottom:36px}}
+
+    .card{background:var(--white);border:1px solid var(--line);border-radius:var(--radius)}
+
+    /* values */
+    .values{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+    .value{padding:28px 24px 30px;display:flex;flex-direction:column;transition:border-color .2s,box-shadow .2s}
+    .value:hover{border-color:#D1D6DB;box-shadow:var(--shadow)}
+    .value .icon{width:48px;height:48px;border-radius:12px;background:var(--sage-soft);display:grid;place-items:center;margin-bottom:24px}
+    .value .num{font-size:13px;font-weight:700;color:var(--sub);margin-bottom:6px;font-variant-numeric:tabular-nums}
+    .value h3{margin:0 0 10px;font-size:19px;line-height:1.4;letter-spacing:-.02em}
+    .value p{margin:0;font-size:15px;color:var(--sub-strong)}
+    .value ul{margin:18px 0 0;padding:16px 0 0;border-top:1px solid var(--line);list-style:none;display:grid;gap:8px;font-size:14px;color:var(--ink-2)}
+    .value ul li{display:flex;gap:8px;align-items:flex-start}
+    .value ul li::before{content:"";flex:none;width:5px;height:5px;border-radius:50%;background:var(--sage);margin-top:9px}
+    @media (max-width:1024px){.values{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width:560px){.values{grid-template-columns:1fr}}
+
+    /* audience strip */
+    .audience{margin-top:24px;padding:20px 24px;display:flex;flex-wrap:wrap;gap:10px 24px;align-items:center}
+    .audience strong{font-size:14px;color:var(--sub-strong);font-weight:600;margin-right:4px}
+    .chip{display:inline-flex;align-items:center;height:34px;padding:0 14px;border-radius:999px;background:var(--bg);font-size:14px;font-weight:600;color:var(--ink-2)}
+
+    /* process */
+    .process{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;counter-reset:step;position:relative}
+    .pstep{padding:28px 24px;position:relative}
+    .pstep .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
+    .pstep .n{font-size:13px;font-weight:700;color:#fff;background:var(--ink);width:32px;height:32px;border-radius:50%;display:grid;place-items:center}
+    .pstep .dur{font-size:12px;font-weight:600;color:var(--sage-dark);background:var(--sage-soft);padding:4px 10px;border-radius:999px}
+    .pstep h3{margin:0 0 8px;font-size:18px;letter-spacing:-.02em}
+    .pstep p{margin:0;font-size:15px;color:var(--sub-strong)}
+    .pstep:not(:last-child)::after{content:"";position:absolute;top:43px;right:-13px;width:10px;height:10px;border-top:2px solid #C4CAD1;border-right:2px solid #C4CAD1;transform:rotate(45deg);z-index:1}
+    .pstep.last{background:var(--ink);border-color:var(--ink);color:#fff}
+    .pstep.last .n{background:var(--sage)}
+    .pstep.last p{color:#B0B8C1}
+    .pstep.last .dur{background:rgba(120,134,107,.25);color:#C9D2BF}
+    @media (max-width:1024px){.process{grid-template-columns:repeat(2,1fr)}.pstep::after{display:none}}
+    @media (max-width:560px){.process{grid-template-columns:1fr}}
+
+    /* ───── Inquiry (좌측 패널은 제휴 핸드셰이크 이미지 배경) ───── */
+    .inquiry{display:grid;grid-template-columns:.85fr 1.15fr;overflow:hidden;box-shadow:var(--shadow)}
+    .inq-side{position:relative;background:var(--ink);color:#fff;padding:48px 40px;display:flex;flex-direction:column}
+    .inq-side .eyebrow{font-size:14px;font-weight:700;color:#A9B79C}
+    .inq-side h2{margin:10px 0 14px;font-size:30px;line-height:1.35;letter-spacing:-.03em}
+    .inq-side>p{margin:0;color:#B0B8C1;font-size:16px}
+    .next{margin:36px 0 0;padding:0;list-style:none;display:grid;gap:18px}
+    .next li{display:grid;grid-template-columns:28px 1fr;gap:14px}
+    .next .k{width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.08);display:grid;place-items:center;font-size:13px;font-weight:700;color:#C9D2BF}
+    .next b{display:block;font-size:15px}
+    .next span{font-size:14px;color:#B0B8C1}
+    .contact{margin-top:auto;padding-top:36px;border-top:1px solid rgba(255,255,255,.1);display:grid;gap:8px;font-size:14px;color:#B0B8C1}
+    .contact a{color:#fff;font-weight:600}
+    .contact div{display:flex;justify-content:space-between;gap:16px}
+
+    form.inq-form{padding:48px 44px;display:grid;grid-template-columns:1fr 1fr;gap:20px 16px;align-content:start}
+    .field{display:flex;flex-direction:column;gap:8px}
+    .field.full{grid-column:1/-1}
+    .field label,.field legend{font-size:14px;font-weight:600;color:var(--ink-2);padding:0}
+    .req{color:var(--danger)}
+    .field input,.field textarea{height:52px;border:1px solid var(--line);border-radius:12px;padding:0 16px;font-size:16px;background:#fff;transition:border-color .15s,box-shadow .15s}
+    .field textarea{height:140px;padding:14px 16px;resize:vertical;line-height:1.6}
+    .field input::placeholder,.field textarea::placeholder{color:#A4ACB5}
+    .field input:focus,.field textarea:focus{outline:0;border-color:var(--sage);box-shadow:0 0 0 4px rgba(120,134,107,.15)}
+    .field input[aria-invalid="true"],.field textarea[aria-invalid="true"]{border-color:var(--danger)}
+    .err{font-size:13px;color:var(--danger);min-height:0}
+    fieldset.field{border:0;margin:0;padding:0;min-width:0}
+    .types{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .type input{position:absolute;opacity:0;pointer-events:none}
+    .type span{display:flex;align-items:center;justify-content:center;text-align:center;min-height:48px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;font-size:14px;font-weight:600;color:var(--ink-2);cursor:pointer;transition:all .15s;background:#fff}
+    .type span:hover{border-color:#C4CAD1}
+    .type input:checked+span{border-color:var(--sage);background:var(--sage-soft);color:var(--sage-dark);box-shadow:inset 0 0 0 1px var(--sage)}
+    .type input:focus-visible+span{outline:2px solid var(--sage);outline-offset:2px}
+    .consent{grid-column:1/-1;display:flex;gap:12px;align-items:center;padding:16px;background:var(--bg);border-radius:12px;font-size:14px;color:var(--sub-strong);cursor:pointer}
+    /* native checkbox 모양을 지우고 커스텀 체크 UI로: 미체크=연한 테두리, 체크=딥세이지 배경+흰 체크 아이콘 */
+    .consent input{appearance:none;-webkit-appearance:none;width:22px;height:22px;margin:0;flex:none;border:1.5px solid #CBD5E1;border-radius:6px;background:#fff;cursor:pointer;display:grid;place-items:center;transition:background-color .15s,border-color .15s}
+    .consent input:checked{background:var(--sage-dark);border-color:var(--sage-dark)}
+    .consent input:checked::after{content:"";width:12px;height:12px;background:#fff;-webkit-mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>') center/contain no-repeat;mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>') center/contain no-repeat}
+    .consent a{text-decoration:underline;color:var(--ink-2)}
+    .submit-row{grid-column:1/-1;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+    .submit-row .btn{min-width:200px;background:var(--ink);color:#fff}
+    .submit-row .btn:hover{background:var(--ink-2)}
+    .submit-row .btn[disabled]{opacity:.6;cursor:wait}
+    .submit-row small{color:var(--sub-strong);font-size:13px}
+    .hp{position:absolute;left:-9999px}
+    .status{grid-column:1/-1;padding:14px 16px;border-radius:12px;font-size:15px;font-weight:500;display:none}
+    .status.ok{display:block;background:var(--sage-soft);color:var(--sage-dark)}
+    .status.fail{display:block;background:#FDECEC;color:#B42318}
+    .spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none}
+    .loading .spinner{display:block}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @media (max-width:960px){
+      .inquiry{grid-template-columns:1fr}
+      .inq-side{padding:40px 28px}
+      .contact{margin-top:32px}
+    }
+    @media (max-width:560px){
+      form.inq-form{grid-template-columns:1fr;padding:32px 20px}
+      .types{grid-template-columns:repeat(2,1fr)}
+      .submit-row .btn{width:100%}
+      .inquiry{border-radius:var(--radius);margin:0 -8px}
+    }
+
+    header, footer { letter-spacing: normal; line-height: 1.5; }
+    footer h3 { margin-top: 0; }
+
+    @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+  </style>
+</head>
+<body>
+
+<!-- ====================================================================
+00. 상단 롤링 띠배너 — index.html 과 완전히 동일한 구조
+==================================================================== -->
+<div class="wb-top-banner" style="background-color: #78866B; color: #ffffff; font-size: 12.5px; font-weight: 500; height: 38px; overflow: hidden; position: relative; font-family: 'Noto Sans KR', sans-serif;">
+  <div id="topBannerTrack" style="transition: transform 0.5s ease-in-out; width: 100%;">
+    <div style="height: 38px; display: flex; align-items: center; justify-content: center; text-align: center;">
+      <a href="index.html#contact" style="color: #ffffff; text-decoration: none; letter-spacing: -0.2px;">첫 방문 고객 서비스 이용료 할인</a>
+    </div>
+    <div style="height: 38px; display: flex; align-items: center; justify-content: center; text-align: center;">
+      <a href="index.html#contact" style="color: #ffffff; text-decoration: none; letter-spacing: -0.2px;">사람과 사람을 잇는 따뜻한 연결, 위드브릿지</a>
+    </div>
+    <div style="height: 38px; display: flex; align-items: center; justify-content: center; text-align: center;">
+      <a href="http://pf.kakao.com/_PKxemX" target="_blank" rel="noopener noreferrer" style="color: #ffffff; text-decoration: none; letter-spacing: -0.2px;">지금 문의하기로 간편하게 상담받기</a>
+    </div>
+  </div>
+</div>
+<script>
+  (function() {
+    let currentIndex = 0;
+    const track = document.getElementById('topBannerTrack');
+    if (!track) return;
+    const totalItems = track.children.length;
+    setInterval(function() {
+      currentIndex = (currentIndex + 1) % totalItems;
+      track.style.transform = 'translateY(-' + (currentIndex * 38) + 'px)';
+    }, 3500);
+  })();
+</script>
+
+<!-- ====================================================================
+01. 상단 네비게이션 헤더 — index.html 과 완전히 동일한 구조/메뉴/CTA('예약하기').
+    index.html 후기 섹션 아래에 추가된 B2B 전환 배너를 통해 이 페이지로의 진입 경로가
+    생겼지만, 전역 헤더/푸터 메뉴에는 아직 '기관/기업 제휴' 링크를 추가하지 않았습니다 —
+    필요하면 별도로 요청해 주세요.
+==================================================================== -->
+<header style="width: 100%; background-color: #ffffff; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 50; font-family: 'Noto Sans KR', sans-serif;">
+  <div class="wb-header-row" style="max-width: 1380px; margin: 0 auto; padding: 6px 40px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: 24px;">
+    <button type="button" class="wb-mobile-toggle" id="wbMenuToggle" aria-label="메뉴 열기" aria-expanded="false" aria-controls="wbMobileDrawer" style="align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; border: none; background: transparent; cursor: pointer; justify-self: start;">
+      <svg id="wbMenuIconOpen" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1A1D21" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      <svg id="wbMenuIconClose" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1A1D21" stroke-width="2" stroke-linecap="round" style="display: none;"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
+    </button>
+    <a href="index.html" style="justify-self: start; display: flex; align-items: center; text-decoration: none; flex: none;">
+      <img src="./images/logo_main.png" alt="위드브릿지 로고" style="height: 48px; width: auto; display: block; object-fit: contain; margin: 0; padding: 0; position: relative; top: 3px;" />
+    </a>
+    <nav class="wb-desktop-nav" style="display: flex; align-items: center; gap: 18px; font-size: 14.5px; font-weight: 600; white-space: nowrap; flex-wrap: nowrap;">
+      <a href="story.html" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">소개</a>
+      <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
+      <a href="index.html#services" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">서비스</a>
+      <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
+      <a href="index.html#how-it-works" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">이용 방법</a>
+      <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
+      <a href="index.html#notice" data-open-notice style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">공지사항</a>
+      <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
+      <a href="index.html#faq" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">자주 묻는 질문(FAQ)</a>
+    </nav>
+    <div class="wb-desktop-actions" style="justify-self: end; display: flex; align-items: center; gap: 18px; white-space: nowrap; flex-wrap: nowrap;">
+      <div style="display: flex; align-items: center; gap: 12px; font-size: 13.5px; font-weight: 500; color: #6B7280;">
+        <a href="http://pf.kakao.com/_PKxemX" target="_blank" rel="noopener noreferrer" style="color: #6B7280; text-decoration: none; transition: color 0.2s;">문의하기</a>
+        <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 12px; background-color: #E2E4E8;"></span>
+        <div class="auth-buttons" style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 500; color: #6B7280; white-space: nowrap;">
+          <a href="login.html" style="text-decoration: none; font-weight: 500; color: #6B7280; transition: color 0.2s;">로그인</a>
+          <span style="color: #d1d5db; font-size: 13.5px; font-weight: 400;">|</span>
+          <a href="signup.html" style="text-decoration: none; font-weight: 500; color: #6B7280; transition: color 0.2s;">회원가입</a>
+        </div>
+      </div>
+      <a href="apply.html" onclick="window.WBAuth && window.WBAuth.goIfLoggedIn(event, 'apply.html')" style="flex: none; display: inline-block; padding: 10px 22px; background-color: #8FA482; color: #ffffff; border-radius: 9999px; font-size: 14.5px; font-weight: 700; text-decoration: none; box-shadow: 0 4px 14px rgba(143, 164, 130, 0.35); transition: background-color 0.2s, transform 0.2s;">예약하기</a>
+    </div>
+    <a href="apply.html" class="wb-mobile-cta" onclick="window.WBAuth && window.WBAuth.goIfLoggedIn(event, 'apply.html')" style="justify-self: end; padding: 8px 16px; background-color: #8FA482; color: #ffffff; border-radius: 9999px; font-size: 13.5px; font-weight: 700; text-decoration: none; white-space: nowrap;">예약하기</a>
+  </div>
+</header>
+
+<div class="wb-drawer-overlay" id="wbDrawerOverlay"></div>
+<aside class="wb-drawer" id="wbMobileDrawer" role="dialog" aria-modal="true" aria-label="모바일 메뉴" aria-hidden="true">
+  <div class="wb-drawer-topbar" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #F0F1F3; flex: none;">
+    <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
+      <img src="./images/logo_main.png" alt="위드브릿지 로고" style="height: 32px; width: auto; display: block; object-fit: contain;" />
+    </a>
+    <button type="button" id="wbDrawerClose" aria-label="메뉴 닫기" style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: none; background: transparent; cursor: pointer;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1D21" stroke-width="2" stroke-linecap="round"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
+    </button>
+  </div>
+  <nav style="display: flex; flex-direction: column; padding: 10px 16px; gap: 2px; font-family: 'Noto Sans KR', sans-serif;">
+    <a href="story.html" class="wb-drawer-link">소개</a>
+    <a href="index.html#services" class="wb-drawer-link">서비스</a>
+    <a href="index.html#how-it-works" class="wb-drawer-link">이용 방법</a>
+    <a href="index.html#notice" data-open-notice class="wb-drawer-link">공지사항</a>
+    <a href="index.html#faq" class="wb-drawer-link">자주 묻는 질문(FAQ)</a>
+  </nav>
+  <div style="padding: 18px 20px 24px; border-top: 1px solid #F0F1F3; display: flex; flex-direction: column; gap: 14px; flex: none; font-family: 'Noto Sans KR', sans-serif;">
+    <div class="auth-buttons wb-drawer-auth-buttons" style="display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 14.5px; font-weight: 500; color: #6B7280;">
+      <a href="login.html" style="color: #6B7280; text-decoration: none;">로그인</a>
+      <span style="color: #d1d5db;">|</span>
+      <a href="signup.html" style="color: #6B7280; text-decoration: none;">회원가입</a>
+    </div>
+  </div>
+</aside>
+
+<script src="/js/mobile-nav.js?v=1.0" defer></script>
+
+<main>
+<!-- ───────── 1. Hero ───────── -->
+<section class="hero" aria-labelledby="hero-title">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <span class="badge"><span class="dot"></span>B2B · 기관 제휴 프로그램</span>
+        <h1 id="hero-title">기관·기업을 위한<br>맞춤형 <em>시니어 병원 동행</em><br>및 케어 솔루션</h1>
+        <p class="lead">요양원·주야간보호센터·복지관·종합병원, 그리고 임직원 부모님 케어까지. 검증된 전문 동행 매니저와 투명한 진행 리포트로 기관의 돌봄 공백을 안전하게 채웁니다.</p>
+        <div class="hero-cta">
+          <a href="#inquiry" class="btn btn-primary">제휴 문의하기
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+          <a href="#process" class="btn btn-ghost">도입 절차 보기</a>
+        </div>
+      </div>
+
+      <!-- 실시간 케어 리포트 미리보기 -->
+      <div class="report" role="img" aria-label="실시간 병원 동행 진행 리포트 예시: 7단계 중 4단계 진료 동행 진행 중">
+        <div class="report-head">
+          <div><small>오늘의 동행 · 기관 대시보드 예시</small><strong>내과 정기 진료 동행</strong></div>
+          <span class="live"><i></i>진행 중</span>
+        </div>
+        <ol class="steps" aria-hidden="true">
+          <li class="done"><span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span>매니저 배정 확정<span class="t">08:40</span></li>
+          <li class="done"><span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span>기관 출발 · 픽업<span class="t">09:05</span></li>
+          <li class="done"><span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span>병원 도착 · 접수<span class="t">09:38</span></li>
+          <li class="now"><span class="ic"></span>진료 동행 · 의료진 소견 기록<span class="t">진행 중</span></li>
+          <li class="todo"><span class="ic"></span>수납 · 약 처방 수령<span class="t">—</span></li>
+          <li class="todo"><span class="ic"></span>기관 복귀 · 인계<span class="t">—</span></li>
+          <li class="todo"><span class="ic"></span>케어 리포트 발송<span class="t">—</span></li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- 트러스트 프로미스: 초기 단계에 맞춘 약속형 카드 (통계가 쌓이면 수치 카드로 교체) -->
+    <ul class="promises">
+      <li class="promise featured">
+        <div class="p-head">
+          <span class="p-ic" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.4 5.2 5.6.6-4.2 3.8 1.2 5.6L12 15.4 7 18.2l1.2-5.6L4 8.8l5.6-.6z"/></svg></span>
+          <span class="p-tag">NOW OPEN</span>
+        </div>
+        <h3 class="p-title">얼리 파트너 모집</h3>
+        <p class="p-desc">첫 제휴 기관과 운영 방식을<br>처음부터 함께 만들어 갑니다</p>
+      </li>
+      <li class="promise">
+        <div class="p-head">
+          <span class="p-ic" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg></span>
+        </div>
+        <h3 class="p-title">기관 맞춤 설계</h3>
+        <p class="p-desc">규모·이용자 특성·지역에 맞춘<br>기관 전용 플랜을 제안합니다</p>
+      </li>
+      <li class="promise">
+        <div class="p-head">
+          <span class="p-ic" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+        </div>
+        <h3 class="p-title">7단계 실시간 공유</h3>
+        <p class="p-desc">배정부터 케어 리포트까지<br>모든 과정을 투명하게 공유합니다</p>
+      </li>
+      <li class="promise">
+        <div class="p-head">
+          <span class="p-ic" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></svg></span>
+        </div>
+        <h3 class="p-title">대표 직접 상담</h3>
+        <p class="p-desc">문의 후 1영업일 내<br>담당자가 직접 회신드립니다</p>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<!-- ───────── 2. Core Value ───────── -->
+<section class="block" id="value" aria-labelledby="value-title">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">WHY WITHBRIDGE</div>
+      <h2 id="value-title">기관 담당자의 부담은 덜고,<br>이용자의 안심은 더합니다</h2>
+      <p>인력 운영, 보호자 소통, 정산까지 — 병원 동행에 필요한 전 과정을 위드브릿지가 책임지고 운영합니다.</p>
+    </div>
+
+    <div class="values">
+      <article class="card value">
+        <div class="icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#5F6B55" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.35-7-10a4 4 0 0 1 7-2.65A4 4 0 0 1 19 11c0 5.65-7 10-7 10z"/><path d="M9 11h6M12 8v6"/></svg></div>
+        <div class="num">01</div>
+        <h3>전문 병원 동행 서비스</h3>
+        <p>임직원 부모님과 기관 이용자를 위한 맞춤 동행. 접수부터 진료, 수납, 귀가까지 함께합니다.</p>
+        <ul><li>정기 진료 · 검진 · 외래 동행</li><li>거동 불편 이용자 맞춤 케어</li></ul>
+      </article>
+      <article class="card value">
+        <div class="icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#5F6B55" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></div>
+        <div class="num">02</div>
+        <h3>7단계 실시간 공유 &amp; 케어 리포트</h3>
+        <p>배정·픽업·도착·진료·수납·복귀·리포트 7단계를 실시간으로 공유하고, 진료 소견을 정리해 전달합니다.</p>
+        <ul><li>기관 · 보호자 동시 알림</li><li>진료 내용 · 처방 요약 리포트</li></ul>
+      </article>
+      <article class="card value">
+        <div class="icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#5F6B55" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 10h18M7 15h4"/></svg></div>
+        <div class="num">03</div>
+        <h3>행정 · 정산 절차 간소화</h3>
+        <p>건별 결제 대신 기관 단위 월 통합 정산. 증빙 서류와 이용 내역을 한 번에 받아보세요.</p>
+        <ul><li>월간 통합 청구 · 세금계산서</li><li>이용 내역 · 증빙 자료 제공</li></ul>
+      </article>
+      <article class="card value">
+        <div class="icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#5F6B55" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg></div>
+        <div class="num">04</div>
+        <h3>전담 매니저 배정 · 안전 보장</h3>
+        <p>기관별 전담 운영 매니저가 배정되어 일정 조율부터 이슈 대응까지 하나의 창구로 관리합니다.</p>
+        <ul><li>검증된 동행 매니저 배치</li><li>기관 전담 커뮤니케이션 창구</li></ul>
+      </article>
+    </div>
+
+    <div class="card audience">
+      <strong>이런 기관과 함께합니다</strong>
+      <span class="chip">요양원</span><span class="chip">주야간보호센터</span><span class="chip">노인복지관</span><span class="chip">종합병원 · 의료기관</span><span class="chip">기업 임직원 복지</span>
+    </div>
+  </div>
+</section>
+
+<!-- ───────── 3. Process ───────── -->
+<section class="block alt" id="process" aria-labelledby="process-title">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">HOW IT PARTNERED</div>
+      <h2 id="process-title">문의부터 운영까지,<br>4단계로 간단하게</h2>
+      <p>기관의 규모와 이용자 특성에 맞춰 플랜을 설계하고, 오픈 이후에도 매월 함께 점검합니다.</p>
+    </div>
+    <ol class="process" style="list-style:none;margin:0;padding:0">
+      <li class="card pstep">
+        <div class="top"><span class="n">1</span><span class="dur">1영업일 내 회신</span></div>
+        <h3>제휴 문의 접수</h3>
+        <p>아래 양식으로 기관 정보와 필요한 서비스를 남겨주시면 담당 매니저가 연락드립니다.</p>
+      </li>
+      <li class="card pstep">
+        <div class="top"><span class="n">2</span><span class="dur">맞춤 설계</span></div>
+        <h3>맞춤형 협약 및 플랜 설계</h3>
+        <p>이용 인원·빈도·지역을 바탕으로 기관 전용 요금제와 운영 방식을 제안하고 협약을 체결합니다.</p>
+      </li>
+      <li class="card pstep">
+        <div class="top"><span class="n">3</span><span class="dur">전담 매니저 배정</span></div>
+        <h3>서비스 오픈 및 운영</h3>
+        <p>전담 매니저가 배정되고, 기관 담당자 또는 보호자가 바로 동행을 신청할 수 있습니다.</p>
+      </li>
+      <li class="card pstep last">
+        <div class="top"><span class="n">4</span><span class="dur">매월 정기</span></div>
+        <h3>월간 리포트 및 정산</h3>
+        <p>월별 이용 현황 리포트와 통합 정산서를 제공하고, 운영 개선 사항을 함께 점검합니다.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<!-- ───────── 4. Inquiry ───────── -->
+<section class="block" id="inquiry" aria-labelledby="inq-title">
+  <div class="wrap">
+    <div class="card inquiry">
+      <aside class="inq-side">
+        <div class="eyebrow">PARTNERSHIP INQUIRY</div>
+        <h2 id="inq-title">제휴 및 입점 문의</h2>
+        <p>기관에 꼭 맞는 운영 방식을 함께 설계해 드립니다. 부담 없이 문의를 남겨주세요.</p>
+        <ul class="next">
+          <li><span class="k">1</span><div><b>문의 확인</b><span>접수 즉시 담당 매니저에게 전달됩니다</span></div></li>
+          <li><span class="k">2</span><div><b>유선 상담</b><span>1영업일 내 기재하신 연락처로 연락드립니다</span></div></li>
+          <li><span class="k">3</span><div><b>제안서 전달</b><span>기관 맞춤 플랜과 견적을 보내드립니다</span></div></li>
+        </ul>
+        <div class="contact">
+          <div><span>고객센터</span><a href="tel:01055305760">010-5530-5760</a></div>
+          <div><span>이메일</span><a href="mailto:withbridge.care@outlook.kr">withbridge.care@outlook.kr</a></div>
+          <div><span>상담 시간</span><span>평일 08:00 – 18:00 (주말·공휴일 휴무)</span></div>
+        </div>
+      </aside>
+
+      <form class="inq-form" id="partnerForm" novalidate>
+        <div class="field">
+          <label for="org_name">기관 · 기업명 <span class="req" aria-hidden="true">*</span></label>
+          <input id="org_name" name="org_name" type="text" autocomplete="organization" placeholder="예) 위드케어 요양원" required maxlength="100">
+          <span class="err" id="org_name-err"></span>
+        </div>
+        <div class="field">
+          <label for="contact_name">담당자 성함 <span class="req" aria-hidden="true">*</span></label>
+          <input id="contact_name" name="contact_name" type="text" autocomplete="name" placeholder="홍길동 (직함)" required maxlength="50">
+          <span class="err" id="contact_name-err"></span>
+        </div>
+        <div class="field">
+          <label for="phone">연락처 <span class="req" aria-hidden="true">*</span></label>
+          <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="010-0000-0000" required maxlength="20">
+          <span class="err" id="phone-err"></span>
+        </div>
+        <div class="field">
+          <label for="email">이메일 <span class="req" aria-hidden="true">*</span></label>
+          <input id="email" name="email" type="email" autocomplete="email" placeholder="name@company.com" required maxlength="120">
+          <span class="err" id="email-err"></span>
+        </div>
+
+        <fieldset class="field full">
+          <legend>제휴 유형 <span class="req" aria-hidden="true">*</span></legend>
+          <div class="types" style="margin-top:8px">
+            <label class="type"><input type="radio" name="org_type" value="요양원" required><span>요양원</span></label>
+            <label class="type"><input type="radio" name="org_type" value="주야간보호센터"><span>주야간보호센터</span></label>
+            <label class="type"><input type="radio" name="org_type" value="복지관"><span>복지관</span></label>
+            <label class="type"><input type="radio" name="org_type" value="의료기관"><span>종합병원 · 의료기관</span></label>
+            <label class="type"><input type="radio" name="org_type" value="기타"><span>기타</span></label>
+          </div>
+          <span class="err" id="org_type-err"></span>
+        </fieldset>
+
+        <div class="field full">
+          <label for="message">문의 내용 <span class="req" aria-hidden="true">*</span></label>
+          <textarea id="message" name="message" placeholder="예상 이용 인원, 월 이용 빈도, 지역, 필요한 서비스 등을 알려주시면 더 정확한 제안이 가능합니다." required maxlength="2000"></textarea>
+          <span class="err" id="message-err"></span>
+        </div>
+
+        <div class="hp" aria-hidden="true"><label for="website">웹사이트</label><input id="website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+
+        <label class="consent">
+          <input type="checkbox" id="agree" name="agree" required>
+          <span>[필수] 제휴 상담을 위한 <a href="privacy.html" target="_blank" rel="noopener">개인정보 수집·이용</a>에 동의합니다. 수집 항목: 기관명, 담당자명, 연락처, 이메일 · 보유 기간: 상담 종료 후 1년</span>
+        </label>
+
+        <div class="status" id="formStatus" role="status" aria-live="polite"></div>
+
+        <div class="submit-row">
+          <button type="submit" class="btn" id="submitBtn"><span class="spinner" aria-hidden="true"></span><span class="label">제휴 문의 보내기</span></button>
+          <small>평균 1영업일 내 회신드립니다.</small>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+</main>
+
+<div id="wb-footer"></div>
+<script src="/js/site-footer.js?v=1.0"></script>
+
+<script>
+(function(){
+  // 연락처 자동 하이픈
+  const phone = document.getElementById('phone');
+  phone.addEventListener('input', () => {
+    const d = phone.value.replace(/\D/g,'').slice(0,11);
+    phone.value = d.length < 4 ? d : d.length < 8 ? d.replace(/(\d{3})(\d+)/,'$1-$2')
+      : d.startsWith('02') ? d.replace(/(\d{2})(\d{3,4})(\d{4})/,'$1-$2-$3') : d.replace(/(\d{3})(\d{3,4})(\d{4})/,'$1-$2-$3');
+  });
+
+  // 폼 검증 + Supabase 저장 (실제 테이블: public.partner_inquiries)
+  const form = document.getElementById('partnerForm');
+  const btn = document.getElementById('submitBtn');
+  const status = document.getElementById('formStatus');
+  const sb = window.WBAuth ? window.WBAuth.client : null;
+
+  const rules = {
+    org_name: v => v.trim().length >= 2 || '기관 · 기업명을 입력해 주세요.',
+    contact_name: v => v.trim().length >= 2 || '담당자 성함을 입력해 주세요.',
+    phone: v => /^0\d{1,2}-?\d{3,4}-?\d{4}$/.test(v.trim()) || '올바른 연락처를 입력해 주세요.',
+    email: v => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()) || '올바른 이메일 주소를 입력해 주세요.',
+    message: v => v.trim().length >= 10 || '문의 내용을 10자 이상 입력해 주세요.'
+  };
+  const setErr = (name, msg) => {
+    const el = form.elements[name], err = document.getElementById(name + '-err');
+    if (err) err.textContent = msg || '';
+    if (el && el.setAttribute) { el.setAttribute('aria-invalid', msg ? 'true' : 'false'); if (msg) el.setAttribute('aria-describedby', name + '-err'); }
+  };
+  Object.keys(rules).forEach(n => form.elements[n].addEventListener('blur', e => { const r = rules[n](e.target.value); setErr(n, r === true ? '' : r); }));
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    status.className = 'status'; status.textContent = '';
+    if (form.website.value) return; // 봇 차단(honeypot)
+
+    let firstBad = null;
+    Object.keys(rules).forEach(n => { const r = rules[n](form.elements[n].value); setErr(n, r === true ? '' : r); if (r !== true && !firstBad) firstBad = form.elements[n]; });
+    const type = form.querySelector('input[name="org_type"]:checked');
+    document.getElementById('org_type-err').textContent = type ? '' : '제휴 유형을 선택해 주세요.';
+    if (!type && !firstBad) firstBad = form.querySelector('input[name="org_type"]');
+    if (!form.agree.checked) { status.className = 'status fail'; status.textContent = '개인정보 수집·이용에 동의해 주세요.'; if (!firstBad) firstBad = form.agree; }
+    if (firstBad) { firstBad.focus(); return; }
+
+    if (!sb) {
+      status.className = 'status fail';
+      status.textContent = '문의 접수 모듈을 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.';
+      return;
+    }
+
+    const payload = {
+      org_name: form.org_name.value.trim(),
+      contact_name: form.contact_name.value.trim(),
+      phone: form.phone.value.trim(),
+      email: form.email.value.trim().toLowerCase(),
+      org_type: type.value,
+      message: form.message.value.trim(),
+      privacy_consent: true
+    };
+
+    btn.disabled = true; btn.classList.add('loading'); btn.querySelector('.label').textContent = '전송 중…';
+    try {
+      const { error } = await sb.from('partner_inquiries').insert(payload);
+      if (error) throw error;
+      form.reset();
+      status.className = 'status ok';
+      status.textContent = '문의가 정상적으로 접수되었습니다. 1영업일 내 담당 매니저가 연락드리겠습니다.';
+    } catch (err) {
+      console.error('[partner_inquiries]', err);
+      status.className = 'status fail';
+      status.textContent = '전송 중 문제가 발생했습니다. 잠시 후 다시 시도하시거나 상단 카카오 문의하기로 연락해 주세요.';
+    } finally {
+      btn.disabled = false; btn.classList.remove('loading'); btn.querySelector('.label').textContent = '제휴 문의 보내기';
+    }
+  });
+})();
+</script>
+</body>
+</html>

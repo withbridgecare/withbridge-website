@@ -227,11 +227,14 @@
           '→ sql/supabase_schema_latest.sql 의 profiles_select_own 정책이 있는지, 세션이 유효한지 확인하세요.');
         return 'error';
       }
+      // 'super_admin'(sql/super_admin_management.sql)도 admin.html 을 그대로 쓸 수 있으므로
+      // 어드민 콘솔 링크를 함께 보여줍니다 — super_admin 전용 권한 관리 화면(super-admin.html)
+      // 링크는 admin.html 안에서만(is_super_admin() 확인 후) 따로 노출됩니다.
       var role = String((res.data && res.data.role) || '').trim().toLowerCase();
-      if (role !== 'admin' && res.data) {
-        console.warn('[WBAuth] profiles.role 이 "admin" 이 아닙니다 (실제 값: ' + JSON.stringify(res.data.role) + ') → 어드민 콘솔 링크를 숨깁니다.');
+      if (role !== 'admin' && role !== 'super_admin' && res.data) {
+        console.warn('[WBAuth] profiles.role 이 "admin"/"super_admin" 이 아닙니다 (실제 값: ' + JSON.stringify(res.data.role) + ') → 어드민 콘솔 링크를 숨깁니다.');
       }
-      return role === 'admin' ? 'yes' : 'no';
+      return (role === 'admin' || role === 'super_admin') ? 'yes' : 'no';
     } catch (e) {
       console.error('[WBAuth] profiles.role 조회 중 예외:', e);
       return 'error';

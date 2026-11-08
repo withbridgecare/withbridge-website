@@ -70,7 +70,9 @@
     coupon_grant: '쿠폰 수동 지급',
     coupon_delete: '쿠폰 삭제',
     package_grant: '회차 수동 지급',
-    package_adjust: '회차 수동 조정'
+    package_adjust: '회차 수동 조정',
+    super_admin_grant_admin: '관리자 권한 부여',
+    super_admin_revoke_admin: '관리자 권한 회수'
   };
 
   // 표의 한 줄짜리 요약("세부 내용" 칸, CSS 말줄임표로 잘림 + title 로 호버 시 전체 노출)에 씁니다.
@@ -130,7 +132,7 @@
 
     var profile = profileRes.data;
     var normalizedRole = String((profile && profile.role) || '').trim().toLowerCase();
-    if (!profile || normalizedRole !== 'admin') {
+    if (!profile || (normalizedRole !== 'admin' && normalizedRole !== 'super_admin')) {
       alert('관리자 권한이 없습니다.');
       window.location.replace('index.html');
       return null;
@@ -359,7 +361,7 @@
   // 활동도 안 한 관리자"가 드롭다운에서 빠지게 됩니다).
   async function loadAdminFilterOptions() {
     if (!els.adminFilter) return;
-    var res = await supabaseClient.from('profiles').select('id, name').eq('role', 'admin').order('name');
+    var res = await supabaseClient.from('profiles').select('id, name').in('role', ['admin', 'super_admin']).order('name');
     if (res.error) {
       console.error('[AdminLogs] 관리자 목록 조회 실패:', res.error.code, res.error.message);
       return;

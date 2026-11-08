@@ -13,7 +13,7 @@
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- 공통 Supabase 클라이언트 (index.html / login.html 과 같은 세션 공유). SDK 뒤에 로드해야 합니다 -->
-  <script src="/js/auth-header.js?v=2.2" charset="utf-8"></script>
+  <script src="/js/auth-header.js?v=2.3" charset="utf-8"></script>
   <!-- 결제 확인 Edge Function(confirm-extra-charge-payment) 호출용 — supabaseClient.functions.invoke()
        대신 명시적 fetch() 래퍼. auth-header.js 가 만든 supabaseClient 를 받아 쓰므로 그 뒤에 로드합니다 -->
   <script src="/js/edge-function-fetch.js?v=1.1"></script>
@@ -359,26 +359,27 @@
        마이페이지 맥락과 맞지 않아(구직 희망자가 아니라 이미 서비스를 쓰는 보호자가 보는 화면) 보호자가
        바로 쓸 수 있는 FAQ·상담 연결로 바꿨습니다. .mp-main 의 max-width 제한 밖으로 빼내 화면 전체
        너비를 채우는 풀블리드 섹션(.guardian-support-banner-full, <main> 뒤·<footer> 앞에 별도 형제로
-       배치 — 구조는 아래 HTML 참고)이고, 안쪽 콘텐츠(.guardian-support-banner)만 max-width 로 다시
-       중앙 정렬합니다. 순백 배경 — 위(페이지 배경)·아래(어두운 푸터) 모두와 색이 겹치지 않도록, 톤을
-       입히지 않고 옅은 상하 구분선(slate-200/80)만으로 경계를 나눕니다. */
-    .guardian-support-banner-full {
-      width: 100%; background: #fff;
-      border-top: 1px solid rgba(203, 213, 225, .8); border-bottom: 1px solid rgba(203, 213, 225, .8);
-    }
+       배치 — 구조는 아래 HTML 참고)이고, 안쪽 .guardian-support-banner-inner 가 위 케어 매니저 모집
+       배너의 .mgr-recruit-inner 와 동일한 max-width/좌우 패딩으로 너비를 맞춥니다. 카드 박스(배경/보더/
+       둥근모서리)는 두지 않고, 섹션 배경을 페이지 본문과 같은 톤(var(--bg))으로 깔아 위 사진 배너
+       바로 아래로 경계 없이 자연스럽게 이어지게 합니다. */
+    /* py-24 — 위 케어 매니저 모집 배너(.mgr-recruit-full)와 같은 96px 수직 패딩으로 맞춰, 두 섹션의
+       시각적 체급(세로 볼륨)을 동등하게 유지합니다. 반응형 단계도 배너와 동일하게 72px/56px 로 내립니다. */
+    .guardian-support-banner-full { width: 100%; background: var(--bg); padding: 96px 0; }
+    /* 위 케어 매니저 모집 배너(.mgr-recruit-inner)와 너비·좌우 여백을 정확히 맞추는 래퍼 */
+    .guardian-support-banner-inner { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
     .guardian-support-banner {
-      max-width: 1024px; margin: 0 auto; padding: 40px 24px;
-      display: grid; grid-template-columns: 1fr; gap: 22px; align-items: center;
+      display: grid; grid-template-columns: 1fr; gap: 28px; align-items: center;
     }
     @media (min-width: 769px) {
-      .guardian-support-banner { grid-template-columns: 3fr 2fr; gap: 32px; }
+      .guardian-support-banner { grid-template-columns: 3fr 2fr; gap: 40px; }
     }
-    .guardian-support-banner-title { margin: 0 0 8px; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; color: #0F172A; word-break: keep-all; }
-    .guardian-support-banner-text { margin: 0 0 18px; font-size: 13.5px; font-weight: 500; color: #475569; line-height: 1.6; word-break: keep-all; }
-    .guardian-support-banner-ctas { display: flex; flex-wrap: wrap; gap: 10px; }
+    .guardian-support-banner-title { margin: 0 0 14px; font-size: 30px; font-weight: 800; letter-spacing: -0.02em; color: #0F172A; word-break: keep-all; }
+    .guardian-support-banner-text { margin: 0 0 24px; font-size: 16px; font-weight: 500; color: #475569; line-height: 1.65; word-break: keep-all; }
+    .guardian-support-banner-ctas { display: flex; flex-wrap: wrap; gap: 12px; }
     .guardian-support-banner-cta {
-      display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 12px;
-      background: #047857; color: #fff; font-size: 14px; font-weight: 500; text-decoration: none;
+      display: inline-flex; align-items: center; gap: 8px; padding: 14px 24px; border-radius: 14px;
+      background: #047857; color: #fff; font-size: 16px; font-weight: 600; text-decoration: none;
       box-shadow: 0 1px 2px rgba(0, 0, 0, .05); transition: background-color .15s ease, transform .15s ease;
     }
     .guardian-support-banner-cta:hover { background: #065F46; transform: translateY(-1px); }
@@ -389,67 +390,84 @@
       background: transparent; color: #047857; border: 1.5px solid #A7F3D0;
     }
     .guardian-support-banner-cta-ghost:hover { background: #ECFDF5; color: #065F46; }
-    .guardian-support-banner-checks { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; }
-    .guardian-support-banner-checks li { display: flex; align-items: flex-start; gap: 10px; font-size: 13.5px; font-weight: 600; color: #1E293B; line-height: 1.4; }
+    .guardian-support-banner-checks { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 14px; }
+    .guardian-support-banner-checks li { display: flex; align-items: flex-start; gap: 12px; font-size: 16px; font-weight: 600; color: #1E293B; line-height: 1.5; }
     .guardian-support-check-icon {
-      flex: none; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px;
+      flex: none; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px;
       margin-top: 1px; border-radius: 50%; background: #ECFDF5; color: #059669;
     }
-    .guardian-support-check-icon svg { width: 11px; height: 11px; }
+    .guardian-support-check-icon svg { width: 13px; height: 13px; }
 
-    /* 케어 매니저 지원 배너 — 보호자 콘텐츠(케어 현황/내역)가 끝나는 지점에 둡니다. 지난 턴엔
-       aspect-ratio 를 사진 비율(1.56:1)에 맞춰 세로로 길어졌는데(~260px~), 화면을 과하게 채워
-       다시 슬림한 가로형(~200px)으로 되돌립니다. 대신 텍스트+버튼을 세로로 쌓던 구조를 그만두고
-       예전처럼 [텍스트 왼쪽 · 버튼 오른쪽] 한 줄 레이아웃으로 되돌려 높이 예산을 아꼈습니다
-       (버튼이 세로로 안 쌓이니 슬림한 높이에서도 요소끼리 찌그러지지 않습니다).
-       사진은 .mp-main 의 실제 폭(1100px)·슬림 높이(200px) 기준으로 crop 비율을 계산해 보니
-       cover 로 보이는 구간은 이미지 세로 29.7% 뿐이라, 어르신·맞잡은 손이 모여 있는 57~87%
-       구간(손이 겹치는 핵심 지점)을 그대로 보여주도록 background-position 을 'center 80%' 로 뒀습니다. */
-    .manager-recruit-banner {
-      position: relative; overflow: hidden; border-radius: 20px;
-      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px;
-      min-height: 200px; padding: 28px 32px;
-      background: url('/images/manager-banner-bg.jpg');
-      background-size: cover; background-position: center 80%; background-repeat: no-repeat;
-      box-shadow: 0 12px 32px rgba(41, 46, 37, .2);
+    /* 케어 매니저 지원 배너 — index.html 의 'B2B 제휴 전환 배너'(.wb-b2b-*)와 1:1로 같은 구조.
+       사진+오버레이는 안쪽의 작은 카드가 아니라 풀블리드 섹션(.mgr-recruit-full) 자체의 배경이라,
+       사진이 섹션 전체(위아래 패딩까지 포함한 전 영역)를 bg-cover/bg-center 로 꽉 채웁니다 — 이전엔
+       사진을 안쪽 둥근 카드에만 깔아서 그 바깥(풀블리드 섹션의 단색 배경) 부분이 사진과 분리된
+       여백처럼 보였던 문제를 없앴습니다(wb-b2b 도 둥근 카드 없이 섹션 자체가 사진입니다).
+       .mgr-recruit-inner 는 그 사진 위에서 콘텐츠만 max-width 로 중앙 정렬하는 투명한 래퍼입니다. */
+    .mgr-recruit-full {
+      position: relative; overflow: hidden; width: 100%; padding: 96px 0;
+      background-image: linear-gradient(rgba(16, 20, 27, .84), rgba(16, 20, 27, .84)), url('/images/getty-images-258_Fcxevy8-unsplash.jpg');
+      /* bottom 5%(= 95%, 위에서부터) — 손목·맞잡은 손 아랫부분까지 전부 들어오도록 거의 최하단에 초점.
+         주의: bottom 뒤 숫자가 '사진 아래쪽을 얼마나 잘라낼지'가 아니라 '바닥에서 얼마나 띄울지'라
+         숫자가 작을수록(0%에 가까울수록) 사진 하단이 더 많이 보입니다 — bottom 30%(=70%)는 오히려
+         상반신 쪽으로 올라가 손목이 잘립니다. bottom 0%(=100%)는 반대로 위쪽 손가락 여유가 빠듯해져
+         중간값인 5%가 위아래 여백 모두 안정적입니다. 1024~1920px 실측 렌더링으로 확정. */
+      background-size: cover; background-position: center bottom 5%; background-repeat: no-repeat;
     }
-    .manager-recruit-banner::before {
-      content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
-      background: linear-gradient(90deg, rgba(10, 14, 8, .56) 0%, rgba(10, 14, 8, .34) 36%, rgba(10, 14, 8, .1) 62%, rgba(10, 14, 8, 0) 82%);
+    .mgr-recruit-inner { position: relative; max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    .mgr-recruit-card {
+      display: grid; grid-template-columns: 1fr; gap: 32px; align-items: center;
     }
-    .manager-recruit-copy { position: relative; z-index: 2; flex: 1 1 280px; min-width: 0; }
-    .manager-recruit-title { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.01em; color: #fff; text-shadow: 0 1px 12px rgba(0,0,0,.3); word-break: keep-all; }
-    .manager-recruit-text { margin: 6px 0 0; font-size: 14px; font-weight: 500; color: rgba(255,255,255,.9); text-shadow: 0 1px 10px rgba(0,0,0,.28); line-height: 1.6; word-break: keep-all; }
-    /* 지원 혜택 포인트 3가지 — 반투명 흰 필(glassy pill). 사진 위라 그라데이션이 옅어지는 지점에서도
-       필 자체의 배경·테두리가 또렷한 대비를 한 번 더 보장합니다. */
-    .manager-recruit-perks { margin: 12px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px; }
-    .manager-recruit-perks li {
-      display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px 7px 10px; border-radius: 9999px;
-      background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.3); backdrop-filter: blur(4px);
-      color: #fff; font-size: 13px; font-weight: 700; white-space: nowrap;
+    @media (min-width: 769px) {
+      .mgr-recruit-card { grid-template-columns: 1.3fr auto; gap: 48px; }
     }
-    .manager-recruit-perks svg { flex: none; width: 14px; height: 14px; }
-    .manager-recruit-cta {
-      position: relative; z-index: 2; flex: none;
-      display: inline-flex; align-items: center; gap: 6px; padding: 14px 24px;
-      border-radius: 12px; background: #2D6A4F; color: #fff;
-      font-size: 14.5px; font-weight: 700; text-decoration: none; white-space: nowrap;
-      box-shadow: 0 10px 24px rgba(0,0,0,.3);
-      transition: background-color .15s ease, transform .15s ease, box-shadow .15s ease;
+    .mgr-recruit-copy { min-width: 0; }
+    .mgr-recruit-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px; height: 28px; padding: 0 12px;
+      border-radius: 999px; background: rgba(120, 134, 107, .2); color: #C9D2BF; font-size: 13px; font-weight: 600;
     }
-    .manager-recruit-cta:hover { background: #1B4332; transform: translateY(-1px); box-shadow: 0 12px 28px rgba(0,0,0,.36); }
-    .manager-recruit-cta svg { flex: none; transition: transform .15s ease; }
-    .manager-recruit-cta:hover svg { transform: translateX(2px); }
+    .mgr-recruit-eyebrow i { width: 6px; height: 6px; border-radius: 50%; background: #78866B; }
+    .mgr-recruit-title {
+      margin: 22px 0 0; font-size: clamp(24px, 2.8vw, 32px); line-height: 1.35; letter-spacing: -.02em;
+      font-weight: 700; color: #fff; word-break: keep-all;
+    }
+    .mgr-recruit-desc { margin: 16px 0 0; font-size: 16px; line-height: 1.65; color: #B0B8C1; max-width: 480px; word-break: keep-all; }
+    .mgr-recruit-chips { display: flex; flex-wrap: wrap; gap: 10px; margin: 32px 0 0; padding: 0; list-style: none; }
+    .mgr-recruit-chips li {
+      display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px;
+      border-radius: 999px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.04);
+      font-size: 13.5px; font-weight: 600; color: #D1D6DB; white-space: nowrap;
+    }
+    .mgr-recruit-chips svg { flex: none; width: 14px; height: 14px; }
+    .mgr-recruit-actions { display: flex; }
+    .mgr-recruit-btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 56px; padding: 0 28px;
+      border-radius: 12px; background: #78866B; color: #fff; font-size: 16px; font-weight: 600;
+      text-decoration: none; white-space: nowrap; transition: background-color .15s ease, transform .15s ease;
+    }
+    .mgr-recruit-btn:hover { background: #5F6B55; }
+    .mgr-recruit-btn:active { transform: scale(.98); }
+    .mgr-recruit-btn svg { flex: none; transition: transform .15s ease; }
+    .mgr-recruit-btn:hover svg { transform: translateX(3px); }
+    @media (max-width: 768px) {
+      .mgr-recruit-full { padding: 72px 0; }
+      .mgr-recruit-actions { justify-content: stretch; }
+      .mgr-recruit-btn { width: 100%; }
+    }
     @media (max-width: 480px) {
-      /* 모바일은 텍스트·버튼이 세로로 쌓여 전체 폭을 차지하므로, 가로 그라데이션 대신 위(텍스트)는
-         짙고 아래(버튼 쪽)로 갈수록 옅어지는 세로 그라데이션으로 바꿔 같은 원리를 적용합니다. */
-      .manager-recruit-banner {
-        flex-direction: column; align-items: stretch; padding: 24px 24px; min-height: 240px;
-      }
-      .manager-recruit-banner::before {
-        background: linear-gradient(180deg, rgba(10,14,8,.56) 0%, rgba(10,14,8,.36) 40%, rgba(10,14,8,.12) 72%, rgba(10,14,8,0) 100%);
-      }
-      .manager-recruit-cta { justify-content: center; margin-top: 18px; }
+      .mgr-recruit-full { padding: 56px 0; }
+      .mgr-recruit-inner { padding: 0 16px; }
+      .mgr-recruit-desc { font-size: 14px; }
+    }
+    @media (max-width: 768px) {
+      .guardian-support-banner-full { padding: 72px 0; }
+      .guardian-support-banner-title { font-size: 26px; }
+    }
+    @media (max-width: 480px) {
+      .guardian-support-banner-full { padding: 56px 0; }
+      .guardian-support-banner-inner { padding: 0 16px; }
+      .guardian-support-banner-title { font-size: 24px; }
+      .guardian-support-banner-text { font-size: 15px; }
     }
 
     /* ---------- 케어 현황: 신청 내역 카드 (모듈형 카드로 통일, 색은 상태 뱃지에만) ---------- */
@@ -1384,12 +1402,23 @@
         </div>
       </div>
 
-      <!-- 케어 매니저 지원 배너 — 케어 현황/내역 다음, FAQ·푸터 이전 순서로 고정 배치합니다. -->
-      <section class="manager-recruit-banner" aria-labelledby="managerRecruitTitle">
-        <div class="manager-recruit-copy">
-          <h2 class="manager-recruit-title" id="managerRecruitTitle">어르신에게 안심을 선물하고, 자율적으로 일하세요</h2>
-          <p class="manager-recruit-text">위드브릿지 케어 매니저로 함께할 분을 찾습니다.</p>
-          <ul class="manager-recruit-perks">
+      </div><!-- /#guardianView -->
+
+
+    </div>
+  </main>
+
+  <!-- 케어 매니저 지원 배너 — index.html 'B2B 제휴 전환 배너'(.wb-b2b-*)와 같은 구조로 통일: <main> 밖
+       (.mp-main 의 max-width 제한과 무관)에 둬서 화면 전체 너비를 채우는 풀블리드 섹션이고, 안쪽 카드만
+       max-width 로 다시 중앙 정렬합니다. 케어 현황/내역 다음, FAQ·푸터 이전 순서는 그대로 유지합니다. -->
+  <section class="mgr-recruit-full">
+    <div class="mgr-recruit-inner">
+      <div class="mgr-recruit-card" aria-labelledby="managerRecruitTitle">
+        <div class="mgr-recruit-copy">
+          <span class="mgr-recruit-eyebrow"><i aria-hidden="true"></i>케어 매니저 모집</span>
+          <h2 class="mgr-recruit-title" id="managerRecruitTitle">어르신에게 안심을 선물하고, 자율적으로 일하세요</h2>
+          <p class="mgr-recruit-desc">위드브릿지 케어 매니저로 함께할 분을 찾습니다.</p>
+          <ul class="mgr-recruit-chips" aria-label="케어 매니저 혜택">
             <li>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               자율 스케줄
@@ -1404,51 +1433,53 @@
             </li>
           </ul>
         </div>
-        <a href="manager-landing.html" class="manager-recruit-cta">
-          케어 매니저 혜택 보고 지원하기
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-        </a>
-      </section>
-
-      </div><!-- /#guardianView -->
-
-
+        <div class="mgr-recruit-actions">
+          <a href="manager-landing.html" class="mgr-recruit-btn">케어 매니저 혜택 보고 지원하기
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+        </div>
+      </div>
     </div>
-  </main>
+  </section>
 
   <!-- 자주 묻는 질문 & 1:1 고객센터 문의 안내 — <main> 밖(.mp-main 의 max-width 제한과 무관)에 둬서 화면
-       전체 너비를 채우는 풀블리드 섹션입니다. 안쪽 .guardian-support-banner 만 max-width:1024px 로 다시
-       중앙 정렬합니다. 예전엔 이 자리가 '케어 매니저 지원하기(구직용)' 배너였지만, 보호자 마이페이지를
+       전체 너비를 채우는 풀블리드 섹션입니다. 카드 박스 없이, 안쪽 .guardian-support-banner-inner 가
+       위 케어 매니저 모집 배너(.mgr-recruit-inner)와 같은 max-width/좌우 패딩으로 정렬을 맞추고,
+       섹션 세로 패딩(96px)·제목/본문/버튼/체크리스트 폰트 크기도 그 배너와 체급을 맞춰 하단 패밀리
+       컴포넌트로 자연스럽게 이어지게 합니다. 예전엔 이 자리가
+       '케어 매니저 지원하기(구직용)' 배너였지만, 보호자 마이페이지를
        보는 사람은 구직 희망자가 아니라 이미 서비스를 쓰는 보호자라 맥락이 맞지 않았습니다 — 모든 콘텐츠가
        끝난 뒤 바로 아래 푸터로 이어지는 이 자리는, 보호자가 결제·일정 등을 보다가 궁금한 점이 생겼을 때
        바로 쓸 수 있는 FAQ·상담 연결로 바꿨습니다. -->
   <section class="guardian-support-banner-full">
-    <div class="guardian-support-banner" aria-labelledby="guardianSupportBannerTitle">
-      <div>
-        <h2 class="guardian-support-banner-title" id="guardianSupportBannerTitle">자주 묻는 질문 &amp; 1:1 고객센터 문의</h2>
-        <p class="guardian-support-banner-text">결제·환불, 일정 변경, 매니저 배정 등 궁금한 점이 있다면 FAQ를 먼저 확인하거나 운영팀에 편하게 물어보세요.</p>
-        <div class="guardian-support-banner-ctas">
-          <a href="index.html#faq" class="guardian-support-banner-cta">
-            자주 묻는 질문 보기
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-          </a>
-          <a href="http://pf.kakao.com/_PKxemX" target="_blank" rel="noopener noreferrer" class="guardian-support-banner-cta guardian-support-banner-cta-ghost">카카오톡 1:1 상담</a>
+    <div class="guardian-support-banner-inner">
+      <div class="guardian-support-banner" aria-labelledby="guardianSupportBannerTitle">
+        <div>
+          <h2 class="guardian-support-banner-title" id="guardianSupportBannerTitle">자주 묻는 질문 &amp; 1:1 고객센터 문의</h2>
+          <p class="guardian-support-banner-text">결제·환불, 일정 변경, 매니저 배정 등 궁금한 점이 있다면 FAQ를 먼저 확인하거나 운영팀에 편하게 물어보세요.</p>
+          <div class="guardian-support-banner-ctas">
+            <a href="index.html#faq" class="guardian-support-banner-cta">
+              자주 묻는 질문 보기
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </a>
+            <a href="http://pf.kakao.com/_PKxemX" target="_blank" rel="noopener noreferrer" class="guardian-support-banner-cta guardian-support-banner-cta-ghost">카카오톡 1:1 상담</a>
+          </div>
         </div>
+        <ul class="guardian-support-banner-checks">
+          <li>
+            <span class="guardian-support-check-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            결제/환불 관련 안내
+          </li>
+          <li>
+            <span class="guardian-support-check-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            케어 일정 변경·취소 문의
+          </li>
+          <li>
+            <span class="guardian-support-check-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            평일 08:00~18:00 상담 가능
+          </li>
+        </ul>
       </div>
-      <ul class="guardian-support-banner-checks">
-        <li>
-          <span class="guardian-support-check-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-          결제/환불 관련 안내
-        </li>
-        <li>
-          <span class="guardian-support-check-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-          케어 일정 변경·취소 문의
-        </li>
-        <li>
-          <span class="guardian-support-check-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-          평일 08:00~18:00 상담 가능
-        </li>
-      </ul>
     </div>
   </section>
 
@@ -2751,13 +2782,14 @@
 
     // request_details("희망 일시: …\n어르신 거동 상태: …\n요청 상세: …")를 항목별로 분리. 옛 형식(자유 문장)이면 전부 '요청 사항'
     function parseRequestDetails(text) {
-      const out = { when: '', mobility: '', note: '' };
+      const out = { when: '', mobility: '', purpose: '', note: '' };
       const src = String(text == null ? '' : text).trim();
       if (!src) return out;
-      const KEYS = { '희망 일시': 'when', '어르신 거동 상태': 'mobility', '요청 상세': 'note' };
+      // '세부 목적' = '1시간 콕집 라이트 케어' 선택 시에만 apply.html 이 추가로 적는 줄(어떤 단기 케어인지)
+      const KEYS = { '희망 일시': 'when', '어르신 거동 상태': 'mobility', '세부 목적': 'purpose', '요청 상세': 'note' };
       let current = null, matched = false;
       src.split('\n').forEach((line) => {
-        const m = /^\s*(희망 일시|어르신 거동 상태|요청 상세)\s*:\s*(.*)$/.exec(line);
+        const m = /^\s*(희망 일시|어르신 거동 상태|세부 목적|요청 상세)\s*:\s*(.*)$/.exec(line);
         if (m) { current = KEYS[m[1]]; matched = true; out[current] = m[2].trim(); }
         else if (current === 'note') out.note += '\n' + line; // 요청 상세는 여러 줄일 수 있음
       });
@@ -3514,6 +3546,7 @@
       // 어르신의 관계(예: 본인/자녀)를 대신 보여줘 누구를 위한 신청인지 한눈에 알 수 있게 합니다.
       if (a.user_relation) row(svgActivityIcon, '어르신과의 관계', a.user_relation);
       if (req.mobility) row(svgActivityIcon, '거동 상태', req.mobility);
+      if (req.purpose) row(svgActivityIcon, '세부 목적', req.purpose);
       if (req.note) row(svgNoteIcon, '요청 사항', req.note, 'note');
       card.appendChild(dl);
 

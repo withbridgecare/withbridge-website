@@ -227,6 +227,9 @@ button { font-family: inherit; cursor: pointer; }
   border-color: var(--sage-500);
   color: #fff;
 }
+/* 검색창 없이 탭 칩만 단독으로 쓰는 필터 바(B2B 파트너 제휴 문의 등) — 기본 .admin-filter-bar 와
+   같은 flex/gap 비율을 쓰되, 위/아래 간격만 요청대로 16px/20px 로 좁힙니다. */
+.admin-filter-bar--tabs { margin-top: 16px; margin-bottom: 20px; }
 
 .admin-grid {
   display: grid;
@@ -501,6 +504,10 @@ button { font-family: inherit; cursor: pointer; }
 }
 .admin-row-meta dt { color: var(--ink-sub); font-weight: 500; }
 .admin-row-meta dd { margin: 0; font-weight: 600; color: var(--ink); word-break: keep-all; }
+/* 신청자(보호자) 연락처 — 운영자가 확인 전화를 걸 때 가장 먼저 눈에 들어와야 하는 항목이라
+   다른 메타 항목보다 진하게 강조합니다(renderApplicationRow/renderCancelledApplicationRow). */
+.admin-row-meta dt.is-contact { color: var(--sage-700); font-weight: 700; }
+.admin-row-meta dd.is-contact { color: var(--sage-700); font-weight: 800; }
 
 /* 상태 배지: 파스텔 톤(연한 배경 + 진한 텍스트)으로 통일 */
 .admin-badge {
@@ -741,6 +748,25 @@ button { font-family: inherit; cursor: pointer; }
 input.admin-select { cursor: text; }
 textarea.admin-select { cursor: text; resize: vertical; min-height: 72px; }
 .admin-select + .admin-field-label { margin-top: 14px; }
+
+/* 표 행 안에서 바로 쓰는 축소판 셀렉트 (B2B 파트너 제휴 문의의 처리 상태 변경 등) */
+.admin-table-select {
+  width: auto;
+  padding: 6px 10px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.admin-table-select:focus { outline: none; border-color: var(--sage-500); box-shadow: 0 0 0 3px rgba(120, 134, 107, .18); }
+.admin-table-select:disabled { opacity: .6; cursor: not-allowed; }
+
+/* 긴 문의 내용을 표 안에서 한 줄로 줄여 보여주고, 전체 내용은 title 속성 툴팁으로 확인 */
+.admin-cell-truncate { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* margin-bottom 이 없으면(Tailwind preflight 가 <p> 기본 마진을 전부 0으로 리셋해 둠) 이 에러/알림
    박스가 바로 아래 구분선(.modal-actions 의 border-top)이나 버튼 그룹에 거의 붙어 보입니다 —
    아래쪽에도 같은 폭의 여백을 둬 숨통을 트입니다(회원 상세 모달의 memberActionError 등). */

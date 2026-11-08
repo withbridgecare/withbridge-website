@@ -26,7 +26,7 @@
 <!-- 💡 Supabase 라이브러리 추가 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 <!-- 💡 공통 인증 헤더 (로그인 상태 감지 · 프로필 아바타/드롭다운). Supabase SDK 뒤에 로드해야 합니다 -->
-<script src="/js/auth-header.js?v=2.2" charset="utf-8" defer></script>
+<script src="/js/auth-header.js?v=2.3" charset="utf-8" defer></script>
 <script src="/js/terms-modal.js?v=1.0" charset="utf-8" defer></script>
 <script src="/js/notice-modal.js?v=1.0" charset="utf-8" defer></script>
 
@@ -349,6 +349,22 @@
 
   </div>
 </section>
+
+<!-- '1시간 라이트 케어' 오픈 안내 띠 배너 — 히어로 바로 아래, 본문 시작 지점. 2시간 최소 이용 조건
+     때문에 망설이던 보호자(수면내시경 귀가, 퇴원 수속, 단기 외출 등)에게 짧은 서비스도 있다는 걸 바로
+     알립니다. html { scroll-behavior: smooth } 가 전역 적용돼 있어 #services 앵커 이동만으로도 부드럽게
+     스크롤됩니다(별도 스크립트 불필요). 전구 아이콘은 인위적인 느낌이라 빼고, 운영진이 직접 안내하는
+     듯한 자연스러운 문구만 담았습니다. -->
+<div class="w-full" style="background: #1F5C45;">
+  <div class="mx-auto flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-3 px-5 py-4" style="max-width: 1380px;">
+    <p class="text-white text-[13.5px] sm:text-[15px] font-semibold text-center sm:text-left" style="word-break: keep-all; margin: 0; line-height: 1.55;">
+      짧은 검진 귀가나 장보기가 필요할 때! 부담 없는 <strong class="font-extrabold">'1시간 라이트 케어'</strong>를 만나보세요
+    </p>
+    <a href="#lite-care" class="shrink-0 inline-flex items-center gap-1 text-white text-[13px] sm:text-sm font-bold bg-white/15 hover:bg-white/25 border border-white/30 rounded-full px-4 py-1.5 transition-colors" style="text-decoration: none; white-space: nowrap;">
+      1시간 요금 보기 →
+    </a>
+  </div>
+</div>
 
 <!--
 ====================================================================
@@ -1065,6 +1081,97 @@
     line-height: 1;
   }
 
+  /* --- 0. '1시간 콕집 라이트 케어' 강조 카드 — mypage.html 의 화이트 카드 톤(흰 배경 · slate-200
+     테두리 · rounded-2xl · 옅은 그림자)과 동일하게 정돈했습니다. --- */
+  .wb-lite-card {
+    position: relative;
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin-bottom: 32px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .05);
+    scroll-margin-top: 110px; /* 히어로 하단 배너의 [1시간 요금 보기] 앵커가 고정 헤더에 가려지지 않도록 */
+  }
+
+  .wb-lite-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .wb-lite-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 12px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+  }
+
+  .wb-lite-tag.is-new { background: #1F5C45; color: #fff; }
+
+  .wb-lite-title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+
+  .wb-lite-title {
+    font-size: 21px !important;
+    font-weight: 800 !important;
+    color: #1E293B;
+    letter-spacing: -0.01em !important;
+    word-break: keep-all;
+  }
+
+  .wb-lite-caption {
+    font-size: 16px !important;
+    font-weight: 700;
+    color: #1E293B;
+    margin: 0 0 18px !important;
+    word-break: keep-all;
+  }
+
+  /* 4가지 세부 항목 — 마이페이지 화이트 카드 톤에 맞춰 한 단계 큰 글씨(text-base)·슬레이트 톤
+     글자색(text-slate-700)·줄 사이가 붙어 보이지 않는 넉넉한 세로 간격(space-y-3 상당)·
+     옅은 점 불릿으로 한눈에 훑어볼 수 있게 정돈했습니다 ([택1] 접두사는 줄마다 반복하지 않고
+     위 캡션 한 줄로 모읍니다). items-center 로 불릿이 텍스트 줄의 수직 중앙에 오도록 맞춥니다
+     (줄바꿈 없는 한 줄 텍스트 기준 — flex-start 로 두면 글자 상단에 붙어 미묘하게 어긋나 보였습니다). */
+  .wb-lite-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 14px;
+  }
+
+  .wb-lite-list li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px !important;
+    font-weight: 500;
+    color: #334155;
+    line-height: 1.65 !important;
+    word-break: keep-all;
+  }
+
+  .wb-lite-list li::before {
+    content: '';
+    flex: none;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #6B805E;
+  }
+
   /* --- 1. 기본 서비스 요금 테이블 --- */
   .wb-table-wrapper {
     width: 100%;
@@ -1319,6 +1426,13 @@
     box-shadow: 0 0 0 3px rgba(90, 115, 97, 0.15);
   }
 
+  /* '1시간 라이트 케어' 선택 시 '추가 이용 시간' 드롭다운 잠금 — calculatePrice() 가 토글 */
+  .wb-select.is-disabled .wb-select-trigger {
+    opacity: 0.55;
+    cursor: not-allowed;
+    background-color: #F1F2F0;
+  }
+
   .wb-select-value {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1473,6 +1587,8 @@
     .wb-firstuse-banner { flex-direction: column; align-items: flex-start; padding: 14px 18px; }
     .wb-section-block, .wb-calc-box { padding: 24px 20px; }
     .wb-option-grid, .wb-calc-grid { grid-template-columns: 1fr; }
+    .wb-lite-card { padding: 22px 20px; }
+    .wb-lite-title-row { flex-direction: column; align-items: flex-start; gap: 4px; }
   }
 </style>
 
@@ -1494,6 +1610,29 @@
     <div class="wb-firstuse-banner">
       <span class="wb-firstuse-badge">첫 이용 혜택</span>
       <p class="wb-firstuse-text">신규 회원 첫 결제 시 <strong>5,000원 웰컴 쿠폰</strong>이 자동 적용돼요.</p>
+    </div>
+
+    <!-- 0. '1시간 콕집 라이트 케어' 강조 카드 — 2시간 최소 이용 조건 때문에 이탈하는 보호자(수면내시경
+         귀가, 퇴원 수속, 단지 내 산책, 당일 장보기 등 단기 케어 희망자)를 흡수하기 위한 신규 상품.
+         apply.html SERVICES['1시간 라이트 케어'](price: 30000)와 아래 계산기의 신규 옵션과 반드시
+         같은 이름/금액으로 유지하세요. -->
+    <div class="wb-lite-card" id="lite-care">
+      <div class="wb-lite-head">
+        <span class="wb-lite-tag is-new">NEW</span>
+      </div>
+      <div class="wb-lite-title-row">
+        <span class="wb-lite-title">1시간 콕집 라이트 케어 (30,000원 / 1시간)</span>
+      </div>
+      <!-- 세 가지를 전부 받는 서비스가 아니라, 그중 하나만 골라 이용하는 단일 선택(택 1) 상품임을
+           명확히 알립니다 — "2시간 병원 동행 + 장보기까지 다 되나요?" 같은 오해를 막기 위함.
+           [택 1] 접두사는 캡션 한 줄에만 두고, 불릿은 항목 이름만 깔끔하게 보여줍니다. -->
+      <p class="wb-lite-caption">필요한 단기 케어 1가지를 콕 집어 이용하세요 (택 1)</p>
+      <ul class="wb-lite-list">
+        <li>수면내시경/검사 후 안전 귀가</li>
+        <li>아파트 단지 내 안심 산책 및 말벗</li>
+        <li>집 앞 마트 생필품 장보기 및 간단 업무 대행</li>
+        <li>기타 1시간 이내 단기 케어 (신청 시 직접 작성)</li>
+      </ul>
     </div>
 
     <!-- 1. 기본 서비스 요금 체계 -->
@@ -1601,13 +1740,14 @@
           <label for="wb-service-type-trigger">1. 서비스 유형 선택</label>
           <div class="wb-select" data-wb-select>
             <select id="wb-service-type" class="wb-form-control" onchange="calculatePrice()">
-              <option value="50000|12500">시니어 병원 동행 (기본 50,000원)</option>
-              <option value="40000|10000">생활 편의 대행 (기본 40,000원)</option>
-              <option value="60000|15000">복합 매칭 서비스 (기본 60,000원)</option>
+              <option value="30000|15000|60|1시간 라이트 케어">[NEW] 1시간 라이트 케어 (산책/장보기/퀵동행) - 30,000원</option>
+              <option value="50000|12500|120|시니어 병원 동행">시니어 병원 동행 (기본 2시간) - 50,000원</option>
+              <option value="40000|10000|120|생활 편의 대행">생활 편의 대행 (기본 2시간) - 40,000원</option>
+              <option value="60000|15000|120|복합 매칭 서비스 (동행 + 생활편의)">복합 매칭 서비스 (기본 2시간) - 60,000원</option>
             </select>
           </div>
 
-          <label for="wb-extra-time-trigger" style="margin-top: 12px;">2. 추가 이용 시간 (기본 2시간 외)</label>
+          <label for="wb-extra-time-trigger" id="wb-extra-time-label" style="margin-top: 12px;">2. 추가 이용 시간 (기본 2시간 외)</label>
           <div class="wb-select" data-wb-select>
             <select id="wb-extra-time" class="wb-form-control" onchange="calculatePrice()">
               <option value="0">추가 없음 (총 2시간)</option>
@@ -1628,10 +1768,6 @@
               <span class="wb-checkbox-text">긴급 매칭 서비스 (+10,000원)</span>
             </label>
             <label class="wb-checkbox-label">
-              <input type="checkbox" id="wb-opt-vehicle" value="10000" onchange="calculatePrice()">
-              <span class="wb-checkbox-text">차량 이동 지원 (+10,000원)</span>
-            </label>
-            <label class="wb-checkbox-label">
               <input type="checkbox" id="wb-opt-night" value="0.2" onchange="calculatePrice()">
               <span class="wb-checkbox-text">주말 / 야간 / 공휴일 이용 (기본금 20% 할증)</span>
             </label>
@@ -1649,7 +1785,7 @@
           <span class="text-3xl font-black text-amber-300" id="wb-total-price">50,000원</span>
           <small class="block mt-1 text-emerald-200" style="font-size: 11.5px; opacity: .85;">* 실비(교통비, 주차비 등)는 별도로 부과될 수 있습니다. 첫 이용 웰컴 쿠폰(5,000원)은 결제 단계에서 별도로 적용됩니다.</small>
         </div>
-        <a href="apply.html" id="btn-book-with-calc" onclick="window.WBAuth && window.WBAuth.goIfLoggedIn(event, 'apply.html')"
+        <a href="apply.html" id="btn-book-with-calc" onclick="bookWithCalc(event)"
            class="px-8 py-3.5 bg-amber-400 hover:bg-amber-300 text-gray-900 font-extrabold text-base rounded-xl shadow-md transition-colors text-center"
            style="text-decoration: none; white-space: nowrap;">
           이 조건으로 바로 예약하기 →
@@ -1662,20 +1798,45 @@
 
 <!-- 실시간 요금 계산 스크립트 -->
 <script>
+  // '서비스 유형' select 의 value 에서 지금 선택된 서비스의 실제 service_type 이름(apply.html
+  // SERVICES/service_applications.service_type 과 완전히 같은 문자열)을 꺼냅니다 — [이 조건으로
+  // 바로 예약하기] 버튼이 신청서로 조건을 그대로 넘길 때 씁니다.
+  function currentServiceTypeName() {
+    const parts = document.getElementById('wb-service-type').value.split('|');
+    return parts[3] || '';
+  }
+
   function calculatePrice() {
-    // 1. 서비스 유형 선택값 파싱
+    // 1. 서비스 유형 선택값 파싱 — basePrice|30분당 초과요금|기본 포함 분(60=1시간/120=2시간)|service_type 이름
     const serviceSelect = document.getElementById('wb-service-type').value;
-    const [basePriceStr, extraUnitStr] = serviceSelect.split('|');
+    const [basePriceStr, extraUnitStr, baseMinutesStr] = serviceSelect.split('|');
     const basePrice = parseInt(basePriceStr, 10);
     const extraPricePerUnit = parseInt(extraUnitStr, 10);
+    const baseMinutes = parseInt(baseMinutesStr, 10) || 120;
+    const isOneHour = baseMinutes === 60; // '1시간 라이트 케어' — 기본 포함 시간이 2시간이 아니라 1시간뿐인 유일한 상품
 
-    // 2. 추가 시간 계산 (30분 = 1단위)
-    const extraUnits = parseInt(document.getElementById('wb-extra-time').value, 10);
+    // 1시간 상품은 추가 시간 개념이 없으므로(요구사항: 자동 비활성화 + '추가 없음(총 1시간)'으로 고정),
+    // select 자체를 잠그고 값을 0으로 되돌립니다. 커스텀 드롭다운(enhanceWbSelects)이 각 select에
+    // 심어 둔 _wbSync() 로 트리거에 보이는 라벨/열림 가능 여부까지 함께 갱신합니다.
+    const extraTimeSelect = document.getElementById('wb-extra-time');
+    const extraTimeFirstOption = extraTimeSelect.options[0];
+    extraTimeFirstOption.textContent = isOneHour ? '추가 없음 (총 1시간)' : '추가 없음 (총 2시간)';
+    if (isOneHour) extraTimeSelect.value = '0';
+    extraTimeSelect.disabled = isOneHour;
+    const extraTimeWrapper = extraTimeSelect.closest('.wb-select');
+    if (extraTimeWrapper) extraTimeWrapper.classList.toggle('is-disabled', isOneHour);
+    if (extraTimeSelect._wbSync) extraTimeSelect._wbSync();
+
+    const extraTimeLabel = document.getElementById('wb-extra-time-label');
+    if (extraTimeLabel) extraTimeLabel.textContent = isOneHour ? '2. 추가 이용 시간 (1시간 상품은 추가 불가)' : '2. 추가 이용 시간 (기본 2시간 외)';
+
+    // 2. 추가 시간 계산 (30분 = 1단위) — 1시간 상품은 위에서 이미 0으로 고정됨
+    const extraUnits = isOneHour ? 0 : parseInt(extraTimeSelect.value, 10);
     const extraTimeTotal = extraUnits * extraPricePerUnit;
 
     // 3. 선택 옵션 추가금
     let optionTotal = 0;
-    ['wb-opt-urgent', 'wb-opt-vehicle'].forEach((id) => {
+    ['wb-opt-urgent'].forEach((id) => {
       const el = document.getElementById(id);
       if (el && el.checked) optionTotal += parseInt(el.value, 10);
     });
@@ -1689,6 +1850,22 @@
     // 5. 총 예상 요금 산출 및 화면 업데이트
     const totalPrice = basePrice + extraTimeTotal + optionTotal + surcharge;
     document.getElementById('wb-total-price').innerText = totalPrice.toLocaleString('ko-KR') + '원';
+  }
+
+  // [이 조건으로 바로 예약하기] — 계산기에서 고른 서비스 유형을 신청서(apply.html)로 그대로 넘겨
+  // 서비스 카드가 자동 선택되게 합니다(apply.html 의 prefillFromCalculator() 참고). 추가 시간/주말
+  // 할증은 신청서 폼 자체에 그 입력란이 없어(실제 초과 요금은 매니저가 실제 소요 시간을 보고한 뒤
+  // 자동 산정 — report_care_duration_and_bill_extra) 넘길 대상이 없고, 긴급 매칭 옵션만 체크박스로
+  // 존재해 함께 넘깁니다.
+  function bookWithCalc(event) {
+    const params = new URLSearchParams();
+    const serviceType = currentServiceTypeName();
+    if (serviceType) params.set('service', serviceType);
+    if (document.getElementById('wb-opt-urgent').checked) params.set('urgent', '1');
+    const url = 'apply.html' + (params.toString() ? '?' + params.toString() : '');
+    document.getElementById('btn-book-with-calc').href = url; // 미들클릭/새 탭 열기 대비 — goIfLoggedIn 은 href 를 보지 않고 아래 url 을 직접 씁니다
+    if (window.WBAuth && window.WBAuth.goIfLoggedIn) window.WBAuth.goIfLoggedIn(event, url);
+    else { if (event && event.preventDefault) event.preventDefault(); window.location.href = url; }
   }
 
   // 서비스 유형 / 추가 시간 select를 브랜드 톤의 커스텀 드롭다운으로 강화.
@@ -1784,6 +1961,7 @@
       }
 
       trigger.addEventListener('click', function () {
+        if (select.disabled) return; // '1시간 라이트 케어' 선택 시 잠긴 추가 시간 드롭다운은 열리지 않음
         wrapper.classList.contains('is-open') ? closeDropdown() : openDropdown();
       });
 
@@ -1796,6 +1974,7 @@
       });
 
       trigger.addEventListener('keydown', function (e) {
+        if (select.disabled) return;
         const isOpen = wrapper.classList.contains('is-open');
         if (e.key === 'ArrowDown') {
           e.preventDefault();
@@ -1818,6 +1997,10 @@
       });
 
       syncFromSelect();
+      // calculatePrice() 가 '1시간 라이트 케어' 선택 시 추가 시간 select 의 라벨/값을 바꾼 뒤
+      // 커스텀 트리거 표시를 다시 맞추려고 호출합니다 — forEach 클로저 밖에서는 select/syncFromSelect
+      // 에 접근할 수 없어 DOM 엘리먼트에 직접 매달아 둡니다.
+      select._wbSync = syncFromSelect;
     });
   }
 
@@ -1825,6 +2008,14 @@
     document.addEventListener('DOMContentLoaded', enhanceWbSelects);
   } else {
     enhanceWbSelects();
+  }
+
+  // 초기 렌더링 — 기본 선택값이 '1시간 라이트 케어'(30,000원)로 바뀌었으므로, onchange 를 기다리지
+  // 않고 페이지 로드 시 한 번 계산해 총액/웰컴 배지/추가 시간 잠금 상태를 전부 맞춰 둡니다.
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', calculatePrice);
+  } else {
+    calculatePrice();
   }
 </script>
 
@@ -2243,26 +2434,27 @@
       font-size: 26px !important;
     }
 
-    /* 세로형 탭 리스트 - 가로 스크롤 칩으로 전환 */
+    /* 세로형 탭 리스트 - PC와 동일하게 세로 적층, 가로 스크롤 없음 */
     .wb-pain-tab-list {
-      flex-direction: row;
-      flex-wrap: nowrap;
+      flex-direction: column;
       gap: 10px;
       max-width: 100%;
-      overflow-x: auto;
-      overflow-y: visible;
-      padding: 2px 2px 10px;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: thin;
     }
     .wb-pain-tab {
-      flex: none;
+      width: 100%;
+      box-sizing: border-box;
+      gap: 8px;
+      padding: 14px;
       white-space: nowrap;
-      padding: 12px 16px;
-      border-radius: 9999px;
+      font-size: 13.5px !important;
+      letter-spacing: -0.03em !important;
     }
     .wb-pain-tab .wb-tab-arrow {
-      display: none;
+      flex: none;
+    }
+    .wb-pain-tab .wb-tab-arrow svg {
+      width: 12px;
+      height: 12px;
     }
 
     .wb-feature-right {
@@ -2915,6 +3107,66 @@
     </div>
   </div>
 </div>
+
+<!--
+====================================================================
+10-1. B2B 제휴 전환 배너 — 기관/기업 담당자를 partner.html 로 안내
+      (리뷰 섹션과 푸터 사이. 스타일은 .wb-b2b- 접두사로 격리되어 있어 다른 CSS와 충돌하지 않음)
+====================================================================
+-->
+<style>
+.wb-b2b{position:relative;overflow:hidden;padding:96px 0;color:#FFFFFF;font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,system-ui,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;word-break:keep-all;background-image:linear-gradient(rgba(16,20,27,.84),rgba(16,20,27,.84)),url('/images/jeshoots-com-hN3t9Wj-bNs-unsplash.jpg');background-size:cover;background-position:center;background-repeat:no-repeat}
+.wb-b2b-inner{position:relative;max-width:1200px;margin:0 auto;padding:0 24px}
+.wb-b2b-card{display:grid;grid-template-columns:1.3fr auto;align-items:center;gap:40px}
+.wb-b2b-copy{position:relative}
+.wb-b2b-eyebrow{display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 12px;border-radius:999px;background:rgba(120,134,107,.2);color:#C9D2BF;font-size:13px;font-weight:600}
+.wb-b2b-eyebrow i{width:6px;height:6px;border-radius:50%;background:#78866B}
+.wb-b2b-title{margin:16px 0 12px;font-size:clamp(24px,2.8vw,32px);line-height:1.35;letter-spacing:-.03em;font-weight:700}
+.wb-b2b-title em{font-style:normal;color:#A9B79C}
+.wb-b2b-desc{margin:0;font-size:16px;line-height:1.65;color:#B0B8C1;max-width:560px}
+.wb-b2b-chips{display:flex;flex-wrap:wrap;gap:8px;margin:24px 0 0;padding:0;list-style:none}
+.wb-b2b-chips li{display:inline-flex;align-items:center;height:32px;padding:0 12px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);font-size:13px;font-weight:600;color:#D1D6DB}
+.wb-b2b-actions{position:relative;display:flex;flex-direction:column;align-items:stretch;gap:12px;min-width:220px}
+.wb-b2b-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:56px;padding:0 28px;border-radius:12px;background:#78866B;color:#FFFFFF;font-size:16px;font-weight:600;text-decoration:none;transition:background .15s,transform .15s}
+.wb-b2b-btn:hover{background:#5F6B55;color:#FFFFFF}
+.wb-b2b-btn:active{transform:scale(.98)}
+.wb-b2b-btn:focus-visible{outline:2px solid #A9B79C;outline-offset:3px}
+.wb-b2b-btn svg{transition:transform .15s}
+.wb-b2b-btn:hover svg{transform:translateX(3px)}
+.wb-b2b-sub{display:inline-flex;align-items:center;justify-content:center;height:44px;color:#B0B8C1;font-size:14px;font-weight:500;text-decoration:none}
+.wb-b2b-sub:hover{color:#FFFFFF}
+@media (max-width:860px){
+  .wb-b2b{padding:64px 0}
+  .wb-b2b-card{grid-template-columns:1fr;gap:32px}
+  .wb-b2b-actions{min-width:0}
+}
+@media (max-width:480px){
+  .wb-b2b-inner{padding:0 16px}
+  .wb-b2b-desc{font-size:15px}
+}
+@media (prefers-reduced-motion:reduce){.wb-b2b-btn,.wb-b2b-btn svg{transition:none}}
+</style>
+
+<section class="wb-b2b" aria-labelledby="wb-b2b-title">
+  <div class="wb-b2b-inner">
+    <div class="wb-b2b-card">
+      <div class="wb-b2b-copy">
+        <span class="wb-b2b-eyebrow"><i aria-hidden="true"></i>기관 · 기업 담당자이신가요?</span>
+        <h2 class="wb-b2b-title" id="wb-b2b-title">요양원 · 복지관 · 병원 · 기업을 위한<br><em>위드브릿지 제휴 프로그램</em></h2>
+        <p class="wb-b2b-desc">이용자 병원 동행부터 임직원 부모님 케어까지, 기관 규모와 특성에 맞춘 플랜을 함께 설계해 드립니다. 지금 얼리 파트너를 모집하고 있어요.</p>
+        <ul class="wb-b2b-chips" aria-label="제휴 대상">
+          <li>요양원</li><li>주간보호센터</li><li>복지관</li><li>종합병원</li><li>기업 복지</li>
+        </ul>
+      </div>
+      <div class="wb-b2b-actions">
+        <a href="partner.html" class="wb-b2b-btn">제휴 안내 보기
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+        <a href="partner.html#inquiry" class="wb-b2b-sub">바로 제휴 문의하기</a>
+      </div>
+    </div>
+  </div>
+</section>
 
 <!--
 ====================================================================

@@ -13,7 +13,7 @@
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- 공통 Supabase 클라이언트 + 헤더 로그인 상태. SDK 뒤에 로드해야 합니다 -->
-  <script src="/js/auth-header.js?v=2.2" charset="utf-8"></script>
+  <script src="/js/auth-header.js?v=2.3" charset="utf-8"></script>
   <script src="/js/notice-modal.js?v=1.0" charset="utf-8" defer></script>
   <!-- 카카오(다음) 우편번호 서비스: 거주지 주소를 자유 입력 대신 정식 도로명·지번 주소로 선택하게 함 -->
   <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
@@ -32,13 +32,14 @@
       --accent: #556B2F;
       --accent-dark: #455822;
       --control-border: #858E9C;
-      --bg: #FAF8F5;
+      --bg: #F2F4F6;                   /* mypage.html·apply.html 과 완전히 같은 연회색(슬레이트) 배경 */
       --card: #FFFFFF;
+      --card-border: #E5E7EB;          /* mypage.html --card-border 와 동일 */
       --line: #EBE7E0;
       --danger: #C0392B;
       --earth-bg: #FFFBEB;
       --earth-fg: #B45309;
-      --radius: 20px;
+      --radius: 16px;                  /* mypage.html --radius 와 동일 */
     }
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
@@ -53,7 +54,7 @@
 
     .ap-main { padding: 0 0 80px; }
     .ap-wrap { max-width: 640px; margin: 0 auto; padding: 40px 24px 0; display: flex; flex-direction: column; gap: 24px; }
-    .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 32px; box-shadow: 0 4px 16px rgba(0,0,0,.02); }
+    .card { background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,.05); }
 
     /* 랜딩 페이지(manager-landing.html)로 돌아가는 링크 — 폼 카드들 위에 고정 배치 */
     .ap-back-link {
@@ -107,6 +108,9 @@
     textarea.text-input { display: block; min-height: 110px; resize: vertical; line-height: 1.6; }
     .err { margin: 8px 2px 0; font-size: 13.5px; color: var(--danger); }
     .hint { margin: 6px 2px 0; font-size: 13px; color: var(--ink-sub); word-break: keep-all; }
+
+    /* 계정에 등록된 값으로 고정되는 입력칸(연락처 등) - 마이페이지에서만 수정 가능함을 알림 */
+    .text-input:disabled { background: #F3F4F6; color: #6B7280; cursor: not-allowed; opacity: 1; -webkit-text-fill-color: #6B7280; }
 
     .row2 { display: flex; gap: 10px; flex-wrap: wrap; }
     .row2 > .field { flex: 1 1 220px; margin-bottom: 24px; }
@@ -165,7 +169,9 @@
     .other-area-input { margin-top: 10px; max-width: 320px; }
 
     /* 개인정보/안전 서약 동의 체크박스 (apply.html 과 동일한 언어) */
-    .consent-card { padding: 16px 16px 16px 14px; border: 1px solid var(--line); border-radius: 14px; margin-bottom: 14px; }
+    /* apply.html 의 이용약관/개인정보 동의 체크박스는 겹겹이 테두리를 두르지 않고 여백만으로 항목을
+       구분합니다 — 여기도 같은 톤으로 맞춰 박스 테두리를 걷어내고 간격만 남깁니다. */
+    .consent-card { margin-bottom: 20px; }
     .consent-card:last-of-type { margin-bottom: 0; }
     label.consent-row { display: flex; align-items: flex-start; gap: 10px; margin: 0; padding: 0; font-size: 15px; font-weight: 700; letter-spacing: normal; cursor: pointer; }
     .consent-row input {
@@ -662,6 +668,15 @@
       });
     }
 
+    // 계정(마이페이지)에 연락처가 이미 등록돼 있으면 수정 불가 상태로 고정합니다.
+    // 아직 등록된 연락처가 없는 계정(profiles/auth 양쪽 다 비어 있음)은 필수 입력칸을 잠가버리면
+    // 지원서를 완성할 방법이 없어지므로, 그 경우에만 평소처럼 직접 입력할 수 있게 열어 둡니다.
+    function applyPhoneLockState(hasPhone) {
+      const input = $('mgrPhone');
+      input.readOnly = hasPhone;
+      input.disabled = hasPhone;
+    }
+
     let currentUser = null;
     const TOTAL_STEPS = 4;
     let currentStep = 1;
@@ -968,9 +983,34 @@
       }
 
       // 3) 신청서 노출 (반려 이력이 있으면 사유를 배너로 안내하고 재작성하게 함)
+      // 마이페이지(profiles)에 저장된 이름/연락처/주소로 기본값을 채웁니다 - user_metadata는
+      // 가입 시점의 값이라 마이페이지에서 바꾼 뒤에도 그대로라, profiles 쪽을 우선합니다.
       const meta = currentUser.user_metadata || {};
-      const prefillName = meta.name || meta.full_name || meta.nickname || '';
+      let prefillName = meta.name || meta.full_name || meta.nickname || '';
+      let prefillPhone = currentUser.phone || meta.phone || '';
+      let prefillAddress = '';
+      let prefillAddressDetail = '';
+      try {
+        const { data: profileRow, error: profileError } = await supabaseClient
+          .from('profiles')
+          .select('name, phone, address, address_detail')
+          .eq('id', currentUser.id)
+          .maybeSingle();
+        if (!profileError && profileRow) {
+          if (profileRow.name) prefillName = profileRow.name;
+          if (profileRow.phone) prefillPhone = profileRow.phone;
+          if (profileRow.address) prefillAddress = profileRow.address;
+          if (profileRow.address_detail) prefillAddressDetail = profileRow.address_detail;
+        }
+      } catch (e) {
+        console.warn('[매니저 지원] 마이페이지 정보 조회 실패(기본값으로 계속 진행):', e);
+      }
+
       if (prefillName) $('mgrName').value = prefillName;
+      if (prefillAddress) $('mgrAddressBase').value = prefillAddress;
+      if (prefillAddressDetail) $('mgrAddressDetail').value = prefillAddressDetail;
+      if (prefillPhone) $('mgrPhone').value = formatPhoneDigits(digitsOnly(prefillPhone).slice(0, 11));
+      applyPhoneLockState(!!prefillPhone);
 
       if (latest && latest.status === 'rejected') {
         const notice = $('reapplyNotice');

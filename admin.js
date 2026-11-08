@@ -23,6 +23,7 @@
   var els = {
     account: $('adminAccount'),
     name: $('adminName'),
+    superAdminNavLink: $('superAdminNavLink'),
     logoutBtn: $('logoutBtn'),
     refreshBtn: $('adminRefreshBtn'),
     toast: $('adminToast'),
@@ -223,7 +224,11 @@
     adminRefundError: $('adminRefundError'),
     adminRefundCloseBtn: $('adminRefundCloseBtn'),
     adminRefundCancelBtn: $('adminRefundCancelBtn'),
-    adminRefundConfirmBtn: $('adminRefundConfirmBtn')
+    adminRefundConfirmBtn: $('adminRefundConfirmBtn'),
+
+    partnerInquiriesCount: $('partnerInquiriesCount'),
+    partnerInquiriesStatusFilter: $('partnerInquiriesStatusFilter'),
+    partnerInquiriesTableBody: $('partnerInquiriesTableBody')
   };
 
   var toastTimer = null;
@@ -289,6 +294,21 @@
   function addonLabels(row) {
     var codes = row && Array.isArray(row.addon_codes) ? row.addon_codes : [];
     return codes.map(function (code) { return ADDON_LABELS[code] || code; });
+  }
+
+  // '1시간 콕집 라이트 케어' 선택 시에만 apply.html 이 request_details 에 '세부 목적: …' 줄로 함께 적습니다
+  // (mypage.html/mypage-manager.html 의 parseRequestDetails() 와 같은 키).
+  function extractOneHourPurpose(requestDetails) {
+    var m = /(?:^|\n)\s*세부 목적\s*:\s*(.*)/.exec(String(requestDetails || ''));
+    return m ? m[1].trim() : '';
+  }
+
+  // 카드 제목 줄에 쓰는 서비스명 — '1시간 라이트 케어'는 세부 목적이 있으면 "서비스명 - 세부 목적"
+  // 형태로 한 줄에 합쳐 보여줘, 운영자가 목록만 훑어도 어떤 1시간 케어인지 바로 구분할 수 있게 합니다.
+  function serviceTitle(a) {
+    var base = a.service_type || '케어 신청';
+    var purpose = extractOneHourPurpose(a.request_details);
+    return purpose ? base + ' - ' + purpose : base;
   }
 
   // '배정 완료(진행 중) 케어 현황' 카드의 경과일 태그 — created_at(신청 시각)을 "오늘 자정" 기준 날짜 차이로
@@ -641,9 +661,12 @@
     var profile = profileRes.data;
     // Supabase 대시보드 Table Editor 에서 손으로 값을 고치면 ' admin'/'Admin' 처럼 공백·대소문자가
     // 섞여 들어가기 쉽습니다 — trim + 소문자로 비교해서 그런 경우까지 'admin'으로 인정합니다.
+    // 'super_admin'(sql/super_admin_management.sql)도 admin 콘솔을 그대로 쓸 수 있어야 하므로
+    // 함께 허용합니다 — 권한 부여/회수 같은 super_admin 전용 기능은 이 화면이 아니라
+    // super-admin.html 쪽에서만 열립니다.
     var normalizedRole = String((profile && profile.role) || '').trim().toLowerCase();
-    if (!profile || normalizedRole !== 'admin') {
-      console.error('[Admin] profiles.role 이 "admin" 이 아닙니다 → 접근 차단. 실제 조회된 행:', profile,
+    if (!profile || (normalizedRole !== 'admin' && normalizedRole !== 'super_admin')) {
+      console.error('[Admin] profiles.role 이 "admin"/"super_admin" 이 아닙니다 → 접근 차단. 실제 조회된 행:', profile,
         '→ sql/_recover_admin_account.sql 또는 Supabase 대시보드에서 이 계정의 profiles.role 을 "admin"으로 다시 설정하세요.');
       alert('관리자 권한이 없습니다.');
       window.location.replace('index.html');
@@ -656,6 +679,15 @@
   function renderAdminHeader(user, profile) {
     if (els.name) els.name.textContent = (profile.name || user.email || '관리자') + '님';
     if (els.account) els.account.hidden = false;
+
+    // super-admin.html 링크는 is_super_admin() RPC 로 다시 한번 확인한 뒤에만 보여줍니다 — role
+    // 'super_admin' 외에 failsafe 이메일(sql/super_admin_management.sql)로도 통과할 수 있어,
+    // profiles.role 만 보고 판단하면 그 경우를 놓칩니다.
+    if (els.superAdminNavLink) {
+      supabaseClient.rpc('is_super_admin').then(function (res) {
+        if (!res.error && res.data === true) els.superAdminNavLink.hidden = false;
+      });
+    }
   }
 
   function bindLogout() {
@@ -1143,7 +1175,7 @@
     var head = document.createElement('div');
     head.className = 'admin-row-head';
     head.innerHTML =
-      '<div><div class="admin-row-name">' + escapeHtml(a.service_type || '케어 신청') + '</div>' +
+      '<div><div class="admin-row-name">' + escapeHtml(serviceTitle(a)) + '</div>' +
       '<div class="admin-row-sub">' + escapeHtml(a.user_contact || '') + '</div></div>' +
       '<div class="admin-badge-group">' +
         (overdue ? '<span class="admin-badge is-overdue">경과</span>' : '') +
@@ -1161,6 +1193,7 @@
     var meta = document.createElement('dl');
     meta.className = 'admin-row-meta';
     meta.innerHTML =
+      '<dt class="is-contact">신청자(보호자)</dt><dd class="is-contact">' + escapeHtml(formatGuardianContactLabel(a.user_contact)) + '</dd>' +
       '<dt>어르신</dt><dd>' + escapeHtml(seniorLabel(a) + (a.user_relation ? ' · ' + a.user_relation + ' 신청' : '')) + '</dd>' +
       '<dt>신청 시각</dt><dd>' + formatDateTime(a.created_at) + '</dd>' +
       '<dt>주소</dt><dd>' + escapeHtml(a.address || '-') + '</dd>' +
@@ -1568,13 +1601,14 @@
     var head = document.createElement('div');
     head.className = 'admin-row-head';
     head.innerHTML =
-      '<div><div class="admin-row-name">' + escapeHtml(a.service_type || '케어 신청') + '</div>' +
+      '<div><div class="admin-row-name">' + escapeHtml(serviceTitle(a)) + '</div>' +
       '<div class="admin-row-sub">' + escapeHtml(a.user_contact || '') + '</div></div>' +
       '<div class="admin-badge-group">' + badges + '</div>';
 
     var meta = document.createElement('dl');
     meta.className = 'admin-row-meta';
     meta.innerHTML =
+      '<dt class="is-contact">신청자(보호자)</dt><dd class="is-contact">' + escapeHtml(formatGuardianContactLabel(a.user_contact)) + '</dd>' +
       '<dt>어르신</dt><dd>' + escapeHtml(seniorLabel(a) + (a.user_relation ? ' · ' + a.user_relation + ' 신청' : '')) + '</dd>' +
       '<dt>신청 시각</dt><dd>' + formatDateTime(a.created_at) + '</dd>' +
       '<dt>주소</dt><dd>' + escapeHtml(a.address || '-') + '</dd>' +
@@ -4014,6 +4048,15 @@
     return { name: s.slice(0, sepIdx).trim(), phone: s.slice(sepIdx + 3).trim() };
   }
 
+  // "신청자(보호자): 이름 (연락처)" 표시용 — renderApplicationRow/renderCancelledApplicationRow 가
+  // 신청 내역 카드 맨 위에 눈에 띄게 보여줄 때 공통으로 씁니다. 매칭·확인 전화를 걸 때 이름/번호를
+  // 찾아 헤매지 않도록 하는 게 목적이라, 번호가 비어 있어도 "연락처 미등록"을 그대로 보여줍니다.
+  function formatGuardianContactLabel(userContact) {
+    var c = parseUserContact(userContact);
+    if (!c.name) return '확인 필요';
+    return c.name + ' (' + (c.phone || '연락처 미등록') + ')';
+  }
+
   async function fillMissingGuardianContact(pageRows) {
     var missingIds = [];
     pageRows.forEach(function (p) {
@@ -5247,6 +5290,123 @@
     });
   }
 
+  // ============================================================
+  // 08. B2B 파트너 제휴 문의 (sql/partner_inquiries.sql) — partner.html 하단 폼으로 기관이
+  //     제출한 제휴 문의 목록. status 는 DB check 제약으로 'new'/'contacted'/'closed' 세 값만
+  //     허용되어 화면 표시 라벨(접수/상담중/완료)과 1:1로 맞물립니다.
+  // ============================================================
+  var PARTNER_INQUIRY_STATUS_LABEL = { new: '접수', contacted: '상담중', closed: '완료' };
+  var partnerInquiriesAllRows = []; // 서버에서 받아온 전체 목록 — 상태 필터는 재조회 없이 이 배열을 걸러서 보여줍니다.
+  var currentPartnerInquiryStatusFilter = 'all';
+
+  function renderPartnerInquiryRow(row) {
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + escapeHtml(formatDateTime(row.created_at)) + '</td>' +
+      '<td>' + escapeHtml(row.org_name || '-') + '</td>' +
+      '<td>' + escapeHtml(row.org_type || '-') + '</td>' +
+      '<td>' + escapeHtml(row.contact_name || '-') + '</td>' +
+      '<td>' + escapeHtml(row.phone || '-') + '</td>' +
+      '<td>' + escapeHtml(row.email || '-') + '</td>' +
+      '<td class="admin-cell-truncate" title="' + escapeHtml(row.message || '') + '">' + escapeHtml(row.message || '-') + '</td>' +
+      '<td></td>';
+
+    var statusCell = tr.lastElementChild;
+    var select = document.createElement('select');
+    select.className = 'admin-table-select';
+    ['new', 'contacted', 'closed'].forEach(function (value) {
+      var opt = document.createElement('option');
+      opt.value = value;
+      opt.textContent = PARTNER_INQUIRY_STATUS_LABEL[value];
+      if (value === row.status) opt.selected = true;
+      select.appendChild(opt);
+    });
+    select.addEventListener('change', function () {
+      updatePartnerInquiryStatus(row, select.value, select);
+    });
+    statusCell.appendChild(select);
+
+    return tr;
+  }
+
+  async function updatePartnerInquiryStatus(row, newStatus, select) {
+    var prevStatus = row.status;
+    select.disabled = true;
+    var res = await supabaseClient
+      .from('partner_inquiries')
+      .update({ status: newStatus })
+      .eq('id', row.id);
+
+    if (res.error) {
+      console.error('[Admin] 파트너 문의 상태 변경 실패:', res.error.code, res.error.message);
+      showToast('처리 상태 변경에 실패했습니다: ' + res.error.message);
+      select.value = prevStatus;
+      select.disabled = false;
+      return;
+    }
+
+    row.status = newStatus;
+    showToast('처리 상태를 \'' + PARTNER_INQUIRY_STATUS_LABEL[newStatus] + '\'(으)로 변경했습니다.');
+    renderPartnerInquiriesList(); // 필터가 걸려 있으면 바뀐 상태가 더 이상 맞지 않는 행은 여기서 바로 빠집니다.
+  }
+
+  function renderPartnerInquiriesList() {
+    var body = els.partnerInquiriesTableBody;
+    if (!body) return;
+
+    var rows = currentPartnerInquiryStatusFilter === 'all'
+      ? partnerInquiriesAllRows
+      : partnerInquiriesAllRows.filter(function (r) { return r.status === currentPartnerInquiryStatusFilter; });
+
+    if (els.partnerInquiriesCount) {
+      els.partnerInquiriesCount.textContent = rows.length + '건';
+      els.partnerInquiriesCount.hidden = false;
+    }
+
+    if (!rows.length) {
+      body.innerHTML = '<tr><td colspan="8" class="admin-empty">' +
+        (currentPartnerInquiryStatusFilter === 'all' ? '접수된 제휴 문의가 없습니다.' : '해당 상태의 제휴 문의가 없습니다.') +
+        '</td></tr>';
+      return;
+    }
+
+    body.innerHTML = '';
+    rows.forEach(function (row) { body.appendChild(renderPartnerInquiryRow(row)); });
+  }
+
+  async function loadPartnerInquiries() {
+    var body = els.partnerInquiriesTableBody;
+    if (!body) return;
+    body.innerHTML = '<tr><td colspan="8" class="admin-loading">불러오는 중…</td></tr>';
+
+    var res = await supabaseClient
+      .from('partner_inquiries')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (res.error) {
+      console.error('[Admin] 파트너 문의 목록 조회 실패:', res.error.code, res.error.message,
+        '→ sql/partner_inquiries.sql 을 Supabase SQL Editor 에서 실행했는지 확인하세요.');
+      body.innerHTML = '<tr><td colspan="8" class="admin-empty">목록을 불러오지 못했습니다: ' + escapeHtml(res.error.message) + '</td></tr>';
+      return;
+    }
+
+    partnerInquiriesAllRows = res.data || [];
+    renderPartnerInquiriesList();
+  }
+
+  if (els.partnerInquiriesStatusFilter) {
+    els.partnerInquiriesStatusFilter.addEventListener('click', function (e) {
+      var btn = e.target.closest('.admin-filter-chip');
+      if (!btn) return;
+      currentPartnerInquiryStatusFilter = btn.getAttribute('data-status');
+      Array.prototype.forEach.call(els.partnerInquiriesStatusFilter.querySelectorAll('.admin-filter-chip'), function (chip) {
+        chip.classList.toggle('is-active', chip === btn);
+      });
+      renderPartnerInquiriesList();
+    });
+  }
+
   // ---------- 진입 ----------
   (async function init() {
     var access = await verifyAdminAccess();
@@ -5263,6 +5423,7 @@
     loadUserPackages();
     loadMembers();
     loadCareIssues();
+    loadPartnerInquiries();
     subscribeServiceApplicationChanges();
     subscribeCareScheduleChanges();
     if (document.visibilityState === 'visible') startPolling(); // 처음 열렸을 때 탭이 보이는 상태면 폴링 안전망도 바로 시작
