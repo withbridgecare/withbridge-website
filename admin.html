@@ -12,33 +12,116 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Supabase JS SDK v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link rel="stylesheet" href="/admin.css?v=1.19">
+  <link rel="stylesheet" href="/admin.css?v=1.32">
   <link rel="stylesheet" href="/mobile-nav.css?v=1.0">
 </head>
 <body>
 
-  <!-- ==================================================================== -->
-  <!-- 01. 상단 헤더: 타이틀 + 로그인한 관리자 이름/로그아웃 -->
-  <!-- ==================================================================== -->
-  <header class="admin-header">
-    <div class="admin-header-inner">
-      <h1 class="admin-title">위드브릿지 어드민 콘솔</h1>
-      <div class="admin-account" id="adminAccount" hidden>
-        <span class="admin-account-name" id="adminName">관리자</span>
-        <a class="admin-refresh-btn" href="super-admin.html" id="superAdminNavLink" hidden title="관리자 권한 부여/회수(최고 관리자 전용)">최고 관리자</a>
-        <a class="admin-refresh-btn" href="admin-logs.html" title="관리자 활동 이력 조회(읽기 전용)">관리자 로그</a>
-        <button type="button" class="admin-refresh-btn" id="adminRefreshBtn" title="최신 상태 다시 불러오기">새로고침</button>
-        <button type="button" class="admin-logout-btn" id="logoutBtn">로그아웃</button>
+  <div class="admin-shell">
+
+    <!-- ==================================================================== -->
+    <!-- 00. 좌측 사이드바: 브랜드 + 섹션 바로가기 네비게이션 -->
+    <!-- ==================================================================== -->
+    <aside class="admin-sidebar" id="adminSidebar">
+      <div class="admin-sidebar-brand-row">
+        <button type="button" class="admin-sidebar-collapse-btn" id="adminSidebarCollapseBtn" aria-label="메뉴 접기" aria-expanded="true" aria-controls="adminSidebar" title="사이드바 접기/펼치기">☰</button>
+        <span class="admin-sidebar-brand">위드브릿지 어드민</span>
       </div>
-    </div>
-  </header>
+      <nav class="admin-sidebar-nav" id="adminSidebarNav">
+        <div class="admin-sidebar-group">
+          <p class="admin-sidebar-group-label">운영 현황</p>
+          <a href="#" data-view="dashboard" class="admin-sidebar-link is-active" title="대시보드">
+            <svg class="admin-sidebar-link-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="6.5" height="6.5" rx="1.3"/><rect x="11" y="2.5" width="6.5" height="6.5" rx="1.3"/><rect x="2.5" y="11" width="6.5" height="6.5" rx="1.3"/><rect x="11" y="11" width="6.5" height="6.5" rx="1.3"/></svg>
+            <span class="admin-sidebar-link-text">대시보드</span>
+          </a>
+          <a href="#" data-view="apps" class="admin-sidebar-link" title="오늘의 케어 신청·수동 배정">
+            <svg class="admin-sidebar-link-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="2.5 8.5 2.5 16 17.5 16 17.5 8.5"/><polyline points="2.5 8.5 7 8.5 8.3 11 11.7 11 13 8.5 17.5 8.5"/><polyline points="2.5 8.5 6 3 14 3 17.5 8.5"/></svg>
+            <span class="admin-sidebar-link-text">오늘의 케어 신청·수동 배정</span>
+          </a>
+          <a href="#" data-view="inprogress" class="admin-sidebar-link" title="배정 완료 케어 현황">
+            <svg class="admin-sidebar-link-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="7.3"/><polyline points="6.5 10.2 8.8 12.5 13.5 7.3"/></svg>
+            <span class="admin-sidebar-link-text">배정 완료 케어 현황</span>
+          </a>
+          <a href="#" data-view="careissues" class="admin-sidebar-link" title="현장 이슈 접수">
+            <svg class="admin-sidebar-link-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10 2.8 18 16.5 2 16.5Z"/><line x1="10" y1="8" x2="10" y2="12"/><line x1="10" y1="14.2" x2="10" y2="14.3"/></svg>
+            <span class="admin-sidebar-link-text">현장 이슈 접수</span>
+          </a>
+        </div>
+
+        <div class="admin-sidebar-group">
+          <p class="admin-sidebar-group-label">인력 및 파트너</p>
+          <a href="#" data-view="pendingmanagers" class="admin-sidebar-link" title="가입 승인 대기 매니저">
+            <svg class="admin-sidebar-link-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="7.5" cy="6.5" r="3"/><polyline points="2.2 17 2.2 15.3 3.6 12.8 7.5 12 11.4 12.8 12.8 15.3 12.8 17"/><line x1="15.5" y1="6.5" x2="15.5" y2="11"/><line x1="13.3" y1="8.8" x2="17.8" y2="8.8"/></svg>
+            <span class="admin-sidebar-link-text">가입 승인 대기 매니저</span>
+          </a>
+          <a href="#" data-view="activemanagers" class="admin-sidebar-link" title="활동 중인 케어 매니저">
+            <svg class="admin-sidebar-link-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="6.5" cy="6" r="2.6"/><polyline points="2 16.5 2 14.8 3.3 12.6 6.5 11.8 9.7 12.6 11 14.8 11 16.5"/><circle cx="14.3" cy="7.3" r="2.1"/><polyline points="12.6 16.5 12.6 15 13.6 13.2 16.2 13.2 17.2 15 17.2 16.5"/></svg>
+            <span class="admin-sidebar-link-text">활동 중인 케어 매니저</span>
+          </a>
+          <a href="#" data-view="partner" class="admin-sidebar-link" title="B2B 파트너 제휴 문의">
+            <svg class="admin-sidebar-link-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="2.5" y="7" width="15" height="9.5" rx="1.5"/><polyline points="7 7 7 5 8.5 3.6 11.5 3.6 13 5 13 7"/><line x1="2.5" y1="11.5" x2="17.5" y2="11.5"/></svg>
+            <span class="admin-sidebar-link-text">B2B 파트너 제휴 문의</span>
+          </a>
+        </div>
+
+        <div class="admin-sidebar-group">
+          <p class="admin-sidebar-group-label">정산 및 회원</p>
+          <a href="#" data-view="settlement" class="admin-sidebar-link" title="매니저 정산">
+            <svg class="admin-sidebar-link-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="2.2" y="5" width="15.6" height="11" rx="1.8"/><path d="M2.2 8.5h15.6"/><circle cx="14" cy="11.8" r="1" fill="currentColor" stroke="none"/></svg>
+            <span class="admin-sidebar-link-text">매니저 정산</span>
+          </a>
+          <a href="#" data-view="packages" class="admin-sidebar-link" title="패키지 구매 회원 관리">
+            <svg class="admin-sidebar-link-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polygon points="10 2.3 17.3 6 17.3 14 10 17.7 2.7 14 2.7 6"/><polyline points="2.7 6 10 9.7 17.3 6"/><line x1="10" y1="9.7" x2="10" y2="17.7"/></svg>
+            <span class="admin-sidebar-link-text">패키지 구매 회원 관리</span>
+          </a>
+          <a href="#" data-view="members" class="admin-sidebar-link" title="회원 관리">
+            <svg class="admin-sidebar-link-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="10" cy="6.3" r="3.3"/><polyline points="3.3 17 3.3 15 5.3 12 10 11.2 14.7 12 16.7 15 16.7 17"/></svg>
+            <span class="admin-sidebar-link-text">회원 관리</span>
+          </a>
+        </div>
+
+        <div class="admin-sidebar-group">
+          <p class="admin-sidebar-group-label">시스템/콘텐츠</p>
+          <a href="#" data-view="notices" class="admin-sidebar-link" title="공지사항 관리">
+            <svg class="admin-sidebar-link-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="2.3 8 2.3 12.5 5.5 12.5 13 16.3 13 4.2 5.5 8 2.3 8"/><line x1="16" y1="6.5" x2="16" y2="10"/></svg>
+            <span class="admin-sidebar-link-text">공지사항 관리</span>
+          </a>
+        </div>
+      </nav>
+    </aside>
+    <button type="button" class="admin-sidebar-overlay" id="adminSidebarOverlay" hidden aria-hidden="true" aria-label="메뉴 닫기"></button>
+
+    <div class="admin-content">
+
+      <!-- ==================================================================== -->
+      <!-- 01. 상단 탑바: 모바일 메뉴 토글(좌측) + 관리자 프로필/로그아웃 유틸리티 바(우측).
+           브랜드 타이틀은 좌측 사이드바 맨 위("위드브릿지 어드민") 하나만 남기고 여기서는 중복 제거. -->
+      <!-- ==================================================================== -->
+      <header class="admin-topbar">
+        <div class="admin-header-inner">
+          <button type="button" class="admin-sidebar-toggle" id="adminSidebarToggle" aria-label="메뉴 열기" aria-expanded="false" aria-controls="adminSidebar">☰</button>
+          <div class="admin-account" id="adminAccount" hidden>
+            <div class="admin-account-info">
+              <span class="admin-account-email" id="adminEmail"></span>
+              <span class="admin-account-name" id="adminName">관리자</span>
+            </div>
+            <span class="admin-account-divider" aria-hidden="true"></span>
+            <div class="admin-account-actions">
+              <a class="admin-refresh-btn" href="super-admin.html" id="superAdminNavLink" hidden title="관리자 권한 부여/회수(최고 관리자 전용)">최고 관리자</a>
+              <a class="admin-refresh-btn" href="admin-logs.html" title="관리자 활동 이력 조회(읽기 전용)">관리자 로그</a>
+              <button type="button" class="admin-refresh-btn" id="adminRefreshBtn" title="최신 상태 다시 불러오기">새로고침</button>
+              <button type="button" class="admin-logout-btn" id="logoutBtn">로그아웃</button>
+            </div>
+          </div>
+        </div>
+      </header>
 
   <main class="admin-main">
 
     <!-- ================================================================ -->
     <!-- 00. 핵심 현황 요약 카드 -->
     <!-- ================================================================ -->
-    <div class="admin-summary-grid" id="summaryGrid">
+    <div class="admin-summary-grid" id="summaryGrid" data-admin-view="dashboard">
       <button type="button" class="admin-summary-card is-clickable" id="summaryTodayCard" title="오늘의 케어 신청 · 수동 배정 목록으로 이동">
         <span class="admin-summary-label">오늘 신청</span>
         <span class="admin-summary-value" id="summaryTodayCount">–</span>
@@ -62,27 +145,35 @@
     </div>
 
     <!-- ================================================================ -->
-    <!-- 01. 검색 · 상태 필터 -->
+    <!-- 01. 검색 · 상태 필터 — '오늘의 케어 신청·수동 배정' 카드와 '배정 완료 케어 현황' 카드 양쪽에
+         공통으로 적용되는 통합 필터입니다. 특정 카드 소속처럼 보이지 않도록 자체 타이틀을 가진
+         별도 카드로 감싸서, 개별 카드 전용 필터(활동 중인 매니저 검색 등)와 시각적으로 구분합니다. -->
     <!-- ================================================================ -->
-    <div class="admin-filter-bar">
-      <input type="search" class="admin-search-input" id="adminSearchInput" placeholder="고객명 · 매니저명 · 연락처 검색">
-      <div class="admin-filter-chips" id="adminStatusFilter" role="group" aria-label="상태별 필터">
-        <button type="button" class="admin-filter-chip is-active" data-status="all">전체</button>
-        <button type="button" class="admin-filter-chip" data-status="payment_pending">입금대기</button>
-        <button type="button" class="admin-filter-chip" data-status="matching_pending">매칭대기</button>
-        <button type="button" class="admin-filter-chip" data-status="in_progress">진행중</button>
-        <button type="button" class="admin-filter-chip" data-status="completed">완료</button>
-        <button type="button" class="admin-filter-chip" data-status="cancelled">취소</button>
+    <section class="admin-card admin-global-filter-card" id="mainFilterCard" data-admin-view="dashboard apps inprogress">
+      <div class="admin-card-head">
+        <h2>전체 케어 통합 조회 및 필터</h2>
       </div>
-    </div>
+      <p class="admin-card-desc">아래 검색어와 상태 필터는 '오늘의 케어 신청 · 수동 배정'과 '배정 완료 케어 현황' 두 카드 모두에 함께 적용됩니다.</p>
+      <div class="admin-filter-bar" id="mainFilterBar">
+        <input type="search" class="admin-search-input" id="adminSearchInput" placeholder="고객명 · 매니저명 · 연락처 검색">
+        <div class="admin-filter-chips" id="adminStatusFilter" role="group" aria-label="상태별 필터">
+          <button type="button" class="admin-filter-chip is-active" data-status="all">전체</button>
+          <button type="button" class="admin-filter-chip" data-status="payment_pending">입금대기</button>
+          <button type="button" class="admin-filter-chip" data-status="matching_pending">매칭대기</button>
+          <button type="button" class="admin-filter-chip" data-status="in_progress">진행중</button>
+          <button type="button" class="admin-filter-chip" data-status="completed">완료</button>
+          <button type="button" class="admin-filter-chip" data-status="cancelled">취소</button>
+        </div>
+      </div>
+    </section>
 
     <!-- ================================================================ -->
     <!-- 02. 2열 카드 레이아웃 -->
     <!-- ================================================================ -->
-    <div class="admin-grid">
+    <div class="admin-grid is-split" id="dashboardCardsGrid" data-admin-view="dashboard apps pendingmanagers">
 
       <!-- 좌측: 가입 승인 대기 매니저 목록 -->
-      <section class="admin-card" aria-labelledby="pendingManagersTitle">
+      <section class="admin-card" id="sectionPendingManagers" data-admin-view="dashboard pendingmanagers" aria-labelledby="pendingManagersTitle">
         <div class="admin-card-head">
           <h2 id="pendingManagersTitle">가입 승인 대기 매니저</h2>
           <span class="admin-count" id="pendingManagersCount" hidden>0건</span>
@@ -93,7 +184,7 @@
       </section>
 
       <!-- 우측: 오늘의 케어 신청 및 수동 배정 현황 -->
-      <section class="admin-card" aria-labelledby="applicationsTitle">
+      <section class="admin-card" id="sectionApplications" data-admin-view="dashboard apps" aria-labelledby="applicationsTitle">
         <div class="admin-card-head">
           <h2 id="applicationsTitle">오늘의 케어 신청 · 수동 배정</h2>
           <span class="admin-count" id="applicationsCount" hidden>0건</span>
@@ -118,7 +209,7 @@
     <!-- 03. 배정 완료(진행 중) 케어 현황판 — manager_id 가 채워진(배정 완료) care_schedules 중
          status != 'completed' 인 건(배정됨/출발/도착)만 모아서 보여줍니다. -->
     <!-- ================================================================ -->
-    <section class="admin-card" aria-labelledby="inProgressCareTitle">
+    <section class="admin-card" id="sectionInProgress" data-admin-view="inprogress" hidden aria-labelledby="inProgressCareTitle">
       <div class="admin-card-head">
         <h2 id="inProgressCareTitle">배정 완료(진행 중) 케어 현황</h2>
         <span class="admin-count" id="inProgressCareCount" hidden>0건</span>
@@ -146,7 +237,7 @@
          진료 거부 등으로 접수된 건을 확인한 뒤, 위 '배정 완료(진행 중) 케어 현황'의 [케어 중단 처리]
          버튼으로 이어서 처리합니다. -->
     <!-- ================================================================ -->
-    <section class="admin-card" aria-labelledby="careIssueTitle">
+    <section class="admin-card" id="sectionCareIssues" data-admin-view="careissues" hidden aria-labelledby="careIssueTitle">
       <div class="admin-card-head">
         <h2 id="careIssueTitle">현장 이슈 접수</h2>
         <span class="admin-count" id="careIssueCount" hidden>0건</span>
@@ -160,7 +251,7 @@
     <!-- ================================================================ -->
     <!-- 04. 활동 중인 케어 매니저 관리 -->
     <!-- ================================================================ -->
-    <section class="admin-card" aria-labelledby="activeManagersTitle">
+    <section class="admin-card" id="sectionActiveManagers" data-admin-view="activemanagers" hidden aria-labelledby="activeManagersTitle">
       <div class="admin-card-head">
         <h2 id="activeManagersTitle">활동 중인 케어 매니저</h2>
         <span class="admin-count" id="activeManagersCount" hidden>0건</span>
@@ -185,7 +276,7 @@
          admin_manager_monthly_settlements() RPC 는 그 값을 그대로 집계합니다). 익월 10일
          일괄 지급 전, 이 표로 지급 내역을 확인합니다. -->
     <!-- ================================================================ -->
-    <section class="admin-card" aria-labelledby="settlementTitle">
+    <section class="admin-card" id="sectionSettlement" data-admin-view="settlement" hidden aria-labelledby="settlementTitle">
       <div class="admin-card-head">
         <h2 id="settlementTitle">매니저 정산 (월별)</h2>
         <span class="admin-count" id="settlementCount" hidden>0명</span>
@@ -233,7 +324,7 @@
          그 각각의 [회차 조정]이 열립니다 — admin_adjust_user_package() RPC 로 잔여 회차를 수기 보정
          합니다(사유 메모 필수 — admin_care_adjustments 에 이력 남음). -->
     <!-- ================================================================ -->
-    <section class="admin-card" aria-labelledby="userPackagesTitle">
+    <section class="admin-card" id="sectionUserPackages" data-admin-view="packages" hidden aria-labelledby="userPackagesTitle">
       <div class="admin-card-head">
         <h2 id="userPackagesTitle">패키지 구매 회원 관리</h2>
         <span class="admin-count" id="userPackagesCount" hidden>0건</span>
@@ -267,7 +358,7 @@
          admin_list_members() RPC(sql/admin_user_management.sql, SECURITY DEFINER + is_admin() 체크)로
          받아 옵니다. 검색/필터는 모두 그 RPC 파라미터로 서버에서 적용됩니다. -->
     <!-- ================================================================ -->
-    <section class="admin-card" aria-labelledby="membersTitle">
+    <section class="admin-card" id="sectionMembers" data-admin-view="members" hidden aria-labelledby="membersTitle">
       <div class="admin-card-head">
         <h2 id="membersTitle">회원 관리</h2>
         <div class="admin-card-head-actions">
@@ -317,7 +408,7 @@
          partner_inquiries 테이블). 처리 상태(접수/상담중/완료)는 행마다 드롭다운으로 바로
          바꿀 수 있습니다. -->
     <!-- ================================================================ -->
-    <section class="admin-card" aria-labelledby="partnerInquiriesTitle">
+    <section class="admin-card" id="sectionPartnerInquiries" data-admin-view="partner" hidden aria-labelledby="partnerInquiriesTitle">
       <div class="admin-card-head">
         <h2 id="partnerInquiriesTitle">B2B 파트너 제휴 문의</h2>
         <span class="admin-count" id="partnerInquiriesCount" hidden>0건</span>
@@ -351,7 +442,36 @@
         </table>
       </div>
     </section>
-  </main>
+
+    <!-- ================================================================ -->
+    <!-- 09. 공지사항 관리 — notice.html(공개 공지사항 페이지)에 노출되는 공지를 등록/수정/삭제합니다
+         (sql/notices_management.sql 의 notices 테이블, js/admin-notices.js). [필독]/[중요] 뱃지,
+         상단 고정, 공개 여부를 설정할 수 있고, 저장 즉시 notice.html에 반영됩니다. -->
+    <!-- ================================================================ -->
+    <section class="admin-card" id="sectionNotices" data-admin-view="notices" hidden aria-labelledby="noticesTitle">
+      <div class="admin-card-head">
+        <h2 id="noticesTitle">공지사항 관리</h2>
+        <div class="admin-card-head-actions">
+          <span class="admin-count" id="noticesCount" hidden>0건</span>
+          <button type="button" class="admin-btn is-primary" id="noticeCreateBtn">+ 공지 등록</button>
+        </div>
+      </div>
+      <p class="admin-card-desc">notice.html에 노출되는 공지사항입니다. [필독]/[중요] 뱃지와 상단 고정, 공개 여부를 설정할 수 있고, 저장하면 바로 notice.html에 반영됩니다.</p>
+      <div class="admin-filter-bar admin-filter-bar--tabs">
+        <div class="admin-filter-chips" id="noticesCategoryFilter" role="group" aria-label="카테고리별 필터">
+          <button type="button" class="admin-filter-chip is-active" data-category="all">전체</button>
+          <button type="button" class="admin-filter-chip" data-category="service">서비스 안내</button>
+          <button type="button" class="admin-filter-chip" data-category="maintenance">시스템 점검</button>
+          <button type="button" class="admin-filter-chip" data-category="event">이벤트</button>
+        </div>
+      </div>
+      <div id="noticesList" class="admin-list">
+        <p class="admin-loading">불러오는 중…</p>
+      </div>
+    </section>
+      </main>
+    </div>
+  </div>
 
   <div class="admin-toast" id="adminToast" hidden></div>
 
@@ -846,9 +966,62 @@
     </div>
   </div>
 
+  <!-- ================================================================ -->
+  <!-- 09. 공지 등록/수정 모달 ('공지사항 관리' 카드의 [+ 공지 등록]/[수정] 버튼에서 열림) —
+       sql/notices_management.sql 의 notices 테이블을 js/admin-notices.js 가 바로 insert/update 합니다. -->
+  <!-- ================================================================ -->
+  <div class="modal-backdrop" id="noticeFormModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="noticeFormModalTitle">
+      <div class="modal-head">
+        <h3 id="noticeFormModalTitle">공지 등록</h3>
+        <button type="button" class="modal-close-btn" id="noticeFormCloseBtn" aria-label="닫기">✕</button>
+      </div>
+
+      <input type="hidden" id="noticeFormId">
+
+      <label class="admin-field-label" for="noticeFormTitle">제목</label>
+      <input type="text" class="admin-select" id="noticeFormTitle" maxlength="100" placeholder="예: 정기 시스템 점검 안내">
+
+      <label class="admin-field-label" for="noticeFormCategory">카테고리</label>
+      <select class="admin-select" id="noticeFormCategory">
+        <option value="service">서비스 안내</option>
+        <option value="maintenance">시스템 점검</option>
+        <option value="event">이벤트</option>
+      </select>
+
+      <label class="admin-field-label" for="noticeFormBadge">뱃지</label>
+      <select class="admin-select" id="noticeFormBadge">
+        <option value="">없음</option>
+        <option value="important">중요</option>
+        <option value="must">필독</option>
+      </select>
+
+      <label class="admin-field-label" for="noticeFormBody">내용 (문단을 나누려면 빈 줄을 넣어 주세요)</label>
+      <textarea class="admin-select" id="noticeFormBody" rows="6" placeholder="공지 내용을 입력하세요"></textarea>
+
+      <label class="admin-toggle-row is-boxed">
+        <input type="checkbox" id="noticeFormPinned">
+        <span>상단 고정 — notice.html 목록 맨 위에 고정됩니다</span>
+      </label>
+      <label class="admin-toggle-row is-boxed">
+        <input type="checkbox" id="noticeFormPublished" checked>
+        <span>공개 — 체크 해제하면 notice.html에는 보이지 않고 관리자 목록에만 남습니다(초안)</span>
+      </label>
+
+      <p class="admin-error" id="noticeFormError" hidden></p>
+
+      <div class="modal-actions">
+        <button type="button" class="admin-btn is-ghost" id="noticeFormCancelBtn">취소</button>
+        <button type="button" class="admin-btn is-primary" id="noticeFormSaveBtn">저장하기</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 계정 정지/활성화(admin-set-member-status) 호출용 — apply.html/profile-edit.html 과 같은
        명시적 fetch 래퍼를 그대로 씁니다. -->
   <script src="/js/edge-function-fetch.js?v=1.1" defer></script>
-  <script src="/admin.js?v=2.30" defer></script>
+  <script src="/admin.js?v=2.33" defer></script>
+  <script src="/js/admin-sidebar.js?v=2.2" defer></script>
+  <script src="/js/admin-notices.js?v=1.0" defer></script>
 </body>
 </html>

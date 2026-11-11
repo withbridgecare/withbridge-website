@@ -17,16 +17,18 @@
   --ink: #191F28;
   --ink-body: #4E5968;
   --ink-sub: #8B95A1;
-  --bg: #F2F4F6;
+  --bg: #F7F8FA;
   --card: #FFFFFF;
-  --card-border: #E5E7EB;
+  --card-border: #F1F5F9;
   --danger: #D64545;
   --earth-bg: #FFFBEB;
   --earth-fg: #B45309;
 
   --radius: 16px;
   --radius-sm: 10px;
-  --shadow-card: 0 4px 12px rgba(0, 0, 0, .05);
+  --shadow-card: none;
+  --sidebar-w: 260px;
+  --sidebar-w-collapsed: 64px;
 }
 
 * { box-sizing: border-box; }
@@ -44,8 +46,213 @@ body {
 
 button { font-family: inherit; cursor: pointer; }
 
-/* ---------- 상단 헤더 ---------- */
-.admin-header {
+/* ---------- 00. 레이아웃 셸: 좌측 고정 사이드바 + 우측 스크롤 콘텐츠 ---------- */
+.admin-shell {
+  display: flex;
+  min-height: 100vh;
+}
+.admin-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--sidebar-w);
+  /* 사이드바 컨테이너(배경 + 우측 구분선)는 항상 화면 전체 높이를 꽉 채웁니다. 메뉴 항목이
+     적어서 남는 여유 공간은 안에서 비워두는 게 아니라, 아래 .admin-sidebar-nav 가
+     justify-content: space-between 으로 그룹 사이 간격에 나눠 분산시킵니다. */
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-right: 1px solid var(--card-border);
+  padding: 20px 14px 16px;
+  z-index: 40;
+  transition: width .2s ease;
+  /* 요구사항 3: 메뉴가 넘칠 때를 대비한 안전장치로 스크롤은 그대로 동작하되 스크롤바만 숨김
+     (Firefox: scrollbar-width, Chrome/Safari/Edge: ::-webkit-scrollbar 아래) */
+  scrollbar-width: none;
+}
+.admin-sidebar::-webkit-scrollbar { display: none; }
+.admin-sidebar-brand-row {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  /* 요구사항 1: 브랜드 타이틀과 첫 그룹("운영 현황") 사이 상단 여백을 넉넉하게 띄워 숨통을 틔움 */
+  padding: 0 10px 26px;
+}
+.admin-sidebar-brand {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  white-space: nowrap;
+}
+/* 토스 스타일 햄버거(ㅡ 세 줄) 접기/펼치기 버튼 — 브랜드 타이틀 좌측에 배치. 접힌 상태에서도
+   이 버튼 하나로 계속 펼치기/접기를 오갈 수 있어 별도의 "펼치기" 버튼이 따로 필요 없습니다. */
+.admin-sidebar-collapse-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-left: -4px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-body);
+  font-size: 15px;
+  line-height: 1;
+  transition: background-color .15s ease;
+}
+.admin-sidebar-collapse-btn:hover { background: var(--sage-50); }
+/* 요구사항 2·3: 인위적으로 간격을 늘려 채우는 대신(justify-content: space-between 제거),
+   그룹 사이에 고정된 적당한 간격만 주고 위에서부터 자연스럽게 쌓습니다 — 폰트/패딩을 조금씩
+   키운 만큼 전체 높이가 화면에 자연스럽게 가깝게 차오릅니다(사이드바 배경 자체는 여전히 100vh). */
+.admin-sidebar-nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.admin-sidebar-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+/* 그룹 사이(2번째 그룹부터) 구분선 — nav 의 20px gap 안에 자리잡아, 그룹마다 균등한 간격으로 보임 */
+.admin-sidebar-group + .admin-sidebar-group {
+  border-top: 1px solid var(--card-border);
+  padding-top: 10px;
+}
+.admin-sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--ink-body);
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-decoration: none;
+  transition: background-color .15s ease, color .15s ease;
+}
+.admin-sidebar-link:hover { background: var(--sage-50); color: var(--ink); }
+.admin-sidebar-link.is-active { background: var(--sage-100); color: var(--sage-700); font-weight: 800; }
+.admin-sidebar-link-icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+.admin-sidebar-link-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 좌측 메뉴 그룹 소제목 */
+.admin-sidebar-group-label {
+  margin: 0;
+  padding: 0 10px 6px;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  line-height: 1.3;
+  color: var(--ink-sub);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* 900px 이하에서만 보이는 바깥 클릭용 오버레이(사이드바가 오프캔버스로 열렸을 때) */
+.admin-sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+  border: none;
+  padding: 0;
+  background: rgba(15, 23, 42, .45);
+}
+
+.admin-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-left: var(--sidebar-w);
+  transition: margin-left .2s ease;
+}
+
+/* 모바일 사이드바 토글(햄버거) — 기본은 데스크톱에서 숨김, 900px 이하에서만 표시 */
+.admin-sidebar-toggle {
+  display: none;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  font-size: 16px;
+  line-height: 1;
+}
+
+@media (max-width: 900px) {
+  .admin-sidebar {
+    transform: translateX(-100%);
+    transition: transform .25s ease;
+    box-shadow: none;
+  }
+  .admin-sidebar.is-open {
+    transform: translateX(0);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .15);
+  }
+  .admin-sidebar-overlay:not([hidden]) { display: block; }
+  .admin-content { margin-left: 0; }
+  .admin-sidebar-toggle { display: flex; }
+  /* 900px 이하에서는 오프캔버스 드로어(모바일 토글+오버레이)만 쓰고, 데스크톱 전용 접기 버튼은
+     항상 숨겨 둡니다(드로어와 동작이 섞이지 않도록) */
+  .admin-sidebar-collapse-btn {
+    display: none !important;
+  }
+}
+
+/* 데스크톱(900px 초과) 전용 사이드바 접기 — 완전히 숨기는(display:none) 대신 64px 슬림 바로
+   줄어들고, 브랜드 텍스트/그룹 라벨/메뉴 글자만 사라진 채 아이콘 열은 그대로 유지됩니다.
+   모바일 오프캔버스 드로어와는 별개 동작이라 900px 초과 폭에서만 적용합니다. */
+@media (min-width: 901px) {
+  .admin-shell.is-sidebar-collapsed .admin-sidebar {
+    width: var(--sidebar-w-collapsed);
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .admin-shell.is-sidebar-collapsed .admin-content {
+    margin-left: var(--sidebar-w-collapsed);
+  }
+  .admin-shell.is-sidebar-collapsed .admin-sidebar-brand-row {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .admin-shell.is-sidebar-collapsed .admin-sidebar-brand,
+  .admin-shell.is-sidebar-collapsed .admin-sidebar-group-label,
+  .admin-shell.is-sidebar-collapsed .admin-sidebar-link-text {
+    display: none;
+  }
+  .admin-shell.is-sidebar-collapsed .admin-sidebar-link {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+/* ---------- 상단 탑바 (콘텐츠 영역 안, 사이드바 옆) ---------- */
+.admin-topbar {
   background: #fff;
   border-bottom: 1px solid var(--card-border);
   position: sticky;
@@ -55,7 +262,7 @@ button { font-family: inherit; cursor: pointer; }
 .admin-header-inner {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 18px 24px;
+  padding: 14px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -68,26 +275,51 @@ button { font-family: inherit; cursor: pointer; }
   letter-spacing: -0.02em;
   color: var(--ink);
 }
+/* 우측 상단 프로필 유틸리티 바 — [이메일 · 이름(등급)] | [최고관리자 · 관리자로그 · 새로고침 · 로그아웃]
+   두 그룹을 얇은 세로 구분선으로 나눠, 토스페이먼츠 어드민처럼 슬림한 한 줄 텍스트/알약 버튼 조합으로 보여줍니다. */
 .admin-account {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
+  margin-left: auto;
+}
+.admin-account-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.admin-account-email {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink-sub);
 }
 .admin-account-name {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   color: var(--ink-body);
+  white-space: nowrap;
+}
+.admin-account-divider {
+  width: 1px;
+  height: 14px;
+  background: var(--card-border);
+  flex: none;
+}
+.admin-account-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .admin-logout-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 16px;
+  padding: 6px 14px;
   border: 1px solid var(--card-border);
   border-radius: 9999px;
   background: #fff;
   color: var(--ink-body);
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
   transition: background-color .15s ease, border-color .15s ease;
 }
@@ -96,12 +328,12 @@ button { font-family: inherit; cursor: pointer; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 16px;
+  padding: 6px 14px;
   border: 1px solid var(--sage-200);
   border-radius: 9999px;
   background: var(--sage-50);
   color: var(--sage-700);
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
   text-decoration: none;
   transition: background-color .15s ease, border-color .15s ease, opacity .15s ease;
@@ -147,22 +379,37 @@ button { font-family: inherit; cursor: pointer; }
 .admin-summary-card {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 18px 20px;
+  gap: 8px;
+  padding: 16px 18px;
   background: var(--card);
   border: 1px solid var(--card-border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-card);
 }
 .admin-summary-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12.5px;
   font-weight: 700;
   color: var(--ink-sub);
 }
+.admin-summary-label::before {
+  content: '';
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--sage-500);
+}
+.admin-summary-card.is-payment-pending .admin-summary-label::before { background: var(--earth-fg); }
+.admin-summary-card.is-matching-pending .admin-summary-label::before { background: #1D4ED8; }
+.admin-summary-card.is-in-progress .admin-summary-label::before { background: var(--sage-600); }
+.admin-summary-card.is-cancelled .admin-summary-label::before { background: var(--danger); }
 .admin-summary-value {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
   color: var(--ink);
 }
 .admin-summary-card.is-payment-pending .admin-summary-value { color: var(--earth-fg); }
@@ -211,10 +458,10 @@ button { font-family: inherit; cursor: pointer; }
   gap: 8px;
 }
 .admin-filter-chip {
-  padding: 8px 16px;
-  border: 1px solid var(--card-border);
+  padding: 7px 15px;
+  border: 1px solid transparent;
   border-radius: 9999px;
-  background: var(--card);
+  background: var(--bg);
   color: var(--ink-body);
   font-size: 13px;
   font-weight: 700;
@@ -231,15 +478,21 @@ button { font-family: inherit; cursor: pointer; }
    같은 flex/gap 비율을 쓰되, 위/아래 간격만 요청대로 16px/20px 로 좁힙니다. */
 .admin-filter-bar--tabs { margin-top: 16px; margin-bottom: 20px; }
 
+/* 뷰 전환(View Switching) 방식에서는 대시보드 뷰일 때만 두 카드를 2열(.is-split)로 나란히
+   보여주고, 그 외(오늘의 케어 신청만 보기 / 가입 승인 대기 매니저만 보기)는 1열 전체 너비로
+   보여줍니다 — js/admin-sidebar.js 가 뷰 전환 시 이 클래스를 토글합니다. */
 .admin-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 24px;
   align-items: start;
   margin-bottom: 24px;
 }
+.admin-grid.is-split {
+  grid-template-columns: 1fr 1fr;
+}
 @media (max-width: 900px) {
-  .admin-grid { grid-template-columns: 1fr; }
+  .admin-grid.is-split { grid-template-columns: 1fr; }
 }
 
 /* mobile-nav.css(사이트 공용 햄버거 드로어 스타일)가 클래스 구분 없이 모든 <header> 태그를
@@ -250,7 +503,7 @@ button { font-family: inherit; cursor: pointer; }
    초기화합니다. (header/body 보다 선택자 특이성을 높여 CSS 로드 순서와 무관하게 이 규칙이
    이기도록 합니다) */
 @media (max-width: 768px) {
-  html header.admin-header {
+  html header.admin-topbar {
     position: sticky !important;
     top: 0 !important;
     left: auto !important;
@@ -286,6 +539,22 @@ button { font-family: inherit; cursor: pointer; }
 .admin-main > .admin-card:last-child {
   margin-bottom: 0;
 }
+
+/* '전체 케어 통합 조회 및 필터' 카드 — 개별 카드 전용 필터(활동 중인 매니저 검색 등)와 한눈에
+   구분되도록, 좌측에 브랜드 포인트 컬러 바를 두고 배경을 옅은 세이지 톤으로 깔아 "이 필터는
+   여러 카드에 공통 적용되는 전역 컨트롤"이라는 걸 시각적으로 분리합니다. */
+.admin-global-filter-card {
+  background: var(--sage-50);
+  border-color: var(--sage-200);
+  border-left: 4px solid var(--sage-500);
+}
+.admin-global-filter-card .admin-filter-bar {
+  margin-bottom: 0;
+}
+.admin-global-filter-card .admin-search-input,
+.admin-global-filter-card .admin-filter-chip:not(.is-active) {
+  background: var(--card);
+}
 .admin-card-head {
   display: flex;
   align-items: center;
@@ -317,6 +586,21 @@ button { font-family: inherit; cursor: pointer; }
   font-size: 12.5px; color: var(--ink-sub); cursor: pointer; word-break: keep-all;
 }
 .admin-toggle-row input[type="checkbox"] { margin-top: 2px; flex: none; accent-color: var(--sage-500); cursor: pointer; }
+/* 공지 등록/수정 모달의 '상단 고정'·'공개' 체크박스 — 다른 화면의 밋밋한 인라인 토글과 달리,
+   토스 스타일로 옅은 배경의 독립된 박스에 담아 여백을 넉넉하게 줘서 답답해 보이지 않게 합니다. */
+.admin-toggle-row.is-boxed {
+  margin: 0 0 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--sage-50);
+  border: 1px solid var(--card-border);
+  gap: 10px;
+  font-size: 13.5px;
+  color: var(--ink-body);
+}
+.admin-toggle-row.is-boxed input[type="checkbox"] { margin-top: 1px; }
+/* 공지 내용 textarea — 우측 하단 resize 핸들(대각선 실선)이 토스 스타일상 지저분해 보여 제거 */
+#noticeFormBody { resize: none; }
 .admin-count {
   flex: none;
   padding: 3px 11px;
@@ -509,6 +793,63 @@ button { font-family: inherit; cursor: pointer; }
 .admin-row-meta dt.is-contact { color: var(--sage-700); font-weight: 700; }
 .admin-row-meta dd.is-contact { color: var(--sage-700); font-weight: 800; }
 
+/* 주문번호(Order ID) 행 — PortOne 결제 대조/CS용. service_applications.id 가 곧 PortOne
+   paymentId 라(apply.html 의 "기본 결제 paymentId = application_id 규칙"), 이 값을 그대로
+   보여주고 바로 복사·포트원 어드민 바로가기까지 연결합니다(buildOrderIdRow(), admin.js).
+   토스 어드민의 슬림한 회색 뱃지 톤(text-xs text-slate-500 bg-slate-100)을 그대로 따릅니다. */
+.admin-order-id-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 2px;
+}
+.admin-order-id-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #F1F5F9;
+  color: #64748B;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.admin-order-id-badge code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: #475569;
+}
+.admin-order-id-badge.is-muted { font-weight: 500; color: var(--ink-sub); }
+.admin-order-id-copy-btn {
+  padding: 3px 9px;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  background: #fff;
+  color: #64748B;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  transition: background-color .15s ease, border-color .15s ease;
+}
+.admin-order-id-copy-btn:hover { background: #F1F5F9; border-color: #CBD5E1; }
+.admin-order-id-portone-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border: 1px solid var(--sage-200);
+  border-radius: 6px;
+  background: var(--sage-50);
+  color: var(--sage-700);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-decoration: none;
+  transition: background-color .15s ease;
+}
+.admin-order-id-portone-link:hover { background: var(--sage-100); }
+
 /* 상태 배지: 파스텔 톤(연한 배경 + 진한 텍스트)으로 통일 */
 .admin-badge {
   display: inline-flex;
@@ -569,6 +910,16 @@ button { font-family: inherit; cursor: pointer; }
 .admin-badge.is-dayago-warn    { background: #FFF7ED; color: #C2410C; }
 .admin-badge.is-dayago-danger  { background: #FDF1EF; color: var(--danger); }
 
+/* 공지사항 관리(notices) 뱃지 — 카테고리 3종 + 상단고정 + 비공개(초안). 필독/중요는 위 is-overdue/
+   is-pending과 같은 주황/노랑 팔레트를 그대로 재사용(공지 페이지의 뱃지 톤과도 맞춤). */
+.admin-badge.is-service     { background: #EFF6FF; color: #1D4ED8; }
+.admin-badge.is-maintenance { background: #F3E8FF; color: #6D28D9; }
+.admin-badge.is-event       { background: #FCE7F3; color: #BE185D; }
+.admin-badge.is-must        { background: #FDF1EF; color: var(--danger); }
+.admin-badge.is-important   { background: #FFF7ED; color: #C2410C; }
+.admin-badge.is-pinned      { background: #FEF3C7; color: #92400E; }
+.admin-badge.is-draft       { background: #F1F5F9; color: #334155; }
+
 /* 행 안의 액션 영역(수동 배정 등) */
 .admin-row-actions {
   display: flex;
@@ -584,9 +935,9 @@ button { font-family: inherit; cursor: pointer; }
   align-items: center;
   justify-content: center;
   flex: 1;
-  padding: 9px 14px;
+  padding: 9px 16px;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: 9999px;
   font-size: 13.5px;
   font-weight: 700;
   transition: background-color .15s ease, transform .1s ease;

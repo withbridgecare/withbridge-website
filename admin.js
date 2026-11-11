@@ -22,6 +22,7 @@
   function $(id) { return document.getElementById(id); }
   var els = {
     account: $('adminAccount'),
+    email: $('adminEmail'),
     name: $('adminName'),
     superAdminNavLink: $('superAdminNavLink'),
     logoutBtn: $('logoutBtn'),
@@ -244,6 +245,67 @@
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
+  }
+
+  // ============================================================
+  // 주문번호(Order ID) 표시 — PortOne 결제 대조/CS 처리용. apply.html 이 결제창을 열 때
+  // paymentId 로 그대로 넘기는 값이 service_applications.id 자체라(별도 order_id 컬럼 없음,
+  // "기본 결제 paymentId = application_id 규칙"), 이 UUID 가 곧 포트원 어드민에서 검색할
+  // 주문번호입니다. '오늘의 케어 신청'(renderApplicationRow)과 '배정 완료 케어 현황'
+  // (renderInProgressCareRow) 양쪽에서 재사용합니다.
+  // ============================================================
+  async function copyOrderIdToClipboard(orderId) {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(orderId);
+      } else {
+        var tmp = document.createElement('textarea');
+        tmp.value = orderId;
+        tmp.style.position = 'fixed';
+        tmp.style.opacity = '0';
+        document.body.appendChild(tmp);
+        tmp.select();
+        document.execCommand('copy');
+        document.body.removeChild(tmp);
+      }
+      showToast('주문번호가 복사되었습니다');
+    } catch (e) {
+      showToast('주문번호 복사에 실패했습니다');
+    }
+  }
+
+  function buildOrderIdRow(orderId) {
+    var wrap = document.createElement('div');
+    wrap.className = 'admin-order-id-row';
+    if (!orderId) {
+      wrap.innerHTML = '<span class="admin-order-id-badge is-muted">주문번호 미발급(결제 전)</span>';
+      return wrap;
+    }
+
+    var badge = document.createElement('span');
+    badge.className = 'admin-order-id-badge';
+    badge.innerHTML = '주문번호 <code>' + escapeHtml(orderId) + '</code>';
+    wrap.appendChild(badge);
+
+    var copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.className = 'admin-order-id-copy-btn';
+    copyBtn.title = '주문번호 복사';
+    copyBtn.setAttribute('aria-label', '주문번호 복사');
+    copyBtn.textContent = '복사';
+    copyBtn.addEventListener('click', function () { copyOrderIdToClipboard(orderId); });
+    wrap.appendChild(copyBtn);
+
+    var portoneLink = document.createElement('a');
+    portoneLink.className = 'admin-order-id-portone-link';
+    portoneLink.href = 'https://admin.portone.io';
+    portoneLink.target = '_blank';
+    portoneLink.rel = 'noopener noreferrer';
+    portoneLink.title = '포트원 어드민에서 이 주문번호(paymentId)로 결제/환불 내역을 조회하세요.';
+    portoneLink.textContent = '포트원에서 결제 확인 ↗';
+    wrap.appendChild(portoneLink);
+
+    return wrap;
   }
 
   function won(n) {
@@ -605,6 +667,11 @@
       var chip = els.statusFilterGroup && els.statusFilterGroup.querySelector('.admin-filter-chip[data-status="' + link.status + '"]');
       if (chip) chip.click();
       var target = link.scrollTo && link.scrollTo.closest('.admin-card');
+      var viewId = target && target.getAttribute('data-admin-view') && target.getAttribute('data-admin-view').split(/\s+/)[0];
+      // 사이드바가 뷰 전환 방식으로 바뀌면서(js/admin-sidebar.js) 요약 카드가 가리키는 카드가
+      // 지금 대시보드 뷰에 없을 수 있어(예: '진행 중 케어' → 배정 완료 케어 현황 뷰), 먼저 그 카드가
+      // 속한 뷰로 전환한 뒤 스크롤합니다. 전역 함수가 없으면(스크립트 로드 실패 등) 기존처럼 그냥 스크롤만 합니다.
+      if (viewId && typeof window.adminSwitchView === 'function') window.adminSwitchView(viewId);
       if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   });
@@ -677,7 +744,10 @@
   }
 
   function renderAdminHeader(user, profile) {
-    if (els.name) els.name.textContent = (profile.name || user.email || '관리자') + '님';
+    if (els.email) els.email.textContent = user.email || '';
+    var normalizedRole = String((profile && profile.role) || '').trim().toLowerCase();
+    var gradeLabel = normalizedRole === 'super_admin' ? '최고 관리자' : '관리자';
+    if (els.name) els.name.textContent = (profile.name || user.email || '관리자') + '님 (' + gradeLabel + ')';
     if (els.account) els.account.hidden = false;
 
     // super-admin.html 링크는 is_super_admin() RPC 로 다시 한번 확인한 뒤에만 보여줍니다 — role
@@ -1240,6 +1310,7 @@
 
     row.appendChild(head);
     row.appendChild(meta);
+    row.appendChild(buildOrderIdRow(a.id));
     row.appendChild(actions);
     return row;
   }
@@ -2592,6 +2663,7 @@
 
     row.appendChild(head);
     row.appendChild(meta);
+    row.appendChild(buildOrderIdRow(s.application_id));
     row.appendChild(actions);
     return row;
   }

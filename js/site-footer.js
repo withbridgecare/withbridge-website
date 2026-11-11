@@ -47,11 +47,11 @@
           '</div>' +
           '<div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">' +
             '<span style="font-weight: 700; color: #ffffff !important;">사업자등록번호</span>' +
-            '<span style="color: #f4f4f5 !important;">등록 예정</span>' +
+            '<span style="color: #f4f4f5 !important;">530-20-02322</span>' +
           '</div>' +
           '<div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">' +
             '<span style="font-weight: 700; color: #ffffff !important;">통신판매업 신고번호</span>' +
-            '<span style="color: #f4f4f5 !important;">등록 예정</span>' +
+            '<span style="color: #f4f4f5 !important;">신고 예정</span>' +
           '</div>' +
         '</div>' +
 
@@ -59,7 +59,7 @@
           '<h3 style="margin-bottom: 12px; font-size: 16px; font-weight: 700; color: #ffffff !important;">연락처 &amp; 고객센터</h3>' +
           '<div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">' +
             '<span style="font-weight: 700; color: #ffffff !important;">주소</span>' +
-            '<span style="color: #f4f4f5 !important;">인천광역시 남동구 소래역로 93 (906-201)</span>' +
+            '<span style="color: #f4f4f5 !important;">인천광역시 남동구 인하로507번길 108, 1층 102호(구월동)</span>' +
           '</div>' +
           '<div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; font-size: 14px; overflow-wrap: anywhere;">' +
             '<span style="font-weight: 700; color: #ffffff !important;">전화번호</span>' +
