@@ -231,6 +231,17 @@
 ====================================================================
 02. 메인 히어로 영역 (Hero Section)
 ====================================================================
+확장 가이드 — 지금은 2개 슬라이드(01. 시니어 안심 동행 / 02. 웰컴 쿠폰)지만, 아래 <script>의
+setActive()/goTo() 는 슬라이드 개수를 하드코딩하지 않고 매번 .wb-hero-slide 개수를 DOM에서
+그대로 읽습니다(var total = slides.length). 탭도 flex:1 1 0 로 균등분할이라 개수가 늘어도
+레이아웃이 자동으로 재분배됩니다. 즉 "아동 케어" 같은 새 카테고리를 하나의 매니저 풀/유저
+플로우로 통합하려면, JS를 고치지 않고 아래 3곳에 같은 인덱스(여기서는 "2")로 블록만 하나씩
+추가하면 됩니다:
+  1) .wb-hero-slide 블록 (배경 사진 + data-title-strong/data-title-light/data-sub)
+  2) .wb-hero-cta-group[data-cta-slide="2"] 블록 (그 슬라이드 전용 CTA 버튼들)
+  3) .wb-hero-tabs 안의 .wb-hero-tab 버튼 (data-index="2") — 버튼 안 텍스트가 그 탭의 제목
+세 블록의 순서(슬라이드 DOM 순서 = 탭 DOM 순서)만 서로 맞으면 되고, data-cta-slide 값만
+그 슬라이드가 몇 번째인지(0-based)와 일치시키면 됩니다.
 -->
 <!-- 키프레임 애니메이션 정의 -->
 <style>
@@ -293,7 +304,7 @@
      Tailwind CDN 이 생성한 <style> 은 문서 파싱이 끝난 뒤 맨 뒤에 추가되어 이 블록보다 캐스케이드
      우선순위가 높으므로, 같은 요소에 높이를 정하는 Tailwind 클래스를 남겨두면 이 규칙을 덮어씁니다.
      데스크톱(768px↑)에서는 뷰포트 높이에서 상단 헤더 높이만큼을 뺀 값으로 고정해, 뷰포트가 좁아도
-     하단 2분할 탭의 제목 텍스트까지 스크롤 없이 한 화면에 다 들어오게 합니다. */
+     하단 탭의 제목 텍스트까지 스크롤 없이 한 화면에 다 들어오게 합니다. */
   .wb-main-hero {
     --wb-hero-tabbar-h: 72px;
     min-height: 100vh;
@@ -507,8 +518,10 @@
     display: block;
   }
 
-  /* 최하단 2분할 프로그레스 바 탭 내비게이션: 별도 박스/칸막이 없이 히어로 하단 그라데이션 위에
-     투명하게 얹혀 있고, 좌우 여백은 .wb-hero-content 와 동일한 라인에 맞춥니다(FEROX 레퍼런스 스타일). */
+  /* 최하단 프로그레스 바 탭 내비게이션: 별도 박스/칸막이 없이 히어로 하단 그라데이션 위에
+     투명하게 얹혀 있고, 좌우 여백은 .wb-hero-content 와 동일한 라인에 맞춥니다(FEROX 레퍼런스 스타일).
+     .wb-hero-tab 이 flex:1 1 0 이라 탭 개수(지금 2개)에 따라 자동으로 균등분할됩니다 — 새 탭을
+     추가해도 이 규칙은 그대로 둬도 됩니다. */
   .wb-hero-tabs {
     position: absolute;
     left: 0;
@@ -573,8 +586,13 @@
      - 섹션 높이: 100vh 강제 대신 min-height:540px + padding 으로 콘텐츠가
        답답하게 눌리지 않고 자연스러운 높이로 보이게 함.
      - 타이틀/서브/CTA 간격을 모바일 비율로 좁힘.
-     - 좌우 화살표를 텍스트/버튼과 겹치지 않도록 상단으로 이동.
-     - 하단 2분할 텍스트 탭을 작은 Dots 인디케이터로 전환.
+     - 좌우 화살표는 슬라이드 이미지 영역의 수직 정중앙에 배치하고, 터치 히트박스를 44px(iOS/
+       Android 권장 최소 터치 영역)로 정리. 텍스트/CTA 와 겹치지 않도록 .wb-hero-content 좌우
+       패딩을 화살표 히트박스보다 넓게 잡아 겹침 자체를 구조적으로 차단(화살표를 텍스트 쪽으로
+       옮기는 대신, 텍스트 쪽이 화살표 영역을 피해가는 방식).
+     - 하단 탭(현재 2개: 시니어 동행 / 웰컴 쿠폰 — flex:1 1 0 기반 균등분할이라 향후 아동 케어 탭이
+       추가돼도 자동으로 N분할됨, 아래 "02. 메인 히어로" 섹션 상단 주석 참고)을 작은 Dots
+       인디케이터로 전환.
      ==================================================================== */
   @media (max-width: 767px) {
     .wb-main-hero {
@@ -583,8 +601,10 @@
       padding: 40px 20px;
     }
 
+    /* 좌우 52px: 아래 .wb-hero-arrow 히트박스(44px, inset 4px → 바깥쪽 끝까지 48px)보다 살짝 넓게
+       잡아, 텍스트/버튼이 화살표 영역 위로 올라오지 않게 함 */
     .wb-hero-content {
-      padding-left: 24px;
+      padding: 0 52px;
     }
 
     .wb-hero-title {
@@ -601,19 +621,22 @@
       gap: 8px;
     }
 
-    /* 좌우 화살표: 수직 중앙 대신 상단에 배치해 중하단의 텍스트/CTA 와 겹치지 않도록 함 */
+    /* 좌우 화살표: 슬라이드(배경 사진) 영역의 수직 정중앙(top:50%, 기본 규칙 그대로 유지)에 위치.
+       히트박스는 44px 로 touch target 권장 크기를 맞추고, 아이콘은 그 안에서 24px 로 작게 그려
+       버튼이 커 보이지 않으면서도 탭 영역은 넉넉하게 유지합니다. */
     .wb-hero-arrow {
-      top: 20px;
-      transform: none;
-      width: 38px;
-      height: 38px;
+      width: 44px;
+      height: 44px;
     }
-    .wb-hero-arrow:hover { transform: scale(1.08); }
-    .wb-hero-arrow:active { transform: scale(0.92); }
-    .wb-hero-arrow--prev { left: 12px; }
-    .wb-hero-arrow--next { right: 12px; }
+    .wb-hero-arrow svg {
+      width: 24px;
+      height: 24px;
+    }
+    .wb-hero-arrow--prev { left: 4px; }
+    .wb-hero-arrow--next { right: 4px; }
 
-    /* 하단 2분할 텍스트 탭 → 작은 Dots 인디케이터 (활성 탭만 짧은 알약 모양으로 확장) */
+    /* 하단 텍스트 탭(N개) → 작은 Dots 인디케이터로 축소 (활성 탭만 짧은 알약 모양으로 확장).
+       justify-content:center + 고정 크기 dot 이라 탭이 2개든 3개든(아동 케어 탭 추가 등) 그대로 동작 */
     .wb-hero-tabs {
       gap: 8px;
       padding: 0 0 18px;
@@ -647,11 +670,12 @@
   }
 </style>
 
-<!-- 메인 히어로 섹션: 풀블리드 인터랙티브 캐러셀 + 하단 2분할 프로그레스 탭 내비게이션.
-     슬라이드 2개(이미지 + 헤드라인 2줄 + 서브카피)는 아래 .wb-hero-slide 의 data-* 속성에
+<!-- 메인 히어로 섹션: 풀블리드 인터랙티브 캐러셀 + 하단 균등분할 프로그레스 탭 내비게이션.
+     슬라이드(지금 2개: 이미지 + 헤드라인 2줄 + 서브카피)는 아래 .wb-hero-slide 의 data-* 속성에
      담아두고, 탭을 클릭하면 JS(아래 <script>)가 배경 전환과 함께 헤드라인/서브카피 텍스트도
-     같이 바꿔치기합니다. CTA 버튼은 슬라이드마다 구성이 달라 .wb-hero-cta-group 두 블록을
-     보이기/숨기기로 전환합니다. -->
+     같이 바꿔치기합니다. CTA 버튼은 슬라이드마다 구성이 달라 .wb-hero-cta-group 블록을
+     슬라이드별로 두고 보이기/숨기기로 전환합니다. 슬라이드 추가 방법은 이 섹션 맨 위
+     "확장 가이드" 주석 참고. -->
 <section class="wb-main-hero relative w-full overflow-hidden" style="font-family: 'Noto Sans KR', sans-serif;">
 
   <!-- 슬라이드 2장: object-cover 로 화면을 빈틈없이 채우고, is-active 인 슬라이드만 opacity:1 로
@@ -691,7 +715,7 @@
     <div class="wb-hero-text-wrap flex flex-col items-start" style="opacity: 0; animation: heroFadeInUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) 0.1s forwards;">
 
       <!-- 메인 헤드라인(모시미 스타일: SemiBold 600, clamp 크기) + 서브카피 한 줄 + CTA 의 3단 구조.
-           하단 2분할 탭이 이미 슬라이드 주제를 안내하므로 상단 배지는 두지 않습니다. 타이틀/서브카피는
+           하단 탭이 이미 슬라이드 주제를 안내하므로 상단 배지는 두지 않습니다. 타이틀/서브카피는
            .wb-hero-title / .wb-hero-sub 순수 CSS 클래스로 색상·크기·여백을 지정합니다(이유는 위
            .wb-hero-title 규칙의 주석 참고 — Tailwind 유틸리티와 섞지 않습니다). -->
       <div class="wb-hero-text-fade">
@@ -735,7 +759,9 @@
     </div>
   </div>
 
-  <!-- 최하단 2분할 프로그레스 바 탭 내비게이션 (50% : 50%) -->
+  <!-- 최하단 프로그레스 바 탭 내비게이션 (현재 2개, flex:1 1 0 로 균등분할 — 아동 케어 탭을
+       추가하면 3분할로 자동 재배치됨). 새 탭을 추가할 때는 .wb-hero-tab-track/.wb-hero-tab-fill
+       구조와 data-index 값(새 슬라이드 순서와 동일한 0-based 인덱스)만 그대로 맞추면 됩니다. -->
   <div class="wb-hero-tabs" role="tablist" aria-label="히어로 슬라이드 선택">
     <button type="button" class="wb-hero-tab is-active" role="tab" aria-selected="true" data-index="0">
       <span class="wb-hero-tab-track"><span class="wb-hero-tab-fill"></span></span>
