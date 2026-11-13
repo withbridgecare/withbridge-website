@@ -765,13 +765,21 @@ button { font-family: inherit; cursor: pointer; }
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+/* 분류명+연락처 블록 — 우측 뱃지 그룹(flex: none)이 길어질 때 이 블록이 찌그러져 분류명이
+   세로로 한 글자씩 줄바꿈되는 것을 막기 위해 최소 너비를 보장하고, 공간이 부족하면
+   .admin-row-head 가 flex-wrap 으로 뱃지 그룹을 다음 줄로 내려보냅니다. */
+.admin-row-head-main {
+  flex: 1 1 auto;
+  min-width: 140px;
 }
 .admin-row-name {
   font-size: 15px;
   font-weight: 700;
   color: var(--ink);
-  word-break: keep-all;
+  white-space: nowrap;
 }
 .admin-row-sub {
   margin-top: 2px;
@@ -1280,6 +1288,7 @@ textarea.admin-select { cursor: text; resize: vertical; min-height: 72px; }
 .admin-settlement-table tbody td.admin-loading,
 .admin-settlement-table tbody td.admin-empty { text-align: center; white-space: normal; }
 .admin-settlement-table .settle-manager-name { font-weight: 700; color: var(--ink); }
+.admin-settlement-table .settle-manager-email { display: block; margin-top: 2px; font-size: 12px; font-weight: 400; color: var(--ink-sub); }
 .admin-settlement-table .settle-manager-phone { display: block; margin-top: 2px; font-size: 12px; font-weight: 400; color: var(--ink-sub); }
 .admin-settlement-table .settle-net { font-weight: 700; color: var(--sage-600); }
 .admin-settlement-table tfoot td {
@@ -1311,6 +1320,7 @@ textarea.admin-select { cursor: text; resize: vertical; min-height: 72px; }
 .admin-settlement-table tbody td.admin-loading,
 .admin-settlement-table tbody td.admin-empty { text-align: center; white-space: normal; }
 .admin-settlement-table .settle-manager-name { font-weight: 700; color: var(--ink); }
+.admin-settlement-table .settle-manager-email { display: block; margin-top: 2px; font-size: 12px; font-weight: 400; color: var(--ink-sub); }
 .admin-settlement-table .settle-manager-phone { display: block; margin-top: 2px; font-size: 12px; font-weight: 400; color: var(--ink-sub); }
 .admin-settlement-table .settle-net { font-weight: 700; color: var(--sage-600); }
 .admin-settlement-table tfoot td {

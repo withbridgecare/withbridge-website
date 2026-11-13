@@ -821,7 +821,7 @@
     var head = document.createElement('div');
     head.className = 'admin-row-head';
     head.innerHTML =
-      '<div><div class="admin-row-name">' + escapeHtml(a.name || '이름 미등록') + '</div>' +
+      '<div class="admin-row-head-main"><div class="admin-row-name">' + escapeHtml(a.name || '이름 미등록') + '</div>' +
       '<div class="admin-row-sub">' + escapeHtml(a.phone || '') + '</div></div>' +
       '<span class="admin-badge is-pending">지원 대기</span>';
 
@@ -1245,7 +1245,7 @@
     var head = document.createElement('div');
     head.className = 'admin-row-head';
     head.innerHTML =
-      '<div><div class="admin-row-name">' + escapeHtml(serviceTitle(a)) + '</div>' +
+      '<div class="admin-row-head-main"><div class="admin-row-name">' + escapeHtml(serviceTitle(a)) + '</div>' +
       '<div class="admin-row-sub">' + escapeHtml(a.user_contact || '') + '</div></div>' +
       '<div class="admin-badge-group">' +
         (overdue ? '<span class="admin-badge is-overdue">경과</span>' : '') +
@@ -1672,7 +1672,7 @@
     var head = document.createElement('div');
     head.className = 'admin-row-head';
     head.innerHTML =
-      '<div><div class="admin-row-name">' + escapeHtml(serviceTitle(a)) + '</div>' +
+      '<div class="admin-row-head-main"><div class="admin-row-name">' + escapeHtml(serviceTitle(a)) + '</div>' +
       '<div class="admin-row-sub">' + escapeHtml(a.user_contact || '') + '</div></div>' +
       '<div class="admin-badge-group">' + badges + '</div>';
 
@@ -2592,7 +2592,7 @@
     var head = document.createElement('div');
     head.className = 'admin-row-head';
     head.innerHTML =
-      '<div><div class="admin-row-name">' + escapeHtml(seniorLabel(s)) + '</div>' +
+      '<div class="admin-row-head-main"><div class="admin-row-name">' + escapeHtml(seniorLabel(s)) + '</div>' +
       '<div class="admin-row-sub">보호자 ' + escapeHtml(s.guardian_name || '미등록') + ' · ' + escapeHtml(s.guardian_phone || '연락처 미등록') + '</div></div>' +
       '<div class="admin-badge-group">' +
         daysBadge +
@@ -3122,7 +3122,7 @@
     var head = document.createElement('div');
     head.className = 'admin-row-head';
     head.innerHTML =
-      '<div><div class="admin-row-name">' + escapeHtml(seniorName) + '</div>' +
+      '<div class="admin-row-head-main"><div class="admin-row-name">' + escapeHtml(seniorName) + '</div>' +
       '<div class="admin-row-sub">보호자 ' + escapeHtml(guardianName) + ' · ' + escapeHtml(guardianPhone) + '</div></div>' +
       '<div class="admin-badge-group">' +
       '<span class="admin-badge' + (isManagerReport ? ' is-assigned' : ' is-neutral') + '">' + (isManagerReport ? '매니저 접수' : '보호자 접수') + '</span>' +
@@ -3697,7 +3697,7 @@
     var head = document.createElement('div');
     head.className = 'admin-row-head';
     head.innerHTML =
-      '<div><div class="admin-row-name">' + escapeHtml(m.name) + '</div>' +
+      '<div class="admin-row-head-main"><div class="admin-row-name">' + escapeHtml(m.name) + '</div>' +
       '<div class="admin-row-sub">' + contactLine + '</div></div>' +
       '<div class="admin-badge-group">' +
       '<span class="admin-badge is-care-count">배정된 케어 ' + assignedCount + '건</span>' +
@@ -3899,7 +3899,7 @@
 
     if (res.error) {
       console.error('[Admin] 매니저 정산 집계 실패 — p_month=' + pMonth + ':', res.error.code, res.error.message,
-        '→ sql/manager_hourly_rate_settlement.sql / admin_settlement_fixes_v3.sql 을 Supabase SQL Editor 에서 실행했는지 확인하세요.');
+        '→ sql/manager_hourly_rate_settlement.sql / admin_settlement_fixes_v3.sql / admin_settlement_add_manager_email.sql 을 Supabase SQL Editor 에서 실행했는지 확인하세요.');
       body.innerHTML = '<tr><td colspan="6" class="admin-empty">정산 내역을 불러오지 못했습니다: ' +
         escapeHtml(res.error.message) + '</td></tr>';
       return;
@@ -3909,8 +3909,8 @@
     console.log('[Admin] 매니저 정산 집계 결과 — p_month=' + pMonth + ', ' + rows.length + '명:');
     rows.forEach(function (r, i) {
       console.log('  [' + i + '] manager_id=' + r.manager_id + ', name=' + r.manager_name +
-        ', completed_count=' + r.completed_count + ', payout_subtotal=' + r.payout_subtotal +
-        ', net_payout=' + r.net_payout);
+        ', email=' + r.manager_email + ', completed_count=' + r.completed_count +
+        ', payout_subtotal=' + r.payout_subtotal + ', net_payout=' + r.net_payout);
     });
 
     if (els.settlementCount) {
@@ -3939,6 +3939,7 @@
       tr.setAttribute('aria-label', escapeHtml(r.manager_name) + ' ' + pMonth.slice(0, 7) + ' 정산 상세보기');
       tr.innerHTML =
         '<td><span class="settle-manager-name">' + escapeHtml(r.manager_name) + '</span>' +
+        (r.manager_email ? '<span class="settle-manager-email">' + escapeHtml(r.manager_email) + '</span>' : '') +
         '<span class="settle-manager-phone">' + escapeHtml(r.manager_phone) + '</span></td>' +
         '<td>' + Number(r.completed_count || 0) + '건</td>' +
         '<td>' + won(r.payout_subtotal) + '</td>' +
