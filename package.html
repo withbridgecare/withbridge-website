@@ -12,10 +12,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
 <!-- 사이트 공통 인증 헤더 (로그인 상태 감지, window.WBAuth 제공) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/js/auth-header.js?v=2.3" charset="utf-8"></script>
+<script src="/js/auth-header.js?v=2.4" charset="utf-8"></script>
 <!-- 결제 확인 Edge Function(confirm-package-order-payment) 호출용 — supabaseClient.functions.invoke()
      대신 명시적 fetch() 래퍼. auth-header.js 가 만든 supabaseClient 를 받아 쓰므로 그 뒤에 로드합니다 -->
-<script src="/js/edge-function-fetch.js?v=1.1"></script>
+<script src="/js/edge-function-fetch.js?v=1.2"></script>
 <script src="/js/terms-modal.js?v=1.0" charset="utf-8" defer></script>
 <script src="/js/notice-modal.js?v=1.0" charset="utf-8" defer></script>
 <!-- 패키지 결제(PortOne V2) -->

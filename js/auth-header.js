@@ -39,7 +39,7 @@
     // 없어, Claude 가 대신 채워 넣을 수 없습니다. 추측값을 넣으면 로그인 자체가 깨집니다).
     var DEV = { url: 'https://<YOUR-DEV-PROJECT-REF>.supabase.co', anonKey: '<YOUR-DEV-PROJECT-ANON-KEY>' };
     // 커스텀 도메인을 연결하면 그 도메인도 여기 추가하세요(예: 'www.withbridge.co.kr').
-    var PROD_HOSTNAMES = ['withbridgewebsite.vercel.app'];
+    var PROD_HOSTNAMES = ['withbridgewebsite.vercel.app', 'www.withbridge.kr', 'withbridge.kr'];
     var isProdHost = PROD_HOSTNAMES.indexOf(location.hostname) !== -1;
     var devConfigured = DEV.url.indexOf('<YOUR-') === -1;
     if (isProdHost || !devConfigured) {

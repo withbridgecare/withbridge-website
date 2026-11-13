@@ -30,7 +30,7 @@
   var ENV_CONFIG = (function () {
     var PROD = { url: 'https://layvjisfeivkzowopkco.supabase.co', anonKey: 'sb_publishable_M7wpIAR7-aXvG78Xv-WBoQ_q1wj_FcR' };
     var DEV = { url: 'https://<YOUR-DEV-PROJECT-REF>.supabase.co', anonKey: '<YOUR-DEV-PROJECT-ANON-KEY>' };
-    var PROD_HOSTNAMES = ['withbridgewebsite.vercel.app'];
+    var PROD_HOSTNAMES = ['withbridgewebsite.vercel.app', 'www.withbridge.kr', 'withbridge.kr'];
     var isProdHost = PROD_HOSTNAMES.indexOf(location.hostname) !== -1;
     var devConfigured = DEV.url.indexOf('<YOUR-') === -1;
     if (isProdHost || !devConfigured) return PROD;
