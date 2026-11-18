@@ -13,3 +13,6 @@ next-env.d.ts
 # 레거시 HTML 용 생성물 (npm run build:legacy)
 public/js/env.js
 public/css/tailwind.css
+
+# 전환 작업 중 비교용 임시 파일
+public/_compare

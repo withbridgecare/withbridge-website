@@ -15,6 +15,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ko">
       <head>
+        {/* ?embed=1 : 다른 페이지의 팝업(iframe) 안에서 열릴 때 머리글·바닥글 숨김. 화면을 그리기 전에 적용해야 깜빡이지 않습니다. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "if(new URLSearchParams(location.search).has('embed'))document.documentElement.classList.add('embed');",
+          }}
+        />
         <link
           rel="stylesheet"
           crossOrigin="anonymous"

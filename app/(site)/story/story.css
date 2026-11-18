@@ -1,0 +1,281 @@
+/* story 페이지 전용 스타일 — public/story.html 의 <style> 을 그대로 옮김 */
+:root {
+  --offwhite: #FAF8F3;
+  --sage-light: #E9EEE5;
+  --sage: #DCE5D7;
+  --sage-deep: #5E7A63;
+  --ink: #2C3630;
+  --ink-soft: #5B655E;
+  --line: rgba(44, 54, 48, 0.12);
+  --radius: 20px;
+  --max: 1080px;
+}
+
+.story-page, .story-page * { margin: 0; padding: 0; box-sizing: border-box; }
+
+.story-page {
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
+  background: var(--offwhite);
+  color: var(--ink);
+  line-height: 1.75;
+  word-break: keep-all;
+  -webkit-font-smoothing: antialiased;
+}
+
+.story-page .container {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.story-page section { padding: 140px 0; }
+
+.story-page h1, .story-page h2 {
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.35;
+}
+
+.story-page h1 { font-size: clamp(2rem, 5vw, 3.4rem); }
+.story-page h2 { font-size: clamp(1.7rem, 3.6vw, 2.6rem); }
+
+.story-page .lead {
+  font-size: clamp(1.02rem, 1.6vw, 1.15rem);
+  color: var(--ink-soft);
+}
+
+/* ---------- SECTION 1. HERO ---------- */
+.story-page .hero {
+  background: linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)), url('/images/hero-bg.webp');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  padding: 180px 0 160px;
+}
+.story-page .hero h1 { max-width: 760px; color: #FFFFFF; }
+.story-page .hero h1 span { display: block; }
+.story-page .hero h1 .accent { color: #F5F5F0; }
+.story-page .hero .body {
+  margin-top: 56px;
+  max-width: 620px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.story-page .hero .body p { font-size: clamp(1.02rem, 1.6vw, 1.15rem); color: rgba(245, 245, 240, 0.88); }
+.story-page .hero .body p.strong { color: #FFFFFF; font-weight: 500; }
+
+/* ---------- SECTION 2. VISION & MISSION ---------- */
+.story-page .vision { background: var(--sage-light); }
+.story-page .vision .mission {
+  margin-top: 28px;
+  max-width: 640px;
+}
+.story-page .values {
+  margin-top: 88px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--line);
+}
+.story-page .value {
+  padding: 40px 32px 8px 0;
+}
+.story-page .value + .value {
+  padding-left: 32px;
+  border-left: 1px solid var(--line);
+}
+.story-page .value .num {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--sage-deep);
+  letter-spacing: 0.04em;
+}
+.story-page .value h3 {
+  margin: 14px 0 16px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.story-page .value p { color: var(--ink-soft); font-size: 1rem; }
+
+/* ---------- SECTION 3. TRUST & SAFETY ---------- */
+.story-page .trust { background: var(--offwhite); }
+.story-page .trust .lead { margin-top: 28px; max-width: 620px; }
+
+.story-page .steps {
+  margin-top: 88px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  list-style: none;
+}
+.story-page .step {
+  position: relative;
+  background: var(--sage-light);
+  border-radius: var(--radius);
+  padding: 32px 24px;
+}
+.story-page .step .num {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--sage-deep);
+  margin-bottom: 12px;
+}
+.story-page .step strong {
+  font-size: 1.08rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.5;
+}
+.story-page .step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -16px;
+  width: 8px;
+  height: 8px;
+  border-top: 1.3px solid rgba(94, 122, 99, 0.55);
+  border-right: 1.3px solid rgba(94, 122, 99, 0.55);
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.story-page .badges {
+  margin-top: 40px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  list-style: none;
+}
+.story-page .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 22px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 0.98rem;
+  font-weight: 500;
+}
+.story-page .badge::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sage-deep);
+}
+
+/* ---------- SECTION 4. CLOSING CTA ---------- */
+.story-page .closing {
+  /* 배경색(폴백) 위에 사진을 깔고, 그 위에 브랜드 세이지그린 반투명 오버레이를 한 번 더 덧씌워
+     잉크색 카피/버튼이 사진 위에서도 또렷하게 보이도록 합니다(hero 섹션과 같은 2-layer
+     background-image 기법 — linear-gradient + url 순서로 쌓으면 그라디언트가 위에, 사진이 아래에 깔림).
+     사진을 story-hero-bg.jpg → story-hero-bg-v2.jpg 로 교체(인물이 더 잘 보이는 새 사진).
+     오버레이는 45%로 사진이 선명하게 보이도록 유지하고, background-position: center 60% 로 인물이
+     섹션 안에 보기 좋게 자리하도록 세로 기준점을 잡습니다. min-height는 480px로 맞춥니다. */
+  background-color: var(--sage);
+  background-image: linear-gradient(rgba(223, 228, 219, 0.45), rgba(223, 228, 219, 0.45)), url('/images/story-hero-bg-v2.webp');
+  background-size: cover;
+  background-position: center 60%;
+  background-repeat: no-repeat;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 480px;
+  text-align: center;
+}
+/* 오버레이가 밝아진 만큼(45%) 사진의 밝은 영역 위에서 잉크색 글씨가 묻히지 않도록 옅은 흰색
+   text-shadow로 외곽을 한 번 더 받쳐줍니다 — 색상 자체는 바꾸지 않고 대비만 보강합니다. */
+.story-page .closing h2 { text-shadow: 0 1px 3px rgba(255, 255, 255, 0.8); }
+.story-page .closing h2 span { display: block; }
+.story-page .btn {
+  display: inline-block;
+  margin-top: 48px;
+  padding: 18px 44px;
+  border-radius: 999px;
+  background: var(--sage-deep);
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.story-page .btn:hover { background: #4C6651; transform: translateY(-2px); }
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 900px) {
+  .story-page .values { grid-template-columns: repeat(3, 1fr); }
+  .story-page .steps { grid-template-columns: repeat(2, 1fr); }
+  .story-page .step:nth-child(2)::after { display: none; }
+}
+
+@media (max-width: 720px) {
+  .story-page section { padding: 96px 0; }
+  .story-page .hero { padding: 120px 0 104px; }
+  .story-page .values { grid-template-columns: 1fr; }
+  .story-page .value, .story-page .value + .value {
+    padding: 32px 0;
+    border-left: none;
+  }
+  .story-page .value + .value { border-top: 1px solid var(--line); }
+  .story-page .steps { grid-template-columns: 1fr; gap: 12px; }
+  .story-page .step::after { display: none; }
+  .story-page .closing h2 span { display: inline; }
+}
+
+/* ---------- 휴대폰(767px 이하) 화면 최적화 ----------
+   글자·여백을 한 단계 줄이고, 가치 3개는 번호 원 + 내용의 가로형 행, 검증 4단계는 2×2 그리드로
+   바꿔 섹션이 한두 화면 안에 들어오게 합니다. PC(768px 이상)는 영향 없음. */
+@media (max-width: 767.98px) {
+  .story-page .container { padding: 0 20px; }
+  .story-page section { padding: 56px 0; }
+  .story-page h1 { font-size: 26px; line-height: 1.35; }
+  .story-page h2 { font-size: 21px; line-height: 1.4; }
+  .story-page .lead { font-size: 14px; line-height: 1.7; }
+
+  .story-page .hero { padding: 64px 0 56px; background-position: center 30%; }
+  .story-page .hero .body { margin-top: 22px; gap: 12px; }
+  .story-page .hero .body p { font-size: 14px; line-height: 1.7; }
+  .story-page .hero .body p.strong br { display: none; }
+
+  .story-page .vision .mission { margin-top: 12px; }
+  .story-page .values { margin-top: 24px; }
+  .story-page .value, .story-page .value + .value {
+    display: grid;
+    grid-template-columns: 34px 1fr;
+    column-gap: 12px;
+    padding: 16px 0;
+    border-left: none;
+  }
+  .story-page .value + .value { border-top: 1px solid var(--line); }
+  .story-page .value .num {
+    grid-row: 1 / span 2;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #fff;
+    font-size: 12px;
+    letter-spacing: 0;
+  }
+  .story-page .value h3 { margin: 4px 0 4px; font-size: 15.5px; }
+  .story-page .value p { font-size: 13px; line-height: 1.6; }
+
+  .story-page .trust .lead { margin-top: 12px; }
+  .story-page .steps { margin-top: 24px; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .story-page .step { padding: 14px; border-radius: 14px; }
+  .story-page .step .num { font-size: 12px; margin-bottom: 2px; }
+  .story-page .step strong { font-size: 14px; line-height: 1.45; display: block; }
+  .story-page .badges { margin-top: 14px; gap: 6px; }
+  .story-page .badge { padding: 8px 12px; gap: 7px; font-size: 12.5px; }
+  .story-page .badge::before { width: 6px; height: 6px; }
+
+  .story-page .closing { min-height: 340px; padding: 56px 0; }
+  .story-page .closing h2 { font-size: 19px; }
+  .story-page .closing h2 span { display: block; }
+  .story-page .btn { margin-top: 22px; padding: 14px 30px; font-size: 15px; }
+}
+  
