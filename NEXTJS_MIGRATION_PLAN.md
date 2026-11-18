@@ -8,6 +8,29 @@
 
 ---
 
+## 진행 상황 (2026-11-19, 브랜치 `nextjs`)
+
+| 단계 | 상태 | 내용 |
+|---|---|---|
+| 0. 준비 | ✅ 완료 | Next.js 16 + TypeScript + Tailwind 3. 기존 HTML은 `public/`에 그대로 두고 같은 주소로 서비스 (4장 방식) |
+| 1. 공통 틀 | ✅ 완료 | `components/site/` 헤더·띠배너·드로어·로그인 메뉴·푸터, `AuthProvider`, `lib/api`·`lib/browser` 분리 |
+| 2. 홍보·정보 | 🟡 대부분 | `terms` `privacy` `story` `notice` `partner` `manager-landing` `pricing` 완료. **메인(`index`)만 남음** |
+| 3~6단계 | ⬜ 시작 전 | 회원·신청/결제·마이페이지·관리자 페이지는 아직 `public/*.html` 레거시 |
+| 7. 마무리 | ⬜ | |
+
+**배포 전 확인할 것**
+- Vercel 프로젝트 설정 → Framework Preset이 **Next.js**인지 (vercel.json에 `"framework": "nextjs"`를 넣어 두었음), Build Command/Output Directory를 수동으로 지정해 두었다면 비우기
+- Vercel Node.js 버전을 **22 이상**으로 (supabase-js가 20 지원 종료 예고)
+- `lib/types/database.ts`는 아직 손으로 쓴 일부 타입 — `supabase gen types`로 교체 필요 (원칙 5)
+
+**전환 작업 방법 (페이지 하나 옮길 때)**
+1. `app/(site)/<이름>/page.tsx` 만들기 → 같은 주소에서 자동으로 새 페이지가 우선함
+2. 페이지 안의 `<script>` 동작은 같은 폴더의 `'use client'` 컴포넌트로, DB 호출은 `lib/api/`로
+3. 기존 화면과 나란히 비교한 뒤 `public/<이름>.html` 삭제
+4. 그 페이지에서만 쓰던 `public/js/*.js`·CSS도 더 이상 쓰는 곳이 없으면 삭제
+
+---
+
 ## 0. 한 줄 요약
 
 **화면은 Next.js, 데이터와 로직은 지금처럼 Supabase.**
@@ -148,10 +171,10 @@ withbridge-website/
 
 첫날부터 Next.js가 **모든 주소를 받되**, 아직 옮기지 않은 페이지는 기존 HTML을 그대로 보여줍니다.
 
-1. 기존 HTML/JS/CSS를 `public/legacy/`로 옮깁니다.
-2. `next.config.ts`의 `rewrites`(fallback)로 `/apply` → `/legacy/apply.html` 처럼 연결합니다.
+1. 기존 HTML/JS/CSS를 `public/`으로 옮깁니다 (상대 경로 `js/…`, `images/…`가 그대로 동작하도록 하위 폴더 대신 루트에 둠).
+2. `next.config.ts`의 `rewrites`(fallback)로 `/apply` → `/apply.html` 처럼 연결합니다.
 3. 어떤 페이지를 Next.js로 새로 만들면(`app/apply/page.tsx`) Next.js 페이지가 우선 적용되고, 해당 rewrite 줄은 지웁니다.
-4. 모든 페이지가 옮겨지면 `public/legacy/`를 삭제합니다.
+4. 모든 페이지가 옮겨지면 `public/`의 HTML·`public/js`·레거시 CSS와 `legacy/` 폴더(레거시 Tailwind 설정)를 삭제합니다.
 
 이렇게 하면 **중간에 멈춰도 사이트는 항상 정상**이고, 문제가 생긴 페이지 하나만 되돌리면 됩니다.
 
