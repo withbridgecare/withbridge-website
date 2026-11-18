@@ -1,5 +1,7 @@
 import './manager-landing.css';
 import type { Metadata } from 'next';
+import { NotoSansKr } from '@/components/site/NotoSansKr';
+import { BodyClass } from '@/components/site/BodyClass';
 
 export const metadata: Metadata = {
   title: "위드브릿지 케어 매니저 모집",
@@ -10,6 +12,9 @@ export const metadata: Metadata = {
 export default function ManagerLandingPage() {
   return (
     <>
+      <NotoSansKr />
+      {/* 모바일 하단 고정 CTA 가 바닥글을 가리지 않도록 본문 아래 여백(78px) */}
+      <BodyClass name="has-mobile-sticky-cta" />
     <main className="ap-main">
       {/* ================================================================ 02. 히어로 — '초기 파트너 1기 모집' 한정 배지 + 신규 메인 카피 ================================================================= */}
       <section className="hero">

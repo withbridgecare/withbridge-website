@@ -3,7 +3,7 @@
  *
  * ⚠️ 같은 금액이 아직 다음 곳에도 따로 적혀 있습니다 (NEXTJS_MIGRATION_PLAN.md 6장):
  *   - public/apply.html 의 SERVICES (신청서)
- *   - public/index.html 요금 카드 (메인, 아직 레거시)
+ *   - app/(site)/(home)/page.tsx 메인 요금 카드 (금액이 마크업에 직접 적혀 있음)
  *   - sql/one_hour_light_care_service.sql 의 expected_service_price() / expected_overtime_rate_per_30min()
  *     → 서버가 결제 금액을 이 값으로 다시 검증합니다. 여기만 바꾸면 결제가 AMOUNT_MISMATCH 로 막힙니다.
  * 최종 목표는 services 테이블 한 곳에서 읽는 것입니다.

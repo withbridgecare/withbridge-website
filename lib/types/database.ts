@@ -42,10 +42,13 @@ export type Database = {
         status: string;
         created_at: string;
       }>;
+      user_coupons: Row<{ id: string; user_id: string; coupon_code: string; amount: number | null; status: string | null; notified_at: string | null }>;
     };
     Views: Record<string, never>;
     Functions: {
       claim_service_applications: { Args: { p_ids: string[] }; Returns: string[] };
+      mark_welcome_coupon_notified: { Args: Record<string, never>; Returns: { amount: number | null }[] };
+      claim_welcome_coupon: { Args: Record<string, never>; Returns: { amount: number | null; status: string | null }[] };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

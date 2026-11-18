@@ -82,7 +82,6 @@ const nextConfig: NextConfig = {
       afterFiles: [],
       // Next.js 페이지(app/)와 public 파일에서 못 찾았을 때만 레거시 HTML 로 연결
       fallback: [
-        { source: '/', destination: '/index.html' },
         { source: '/:page([A-Za-z0-9_-]+)', destination: '/:page.html' },
         { source: '/test/:page([A-Za-z0-9_-]+)', destination: '/test/:page.html' },
       ],

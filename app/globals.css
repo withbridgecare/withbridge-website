@@ -1,14 +1,11 @@
-/* Next.js 화면 공통 스타일. 페이지 전용 스타일은 각 페이지 폴더의 *.module.css 에 둡니다. */
+/* Next.js 화면 공통 스타일 — Tailwind 유틸리티만 불러옵니다.
+ *
+ * 글꼴·배경·글자색 같은 body 기본값은 일부러 여기서 정하지 않습니다. 예전 HTML 페이지마다 이 값이
+ * 달랐고(메인은 기기 기본 글꼴, 약관은 Pretendard 등), 전환하면서 화면이 바뀌지 않도록 각 페이지의
+ * CSS(app/(site)/<페이지>/*.css)가 예전처럼 직접 정합니다. 사이트 전체를 통일하려면 여기서 정하세요.
+ */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-html { scroll-behavior: smooth; }
-body {
-  margin: 0;
-  background: #ffffff;
-  color: #1A1D21;
-  font-family: 'Pretendard Variable', Pretendard, 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
 [hidden] { display: none !important; }

@@ -4,6 +4,7 @@
  * public/js/site-footer.js 도 같이 고쳐야 합니다.
  * (원칙 3에 따라 나중에 site_settings 테이블로 옮겨 관리자 화면에서 고치게 할 대상)
  */
+import { isValidElement } from 'react';
 import { ROUTES, SITE } from '@/lib/config';
 
 const COMPANY: [string, React.ReactNode][] = [
@@ -44,11 +45,12 @@ const SOCIAL = [
 function InfoRows({ title, rows }: { title: string; rows: [string, React.ReactNode][] }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
-      <h3 style={{ marginTop: 0, marginBottom: 12, fontSize: 16, fontWeight: 700, color: '#ffffff' }}>{title}</h3>
+      <h3 style={{ marginBottom: 12, fontSize: 16, fontWeight: 700, color: '#ffffff' }}>{title}</h3>
       {rows.map(([label, value]) => (
         <div key={label} style={{ display: 'grid', gridTemplateColumns: '140px minmax(0, 1fr)', gap: 12, padding: '4px 0', fontSize: 14, overflowWrap: 'anywhere' }}>
           <span style={{ fontWeight: 700, color: '#ffffff' }}>{label}</span>
-          <span style={{ color: '#f4f4f5' }}>{value}</span>
+          {/* 링크(전화·이메일)는 감싸지 않고 그대로 — 예전 마크업과 같은 구조 */}
+          {isValidElement(value) && value.type === 'a' ? value : <span style={{ color: '#f4f4f5' }}>{value}</span>}
         </div>
       ))}
     </div>

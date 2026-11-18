@@ -5,6 +5,7 @@
  * 금액·서비스 목록은 lib/pricing.ts 한 곳에서 가져옵니다.
  */
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '@/components/site/AuthProvider';
 import { estimatePrice, formatExtraDuration, formatWon, MAX_EXTRA_UNITS, NIGHT_SURCHARGE_RATE, SERVICES, URGENT_MATCHING_FEE } from '@/lib/pricing';
 import { ROUTES } from '@/lib/config';
@@ -16,6 +17,8 @@ export function PricingCalculator() {
   const [urgent, setUrgent] = useState(false);
   const [night, setNight] = useState(false);
   const [stickyHidden, setStickyHidden] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const resultBarRef = useRef<HTMLDivElement>(null);
 
   const service = SERVICES[serviceIdx];
@@ -124,7 +127,8 @@ export function PricingCalculator() {
         </div>
       </div>
 
-      {/* 모바일 하단 고정 요약 바 */}
+      {/* 모바일 하단 고정 요약 바 — 예전처럼 <main> 바깥(body 바로 아래)에 둬야 글자 스타일이 같습니다 */}
+      {mounted && createPortal(
       <div className={'pp-sticky' + (stickyHidden ? ' is-hidden' : '')}>
         <button
           type="button"
@@ -138,7 +142,9 @@ export function PricingCalculator() {
         <a href={bookHref} className="pp-sticky-btn" onClick={(e) => goIfLoggedIn(e, bookHref)}>
           예약하기
         </a>
-      </div>
+      </div>,
+      document.body,
+      )}
     </>
   );
 }

@@ -12,6 +12,11 @@ export const SITE = {
   phone: '010-5530-5760',
   phoneHours: '평일 08:00 ~ 18:00 (주말/공휴일 휴무)',
   email: 'withbridge.care@outlook.kr',
+  /**
+   * 카카오 지도 JavaScript 키 (브라우저에 공개되는 키). 카카오 디벨로퍼스 > 플랫폼 > Web 에
+   * 배포 도메인이 등록돼 있어야 지도가 표시됩니다 — Vercel 미리보기 주소에서는 안 보일 수 있습니다.
+   */
+  kakaoMapAppKey: 'd4e5f004fe7750dd67ce15da3863f06c',
 } as const;
 
 /** 화면 주소. 아직 레거시 HTML 인 페이지도 같은 주소로 열립니다(next.config.ts rewrites). */

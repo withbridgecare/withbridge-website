@@ -14,7 +14,7 @@
 |---|---|---|
 | 0. 준비 | ✅ 완료 | Next.js 16 + TypeScript + Tailwind 3. 기존 HTML은 `public/`에 그대로 두고 같은 주소로 서비스 (4장 방식) |
 | 1. 공통 틀 | ✅ 완료 | `components/site/` 헤더·띠배너·드로어·로그인 메뉴·푸터, `AuthProvider`, `lib/api`·`lib/browser` 분리 |
-| 2. 홍보·정보 | 🟡 대부분 | `terms` `privacy` `story` `notice` `partner` `manager-landing` `pricing` 완료. **메인(`index`)만 남음** |
+| 2. 홍보·정보 | ✅ 완료 | 메인(`/`) `terms` `privacy` `story` `notice` `partner` `manager-landing` `pricing`. 원본과 휴대폰·PC 폭에서 요소 위치·크기·글꼴·색이 같은지 자동 비교로 확인 |
 | 3~6단계 | ⬜ 시작 전 | 회원·신청/결제·마이페이지·관리자 페이지는 아직 `public/*.html` 레거시 |
 | 7. 마무리 | ⬜ | |
 
@@ -22,6 +22,16 @@
 - Vercel 프로젝트 설정 → Framework Preset이 **Next.js**인지 (vercel.json에 `"framework": "nextjs"`를 넣어 두었음), Build Command/Output Directory를 수동으로 지정해 두었다면 비우기
 - Vercel Node.js 버전을 **22 이상**으로 (supabase-js가 20 지원 종료 예고)
 - `lib/types/database.ts`는 아직 손으로 쓴 일부 타입 — `supabase gen types`로 교체 필요 (원칙 5)
+
+**메인 페이지 구조** — 화면은 `app/(site)/(home)/page.tsx`(서버에서 미리 그림), 슬라이더·지도·FAQ·쿠폰 등 동작은
+`HomeBehaviors.tsx`가 화면이 뜬 뒤 붙입니다. 마크업의 클래스/id를 바꾸면 `HomeBehaviors.tsx`의 선택자도 같이 바꾸세요.
+서비스 지역은 `regions.ts`. 스타일은 원래 적용 순서대로 `home.css` 하나에 이어 붙였습니다(순서 바꾸지 말 것).
+
+**글꼴 주의** — 예전 페이지마다 'Noto Sans KR' 웹폰트를 불러오는 곳/안 불러오는 곳이 섞여 있어(메인·제휴는 안 불러옴),
+화면이 바뀌지 않도록 예전에 불러오던 페이지에만 `<NotoSansKr />`를 넣었습니다. 사이트 전체 통일은 디자인 결정 후 `app/layout.tsx`에서.
+
+**카카오 지도** — 로컬에서는 지도 SDK가 막혀 확인하지 못했습니다(원본도 동일). Vercel 미리보기 주소에서 지도가 뜨는지 확인하고,
+안 뜨면 카카오 디벨로퍼스 > 플랫폼 > Web 에 그 주소를 등록하세요.
 
 **전환 작업 방법 (페이지 하나 옮길 때)**
 1. `app/(site)/<이름>/page.tsx` 만들기 → 같은 주소에서 자동으로 새 페이지가 우선함
@@ -274,7 +284,7 @@ withbridge-website/
 | 항목 | 현재 | 옮길 곳 | 우선순위 |
 |---|---|---|---|
 | 공지사항 | `notices` 테이블 + 관리자 화면 (이미 됨) | 유지 | — |
-| 서비스 목록·가격 | **네 군데에 같은 값을 따로 적어 둠**: `index.html` 요금 카드, `pricing.html` 계산기 `data-price`, `apply.html` `SERVICES`, 서버 `expected_service_price()`·`expected_overtime_rate_per_30min()` (`sql/one_hour_light_care_service.sql`). 2026-11-18 기준 금액은 모두 일치 | `services` 테이블 1곳 (서버 함수도 이 테이블을 읽게 변경) | **높음** — 한 곳만 고치면 화면 금액이 틀리거나 결제가 `AMOUNT_MISMATCH`로 막힘 |
+| 서비스 목록·가격 | **네 군데에 같은 값을 따로 적어 둠**: 메인 요금 카드(`app/(site)/(home)/page.tsx`), `lib/pricing.ts`(요금 계산 페이지), `apply.html` `SERVICES`, 서버 `expected_service_price()`·`expected_overtime_rate_per_30min()` (`sql/one_hour_light_care_service.sql`). 2026-11-18 기준 금액은 모두 일치 | `services` 테이블 1곳 (서버 함수도 이 테이블을 읽게 변경) | **높음** — 한 곳만 고치면 화면 금액이 틀리거나 결제가 `AMOUNT_MISMATCH`로 막힘 |
 | FAQ | HTML에 하드코딩 | `faqs` 테이블 | 중간 |
 | 메인 상단 띠배너·안내 문구 | HTML에 하드코딩 | `site_settings` 테이블 (키-값) | 중간 |
 | 메인·소개 페이지 이미지 | `images/` 파일 | Supabase Storage + 관리자 업로드 | 낮음 |
