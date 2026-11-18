@@ -21,13 +21,14 @@ export type Database = {
       notices: Row<{
         id: string;
         title: string;
-        content: string | null;
-        category: string | null;
-        is_pinned: boolean | null;
-        is_published: boolean | null;
-        show_popup: boolean | null;
+        category: 'service' | 'maintenance' | 'event';
+        badge: 'must' | 'important' | null;
+        pinned: boolean;
+        body: string;
+        is_published: boolean;
+        created_by: string | null;
         created_at: string;
-        updated_at: string | null;
+        updated_at: string;
       }>;
     };
     Views: Record<string, never>;

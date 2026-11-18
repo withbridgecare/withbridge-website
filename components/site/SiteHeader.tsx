@@ -27,6 +27,15 @@ const NAV_ITEMS = [
   { label: '자주 묻는 질문(FAQ)', href: ROUTES.faq },
 ];
 
+function ArrowUpRight({ size }: { size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M7 17 17 7" />
+      <path d="M7 7h10v10" />
+    </svg>
+  );
+}
+
 function TopBanner() {
   const [index, setIndex] = useState(0);
   useEffect(() => {
@@ -110,6 +119,7 @@ export function SiteHeader() {
   const [drawerHidden, setDrawerHidden] = useState(true); // 닫힘 애니메이션(0.3s)이 끝난 뒤에만 완전히 숨김
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const applyActive = pathname === ROUTES.apply;
+  const isManagerLanding = pathname === '/manager-landing';
 
   const openDrawer = () => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
@@ -193,25 +203,51 @@ export function SiteHeader() {
               <span aria-hidden="true" style={{ flex: 'none', display: 'inline-block', width: 1, height: 12, backgroundColor: '#E2E4E8' }} />
               <DesktopAuthMenu />
             </div>
+            {isManagerLanding ? (
+              // 매니저 모집 페이지: '예약하기' 대신 '지원하기 ↗'(지원서 새 탭)
+              <a
+                href="/manager-apply"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ flex: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 22px', backgroundColor: '#8FA482', color: '#ffffff', borderRadius: 9999, fontSize: 14.5, fontWeight: 700, textDecoration: 'none', boxShadow: '0 4px 14px rgba(143, 164, 130, 0.35)', transition: 'background-color 0.2s, transform 0.2s' }}
+              >
+                지원하기
+                <ArrowUpRight size={14} />
+              </a>
+            ) : (
             <a
-              href={ROUTES.apply}
-              className={ctaClass()}
-              onClick={(e) => goIfLoggedIn(e, ROUTES.apply)}
-              style={{ flex: 'none', display: 'inline-block', padding: '10px 22px', backgroundColor: '#8FA482', color: '#ffffff', borderRadius: 9999, fontSize: 14.5, fontWeight: 700, textDecoration: 'none', boxShadow: '0 4px 14px rgba(143, 164, 130, 0.35)', transition: 'background-color 0.2s, transform 0.2s' }}
-            >
-              예약하기
-            </a>
+                href={ROUTES.apply}
+                className={ctaClass()}
+                onClick={(e) => goIfLoggedIn(e, ROUTES.apply)}
+                style={{ flex: 'none', display: 'inline-block', padding: '10px 22px', backgroundColor: '#8FA482', color: '#ffffff', borderRadius: 9999, fontSize: 14.5, fontWeight: 700, textDecoration: 'none', boxShadow: '0 4px 14px rgba(143, 164, 130, 0.35)', transition: 'background-color 0.2s, transform 0.2s' }}
+              >
+                예약하기
+              </a>
+            )}
           </div>
 
           {/* 모바일 전용 예약하기 버튼 */}
+          {isManagerLanding ? (
+            <a
+              href="/manager-apply"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="wb-mobile-cta"
+              style={{ justifySelf: 'end', gap: 5, padding: '8px 16px', backgroundColor: '#8FA482', color: '#ffffff', borderRadius: 9999, fontSize: 13.5, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}
+            >
+              지원하기
+              <ArrowUpRight size={13} />
+            </a>
+          ) : (
           <a
-            href={ROUTES.apply}
-            className={ctaClass('wb-mobile-cta')}
-            onClick={(e) => goIfLoggedIn(e, ROUTES.apply)}
-            style={{ justifySelf: 'end', padding: '8px 16px', backgroundColor: '#8FA482', color: '#ffffff', borderRadius: 9999, fontSize: 13.5, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}
-          >
-            예약하기
-          </a>
+              href={ROUTES.apply}
+              className={ctaClass('wb-mobile-cta')}
+              onClick={(e) => goIfLoggedIn(e, ROUTES.apply)}
+              style={{ justifySelf: 'end', padding: '8px 16px', backgroundColor: '#8FA482', color: '#ffffff', borderRadius: 9999, fontSize: 13.5, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}
+            >
+              예약하기
+            </a>
+          )}
         </div>
       </header>
 
