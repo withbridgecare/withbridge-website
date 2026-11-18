@@ -2,3 +2,6 @@
 .env.*
 !.env.example
 .vercel
+
+# scripts/build-env.mjs 가 .env 로 생성하는 파일
+js/env.js

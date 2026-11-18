@@ -8,8 +8,10 @@
 (function () {
   'use strict';
 
-  var SUPABASE_URL = 'https://layvjisfeivkzowopkco.supabase.co';
-  var SUPABASE_ANON_KEY = 'sb_publishable_M7wpIAR7-aXvG78Xv-WBoQ_q1wj_FcR';
+  var WB_ENV = window.WB_ENV || {}; // js/env.js (scripts/build-env.mjs 가 .env 로 생성)
+  var SUPABASE_URL = WB_ENV.SUPABASE_URL;
+  var SUPABASE_ANON_KEY = WB_ENV.SUPABASE_ANON_KEY;
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) console.error('[설정] window.WB_ENV 가 없습니다. js/env.js 가 이 스크립트보다 먼저 로드되는지, node scripts/build-env.mjs 를 실행했는지 확인하세요.');
 
   var sdk = window.supabase;
   if (!sdk || !sdk.createClient) {
@@ -17,6 +19,8 @@
     throw new Error('[Admin] Supabase SDK 가 로드되지 않았습니다. SDK <script> 가 admin.js 보다 먼저 있어야 합니다.');
   }
   var supabaseClient = sdk.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // 비공개 버킷 사진(출발 인증 사진 등)을 관리자 권한의 서명 URL 로 표시(js/privacy-guard.js)
+  if (window.WBPrivacy) window.WBPrivacy.attachPhotoResolver(supabaseClient);
 
   // ---------- DOM ----------
   function $(id) { return document.getElementById(id); }
@@ -770,6 +774,7 @@
         els.logoutBtn.disabled = false;
         return;
       }
+      if (window.WBPrivacy) window.WBPrivacy.clearLocalCareData();
       window.location.replace('index.html');
     });
   }

@@ -11,11 +11,14 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
 <!-- 사이트 공통 인증 헤더 (로그인 상태 감지, window.WBAuth 제공) -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/js/auth-header.js?v=2.4" charset="utf-8"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js" integrity="sha384-uteMfOloLDGt042uDz+xHGF3ym63/WQ6rFq7murQRG8Ih7QrXGEGNtWd8688sb4O" crossorigin="anonymous"></script>
+  <script src="/js/privacy-guard.js?v=1.0"></script>
+<!-- Supabase 접속 정보(window.WB_ENV). scripts/build-env.mjs 가 .env / Vercel 환경 변수로 생성 -->
+<script src="/js/env.js"></script>
+<script src="/js/auth-header.js?v=2.7" charset="utf-8"></script>
 <!-- 결제 확인 Edge Function(confirm-package-order-payment) 호출용 — supabaseClient.functions.invoke()
      대신 명시적 fetch() 래퍼. auth-header.js 가 만든 supabaseClient 를 받아 쓰므로 그 뒤에 로드합니다 -->
-<script src="/js/edge-function-fetch.js?v=1.2"></script>
+<script src="/js/edge-function-fetch.js?v=1.3"></script>
 <script src="/js/terms-modal.js?v=1.0" charset="utf-8" defer></script>
 <script src="/js/notice-modal.js?v=1.0" charset="utf-8" defer></script>
 <!-- 패키지 결제(PortOne V2) -->
@@ -52,7 +55,7 @@
   .pkg-section.is-beige { background: var(--beige); }
   #pricing {
     position: relative;
-    background-image: url('/images/zyanya-citlalli-pqXe113_dq8-unsplash.jpg');
+    background-image: url('/images/zyanya-citlalli-pqXe113_dq8-unsplash.webp');
     background-size: cover; background-position: center; background-repeat: no-repeat;
   }
   #pricing::before {
@@ -62,7 +65,7 @@
   #pricing > .pkg-wrap { position: relative; z-index: 1; }
   #faq {
     position: relative;
-    background-image: url('/images/victoria-strukovskaya-Q2v1cElixMw-unsplash.jpg');
+    background-image: url('/images/victoria-strukovskaya-Q2v1cElixMw-unsplash.webp');
     background-size: cover; background-position: center; background-repeat: no-repeat;
   }
   #faq::before {
@@ -265,10 +268,10 @@
       <svg id="wbMenuIconClose" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1A1D21" stroke-width="2" stroke-linecap="round" style="display: none;"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
     </button>
     <a href="index.html" style="justify-self: start; display: flex; align-items: center; text-decoration: none; flex: none;">
-      <img src="./images/logo_main.png" alt="위드브릿지 로고" style="height: 48px; width: auto; display: block; object-fit: contain; margin: 0; padding: 0; position: relative; top: 3px;" />
+      <img src="./images/logo_main.webp" alt="위드브릿지 로고" style="height: 48px; width: auto; display: block; object-fit: contain; margin: 0; padding: 0; position: relative; top: 3px;" />
     </a>
     <nav class="wb-desktop-nav" style="display: flex; align-items: center; gap: 18px; font-size: 14.5px; font-weight: 600; white-space: nowrap; flex-wrap: nowrap;">
-      <a href="story.html" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">소개</a>
+      <a href="story" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">소개</a>
       <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
       <a href="index.html#services" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">서비스</a>
       <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
@@ -298,14 +301,14 @@
 <aside class="wb-drawer" id="wbMobileDrawer" role="dialog" aria-modal="true" aria-label="모바일 메뉴" aria-hidden="true">
   <div class="wb-drawer-topbar" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #F0F1F3; flex: none;">
     <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
-      <img src="./images/logo_main.png" alt="위드브릿지 로고" style="height: 32px; width: auto; display: block; object-fit: contain;" />
+      <img src="./images/logo_main.webp" alt="위드브릿지 로고" style="height: 32px; width: auto; display: block; object-fit: contain;" />
     </a>
     <button type="button" id="wbDrawerClose" aria-label="메뉴 닫기" style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: none; background: transparent; cursor: pointer;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1D21" stroke-width="2" stroke-linecap="round"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
     </button>
   </div>
   <nav style="display: flex; flex-direction: column; padding: 10px 16px; gap: 2px; font-family: 'Noto Sans KR', sans-serif;">
-    <a href="story.html" class="wb-drawer-link">소개</a>
+    <a href="story" class="wb-drawer-link">소개</a>
     <a href="index.html#services" class="wb-drawer-link">서비스</a>
     <a href="index.html#how-it-works" class="wb-drawer-link">이용 방법</a>
     <a href="notice.html" class="wb-drawer-link">공지사항</a>
@@ -330,7 +333,7 @@
   <!-- ================================================================ -->
   <section class="pkg-hero">
     <div class="pkg-hero-bg">
-      <img src="/images/getty-images-3hyRdh15WL4-unsplash.jpg" alt="위드브릿지 케어매니저와 함께하는 외출 동행">
+      <img src="/images/getty-images-3hyRdh15WL4-unsplash.webp" alt="위드브릿지 케어매니저와 함께하는 외출 동행">
     </div>
     <div class="pkg-hero-content">
       <div class="pkg-hero-text">

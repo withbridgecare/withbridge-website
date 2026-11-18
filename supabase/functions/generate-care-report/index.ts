@@ -40,6 +40,11 @@ const MAX_TAGS = 10;
 const MAX_TAG_LEN = 20;
 const MAX_MEMO_LEN = 500;
 const MAX_NAME_LEN = 50;
+const NAME_PLACEHOLDER = "{{NAME}}";
+
+function fillNamePlaceholder(draft: string, name?: string): string {
+  return draft.split(NAME_PLACEHOLDER).join(name || "");
+}
 
 function isNonEmptyString(v: unknown): v is string {
   return typeof v === "string" && v.trim().length > 0;
@@ -68,7 +73,9 @@ function buildSystemPrompt(careType: "senior" | "child"): string {
 function buildUserPrompt(input: { careType: "senior" | "child"; tags: string[]; memo: string; hasPhoto: boolean; seniorName?: string }): string {
   const targetLabel = input.careType === "senior" ? "어르신" : "아동";
   const lines = [
-    `케어 대상: ${targetLabel}${input.seniorName ? " (" + input.seniorName + ")" : ""}`,
+    // 개인정보 보호: 실제 이름은 외부 AI(OpenAI/Gemini)로 보내지 않고 자리표시자만 보낸 뒤,
+    // 응답을 받은 서버에서 실제 이름으로 바꿔 넣습니다(아래 fillNamePlaceholder).
+    `케어 대상: ${targetLabel}${input.seniorName ? " (이름은 반드시 " + NAME_PLACEHOLDER + " 로만 표기)" : ""}`,
     `빠른 선택 태그: ${input.tags.length ? input.tags.join(", ") : "(선택된 태그 없음)"}`,
     `현장 메모: ${input.memo || "(입력된 메모 없음)"}`,
     // 사진이 있다는 사실 자체만 전달합니다 — 사진 안에 무엇이 보이는지는 모델에 보내지 않으므로, 내용을
@@ -178,7 +185,7 @@ Deno.serve(async (req: Request) => {
     const draft = openaiKey
       ? await callOpenAi(openaiKey, systemPrompt, userPrompt)
       : await callGemini(geminiKey!, systemPrompt, userPrompt);
-    return json(200, { draft });
+    return json(200, { draft: fillNamePlaceholder(draft, validated.seniorName) });
   } catch (e) {
     console.error("[generate-care-report] AI 호출 실패:", e);
     return json(502, { error: "AI_CALL_FAILED", message: "AI 리포트 초안 생성에 실패했습니다. 잠시 후 다시 시도해 주세요." });

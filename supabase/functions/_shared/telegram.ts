@@ -182,11 +182,13 @@ export function buildNewManagerApplicationMessage(input: NewManagerApplicationNo
   return [
     divider,
     "[📋 위드브릿지 신규 케어 매니저 지원 접수]",
-    `- 지원자: ${input.name}`,
-    `- 연락처: ${input.phone}`,
-    `- 생년월일: ${input.birthDate || "미입력"}`,
-    `- 거주지: ${input.address || "미입력"}`,
+    // 개인정보 보호: 외부 메신저에는 마스킹된 값만 보냅니다. 전체 정보는 관리자 페이지에서 확인하세요.
+    `- 지원자: ${maskName(input.name)}`,
+    `- 연락처: ${maskPhone(input.phone)}`,
+    `- 출생연도: ${input.birthDate ? String(input.birthDate).slice(0, 4) + "년" : "미입력"}`,
+    `- 거주지: ${detectAddressRegion(input.address) || (input.address ? coarseRegion(input.address) : "미입력")}`,
     `- 접수일시: ${fmtKoreanDateTime(input.createdAt) || "-"}`,
+    "상세 정보는 관리자 페이지에서 확인해 주세요.",
     divider,
   ].join("\n");
 }
@@ -409,9 +411,11 @@ export function buildCareRequestTelegramMessage(
   variant: "private" | "broadcast",
 ): string {
   const serviceType = input.serviceType || "동행 서비스";
-  const region = input.address || "주소 미입력";
+  // 개인정보 보호: 텔레그램(외부 메신저)과 단체방에는 상세 주소 대신 구·시 단위 지역만 보냅니다.
+  // 상세 주소는 매니저가 수락한 뒤 마이페이지(DB RLS)에서만 확인할 수 있습니다.
+  const region = detectAddressRegion(input.address) || (input.address ? coarseRegion(input.address) : "주소 미입력");
   const when = extractDesiredDateTime(input.requestDetails) || fmtKoreanDateTime(input.createdAt) || "협의 필요";
-  const applicant = extractApplicantName(input.userContact);
+  const applicant = maskName(extractApplicantName(input.userContact));
   const addons = formatAddonLabels(input.addonCodes);
   const header = variant === "private"
     ? "[🎯 내 활동 지역 맞춤 — 신규 케어 신청]"
@@ -518,4 +522,27 @@ export function guessScheduledAt(requestDetails: string | null | undefined, crea
     if (hour <= 23) d.setHours(hour, t[4] === "반" ? 30 : Number(t[3] || 0));
   }
   return d;
+}
+
+// ---------- 개인정보 마스킹 (외부 메신저 전송용) ----------
+// 홍길동 → 홍*동, 김철 → 김*, 남궁민수 → 남**수
+export function maskName(name: string | null | undefined): string {
+  const n = (name || "").trim();
+  if (!n || n === "고객") return n || "고객";
+  const chars = Array.from(n);
+  if (chars.length === 1) return "*";
+  if (chars.length === 2) return chars[0] + "*";
+  return chars[0] + "*".repeat(chars.length - 2) + chars[chars.length - 1];
+}
+
+// 010-1234-5678 → 010-****-5678
+export function maskPhone(phone: string | null | undefined): string {
+  const digits = (phone || "").replace(/\D/g, "");
+  if (digits.length < 8) return phone ? "***" : "미입력";
+  return `${digits.slice(0, 3)}-****-${digits.slice(-4)}`;
+}
+
+// 관내 지역 목록에 없는 주소는 앞의 두 단어(시·도 + 시·군·구)만 남깁니다. 예: '서울 강남구 테헤란로 1' → '서울 강남구'
+export function coarseRegion(address: string): string {
+  return address.trim().split(/\s+/).slice(0, 2).join(" ") || "주소 미입력";
 }

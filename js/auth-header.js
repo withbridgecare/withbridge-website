@@ -13,45 +13,18 @@
 (function () {
   'use strict';
 
-  // Dev/Prod Supabase 프로젝트 전환 — withbridge-dev 로 테스트할 때 코드를 고치지 않고 "어느
-  // 도메인에서 열렸는지"만으로 맞는 프로젝트를 자동으로 바라보게 합니다. 같은 값이 저장소 루트의
-  // .env.development/.env.production 에 사람이 읽을 문서로도 남아 있습니다 — 이 사이트는 빌드
-  // 과정이 없는 정적 HTML/JS라 그 파일을 직접 읽을 수 없어, 여기 두 세트 값으로 직접 분기합니다.
-  // PROD_HOSTNAMES 가 아니면 전부 dev 로 간주합니다("모르면 dev"가 안전한 기본값 — localhost·
-  // Vercel 프리뷰 배포가 실수로 프로덕션 DB를 건드리지 않게). 단, DEV 값을 아직 안 채웠으면(여전히
-  // placeholder) 깨지는 대신 조용히 프로덕션으로 폴백합니다 — DEV 값을 채우기 전까지는 지금까지와
-  // 동작이 완전히 같습니다.
-  //
-  // ⚠ DEV 값이 비어 있는 지금은, apply.html/mypage.html 을 포함한 "이 파일을 로드하는 모든 페이지"가
-  // 예외 없이 똑같은 PROD 로 폴백합니다(아래 if 조건이 isProdHost 값과 무관하게 항상 true가 됨 —
-  // `!devConfigured` 가 이미 true 라서). 즉 지금 이 코드 상태에서는 apply.html 과 mypage.html 이
-  // "서로 다른 Supabase 프로젝트를 본다"는 일이 구조적으로 아예 일어날 수 없습니다 — 두 페이지 다
-  // window.WBAuth.client 하나(이 즉시실행함수가 끝에서 한 번만 만드는 클라이언트)를 그대로 가져다
-  // 쓰므로, "어르신 프로필이 마이페이지에 안 보이는" 문제의 원인은 이 DEV/PROD 분기가 아닙니다 —
-  // 실제 원인 후보는 mypage.html loadSeniors() 에 이미 추가된 세션/user_id 교차 확인 로그 쪽을
-  // 먼저 보세요. 이 경고 자체는 "아직 DEV 프로젝트를 안 만들었다"는 안내일 뿐, 두 페이지 사이의
-  // 불일치를 뜻하지 않습니다.
-  var ENV_CONFIG = (function () {
-    var PROD = { url: 'https://layvjisfeivkzowopkco.supabase.co', anonKey: 'sb_publishable_M7wpIAR7-aXvG78Xv-WBoQ_q1wj_FcR' };
-    // withbridge-dev 프로젝트를 실제로 만들어 쓸 계획이라면, Supabase 대시보드 → 그 프로젝트 →
-    // Project Settings → API 에 있는 "Project URL"과 "anon public" 키를 복사해 아래 두 줄에 그대로
-    // 채우세요(placeholder 를 지우고 실제 값으로 바꾸는 것 — 이 리포지토리 안에는 그 값이 어디에도
-    // 없어, Claude 가 대신 채워 넣을 수 없습니다. 추측값을 넣으면 로그인 자체가 깨집니다).
-    var DEV = { url: 'https://<YOUR-DEV-PROJECT-REF>.supabase.co', anonKey: '<YOUR-DEV-PROJECT-ANON-KEY>' };
-    // 커스텀 도메인을 연결하면 그 도메인도 여기 추가하세요(예: 'www.withbridge.co.kr').
-    var PROD_HOSTNAMES = ['withbridgewebsite.vercel.app', 'www.withbridge.kr', 'withbridge.kr'];
-    var isProdHost = PROD_HOSTNAMES.indexOf(location.hostname) !== -1;
-    var devConfigured = DEV.url.indexOf('<YOUR-') === -1;
-    if (isProdHost || !devConfigured) {
-      if (!isProdHost) console.warn('[WBAuth] DEV Supabase 값이 아직 설정되지 않아 프로덕션 프로젝트로 폴백합니다(이 페이지뿐 아니라 ' +
-        'auth-header.js 를 로드하는 모든 페이지가 동일하게 폴백하므로, 페이지 간 프로젝트 불일치는 아닙니다). ' +
-        'DEV 를 실제로 쓰려면 js/auth-header.js 상단 ENV_CONFIG.DEV 를 withbridge-dev 프로젝트의 실제 URL/anon key 로 채우세요.');
-      return PROD;
-    }
-    return DEV;
-  })();
-  var SUPABASE_URL = ENV_CONFIG.url;
-  var SUPABASE_ANON_KEY = ENV_CONFIG.anonKey;
+  // Supabase 접속 정보는 js/env.js(window.WB_ENV)에서 읽습니다. 그 파일은 scripts/build-env.mjs 가
+  // 로컬에선 .env, 배포(Vercel)에선 프로젝트 환경 변수로 생성합니다. 개발용 DB를 따로 만들면
+  // 로컬 .env 와 Vercel 의 Preview 환경 변수만 개발용 값으로 바꾸면 되고, 이 코드는 고칠 필요가 없습니다.
+  var WB_ENV = window.WB_ENV || {}; // js/env.js (scripts/build-env.mjs 가 .env 로 생성)
+  var SUPABASE_URL = WB_ENV.SUPABASE_URL;
+  var SUPABASE_ANON_KEY = WB_ENV.SUPABASE_ANON_KEY;
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    console.error('[WBAuth] window.WB_ENV 가 없습니다. js/env.js 가 auth-header.js 보다 먼저 로드되는지, ' +
+      'node scripts/build-env.mjs 로 생성했는지 확인하세요.');
+    window.WBAuth = { client: null };
+    return;
+  }
   // 지금 이 페이지가 실제로 어느 프로젝트를 바라보는지 항상 남깁니다 — apply.html 콘솔과 mypage.html
   // 콘솔에서 이 한 줄을 각각 확인하면, 둘이 같은 URL 인지 바로(추측 없이) 눈으로 비교할 수 있습니다.
   console.log('[WBAuth] 이 페이지가 사용 중인 Supabase 프로젝트 URL=' + SUPABASE_URL);
@@ -73,6 +46,8 @@
 
   // 클라이언트는 스크립트 실행 즉시 생성 (OAuth 리다이렉트의 #access_token 을 SDK 가 바로 세션으로 처리)
   var client = sdk.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // 비공개 버킷(care-departure-photos) 사진을 로그인 사용자 권한의 서명 URL 로 바꿔 보여줍니다(js/privacy-guard.js)
+  if (window.WBPrivacy) window.WBPrivacy.attachPhotoResolver(client);
 
   // ---------- 스타일 (카드형 드롭다운 + 로그인 헤더 깜빡임 방지) ----------
   // 레퍼런스 디자인(둥근 카드 안에 카드가 겹친 구조 · backdrop-blur · 모드 전환 뱃지 · 레드 로그아웃)을
@@ -687,6 +662,8 @@
       return;
     }
     clearUserMode();
+    // 공용 PC 대비: 이 브라우저에 남은 케어 관련 로컬 데이터(체크포인트·일정 제안 등)도 함께 지웁니다
+    if (window.WBPrivacy) window.WBPrivacy.clearLocalCareData();
     applySession(null);
     // <body data-logout-redirect="index.html"> 처럼 지정된 페이지는 로그아웃 후 해당 주소로 이동
     var redirect = document.body && document.body.getAttribute('data-logout-redirect');
@@ -935,7 +912,7 @@
       '</div>';
     document.body.appendChild(overlay);
     // 배경(딤 처리된 바깥 영역) 클릭 시 닫기 — 카드 내부 클릭은 무시
-    overlay.addEventListener('click', function (e) { if (e.target === overlay) hideLoginModal(); });
+    overlay.addEventListener('click', function (e) { if (e.target === overlay && !loginModalRequired) hideLoginModal(); });
     overlay.querySelector('.wb-login-modal-cancel').addEventListener('click', hideLoginModal);
     overlay.querySelector('.wb-login-modal-confirm').addEventListener('click', function () {
       var target = loginModalTarget;
@@ -951,11 +928,24 @@
   }
   // targetUrl 을 넘기면 '확인' 클릭 시 login.html?redirect=targetUrl 로 이동하고, 로그인 후 그 페이지로 되돌아옵니다.
   // 생략하면 그냥 login.html 로만 이동합니다.
-  function showLoginModal(targetUrl) {
+  // opts.required = true 면 '로그인해 주세요' 안내 + '확인' 버튼 하나만 보여주고(취소·배경 클릭·Esc 로 닫히지 않음),
+  // 확인을 누르면 로그인 페이지로 이동합니다. 로그인해야만 볼 수 있는 페이지(예: apply.html) 진입 시 씁니다.
+  var loginModalRequired = false;
+  function showLoginModal(targetUrl, opts) {
     if (!loginModalEl) loginModalEl = buildLoginModal();
     loginModalTarget = targetUrl || null;
+    loginModalRequired = !!(opts && opts.required);
+    loginModalEl.querySelector('.wb-login-modal-title').textContent = loginModalRequired ? '로그인해 주세요' : '로그인이 필요해요';
+    loginModalEl.querySelector('.wb-login-modal-body').textContent = loginModalRequired
+      ? '예약하기는 로그인 후 이용하실 수 있어요.\n확인을 누르면 로그인 페이지로 이동합니다.'
+      : '로그인 페이지로 이동할까요?';
+    loginModalEl.querySelector('.wb-login-modal-body').style.whiteSpace = 'pre-line';
+    loginModalEl.querySelector('.wb-login-modal-cancel').hidden = loginModalRequired;
+    loginModalEl.querySelector('.wb-login-modal-actions').classList.toggle('is-single', loginModalRequired);
     loginModalEl.hidden = false;
-    document.addEventListener('keydown', onLoginModalKeydown);
+    if (!loginModalRequired) document.addEventListener('keydown', onLoginModalKeydown);
+    var confirmBtn = loginModalEl.querySelector('.wb-login-modal-confirm');
+    if (confirmBtn) confirmBtn.focus();
   }
 
   // ---------- 전화 상담 안내 모달 ----------
@@ -1051,6 +1041,100 @@
     } catch (e) { /* 확인 실패 → 비로그인으로 간주해 로그인으로 보냄 */ }
     showLoginModal(targetUrl);
   }
+
+  // ---------- 상단 메뉴 활성화(현재 페이지/섹션 표시) ----------
+  // 헤더는 페이지마다 인라인으로 복사돼 있어서, 여기서 공통으로 현재 위치에 맞는 메뉴에 .wb-nav-active 를 붙입니다.
+  //  - 다른 페이지(story.html, notice.html 등): 파일명이 같은 메뉴를 활성화
+  //  - 메인(index.html)의 #services / #how-it-works / #faq: 스크롤 위치에 따라 해당 섹션 메뉴를 활성화
+  //  - apply.html: 헤더의 '예약하기' 버튼을 활성 상태로 표시
+  var navActiveStyle = document.createElement('style');
+  navActiveStyle.textContent =
+    '.wb-desktop-nav a.wb-nav-active{color:#2E6D53 !important;font-weight:800;' +
+    'text-decoration:underline !important;text-decoration-thickness:2px !important;text-underline-offset:8px}' +
+    '.wb-drawer-link.wb-nav-active{color:#2E6D53;background-color:#EEF4EA;font-weight:800}' +
+    'a.wb-nav-active-cta{background-color:#2E6D53 !important;box-shadow:0 0 0 3px rgba(46,109,83,.25) !important}';
+  document.head.appendChild(navActiveStyle);
+
+  function navLinkInfo(a) {
+    var href = a.getAttribute('href') || '';
+    if (/^(https?:|tel:|mailto:)/i.test(href)) return null;
+    var hashIdx = href.indexOf('#');
+    var file = (hashIdx >= 0 ? href.slice(0, hashIdx) : href).split('?')[0].replace(/^\//, '');
+    if (file && !/\./.test(file)) file += '.html'; // 확장자 없는 링크(href="story" 등, Vercel cleanUrls)도 currentFile() 과 같은 기준으로 비교
+    var hash = hashIdx >= 0 ? href.slice(hashIdx + 1) : '';
+    return { file: file || null, hash: hash };
+  }
+  function currentFile() {
+    var f = location.pathname.split('/').pop() || 'index.html';
+    if (!/\./.test(f)) f += '.html'; // Vercel cleanUrls(/story → story.html) 대응
+    return f;
+  }
+
+  function initNavActive() {
+    var page = currentFile();
+    var isHome = page === 'index.html';
+    var links = Array.prototype.slice.call(document.querySelectorAll('.wb-desktop-nav a, .wb-drawer-link'));
+    var sectionLinks = {}; // hash → [a, ...] (메인 페이지 섹션 메뉴)
+
+    links.forEach(function (a) {
+      var info = navLinkInfo(a);
+      if (!info) return;
+      var file = info.file || (isHome ? 'index.html' : page);
+      if (info.hash) {
+        if (isHome && file === 'index.html') (sectionLinks[info.hash] = sectionLinks[info.hash] || []).push(a);
+        return;
+      }
+      if (file === page) { a.classList.add('wb-nav-active'); a.setAttribute('aria-current', 'page'); }
+    });
+
+    if (page === 'apply.html') {
+      Array.prototype.forEach.call(document.querySelectorAll('a[href="apply.html"]'), function (a) {
+        if (a.closest('header') || a.classList.contains('wb-mobile-cta')) a.classList.add('wb-nav-active-cta');
+      });
+    }
+
+    var hashes = Object.keys(sectionLinks);
+    if (!hashes.length) return;
+    var sections = hashes.map(function (h) { return document.getElementById(h); }).filter(Boolean);
+    if (!sections.length) return;
+
+    var activeHash = null;
+    function setActive(hash) {
+      if (hash === activeHash) return;
+      activeHash = hash;
+      hashes.forEach(function (h) {
+        sectionLinks[h].forEach(function (a) {
+          a.classList.toggle('wb-nav-active', h === hash);
+          if (h === hash) a.setAttribute('aria-current', 'location'); else a.removeAttribute('aria-current');
+        });
+      });
+    }
+    var ticking = false;
+    function update() {
+      ticking = false;
+      var header = document.querySelector('header');
+      var line = (header ? header.getBoundingClientRect().bottom : 0) + window.innerHeight * 0.3;
+      var current = null;
+      sections.forEach(function (sec) {
+        var r = sec.getBoundingClientRect();
+        if (r.top <= line && r.bottom > line) current = sec.id;
+      });
+      // 페이지 맨 아래까지 내렸는데 마지막 섹션이 기준선에 못 닿는 경우
+      if (!current && window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) {
+        var last = sections[sections.length - 1];
+        if (last.getBoundingClientRect().top < window.innerHeight) current = last.id;
+      }
+      setActive(current);
+    }
+    // 섹션 3개의 위치만 읽는 가벼운 작업이라 rAF 없이 바로 처리(rAF 는 비활성 탭에서 멈출 수 있음)
+    window.addEventListener('scroll', function () {
+      if (!ticking) { ticking = true; setTimeout(update, 50); }
+    }, { passive: true });
+    window.addEventListener('resize', update);
+    window.addEventListener('hashchange', update);
+    update();
+  }
+  whenReady(initNavActive);
 
   window.WBAuth = {
     client: client, logout: logout, checkIsManager: checkIsManager, checkIsAdmin: checkIsAdmin,

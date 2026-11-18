@@ -251,3 +251,23 @@ body.wb-drawer-open {
     max-width: 100vw !important;
   }
 }
+
+/* ---------- 공용 푸터 모바일 압축 (js/site-footer.js 마크업은 그대로, 767px 이하에서만) ----------
+   푸터 마크업이 인라인 style 로 PC 기준 크기(패딩 64px, 라벨 열 140px)를 갖고 있어 휴대폰에서
+   한 화면을 넘게 차지하던 것을 줄입니다. 인라인 style 을 이기도록 !important 를 씁니다. */
+@media (max-width: 767.98px) {
+  /* 바깥 패딩은 인라인 style 의 !important 라 여기서 바꿀 수 없어 그대로 둡니다. */
+  footer > div { gap: 24px !important; }
+  footer strong { font-size: 17px !important; }
+  footer nav { font-size: 12.5px !important; }
+  footer nav + div a { padding: 6px 14px !important; font-size: 12.5px !important; }
+  footer .wb-footer-grid { grid-template-columns: 1fr !important; gap: 22px !important; }
+  footer .wb-footer-grid h3 { font-size: 14px !important; margin-bottom: 6px !important; }
+  footer .wb-footer-grid > div > div {
+    grid-template-columns: 112px minmax(0, 1fr) !important;
+    gap: 8px !important;
+    padding: 2px 0 !important;
+    font-size: 12.5px !important;
+  }
+  footer .wb-footer-grid > div > div * { font-size: 12.5px !important; }
+}
