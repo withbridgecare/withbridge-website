@@ -518,6 +518,9 @@
       -webkit-mask-origin: content-box, border-box; mask-origin: content-box, border-box;
       -webkit-mask-composite: xor; mask-composite: exclude; mask-mode: match-source, match-source;
     }
+    @media (max-width: 768px) {
+      .glass-button { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; } /* 휴대폰: 흐림 끄기 */
+    }
     .glass-button {
       -webkit-tap-highlight-color: transparent;
       -webkit-backdrop-filter: blur(clamp(1px, .125em, 4px));
@@ -1049,7 +1052,7 @@
     .cdrop-trigger {
       width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px;
       padding: 14px; border-radius: var(--radius-sm); /* rounded-2xl, py-3.5 상하 패딩은 .complete-time-box 와 통일 */
-      background: rgba(255,255,255,.9); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+      background: #fff; /* 흐림 제거 */
       border: 1px solid var(--input-border);
       font: inherit; color: var(--ink); cursor: pointer; text-align: left;
       transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
@@ -1074,7 +1077,7 @@
     .cdrop-menu {
       position: absolute; left: 0; right: 0; top: calc(100% + 8px); z-index: 60;
       margin: 0; padding: 6px; list-style: none;
-      background: rgba(255,255,255,.98); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+      background: #fff; /* 흐림 제거 */
       border: 1px solid var(--card-border); border-radius: var(--radius-sm); box-shadow: 0 25px 50px -12px rgba(0,0,0,.35), 0 10px 20px -8px rgba(0,0,0,.15); /* shadow-2xl */
       max-height: 280px; overflow-y: auto;
       transform-origin: top center; transform: scale(.95) translateY(-2px); opacity: 0; pointer-events: none;

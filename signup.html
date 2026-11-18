@@ -9,8 +9,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/mobile-nav.css?v=1.0">
-  <!-- Tailwind CSS SDK -->
-  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <!-- Supabase SDK 로드 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js" integrity="sha384-uteMfOloLDGt042uDz+xHGF3ym63/WQ6rFq7murQRG8Ih7QrXGEGNtWd8688sb4O" crossorigin="anonymous"></script>
   <script src="/js/privacy-guard.js?v=1.0"></script>
@@ -62,6 +60,8 @@
     #signupResendBtn:disabled { opacity: .6; cursor: default; }
     #signupCheckConfirmBtn:disabled { opacity: .6; cursor: default; }
   </style>
+<!-- Tailwind: 배포 때 미리 만든 CSS(npm run build:css). CDN 처럼 <head> 맨 끝에 둬 기존 우선순위를 유지 -->
+<link rel="stylesheet" href="/css/tailwind.css?v=1">
 </head>
 <body>
 

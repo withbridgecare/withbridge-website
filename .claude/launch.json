@@ -1,6 +1,6 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "static", "runtimeExecutable": "sh", "runtimeArgs": ["-c", "node scripts/build-env.mjs && python3 -m http.server 5173"], "port": 5173 }
+    { "name": "static", "runtimeExecutable": "sh", "runtimeArgs": ["-c", "npm run dev"], "port": 5500 }
   ]
 }

@@ -10,7 +10,6 @@
      바로 뒤에 오는 본문 전체(헤더·히어로 등)를 그리지 않아, 접속 직후 화면이 하얗게 비어 있다가
      늦게 한꺼번에 뜨는 버퍼링처럼 보입니다. preconnect 로 두 CDN·Supabase 프로젝트 도메인에
      DNS/TLS 연결을 미리 맺어 두면 실제 다운로드 시작 시점도 앞당길 수 있습니다. -->
-<link rel="preconnect" href="https://cdn.tailwindcss.com">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://layvjisfeivkzowopkco.supabase.co">
 <!-- Tailwind 기본 리셋(preflight, v3.4) 사본 — 깜빡임(FOUC) 방지.
@@ -46,6 +45,8 @@
   [hidden]{display:none}
 </style>
 <link rel="stylesheet" href="/mobile-nav.css?v=1.0">
+<!-- Tailwind: 배포 때 미리 만든 CSS(npm run build:css). CDN 처럼 <head> 맨 끝에 둬 기존 우선순위를 유지 -->
+<link rel="stylesheet" href="/css/tailwind.css?v=1">
 </head>
 <body>
 
@@ -54,7 +55,6 @@
 ========================================================= -->
 
 <!-- 공통 라이브러리 (defer: 본문 렌더링을 막지 않고, 파싱이 끝난 뒤 이 순서 그대로 실행됩니다) -->
-<script src="https://cdn.tailwindcss.com/3.4.17" defer></script>
 <!-- 💡 Supabase 라이브러리 추가 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js" integrity="sha384-uteMfOloLDGt042uDz+xHGF3ym63/WQ6rFq7murQRG8Ih7QrXGEGNtWd8688sb4O" crossorigin="anonymous" defer></script>
   <script src="/js/privacy-guard.js?v=1.0"></script>
@@ -398,14 +398,14 @@ setActive()/goTo() 는 슬라이드 개수를 하드코딩하지 않고 매번 .
     width: 38px;
     height: 38px;
     border-radius: 9999px;
-    background: rgba(8, 12, 9, 0.4);
+    background: rgba(8, 12, 9, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.3);
     color: #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    backdrop-filter: blur(6px);
+    /* 흐림(backdrop-filter) 제거 — 슬라이드가 바뀔 때마다 다시 그려져 휴대폰에서 버벅임. 배경을 조금 더 진하게 */
     transition: background-color 0.2s ease;
   }
   .wb-hero-playpause:hover {
@@ -1156,6 +1156,20 @@ setActive()/goTo() 는 슬라이드 개수를 하드코딩하지 않고 매번 .
     -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
   }
+  /* 휴대폰(768px 이하)에서는 스크롤 중 계속 다시 그려야 하는 흐림(backdrop-filter)을 끄고, 대신 배경을 조금 더 진하게 해 가독성을 유지합니다. */
+  @media (max-width: 768px) {
+    .wb-feature-card {
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+      background: linear-gradient(135deg, rgba(24, 36, 28, 0.62), rgba(24, 36, 28, 0.42));
+      border-color: rgba(255, 255, 255, 0.35);
+    }
+    .wb-feature-icon {
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+      background: rgba(255, 255, 255, 0.18);
+    }
+  }
   .wb-feature-title {
     color: #ffffff;
     text-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
@@ -1593,8 +1607,31 @@ setActive()/goTo() 는 슬라이드 개수를 하드코딩하지 않고 매번 .
     });
     var layer = layersById[id];
     if (!layer) return;
-    map.setCenter(layer.center);
-    map.setLevel(layer.level);
+    fitLayer(layer);
+  }
+
+  // 선택한 구의 경계 전체가 지도 안에 (가장자리 여백 8% 포함) 들어오는 가장 가까운 배율을 고릅니다.
+  // 지도 칸 크기(PC/휴대폰)에 따라 알맞은 배율이 달라서, 고정 레벨 대신 실제로 보이는 범위를 재서 정합니다.
+  // (setBounds 는 지도가 아직 화면에 안 그려져 크기가 0일 때 아주 넓게 축소되는 문제가 있어 쓰지 않습니다.)
+  function fitLayer(layer) {
+    var container = document.getElementById('wbRegionMap');
+    map.relayout();
+    if (!container || !container.offsetWidth || !container.offsetHeight) {
+      map.setCenter(layer.center);
+      map.setLevel(layer.level);
+      return;
+    }
+    var PAD = 0.08;
+    for (var lv = 3; lv <= 10; lv++) {
+      map.setLevel(lv);
+      map.setCenter(layer.center);
+      var vb = map.getBounds();
+      var sw = vb.getSouthWest(), ne = vb.getNorthEast();
+      var latPad = (ne.getLat() - sw.getLat()) * PAD;
+      var lngPad = (ne.getLng() - sw.getLng()) * PAD;
+      if (sw.getLat() + latPad <= layer.box.minLat && ne.getLat() - latPad >= layer.box.maxLat &&
+          sw.getLng() + lngPad <= layer.box.minLng && ne.getLng() - lngPad >= layer.box.maxLng) return;
+    }
   }
 
   function selectRegion(id) {
@@ -1658,7 +1695,12 @@ setActive()/goTo() 는 슬라이드 개수를 하드코딩하지 않고 매번 .
     var level = span > 0.12 ? 7 : 6;
     var center = new kakao.maps.LatLng((minLat + maxLat) / 2, (minLng + maxLng) / 2);
 
-    return { shapes: shapes, pins: pins, bounds: bounds, center: center, level: level };
+    var box = { minLat: minLat, maxLat: maxLat, minLng: minLng, maxLng: maxLng };
+    region.pins.forEach(function (pin) { // 핀 라벨도 잘리지 않게 범위에 포함
+      box.minLat = Math.min(box.minLat, pin.lat); box.maxLat = Math.max(box.maxLat, pin.lat);
+      box.minLng = Math.min(box.minLng, pin.lng); box.maxLng = Math.max(box.maxLng, pin.lng);
+    });
+    return { shapes: shapes, pins: pins, bounds: bounds, center: center, level: level, box: box };
   }
 
   function initRegionMap() {
@@ -1676,6 +1718,13 @@ setActive()/goTo() 는 슬라이드 개수를 하드코딩하지 않고 매번 .
     });
 
     showRegionOnMap(activeId);
+
+    // 화면 크기가 바뀌면(휴대폰 회전, 창 크기 조절) 현재 구가 다시 꽉 차게 맞춥니다
+    var resizeTimer = null;
+    window.addEventListener('resize', function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function () { if (layersById[activeId]) fitLayer(layersById[activeId]); }, 200);
+    });
   }
 
   tabs.forEach(function (tab, index) {
@@ -1717,7 +1766,7 @@ setActive()/goTo() 는 슬라이드 개수를 하드코딩하지 않고 매번 .
 ====================================================================
 -->
 <!-- 위드브릿지 이용 요금 안내 & 실시간 계산기 (최종) -->
-<link rel="stylesheet" href="/pricing.css?v=1.0">
+<link rel="stylesheet" href="/pricing.css?v=1.1">
 
 <!-- id="services" 속성을 추가하여 상단 메뉴 링크와 연결 -->
 <div class="wb-price-page wb-price-page--summary" id="services">
@@ -2042,7 +2091,7 @@ setActive()/goTo() 는 슬라이드 개수를 하드코딩하지 않고 매번 .
     <!-- STEP 01 -->
     <div class="wb-card">
       <div class="wb-image-box">
-        <img src="images/crayon-monitor-registration-02.webp" alt="간편하게 신청하세요">
+        <img src="images/crayon-monitor-registration-02.webp" loading="lazy" decoding="async" alt="간편하게 신청하세요">
       </div>
       <span class="wb-step-num">01</span>
       <h3 class="wb-headline">간편하게 신청하세요!</h3>
@@ -2052,7 +2101,7 @@ setActive()/goTo() 는 슬라이드 개수를 하드코딩하지 않고 매번 .
     <!-- STEP 02 -->
     <div class="wb-card">
       <div class="wb-image-box">
-        <img src="images/crayon-hands-smartphones-connection-02.webp" alt="매니저와 매칭되세요">
+        <img src="images/crayon-hands-smartphones-connection-02.webp" loading="lazy" decoding="async" alt="매니저와 매칭되세요">
       </div>
       <span class="wb-step-num">02</span>
       <h3 class="wb-headline">매니저와 매칭되세요!</h3>
@@ -2062,7 +2111,7 @@ setActive()/goTo() 는 슬라이드 개수를 하드코딩하지 않고 매번 .
     <!-- STEP 03 -->
     <div class="wb-card">
       <div class="wb-image-box">
-        <img src="images/crayon-manager-senior-walking-01.webp" alt="편안하게 다녀오세요">
+        <img src="images/crayon-manager-senior-walking-01.webp" loading="lazy" decoding="async" alt="편안하게 다녀오세요">
       </div>
       <span class="wb-step-num">03</span>
       <h3 class="wb-headline">편안하게 다녀오세요!</h3>
@@ -2072,7 +2121,7 @@ setActive()/goTo() 는 슬라이드 개수를 하드코딩하지 않고 매번 .
     <!-- STEP 04 -->
     <div class="wb-card">
       <div class="wb-image-box">
-        <img src="images/crayon-notification-bubble-check-01.webp" alt="실시간으로 확인하세요">
+        <img src="images/crayon-notification-bubble-check-01.webp" loading="lazy" decoding="async" alt="실시간으로 확인하세요">
       </div>
       <span class="wb-step-num">04</span>
       <h3 class="wb-headline">실시간으로 확인하세요!</h3>

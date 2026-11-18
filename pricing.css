@@ -326,9 +326,8 @@
 /* 유리 카드 위에서도 붕 뜨지 않도록, 아웃라인 버튼도 같은 반투명·이너하이라이트 톤으로 맞춥니다
    (솔리드 CTA 는 기존의 선명한 그린 그라디언트를 그대로 유지 — 위계 구분은 그대로). */
 .wb-plan-btn.is-outline {
-  background: linear-gradient(180deg, oklch(from var(--background, #fff) l c h / 70%), oklch(from var(--background, #fff) l c h / 95%));
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
+  background: linear-gradient(180deg, oklch(from var(--background, #fff) l c h / 85%), oklch(from var(--background, #fff) l c h / 97%));
+  /* 흐림 제거(작은 버튼이라 효과는 거의 안 보이고 휴대폰 스크롤만 무거워짐) — 배경을 조금 더 불투명하게 */
   border: 1px solid oklch(from var(--foreground, #1e293b) l c h / 12%);
   color: #111827;
   box-shadow:
@@ -1096,9 +1095,7 @@
     align-items: center;
     gap: 12px;
     padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
-    background: rgba(255, 255, 255, .96);
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, .98); /* 하단 고정 바: 흐림 제거(거의 불투명이라 차이 없음, 스크롤 성능만 개선) */
     border-top: 1px solid #E5E7EB;
     box-shadow: 0 -6px 18px -10px rgba(15, 23, 42, .25);
     transition: transform .25s ease;
@@ -1130,5 +1127,17 @@
     font-size: 15px;
     font-weight: 700;
     text-decoration: none;
+  }
+}
+
+/* 휴대폰(768px 이하)에서는 스크롤 중 계속 다시 그려야 하는 흐림(backdrop-filter)을 끄고, 대신 배경을 조금 더 진하게 해 가독성을 유지합니다. */
+@media (max-width: 768px) {
+  .pricing-card {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: linear-gradient(160deg,
+      oklch(from var(--background) l c h / 88%) 0%,
+      oklch(from var(--background) l c h / 97%) 45%,
+      oklch(from var(--background) l c h / 90%) 100%);
   }
 }
