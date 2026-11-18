@@ -30,6 +30,18 @@ export type Database = {
         created_at: string;
         updated_at: string;
       }>;
+      partner_inquiries: Row<{
+        id: string;
+        org_name: string;
+        contact_name: string;
+        phone: string;
+        email: string;
+        org_type: string;
+        message: string | null;
+        privacy_consent: boolean;
+        status: string;
+        created_at: string;
+      }>;
     };
     Views: Record<string, never>;
     Functions: {
