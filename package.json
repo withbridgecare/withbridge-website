@@ -2,11 +2,26 @@
   "name": "withbridge-website",
   "private": true,
   "scripts": {
-    "build": "node scripts/build-env.mjs && npm run build:css",
-    "build:css": "tailwindcss -c tailwind.config.js -i src/tailwind.css -o css/tailwind.css --minify",
-    "dev": "npm run build && node scripts/dev-server.mjs 5500"
+    "dev": "npm run build:legacy && next dev -p 5500",
+    "build": "npm run build:legacy && next build",
+    "start": "next start -p 5500",
+    "typecheck": "tsc --noEmit",
+    "build:legacy": "node scripts/build-env.mjs && npm run build:legacy-css",
+    "build:legacy-css": "tailwindcss -c legacy/tailwind.legacy.config.js -i legacy/tailwind.legacy.css -o public/css/tailwind.css --minify"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
+    "next": "^16.4.6",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
-    "tailwindcss": "3.4.17"
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "autoprefixer": "^10.6.2",
+    "postcss": "^8.5.33",
+    "tailwindcss": "3.4.17",
+    "typescript": "^5.9.3"
   }
 }
