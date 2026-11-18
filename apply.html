@@ -112,7 +112,7 @@
 <script src="/js/terms-modal.js?v=1.0" charset="utf-8" defer></script>
 <script src="/js/notice-modal.js?v=1.0" charset="utf-8" defer></script>
   <!-- 카카오(다음) 우편번호 서비스: 출발지(거주지) 주소를 자유 입력 대신 정식 도로명·지번 주소로 선택하게 함 -->
-  <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+  <script src="//t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
   <!-- 목적지(병원 등) 검색 모달 — 카카오 로컬 키워드 검색으로 실제 장소명 + 주소만 선택 가능 (wb-place-search.js 참고) -->
   <script src="/js/wb-place-search.js?v=1.0"></script>
   <!-- 브라우저 기본 날짜/시간 피커 대신 쓰는 공통 커스텀 피커 (wb-datepicker.js 참고) -->
@@ -170,11 +170,14 @@
       border-radius: 16px; font-size: 13.5px; line-height: 1.55; color: #374151;
     }
     .nt-title { margin: 0 0 2px; font-size: 14.5px; font-weight: 800; color: var(--brand-dark); }
-    .nt-sub { margin: 0 0 8px; color: #4B5563; word-break: keep-all; }
-    .nt-areas { margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; }
-    .nt-areas li { display: flex; gap: 8px; align-items: baseline; }
-    .nt-areas strong { flex: 0 0 auto; min-width: 38px; color: var(--brand-dark); }
-    .nt-areas span { word-break: keep-all; }
+    .nt-sub { margin: 0 0 10px; color: #4B5563; word-break: keep-all; }
+    /* 메인 페이지 [주요 동행 지원 지역] 섹션(index.html, .wb-area-tab)과 같은 "캡슐 태그" 톤앤매너 —
+       클릭 인터랙션 없이 지역 목록만 정적으로 보여주는 가장 단순한 형태입니다. */
+    .area-chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+    .area-chip {
+      display: inline-block; border: 1px solid var(--brand-line); background: #fff; color: var(--brand-dark);
+      border-radius: 9999px; padding: 6px 13px; font-size: 12.5px; font-weight: 700;
+    }
     .nt-notes { grid-column: 1 / -1; }
     .nt-note { margin: 0 0 2px; font-size: 12.5px; color: var(--ink-sub); word-break: keep-all; }
     /* 오른쪽 열(안내 사항/문의)은 구분선 없이 여백만으로 왼쪽 열과 떨어뜨립니다 */
@@ -615,11 +618,20 @@
         <aside class="notice" id="applyIntro" aria-label="신청 전 안내">
           <div class="nt-region">
             <h2 class="nt-title">[서비스 가능 지역 안내]</h2>
-            <p class="nt-sub">위드브릿지는 아래 지역을 중심으로 병원 동행 서비스를 제공하고 있습니다.</p>
-            <ul class="nt-areas">
-              <li><strong>인천:</strong> <span>남동구, 연수구, 미추홀구, 부평구, 계양구, 서구 일부</span></li>
-              <li><strong>경기:</strong> <span>시흥시, 부천시, 안산시 일부</span></li>
-            </ul>
+            <p class="nt-sub">위드브릿지가 서비스 중인 주요 지역입니다.</p>
+            <!-- 메인 페이지 [주요 동행 지원 지역] 탭과 같은 9개 지역 — 클릭 인터랙션 없이 목록만
+                 보여주는 정적 태그입니다(버튼이 아니라 span). -->
+            <div class="area-chip-row" aria-label="서비스 가능 지역 목록">
+              <span class="area-chip">인천 남동구</span>
+              <span class="area-chip">인천 연수구</span>
+              <span class="area-chip">인천 미추홀구</span>
+              <span class="area-chip">인천 부평구</span>
+              <span class="area-chip">인천 계양구</span>
+              <span class="area-chip">인천 서구</span>
+              <span class="area-chip">경기 시흥시</span>
+              <span class="area-chip">경기 부천시</span>
+              <span class="area-chip">경기 안산시</span>
+            </div>
           </div>
           <ul class="nt-info">
             <li><b>안내 사항:</b> 신청서가 접수되면 담당 매니저 배정이 진행되며, 매칭 완료 시 카카오 알림톡/문자로 최종 예약 확정 안내를 드립니다.</li>
@@ -851,7 +863,10 @@
                  건너뛰고 회차만 차감합니다(제출 핸들러 참고). -->
             <label class="opt" id="optUsePackage" hidden><input type="radio" name="payment_method" value="패키지차감"><span id="packageRemainingLabel">보유 패키지 차감 (잔여 0회)</span></label>
             <label class="opt"><input type="radio" name="payment_method" value="카드" checked><span>카드</span></label>
-            <label class="opt"><input type="radio" name="payment_method" value="간편결제"><span>간편결제</span></label>
+            <!-- 간편결제(EASY_PAY)는 KG이니시스 실연동 계정에 아직 간편결제 사용 등록이 안 돼 있어
+                 PortOne이 V104 에러로 막습니다 — 등록 완료 전까지 이 옵션을 숨겨 둡니다. 등록되면
+                 이 label과 PAY_METHOD_MAP의 '간편결제' 항목만 되돌리면 됩니다(easyPayProvider 관련 로직은
+                 git 이력에 남아 있습니다). -->
             <label class="opt"><input type="radio" name="payment_method" value="계좌이체"><span>계좌이체</span></label>
           </div>
           <p class="hint" id="packageHint" hidden>패키지로 예약하면 결제 없이 바로 접수되고, 보유 회차에서 1회가 차감됩니다. 쿠폰·적립금은 이 예약에는 적용되지 않습니다. 선택 추가 옵션을 고르면 그 금액만 매니저 수락 후 별도로 결제받습니다.</p>
@@ -1003,7 +1018,9 @@
     // 화면 라디오 값(한글) → 포트원 V2 requestPayment() 의 payMethod 값. requestPayment() 는 호출마다
     // payMethod 를 하나 필수로 받으므로("payMethod는 필수 파라미터입니다" 오류), 결제창을 열기 전에
     // 여기서 먼저 고르게 합니다.
-    const PAY_METHOD_MAP = { '카드': 'CARD', '간편결제': 'EASY_PAY', '계좌이체': 'TRANSFER' };
+    // '간편결제': 'EASY_PAY' 는 KG이니시스 실연동 계정에 간편결제 사용 등록이 아직 안 돼 있어(V104)
+    // 잠시 뺐습니다 — UI에서 옵션 자체를 숨겼으니 여기서도 매핑을 없애 혹시라도 값이 넘어와도 막습니다.
+    const PAY_METHOD_MAP = { '카드': 'CARD', '계좌이체': 'TRANSFER' };
 
     // 서비스별 설정: 기본 요금(2시간 기준)과, 선택에 따라 바뀌는 입력 안내 문구
     //  * 서비스 이름 = DB 의 service_type 값 (supabase-manager-schema.sql 의 check 와 같아야 함)
@@ -1068,7 +1085,7 @@
     // ⚠ 이 channelKey 가 PortOne 콘솔에서 가상계좌 전용으로 등록돼 있다면, 카드/간편결제/계좌이체까지
     // 통합 결제창에 함께 뜨게 하려면 콘솔에서 해당 채널(또는 새 채널)에 그 수단들도 연결해 둬야 합니다.
     const PORTONE_STORE_ID = 'store-d049e114-625d-4a7d-9202-b38f9072f3bc';
-    const PORTONE_CHANNEL_KEY = 'channel-key-abecc24a-efe4-49fc-9c93-d82444735477';
+    const PORTONE_CHANNEL_KEY = 'channel-key-9b483b99-d68d-4f49-99cf-76cdc0264dbb';
 
     const DEFAULT_TEXT = {
       destLabel: '목적지 / 방문 장소',
@@ -1981,7 +1998,12 @@
           customData: { application_id: applicationId }
         });
       } catch (e) {
-        console.error('[결제] PortOne.requestPayment 호출 자체가 실패했습니다:', e);
+        // SDK가 PG 응답({code, message}) 대신 JS 예외를 던졌다는 뜻 — 결제가 "거절"된 게 아니라
+        // 결제창이 뜨기도 전에 요청 자체가 막혔다는 신호입니다(채널키/파라미터 문제일 가능성이 큼).
+        // e.message/e.code 를 그대로 남겨야 실제 원인(예: 유효하지 않은 채널, 해당 채널에 연결 안 된
+        // 결제수단 등)을 알 수 있으므로 여기서 문구로 뭉개지 않습니다.
+        console.error('[결제] PortOne.requestPayment 호출 자체가 실패했습니다 — name:', e && e.name,
+          '/ code:', e && e.code, '/ message:', e && e.message, '/ 원본:', e);
         payment = { code: 'CLIENT_ERROR', message: '결제창을 여는 중 오류가 발생했어요.' };
       }
 
@@ -2159,6 +2181,44 @@
         const urgentBox = $(ADDON_CHECKBOX_IDS.urgent);
         if (urgentBox) urgentBox.checked = true;
       }
+    })();
+
+    // mypage.html 케어 리포트 모달의 [다음 진료 동행 간편 예약하기](careReportViewRebookBtn)에서 넘어온
+    // 경우 — 이전 케어 건의 어르신 성함/거동 상태·출발지·목적지(병원)·다음 방문 예정일을 그대로 채웁니다.
+    // 위 prefillFromCalculator() 와 같은 "모르는/빈 값은 조용히 무시하고 직접 입력하게 둔다" 원칙을 따릅니다.
+    // routeOrigin/routeDestination 은 보통 카카오 주소 검색 팝업으로만 채워지는 readonly 칸이지만, 마이페이지
+    // '어르신 프로필 관리' 불러오기(위 chosen.address/chosen.frequent_hospital 분기)도 이미 똑같이 .value를
+    // 직접 설정하는 방식이라 같은 패턴입니다.
+    (function prefillFromCareReportRebook() {
+      const params = new URLSearchParams(location.search);
+      const seniorName = params.get('senior_name');
+      if (seniorName) $('seniorName').value = seniorName;
+
+      const mobility = params.get('mobility');
+      if (mobility && MOBILITIES.includes(mobility)) {
+        setRadio('mobility', mobility);
+        $('f-mobility').classList.remove('has-error');
+        $('e-mobility').hidden = true;
+      }
+
+      const origin = params.get('origin');
+      if (origin) {
+        $('routeOrigin').value = origin;
+        $('routeOriginZip').value = '';
+        $('f-route').classList.remove('has-error');
+        $('e-route').hidden = true;
+      }
+      const destination = params.get('destination');
+      if (destination) {
+        $('routeDestination').value = destination;
+        $('routeDestinationZip').value = '';
+        $('f-route').classList.remove('has-error');
+        $('e-route').hidden = true;
+      }
+
+      // next_visit_date 는 date 컬럼(YYYY-MM-DD) 그대로 넘어오므로 datetimeDate(type="date") 에 바로 맞습니다.
+      const desiredDate = params.get('desired_date');
+      if (desiredDate && /^\d{4}-\d{2}-\d{2}$/.test(desiredDate)) $('datetimeDate').value = desiredDate;
     })();
 
     // 뒤로 가기/새로고침으로 브라우저가 이미 선택된 서비스를 복원했다면(위 쿼리 prefill 포함) 요금·안내도 그에 맞게 표시

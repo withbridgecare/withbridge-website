@@ -224,6 +224,14 @@ alter table public.care_schedules add column if not exists origin_lng double pre
 alter table public.care_schedules add column if not exists destination_lat double precision;
 alter table public.care_schedules add column if not exists destination_lng double precision;
 
+-- 출발 인증 지오펜싱 자동화 + 3단계 폴백(sql/departure_geofence_auth.sql): 이 출발 건이 자동(auto_gps/
+-- expanded_gps) · 수동(manual_gps_fallback) · 사진 대체(photo_fallback) 중 무엇으로 인증됐는지 기록.
+alter table public.care_schedules add column if not exists departure_auth_method text;
+alter table public.care_schedules drop constraint if exists care_schedules_departure_auth_method_check;
+alter table public.care_schedules add constraint care_schedules_departure_auth_method_check
+  check (departure_auth_method is null or departure_auth_method in ('auto_gps', 'expanded_gps', 'manual_gps_fallback', 'photo_fallback'));
+alter table public.care_schedules add column if not exists departure_auth_reason text;
+
 create index if not exists care_schedules_manager_time_idx
   on public.care_schedules (manager_id, scheduled_at);
 create index if not exists care_schedules_manager_completed_idx
@@ -330,11 +338,15 @@ revoke all on function public.accept_care_request(uuid) from public, anon;
 grant  execute on function public.accept_care_request(uuid) to authenticated;
 
 -- 출발/병원 도착 인증 (GPS/사진) — service_applications.status 미러링까지 포함한 최종본 (fix-status-sync.sql)
+-- p_auth_method/p_auth_reason(sql/departure_geofence_auth.sql): 출발 인증이 자동/확장/수동/사진대체
+-- 중 무엇으로 통과했는지 기록 — 'departed' 를 저장할 때만 채우고, 'arrived' 흐름은 그대로 둡니다.
 create or replace function public.record_care_verification(
-  p_schedule_id uuid,
-  p_status      text,
-  p_location    jsonb default null,
-  p_photo       text  default null
+  p_schedule_id  uuid,
+  p_status       text,
+  p_location     jsonb default null,
+  p_photo        text  default null,
+  p_auth_method  text  default null,
+  p_auth_reason  text  default null
 )
 returns public.care_schedules
 language plpgsql security definer set search_path = public as $$
@@ -350,12 +362,17 @@ begin
   if p_location is null and p_photo is null then
     raise exception 'VERIFICATION_REQUIRED' using errcode = '22023';
   end if;
+  if p_auth_method is not null and p_auth_method not in ('auto_gps', 'expanded_gps', 'manual_gps_fallback', 'photo_fallback') then
+    raise exception 'INVALID_AUTH_METHOD' using errcode = '22023';
+  end if;
 
   update public.care_schedules set
     status               = p_status,
     departed_at          = case when p_status = 'departed' then now()       else departed_at end,
     departed_location    = case when p_status = 'departed' then p_location  else departed_location end,
     departed_photo       = case when p_status = 'departed' then p_photo     else departed_photo end,
+    departure_auth_method = case when p_status = 'departed' then p_auth_method else departure_auth_method end,
+    departure_auth_reason = case when p_status = 'departed' then p_auth_reason else departure_auth_reason end,
     arrived_at           = case when p_status = 'arrived'  then now()       else arrived_at end,
     arrived_location     = case when p_status = 'arrived'  then p_location  else arrived_location end,
     arrived_photo        = case when p_status = 'arrived'  then p_photo     else arrived_photo end,
@@ -375,8 +392,8 @@ begin
   return v_row;
 end $$;
 
-revoke all on function public.record_care_verification(uuid, text, jsonb, text) from public, anon;
-grant  execute on function public.record_care_verification(uuid, text, jsonb, text) to authenticated;
+revoke all on function public.record_care_verification(uuid, text, jsonb, text, text, text) from public, anon;
+grant  execute on function public.record_care_verification(uuid, text, jsonb, text, text, text) to authenticated;
 
 -- 그 밖의 단순 상태 전환(케어 완료 등) — service_applications.status 미러링 포함
 create or replace function public.advance_care_status(p_schedule_id uuid, p_status text)
@@ -497,6 +514,18 @@ alter table public.care_reports add column if not exists condition_tags  jsonb n
 alter table public.care_reports add column if not exists photos          jsonb not null default '[]'::jsonb;
 alter table public.care_reports add column if not exists next_visit_date date;
 
+-- AI 케어 리포트(sql/ai_care_report.sql): 케어 대상 유형 · 빠른 선택 태그 · 핵심 메모 · AI가 만든
+-- 보호자 전달 리포트 초안(매니저가 수정한 최종본). 아동 케어 리포트에는 '진료 소견'이 없으므로
+-- physician_notes 의 not null 도 함께 풉니다 — ai_message 만으로 리포트가 완성될 수 있습니다.
+alter table public.care_reports alter column physician_notes drop not null;
+alter table public.care_reports add column if not exists care_type text not null default 'senior';
+alter table public.care_reports drop constraint if exists care_reports_care_type_check;
+alter table public.care_reports add constraint care_reports_care_type_check check (care_type in ('senior', 'child'));
+alter table public.care_reports add column if not exists quick_tags      jsonb not null default '[]'::jsonb;
+alter table public.care_reports add column if not exists manager_memo    text;
+alter table public.care_reports add column if not exists ai_message      text;
+alter table public.care_reports add column if not exists ai_generated_at timestamptz;
+
 alter table public.care_reports enable row level security;
 drop policy if exists care_reports_select_own on public.care_reports;
 drop policy if exists care_reports_insert_own on public.care_reports;
@@ -605,7 +634,12 @@ select
   -- (sql/care_report_rich_fields.sql). mypage.html 의 REPORT_OPTIONAL_COLS 가 이 세 컬럼을 기대합니다.
   r.condition_tags    as condition_tags,
   r.photos            as photos,
-  r.next_visit_date   as next_visit_date
+  r.next_visit_date   as next_visit_date,
+  -- AI 케어 리포트(sql/ai_care_report.sql) — 역시 항상 끝에 추가
+  r.care_type         as care_type,
+  r.quick_tags        as quick_tags,
+  r.manager_memo       as manager_memo,
+  r.ai_message         as ai_message
 from public.care_reports r
 join public.care_schedules s on s.id = r.schedule_id
 left join public.profiles p on p.id = s.manager_id

@@ -9,10 +9,11 @@
 // 인증: PortOne이 Supabase 로그인 토큰 없이 직접 호출하므로 verify_jwt = false 로 공개 엔드포인트입니다
 // (config.toml 참고). 대신 PORTONE_WEBHOOK_SECRET 이 설정되어 있으면 Standard Webhooks 서명을 검증합니다.
 //
-// MATCHING_PENDING 전환에 "처음" 성공하면(+ 가상계좌/무통장이 아닌 경우에만) _shared/telegram.ts 로
-// 매니저 운영 채널에 신규 신청 알림을 보냅니다. 가상계좌/무통장 입금은 이 웹훅이 자동으로 감지해도
-// 알림을 보내지 않습니다 — 그 알림은 어드민 콘솔 [수동 입금 확인] 클릭(admin_confirm_manual_payment())
-// 시점으로만 가도록 트리거를 분리해 두었습니다.
+// MATCHING_PENDING 전환(매니저 알림) 자체는 이 함수가 보내지 않습니다 — DB 트리거
+// (service_applications_notify_care_request, sql/telegram_care_request_webhook_trigger.sql)가 status
+// 변경을 감지해 notify-care-request Edge Function(개인 DM + 그룹 하이브리드 알림 + [동행 수락하기]
+// 인라인 버튼)을 호출합니다. 가상계좌/무통장 입금 확인(admin_confirm_manual_payment())도 같은 메커니즘
+// 이라 이 웹훅은 더 이상 결제 수단별로 알림 분기를 가지지 않습니다.
 //
 // 패키지 구매(package_order)/추가 요금(extra_charge) 2차 결제도 각각 처음 PAID 로 전환될 때 같은
 // 운영 채널로 결제 완료 알림을 보내고, 두 경로 모두 DB 반영 실패(AMOUNT_MISMATCH/STATUS_UPDATE_FAILED)
@@ -20,7 +21,7 @@
 // 결제 반영 실패 경보를 보냅니다.
 import { createAdminClient } from "../_shared/supabaseClients.ts";
 import { portoneFetch, PortOneApiError } from "../_shared/portone.ts";
-import { buildExtraChargePaidMessage, buildNewApplicationMessage, buildNewPackageOrderMessage, buildPaymentReconciliationFailureMessage, notifySafely, sendTelegramMessage } from "../_shared/telegram.ts";
+import { buildExtraChargePaidMessage, buildNewPackageOrderMessage, buildPaymentReconciliationFailureMessage, notifySafely, sendTelegramMessage } from "../_shared/telegram.ts";
 
 function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -238,22 +239,6 @@ async function handleRequest(req: Request): Promise<Response> {
 
   if (status === "PAID") {
     // 가상계좌 입금 완료(또는 그 외 방식의 승인 완료) — 요구사항 3
-    // mark_payment_matching_pending() 은 이미 MATCHING_PENDING/MATCHED 로 넘어간 건에 재호출돼도(웹훅
-    // 중복 전송 등) 에러 없이 조용히 같은 행을 그대로 돌려줍니다(멱등) — 그래서 RPC 응답만 보고는
-    // "방금 실제로 전환됐는지"와 "이미 전에 전환돼 있었는지"를 구분할 수 없습니다. 알림을 중복 발송하지
-    // 않으려면 RPC 호출 *전에* 현재 상태를 먼저 확인해, 그 시점에 'PAYMENT_PENDING' 이었던 경우에만(=
-    // 이 호출이 실제로 전환을 수행한 경우에만) 알림을 보냅니다.
-    const { data: beforeApp, error: beforeErr } = await admin
-      .from("service_applications")
-      .select("status, service_type, address, request_details, user_contact, created_at, addon_codes")
-      .eq("id", paymentId)
-      .maybeSingle();
-    if (beforeErr) {
-      console.error("[portone-webhook] 신청서 조회 실패:", beforeErr);
-      return json(500, { error: "APPLICATION_LOOKUP_FAILED", message: beforeErr.message });
-    }
-    const wasFirstTransition = beforeApp?.status === "PAYMENT_PENDING";
-
     // PortOne 재조회 결과의 실제 승인 금액을 같이 넘겨서, DB 함수가 신청서 service_type 기준 정가와
     // 정확히 일치할 때만 MATCHING_PENDING 으로 전환하도록 합니다 — 웹훅 바디 자체를 신뢰하지 않는 것과
     // 같은 이유로, 입금액도 PortOne 재조회 결과만 신뢰합니다(sql/payment_confirmation_functions.sql 의
@@ -286,28 +271,10 @@ async function handleRequest(req: Request): Promise<Response> {
       return json(500, { error: "STATUS_UPDATE_FAILED", message: error.message });
     }
 
-    // 신규 신청이 매칭 대기(MATCHING_PENDING)로 처음 들어간 시점에 매니저 운영 채널로 텔레그램 알림을
-    // 보냅니다 — 단, 가상계좌/무통장은 제외합니다. 이 웹훅은 PortOne 쪽 결제 상태 변경을 전부(카드
-    // 간편결제든 가상계좌 입금이든) 받을 수 있는 범용 엔드포인트라, "이 웹훅이 호출됐다"만으로는 어떤
-    // 결제 수단인지 알 수 없어 매번 가상계좌 여부를 다시 판별합니다. 가상계좌/무통장의 알림은 어드민
-    // 콘솔의 [수동 입금 확인] 클릭(admin_confirm_manual_payment() RPC, sql/
-    // admin_manual_payment_telegram_notify.sql)시점으로만 보내기로 했으므로 — 입금이 실제로 통장에
-    // 들어온 걸 웹훅이 자동으로 감지해도, 관리자가 그 입금을 직접 확인하기 전까지는 매니저에게 먼저
-    // 알리지 않습니다.
-    const isVirtualAccount = !!(payment?.virtualAccount ?? payment?.method?.virtualAccount);
-    console.log("[portone-webhook] 텔레그램 알림 분기 — wasFirstTransition=" + wasFirstTransition +
-      ", isVirtualAccount=" + isVirtualAccount);
-    if (wasFirstTransition && beforeApp && !isVirtualAccount) {
-      const notified = await notifySafely("신규 신청 접수", () => sendTelegramMessage(buildNewApplicationMessage({
-        serviceType: beforeApp.service_type,
-        address: beforeApp.address,
-        requestDetails: beforeApp.request_details,
-        userContact: beforeApp.user_contact,
-        createdAt: beforeApp.created_at,
-        addonCodes: beforeApp.addon_codes,
-      })));
-      console.log("[portone-webhook] 신규 신청 텔레그램 알림 발송 결과: " + notified);
-    }
+    // 신규 신청이 매칭 대기(MATCHING_PENDING)로 들어간 시점의 매니저 알림은 DB 트리거
+    // (service_applications_notify_care_request, sql/telegram_care_request_webhook_trigger.sql)가
+    // status 변경을 감지해 notify-care-request Edge Function으로 보냅니다 — 가상계좌/무통장도 포함해
+    // 결제 수단과 무관하게 이 RPC 호출(status 변경) 하나로 통일되므로 여기서 별도 분기가 필요 없습니다.
 
     return json(200, { ok: true, status: "PAID" });
   }

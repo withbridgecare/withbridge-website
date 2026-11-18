@@ -31,9 +31,15 @@
 --   sql/admin_manual_payment_telegram_notify.sql → sql/matching_expiry_auto_refund.sql →
 --   sql/user_packages_system.sql → 이 파일.
 --   (이 파일이 mark_payment_matching_pending/admin_confirm_manual_payment/consume_package_on_application
---   을 다시 create or replace 하므로, 반드시 저 파일들보다 나중에 실행해야 쿠폰/적립금/패키지/텔레그램
---   로직이 되돌아가지 않습니다 — 그래서 아래 세 함수 본문에 그 로직을 전부 그대로 들고 와서 insurance_*
---   SET 절만 추가했습니다.)
+--   을 다시 create or replace 하므로, 반드시 저 파일들보다 나중에 실행해야 쿠폰/적립금/패키지 로직이
+--   되돌아가지 않습니다 — 그래서 아래 세 함수 본문에 그 로직을 전부 그대로 들고 와서 insurance_* SET
+--   절만 추가했습니다.)
+--
+--   [2026-11-16 정리] admin_confirm_manual_payment()/consume_package_on_application() 안에 있던
+--   "SQL에서 pg_net 으로 텔레그램 API 직접 호출"하는 구버전 텍스트 알림(버튼 없음)은 제거했습니다 —
+--   sql/telegram_care_request_webhook_trigger.sql 의 DB 트리거가 이 두 함수가 만드는 status 변경을
+--   그대로 감지해 notify-care-request Edge Function(개인 DM + 그룹 하이브리드 알림 + [동행 수락하기]
+--   인라인 버튼)을 호출하므로 완전히 대체되었습니다.
 -- ============================================================================
 
 
@@ -198,13 +204,6 @@ declare
   v_points_to_use   integer;
   v_discount        integer;
   v_balance         integer;
-  v_desired_at      text;
-  v_applicant       text;
-  v_when            text;
-  v_addon_labels    text;
-  v_message         text;
-  v_bot_token       text;
-  v_chat_id         text;
 begin
   if not public.is_admin() then
     raise exception 'NOT_ADMIN' using errcode = '42501';
@@ -295,55 +294,10 @@ begin
    where id = p_application_id
   returning * into v_app;
 
-  -- ---------------------------------------------------------------------------
-  -- 텔레그램 알림 — 여기까지 왔다면(위에서 예외 없이) 이 호출이 PAYMENT_PENDING → MATCHING_PENDING
-  -- 전환을 실제로 수행한 것이 확실하므로 바로 보냅니다. 알림 발송이 실패해도(토큰 미설정, 네트워크 등)
-  -- 이미 입금 확인/상태 전환은 끝난 뒤이므로 트랜잭션을 되돌리지 않고 경고만 남깁니다.
-  -- ---------------------------------------------------------------------------
-  begin
-    select decrypted_secret into v_bot_token from vault.decrypted_secrets where name = 'telegram_bot_token';
-    select decrypted_secret into v_chat_id from vault.decrypted_secrets where name = 'telegram_chat_id';
-
-    if v_bot_token is not null and v_chat_id is not null then
-      v_desired_at := (regexp_match(coalesce(v_app.request_details, ''), '희망\s*일시:\s*([^\n]+)'))[1];
-      v_applicant := nullif(btrim(split_part(coalesce(v_app.user_contact, ''), '/', 1)), '');
-      v_when := coalesce(
-        nullif(btrim(v_desired_at), ''),
-        to_char(v_app.created_at at time zone 'Asia/Seoul', 'YYYY-MM-DD HH24:MI'),
-        '협의 필요'
-      );
-
-      -- 선택 추가 옵션(Add-on) 코드 → 사람이 읽는 이름. apply.html 의 ADDONS, expected_addon_total() 과
-      -- 반드시 같은 코드 문자열을 써야 합니다(admin.js/mypage-manager.html/_shared/telegram.ts 에도
-      -- 같은 맵이 있습니다 — 함께 고쳐 주세요).
-      select coalesce(string_agg(case code
-          when 'URGENT_MATCHING' then '긴급 매칭 서비스'
-          else code
-        end, ', '), '없음')
-        into v_addon_labels
-        from unnest(coalesce(v_app.addon_codes, '{}'::text[])) as code;
-
-      v_message :=
-        '[🔔 위드브릿지 신규 케어 신청 접수]' || chr(10) ||
-        '• 서비스: ' || coalesce(v_app.service_type, '동행 서비스') || chr(10) ||
-        '• 지역: ' || coalesce(v_app.address, '주소 미입력') || chr(10) ||
-        '• 일시: ' || v_when || chr(10) ||
-        '• 신청자: ' || coalesce(v_applicant, '고객') || ' 고객님' || chr(10) ||
-        '• 선택 옵션: ' || v_addon_labels || chr(10) ||
-        '👉 매니저 마이페이지에서 수락하기: mypage-manager.html' || chr(10) ||
-        '(관리자 수동 입금 확인)';
-
-      perform net.http_post(
-        url := 'https://api.telegram.org/bot' || v_bot_token || '/sendMessage',
-        headers := jsonb_build_object('Content-Type', 'application/json'),
-        body := jsonb_build_object('chat_id', v_chat_id, 'text', v_message, 'disable_web_page_preview', true)
-      );
-    else
-      raise warning '[admin_confirm_manual_payment] telegram_bot_token/telegram_chat_id 가 Vault에 없어 알림을 건너뜁니다.';
-    end if;
-  exception when others then
-    raise warning '[admin_confirm_manual_payment] 텔레그램 알림 발송 중 오류(상태 전환은 이미 완료됨) — %', sqlerrm;
-  end;
+  -- 매니저 알림(개인 DM + 그룹 하이브리드 + [동행 수락하기] 인라인 버튼)은 이제 DB 트리거
+  -- (service_applications_notify_care_request, sql/telegram_care_request_webhook_trigger.sql)가 위
+  -- status 변경(MATCHING_PENDING 전환)을 감지해 notify-care-request Edge Function으로 보냅니다 —
+  -- 이 함수가 직접 텔레그램 API를 호출하던 옛 로직은 제거했습니다.
 
   return v_app;
 end $$;
@@ -361,13 +315,6 @@ language plpgsql security definer set search_path = public as $$
 declare
   v_pkg          public.user_packages;
   v_addon_total  integer;
-  v_desired_at   text;
-  v_applicant    text;
-  v_when         text;
-  v_addon_labels text;
-  v_message      text;
-  v_bot_token    text;
-  v_chat_id      text;
 begin
   if not new.is_package_used then
     return new;
@@ -417,64 +364,10 @@ begin
     new.extra_fee_status := 'pending_payment';
   end if;
 
-  -- ---------------------------------------------------------------------------
-  -- 텔레그램 알림 — 이 신청은 issue-virtual-account/portone-webhook Edge Function을 거치지 않고
-  -- apply.html 이 service_applications 에 직접 INSERT 하고 이 BEFORE INSERT 트리거가 바로 매칭 대기로
-  -- 넘기기 때문에(_shared/telegram.ts 호출 지점을 지나가지 않음), sql/admin_manual_payment_telegram_notify.sql
-  -- 의 admin_confirm_manual_payment() 와 같은 이유로 알림이 빠져 있었습니다 — 같은 패턴(SQL에서 pg_net
-  -- 으로 텔레그램 API 직접 호출)으로 여기도 보냅니다. net.http_post 는 이 트랜잭션 안에서 큐 테이블에
-  -- 넣힐 뿐이라, 이후 INSERT 가 다른 제약으로 실패해 트랜잭션 전체가 롤백되면 이 알림도 함께 롤백되어
-  -- 실제로는 발송되지 않습니다 — 그래서 "이미 보냈는데 신청은 실패"하는 불일치가 생기지 않습니다.
-  -- 알림 자체가 실패해도(토큰 미설정, 네트워크 등) 이미 위에서 끝난 회차 차감/상태 전환을 막지 않도록
-  -- exception 은 경고로만 남깁니다.
-  -- ---------------------------------------------------------------------------
-  begin
-    select decrypted_secret into v_bot_token from vault.decrypted_secrets where name = 'telegram_bot_token';
-    select decrypted_secret into v_chat_id from vault.decrypted_secrets where name = 'telegram_chat_id';
-
-    if v_bot_token is not null and v_chat_id is not null then
-      v_desired_at := (regexp_match(coalesce(new.request_details, ''), '희망\s*일시:\s*([^\n]+)'))[1];
-      v_applicant := nullif(btrim(split_part(coalesce(new.user_contact, ''), '/', 1)), '');
-      v_when := coalesce(
-        nullif(btrim(v_desired_at), ''),
-        to_char(coalesce(new.created_at, now()) at time zone 'Asia/Seoul', 'YYYY-MM-DD HH24:MI'),
-        '협의 필요'
-      );
-
-      -- 선택 추가 옵션(Add-on) 코드 → 사람이 읽는 이름. apply.html 의 ADDONS, expected_addon_total() 과
-      -- 반드시 같은 코드 문자열을 써야 합니다(admin.js/mypage-manager.html/_shared/telegram.ts 에도
-      -- 같은 맵이 있습니다 — 함께 고쳐 주세요). 패키지 차감 예약도 추가 옵션을 고를 수 있고(위에서
-      -- v_addon_total 로 다시 계산), 그 금액은 지금 결제받지 않았다는 걸 매니저가 알 수 있도록 메시지에 밝힙니다.
-      select coalesce(string_agg(case code
-          when 'URGENT_MATCHING' then '긴급 매칭 서비스'
-          else code
-        end, ', '), '없음')
-        into v_addon_labels
-        from unnest(coalesce(new.addon_codes, '{}'::text[])) as code;
-
-      v_message :=
-        '[🔔 위드브릿지 신규 케어 신청 접수]' || chr(10) ||
-        '• 서비스: ' || coalesce(new.service_type, '동행 서비스') || chr(10) ||
-        '• 지역: ' || coalesce(new.address, '주소 미입력') || chr(10) ||
-        '• 일시: ' || v_when || chr(10) ||
-        '• 신청자: ' || coalesce(v_applicant, '고객') || ' 고객님' || chr(10) ||
-        '• 선택 옵션: ' || v_addon_labels ||
-          case when v_addon_total > 0 then ' (' || v_addon_total || '원, 결제 대기 — 수락 후 별도 결제 안내)' else '' end
-          || chr(10) ||
-        '👉 매니저 마이페이지에서 수락하기: mypage-manager.html' || chr(10) ||
-        '(보유 패키지 차감 예약)';
-
-      perform net.http_post(
-        url := 'https://api.telegram.org/bot' || v_bot_token || '/sendMessage',
-        headers := jsonb_build_object('Content-Type', 'application/json'),
-        body := jsonb_build_object('chat_id', v_chat_id, 'text', v_message, 'disable_web_page_preview', true)
-      );
-    else
-      raise warning '[consume_package_on_application] telegram_bot_token/telegram_chat_id 가 Vault에 없어 알림을 건너뜁니다.';
-    end if;
-  exception when others then
-    raise warning '[consume_package_on_application] 텔레그램 알림 발송 중 오류(회차 차감/상태 전환은 이미 완료됨) — %', sqlerrm;
-  end;
+  -- 매니저 알림은 DB 트리거(service_applications_notify_care_request,
+  -- sql/telegram_care_request_webhook_trigger.sql)가 이 INSERT 를 감지해 notify-care-request
+  -- Edge Function으로 보냅니다(개인 DM + 그룹 하이브리드 알림 + [동행 수락하기] 인라인 버튼) — 이
+  -- 트리거가 직접 텔레그램 API를 호출하던 옛 로직은 제거했습니다.
 
   return new;
 end $$;

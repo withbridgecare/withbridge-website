@@ -1,5 +1,8 @@
-// 텔레그램 알림 발송 공용 모듈 — 신규 케어 신청이 결제 확인(MATCHING_PENDING 진입)되는 순간
-// 매니저 운영 채널로 알림을 보냅니다(issue-virtual-account/portone-webhook 에서 호출).
+// 텔레그램 알림 발송 공용 모듈 — 결제 확인(issue-virtual-account/portone-webhook: 결제 반영 실패 경보,
+// 패키지/추가 요금 결제 완료), 매니저 지원 접수(submit-manager-application), 신규 케어 신청 하이브리드
+// 알림+인라인 버튼 수락(notify-care-request/telegram-webhook) 이 전부 이 모듈을 통해 발송합니다.
+// (신규 케어 신청의 "매니저 마이페이지에서 수락하기" 텍스트 전용 알림은 notify-care-request 의 개인
+// DM+그룹 하이브리드 알림으로 완전히 대체되어 제거했습니다 — buildCareRequestTelegramMessage 참고.)
 //
 // ⚠ 알림 발송 실패가 결제 확인 자체를 막으면 안 됩니다 — 이 시점은 이미 PortOne 결제가 승인되고
 // DB 상태도 바뀐 뒤입니다. 그래서 sendTelegramMessage() 는 어떤 경우에도 예외를 던지지 않고
@@ -17,7 +20,7 @@
 //                                  봇을 초대한 뒤 그 방의 chat_id를 넣습니다. submit-manager-application 함수 전용.
 //   SITE_URL           — 메시지 안 "매니저 마이페이지" 링크에 쓸 배포 도메인(예: https://withbridgecare.com).
 //                         없으면 상대 경로("mypage-manager.html")로만 표시됩니다(클릭은 안 될 수 있음).
-// 설정 방법은 이 파일과 같은 커밋의 가이드 주석(아래 buildNewApplicationMessage 윗부분) 참고.
+// 설정 방법은 이 파일 아래 각 build*Message() 함수 바로 위 주석 참고.
 
 const TELEGRAM_API_BASE = "https://api.telegram.org";
 
@@ -226,38 +229,6 @@ function formatAddonLabels(addonCodes: string[] | null | undefined): string {
   return codes.map((code) => ADDON_LABELS[code] || code).join(", ");
 }
 
-export interface NewApplicationNotifyInput {
-  serviceType?: string | null;
-  /** apply.html toDbRow() 의 address — "출발지 / 목적지" 결합 문자열. */
-  address?: string | null;
-  requestDetails?: string | null;
-  userContact?: string | null;
-  /** request_details 에서 희망 일시를 못 찾았을 때 대신 보여줄 신청 접수 시각(ISO). */
-  createdAt?: string | null;
-  /** service_applications.addon_codes — 긴급 매칭 서비스 등 선택한 추가 옵션 코드 배열. */
-  addonCodes?: string[] | null;
-}
-
-export function buildNewApplicationMessage(input: NewApplicationNotifyInput): string {
-  const serviceType = input.serviceType || "동행 서비스";
-  const region = input.address || "주소 미입력";
-  const when = extractDesiredDateTime(input.requestDetails) || fmtKoreanDateTime(input.createdAt) || "협의 필요";
-  const applicant = extractApplicantName(input.userContact);
-  const addons = formatAddonLabels(input.addonCodes);
-  const siteUrl = (Deno.env.get("SITE_URL") || "").replace(/\/+$/, "");
-  const managerLink = siteUrl ? `${siteUrl}/mypage-manager.html` : "mypage-manager.html";
-
-  return [
-    "[🔔 위드브릿지 신규 케어 신청 접수]",
-    `• 서비스: ${serviceType}`,
-    `• 지역: ${region}`,
-    `• 일시: ${when}`,
-    `• 신청자: ${applicant} 고객님`,
-    `• 선택 옵션: ${addons}`,
-    `👉 매니저 마이페이지에서 수락하기: ${managerLink}`,
-  ].join("\n");
-}
-
 // 패키지(5회권/10회권/10시간권/20시간권) 구매 확정 알림 — confirm-package-order-payment/portone-webhook
 // (package_order 분기) 양쪽에서 호출합니다. 패키지는 매칭 대기 없이 바로 회차가 충전되므로 "수락하기"
 // 링크는 필요 없고, 운영팀이 결제가 실제로 들어왔는지 확인하는 용도입니다. 메인 운영 채널
@@ -313,4 +284,238 @@ export function buildExtraChargePaidMessage(input: ExtraChargePaidNotifyInput): 
     `- 케어 일정 ID: ${input.scheduleId || "-"}`,
     divider,
   ].join("\n");
+}
+
+// ============================================================================
+// 하이브리드 매칭 알림 + 인라인 버튼 수락 (notify-care-request / telegram-webhook 전용)
+//
+// 위 sendTelegramMessage()/sendManagerApplicationTelegramMessage() 는 "고정된 하나의 chat_id"에만 보내는
+// 전용 함수였지만, 이 기능은 신청 1건마다 여러 개인 chat_id(매니저별 DM) + 그룹 chat_id(전체 알림방)에
+// 같은 봇 토큰(TELEGRAM_BOT_TOKEN)으로 나눠 보내야 합니다 — 그래서 chat_id를 매번 인자로 받는 범용
+// 저수준 함수(sendTelegramMessageTo/editTelegramMessageText/answerCallbackQuery)를 따로 둡니다.
+// 기존 함수들은 그대로 두고(결제 알림 경로에 영향 없음) 여기서부터는 전부 새 함수입니다.
+// ============================================================================
+
+export interface InlineKeyboardMarkup {
+  inline_keyboard: { text: string; callback_data?: string; url?: string }[][];
+}
+
+export function buildAcceptInlineKeyboard(applicationId: string): InlineKeyboardMarkup {
+  return { inline_keyboard: [[{ text: "✅ 동행 수락하기", callback_data: `ACCEPT:${applicationId}` }]] };
+}
+
+export interface TelegramSendResult {
+  ok: boolean;
+  messageId?: number;
+}
+
+export async function sendTelegramMessageTo(
+  token: string,
+  chatId: string,
+  text: string,
+  replyMarkup?: InlineKeyboardMarkup,
+): Promise<TelegramSendResult> {
+  try {
+    const res = await fetch(`${TELEGRAM_API_BASE}/bot${token}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+        disable_web_page_preview: true,
+        ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
+      }),
+    });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok || !payload || payload.ok !== true) {
+      console.error(`[telegram] sendMessage 실패 (chat_id=${maskId(chatId)}, HTTP=${res.status}):`, payload);
+      return { ok: false };
+    }
+    return { ok: true, messageId: payload.result?.message_id };
+  } catch (e) {
+    console.error(`[telegram] sendMessage fetch 실패 (chat_id=${maskId(chatId)}):`, e);
+    return { ok: false };
+  }
+}
+
+// 48시간이 지난 메시지를 고치려 하거나, 이미 똑같은 본문으로 다시 고치려 하면 Telegram이 400을 돌려줍니다
+// — 둘 다 "다른 매니저에게 마감 안내가 한 번 덜 갔다"는 수준의 실패라, 수락 처리(DB 반영)는 이미 끝난
+// 뒤이므로 여기서 던지지 않고 경고만 남깁니다(notifySafely 와 같은 원칙).
+export async function editTelegramMessageText(
+  token: string,
+  chatId: string,
+  messageId: number,
+  text: string,
+  replyMarkup?: InlineKeyboardMarkup,
+): Promise<boolean> {
+  try {
+    const res = await fetch(`${TELEGRAM_API_BASE}/bot${token}/editMessageText`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        message_id: messageId,
+        text,
+        disable_web_page_preview: true,
+        reply_markup: replyMarkup ?? { inline_keyboard: [] },
+      }),
+    });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok || !payload || payload.ok !== true) {
+      console.warn(`[telegram] editMessageText 실패(무시, chat_id=${maskId(chatId)}, message_id=${messageId}):`, payload);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.warn(`[telegram] editMessageText fetch 실패(무시, chat_id=${maskId(chatId)}):`, e);
+    return false;
+  }
+}
+
+export async function answerCallbackQuery(
+  token: string,
+  callbackQueryId: string,
+  text?: string,
+  showAlert = false,
+): Promise<void> {
+  try {
+    await fetch(`${TELEGRAM_API_BASE}/bot${token}/answerCallbackQuery`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ callback_query_id: callbackQueryId, text, show_alert: showAlert }),
+    });
+  } catch (e) {
+    console.warn("[telegram] answerCallbackQuery 실패(무시):", e);
+  }
+}
+
+export interface NewCareRequestTelegramInput {
+  serviceType?: string | null;
+  address?: string | null;
+  requestDetails?: string | null;
+  userContact?: string | null;
+  createdAt?: string | null;
+  addonCodes?: string[] | null;
+}
+
+// variant='private' 는 지역/시간대가 맞는 매니저의 개인 DM, 'broadcast' 는 전체 공용 채널(그룹방) —
+// 본문 헤더만 다르고 나머지 정보는 동일합니다(둘 다 같은 [동행 수락하기] 버튼이 붙습니다).
+// 실제 수락 동작은 그 인라인 버튼(callback_data="ACCEPT:<id>")이 처리합니다(telegram-webhook) — 아래
+// 마이페이지 링크는 버튼과는 별개로, 앱을 직접 열어 전체 목록/상세를 보고 싶을 때를 위한 보조 링크이며
+// buildNewApplicationMessage() 와 같은 규칙으로 SITE_URL(Supabase Secrets)을 읽어 절대 URL로 만듭니다
+// — SITE_URL이 없으면 상대 경로("mypage-manager.html")라 텔레그램에서 눌러도 열리지 않을 수 있습니다.
+export function buildCareRequestTelegramMessage(
+  input: NewCareRequestTelegramInput,
+  variant: "private" | "broadcast",
+): string {
+  const serviceType = input.serviceType || "동행 서비스";
+  const region = input.address || "주소 미입력";
+  const when = extractDesiredDateTime(input.requestDetails) || fmtKoreanDateTime(input.createdAt) || "협의 필요";
+  const applicant = extractApplicantName(input.userContact);
+  const addons = formatAddonLabels(input.addonCodes);
+  const header = variant === "private"
+    ? "[🎯 내 활동 지역 맞춤 — 신규 케어 신청]"
+    : "[🔔 위드브릿지 신규 케어 신청 접수 (전체)]";
+  const siteUrl = (Deno.env.get("SITE_URL") || "").replace(/\/+$/, "");
+  const managerLink = siteUrl ? `${siteUrl}/mypage-manager.html` : "mypage-manager.html";
+  return [
+    header,
+    `• 서비스: ${serviceType}`,
+    `• 지역: ${region}`,
+    `• 일시: ${when}`,
+    `• 신청자: ${applicant} 고객님`,
+    `• 선택 옵션: ${addons}`,
+    "아래 [동행 수락하기]를 누르면 즉시 배정됩니다 — 먼저 누른 매니저가 담당합니다.",
+    `👉 매니저 마이페이지에서 전체 보기: ${managerLink}`,
+  ].join("\n");
+}
+
+export function buildCareRequestAcceptedSuffix(managerName: string | null | undefined, scheduledAt: Date): string {
+  return `\n\n✅ ${managerName || "매니저"}님이 수락해 배정 완료되었습니다 (예정 일시: ${fmtKoreanDateTime(scheduledAt.toISOString())}).`;
+}
+
+export function buildCareRequestClosedSuffix(managerName: string | null | undefined): string {
+  return `\n\n⛔ 이미 다른 매니저(${managerName || "다른 매니저"})가 수락해 마감된 건입니다.`;
+}
+
+// 신청 지역(출발지/목적지 문자열)에서 인천/경기 관내 구·시 이름을 뽑습니다 — manager-apply.html 의
+// "주요 활동 가능 지역" 칩 라벨(인천 남동구 등)과 반드시 같은 구분을 써야 매칭이 됩니다.
+const CANONICAL_REGIONS: { label: string; keyword: string }[] = [
+  { label: "인천 남동구", keyword: "남동구" },
+  { label: "인천 연수구", keyword: "연수구" },
+  { label: "인천 미추홀구", keyword: "미추홀구" },
+  { label: "인천 부평구", keyword: "부평구" },
+  { label: "인천 계양구", keyword: "계양구" },
+  { label: "인천 서구", keyword: "서구" },
+  { label: "경기 시흥시", keyword: "시흥시" },
+  { label: "경기 부천시", keyword: "부천시" },
+  { label: "경기 안산시", keyword: "안산시" },
+];
+
+export function detectAddressRegion(address: string | null | undefined): string | null {
+  const text = address || "";
+  for (const r of CANONICAL_REGIONS) {
+    if (text.includes(r.keyword)) return r.label;
+  }
+  return null;
+}
+
+export function managerCoversRegion(activityAreas: string[] | null | undefined, region: string | null): boolean {
+  if (!region) return false;
+  return Array.isArray(activityAreas) && activityAreas.includes(region);
+}
+
+export type TimeSlotLabel = "평일 오전" | "평일 오후" | "주말 오전" | "주말 오후";
+
+// '희망 일시' 문구("11월 20일 (목) 오후 2시 30분")에서 요일괄호와 오전/오후만 뽑아 매니저의
+// activity_schedule(manager-apply.html STEP2) 라벨과 같은 네 구간으로 환산합니다. 요일/오전·오후 중
+// 하나라도 못 읽으면 null — 이 경우 호출부가 "시간대 불명 — 지역만으로 매칭" 으로 처리합니다.
+export function detectTimeSlot(requestDetails: string | null | undefined): TimeSlotLabel | null {
+  const text = extractDesiredDateTime(requestDetails) || "";
+  const weekday = /\(([일월화수목금토])\)/.exec(text)?.[1];
+  const isPm = /오후|저녁|낮/.test(text);
+  const isAm = /오전/.test(text);
+  if (!weekday || (!isPm && !isAm)) return null;
+  const isWeekend = weekday === "토" || weekday === "일";
+  if (isWeekend) return isPm ? "주말 오후" : "주말 오전";
+  return isPm ? "평일 오후" : "평일 오전";
+}
+
+export function managerCoversSchedule(activitySchedule: string[] | null | undefined, slot: TimeSlotLabel | null): boolean {
+  const schedule = Array.isArray(activitySchedule) ? activitySchedule : [];
+  if (schedule.includes("시간 조율 가능")) return true;
+  if (!slot) return false;
+  return schedule.includes(slot);
+}
+
+// 매니저 마이페이지(mypage-manager.html)의 guessDateTime() 과 완전히 같은 로직의 Deno 버전입니다 —
+// 텔레그램 [동행 수락하기] 버튼은 그 화면의 '수락 모달'을 띄울 수 없어(채팅창 안이라), 같은 추정 규칙으로
+// scheduled_at 을 바로 확정해 accept_service_application_as() 에 넘깁니다. 못 읽으면 그 화면과 동일하게
+// "내일 오전 10시"로 잠정 확정하고, 매니저가 마이페이지에서 나중에 확인/수정할 수 있습니다. 한쪽을 고치면
+// 다른 쪽도 반드시 같이 고치세요.
+export function guessScheduledAt(requestDetails: string | null | undefined, createdAtIso: string | null | undefined): Date {
+  const now = createdAtIso ? new Date(createdAtIso) : new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const fallback = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1, 10, 0);
+  const text = extractDesiredDateTime(requestDetails) || "";
+
+  const md = /(\d{1,2})\s*월\s*(\d{1,2})\s*일/.exec(text);
+  if (!md) return fallback;
+  let d = new Date(now.getFullYear(), Number(md[1]) - 1, Number(md[2]), 10, 0);
+  if (isNaN(d.getTime())) return fallback;
+  if (d < today) {
+    const next = new Date(d);
+    next.setFullYear(next.getFullYear() + 1);
+    if (next.getTime() - today.getTime() > 120 * 86400000) return fallback;
+    d = next;
+  }
+
+  const t = /(오전|오후|낮|저녁)?\s*(\d{1,2})\s*시(?:\s*(\d{1,2})\s*분|\s*(반))?/.exec(text) || /()(\d{1,2}):(\d{2})/.exec(text);
+  if (t) {
+    let hour = Number(t[2]);
+    if ((t[1] === "오후" || t[1] === "저녁" || t[1] === "낮") && hour < 12) hour += 12;
+    if (t[1] === "오전" && hour === 12) hour = 0;
+    if (hour <= 23) d.setHours(hour, t[4] === "반" ? 30 : Number(t[3] || 0));
+  }
+  return d;
 }

@@ -13,9 +13,12 @@
 //                          SMS/LMS 로 대체 발송할 때 "발신번호"로 쓰입니다. 등록 안 된 번호면 발송 자체가
 //                          거부됩니다).
 //   SOLAPI_PF_ID        — 카카오 비즈니스 채널(발신프로필) ID. Solapi 콘솔 > 카카오톡 채널 연동에서 확인.
-//   SOLAPI_TEMPLATE_<STAGE> — 7개 stage 마다 하나씩, Solapi(카카오)에 사전 승인받은 템플릿 코드.
-//                          <STAGE> 는 ORDER_RECEIVED / MANAGER_ASSIGNED / DEPARTED / ARRIVED_HOSPITAL /
-//                          TREATMENT_COMPLETED / RETURNING / CARE_FINISHED 7개.
+//   SOLAPI_TEMPLATE_<STAGE> — stage 마다 하나씩, Solapi(카카오)에 사전 승인받은 템플릿 코드.
+//                          <STAGE> 는 send-status-alimtalk Edge Function이 쓰는 7개(ORDER_RECEIVED /
+//                          MANAGER_ASSIGNED / DEPARTED / ARRIVED_HOSPITAL / TREATMENT_COMPLETED /
+//                          RETURNING / CARE_FINISHED) + notify-care-report-alimtalk Edge Function이 쓰는
+//                          CARE_REPORT_SUBMITTED(매니저의 '케어 리포트 작성' 제출 즉시 — 보호자명/컨디션
+//                          요약/의사 소견 요약/다음 방문 예정일/증빙 사진 수/리포트 링크 변수) 1개, 총 8개.
 //
 // ⚠ templateId 가 가리키는 실제 카카오 템플릿의 변수 플레이스홀더(#{고객명} 등) 이름이 아래
 //   buildVariables() 가 만드는 키와 정확히 일치해야 발송이 성공합니다 — Solapi 콘솔에서 승인받은

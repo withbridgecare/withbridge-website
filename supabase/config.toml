@@ -34,10 +34,37 @@ verify_jwt = false
 # sql/manager_application_anti_abuse.sql, supabase/functions/submit-manager-application 참고).
 verify_jwt = true
 
+[functions.generate-care-report]
+# 로그인한 매니저만 호출 가능 — mypage-manager.html '케어 리포트 작성' 모달의 [AI 리포트 초안 생성]
+# 버튼이 호출합니다. OPENAI_API_KEY 또는 GEMINI_API_KEY 를 Supabase Edge Function Secrets 로 등록해야
+# 동작합니다(둘 다 없으면 AI_NOT_CONFIGURED 를 돌려줄 뿐, 리포트 제출 자체는 계속 가능합니다).
+verify_jwt = true
+
 [functions.delete-account]
 # 로그인한 본인만 호출 가능 — 함수 내부에서 auth.getUser() 로 토큰을 직접 검증하고, 그 토큰의
 # 사용자 자신만 차단합니다(sql/profile_account_management.sql 의 deactivate_own_account() 와 짝).
 verify_jwt = true
+
+[functions.notify-care-request]
+# Supabase Database Webhook(대시보드에서 service_applications INSERT/UPDATE 에 등록, 로그인 토큰 없이
+# 직접 호출)이 호출하므로 꺼야 합니다. 대신 함수 내부에서 X-Webhook-Secret 헤더를 DB_WEBHOOK_SECRET
+# 과 비교해 검증합니다(Database Webhook 등록 시 이 헤더를 꼭 추가하세요). 자세한 내용은
+# sql/telegram_care_request_notifications.sql, supabase/functions/notify-care-request 참고.
+verify_jwt = false
+
+[functions.telegram-webhook]
+# Telegram이 Supabase 로그인 토큰 없이 직접 호출하므로 꺼야 합니다. 대신 함수 내부에서
+# X-Telegram-Bot-Api-Secret-Token 헤더를 TELEGRAM_WEBHOOK_SECRET 과 비교해 검증합니다(Telegram
+# setWebhook 호출 시 secret_token 파라미터로 같은 값을 등록하세요). 자세한 내용은
+# supabase/functions/telegram-webhook 맨 위 주석 참고.
+verify_jwt = false
+
+[functions.notify-care-report-alimtalk]
+# Supabase Database Webhook(대시보드에서 care_reports INSERT 에 등록, 로그인 토큰 없이 직접 호출)이
+# 호출하므로 꺼야 합니다. 대신 함수 내부에서 X-Webhook-Secret 헤더를 DB_WEBHOOK_SECRET 과 비교해
+# 검증합니다(notify-care-request 와 같은 비밀값 재사용 — Database Webhook 등록 시 이 헤더를 꼭
+# 추가하세요). 자세한 내용은 supabase/functions/notify-care-report-alimtalk 맨 위 주석 참고.
+verify_jwt = false
 
 [functions.cancel-expired-applications]
 # pg_cron이 service_role 키를 Authorization 헤더에 담아 호출합니다(sql/matching_expiry_auto_refund.sql

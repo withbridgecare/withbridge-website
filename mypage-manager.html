@@ -14,6 +14,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- 공통 Supabase 클라이언트 + 매니저 자격 확인(checkIsManager). SDK 뒤에 로드해야 합니다 -->
   <script src="/js/auth-header.js?v=2.4" charset="utf-8"></script>
+  <!-- AI 케어 리포트 초안 생성(generate-care-report) 호출용 — apply.html/mypage.html/package.html 과 같은 래퍼 -->
+  <script src="/js/edge-function-fetch.js?v=1.2"></script>
 <script src="/js/terms-modal.js?v=1.0" charset="utf-8" defer></script>
 <script src="/js/notice-modal.js?v=1.0" charset="utf-8" defer></script>
   <!-- 브라우저 기본 날짜/시간 피커 대신 쓰는 공통 커스텀 피커 (wb-datepicker.js 참고) -->
@@ -451,6 +453,146 @@
     /* 신청 대기 카드 전용: 레퍼런스의 'Accepter' 칩처럼 연한 에메랄드 배경 + 진한 에메랄드 텍스트 */
     .status-tag.st-pending   { background: #ECFDF5; color: #047857; }
     .status-tag.st-settlement { background: #FFFBEB; color: #B45309; }
+    /* ============================================================================
+       글래스모피즘 버튼 — 프로필 카드의 [텔레그램 알림 연결] 버튼 전용입니다(자격/평점/오늘 일정
+       배지는 일반 .tag/.status-tag 로 되돌렸습니다 — 유리 효과는 클릭 가능한 이 버튼 하나에만).
+       구조: .glass-button-wrap(위치 기준 + 클릭 시 3D 기울임) > .glass-button-shadow(바닥 그림자)
+             + .glass-button(유리 질감 셸, ::after 로 빙글빙글 도는 테두리 반사) > .glass-button-text(글자+아이콘).
+       --background/--foreground 는 위드브릿지 배경(흰색)/잉크(짙은 남색)에 맞춰 고정합니다 — oklch(from ...)
+       구문이 이 두 변수의 명도·채도·색상(l c h)만 가져와 투명도만 바꾸는 식이라, 변수가 없으면(선언 누락)
+       배경/테두리가 완전히 투명해져 유리 느낌 자체가 사라집니다.
+       ============================================================================ */
+    @property --angle-1 { syntax: "<angle>"; inherits: false; initial-value: -75deg; }
+    @property --angle-2 { syntax: "<angle>"; inherits: false; initial-value: -45deg; }
+
+    .glass-button-wrap {
+      --background: #ffffff;
+      --foreground: #1e293b;
+      --anim-time: .4s;
+      --anim-ease: cubic-bezier(.25, 1, .5, 1);
+      --border-width: clamp(1px, .0625em, 4px);
+      z-index: 2;
+      transform-style: preserve-3d;
+      transition: transform var(--anim-time) var(--anim-ease);
+      position: relative;
+      display: inline-block;
+      cursor: default;
+    }
+    .glass-button-wrap.is-interactive { cursor: pointer; }
+    .glass-button-wrap.is-interactive:has(.glass-button:active) { transform: rotateX(25deg); }
+
+    .glass-button-shadow {
+      --shadow-cutoff-fix: 2em;
+      width: calc(100% + var(--shadow-cutoff-fix));
+      height: calc(100% + var(--shadow-cutoff-fix));
+      top: calc(0% - var(--shadow-cutoff-fix) / 2);
+      left: calc(0% - var(--shadow-cutoff-fix) / 2);
+      filter: blur(clamp(2px, .125em, 12px));
+      transition: filter var(--anim-time) var(--anim-ease);
+      pointer-events: none;
+      position: absolute;
+    }
+    .glass-button-shadow::after {
+      content: "";
+      background: linear-gradient(180deg, oklch(from var(--foreground) l c h / 20%), oklch(from var(--foreground) l c h / 10%));
+      width: calc(100% - var(--shadow-cutoff-fix) - .25em);
+      height: calc(100% - var(--shadow-cutoff-fix) - .25em);
+      top: calc(var(--shadow-cutoff-fix) - .5em);
+      left: calc(var(--shadow-cutoff-fix) - .875em);
+      box-sizing: border-box;
+      transition: all var(--anim-time) var(--anim-ease);
+      opacity: 1;
+      border-radius: 9999px;
+      padding: .125em;
+      position: absolute;
+      -webkit-mask-image: linear-gradient(#000 0 0), linear-gradient(#000 0 0);
+      mask-image: linear-gradient(#000 0, #000 0), linear-gradient(#000 0, #000 0);
+      -webkit-mask-position: 0 0, 0 0; mask-position: 0 0, 0 0;
+      -webkit-mask-size: auto, auto; mask-size: auto, auto;
+      -webkit-mask-repeat: repeat, repeat; mask-repeat: repeat, repeat;
+      -webkit-mask-clip: content-box, border-box; mask-clip: content-box, border-box;
+      -webkit-mask-origin: content-box, border-box; mask-origin: content-box, border-box;
+      -webkit-mask-composite: xor; mask-composite: exclude; mask-mode: match-source, match-source;
+    }
+    .glass-button {
+      -webkit-tap-highlight-color: transparent;
+      -webkit-backdrop-filter: blur(clamp(1px, .125em, 4px));
+      backdrop-filter: blur(clamp(1px, .125em, 4px));
+      transition: all var(--anim-time) var(--anim-ease);
+      background: linear-gradient(-75deg, oklch(from var(--background) l c h / 5%), oklch(from var(--background) l c h / 20%), oklch(from var(--background) l c h / 5%));
+      box-shadow:
+        inset 0 .125em .125em oklch(from var(--foreground) l c h / 5%),
+        inset 0 -.125em .125em oklch(from var(--background) l c h / 50%),
+        0 .25em .125em -.125em oklch(from var(--foreground) l c h / 20%),
+        0 0 .1em .25em inset oklch(from var(--background) l c h / 20%),
+        0 0 oklch(from var(--background) l c h);
+      border-radius: 9999px;
+      position: relative;
+      isolation: isolate;
+      display: inline-flex;
+      align-items: center;
+      border: none;
+      margin: 0;
+      font-family: inherit;
+      padding: 6px 16px; /* sm 사이즈 — 프로필 카드 비율에 맞춘 콤팩트 패딩 */
+    }
+    .is-interactive .glass-button:hover {
+      box-shadow:
+        inset 0 .125em .125em oklch(from var(--foreground) l c h / 5%),
+        inset 0 -.125em .125em oklch(from var(--background) l c h / 50%),
+        0 .15em .05em -.1em oklch(from var(--foreground) l c h / 25%),
+        0 0 .05em .1em inset oklch(from var(--background) l c h / 50%),
+        0 0 oklch(from var(--background) l c h);
+      transform: scale(.975);
+    }
+    .glass-button:disabled { opacity: .6; cursor: default; }
+    .glass-button-text {
+      color: oklch(from var(--foreground) l c h / 90%);
+      text-shadow: 0 .25em .05em oklch(from var(--foreground) l c h / 10%);
+      transition: all var(--anim-time) var(--anim-ease);
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: .375em;
+      user-select: none;
+      font-size: 12.5px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .glass-button-text svg { width: 13px; height: 13px; flex: none; }
+    .glass-button:after {
+      content: "";
+      z-index: 1;
+      width: calc(100% + var(--border-width));
+      height: calc(100% + var(--border-width));
+      top: calc(0% - var(--border-width) / 2);
+      left: calc(0% - var(--border-width) / 2);
+      padding: var(--border-width);
+      box-sizing: border-box;
+      background:
+        conic-gradient(from var(--angle-1) at 50% 50%,
+          oklch(from var(--foreground) l c h / 50%) 0%, transparent 5% 40%,
+          oklch(from var(--foreground) l c h / 50%) 50%, transparent 60% 95%,
+          oklch(from var(--foreground) l c h / 50%) 100%),
+        linear-gradient(180deg, oklch(from var(--background) l c h / 50%), oklch(from var(--background) l c h / 50%));
+      transition: all var(--anim-time) var(--anim-ease), --angle-1 .5s ease;
+      box-shadow: inset 0 0 0 calc(var(--border-width) / 2) oklch(from var(--background) l c h / 50%);
+      border-radius: 9999px;
+      position: absolute;
+      -webkit-mask-image: linear-gradient(#000 0 0), linear-gradient(#000 0 0);
+      mask-image: linear-gradient(#000 0, #000 0), linear-gradient(#000 0, #000 0);
+      -webkit-mask-position: 0 0, 0 0; mask-position: 0 0, 0 0;
+      -webkit-mask-size: auto, auto; mask-size: auto, auto;
+      -webkit-mask-repeat: repeat, repeat; mask-repeat: repeat, repeat;
+      -webkit-mask-clip: content-box, border-box; mask-clip: content-box, border-box;
+      -webkit-mask-origin: content-box, border-box; mask-origin: content-box, border-box;
+      -webkit-mask-composite: xor; mask-composite: exclude; mask-mode: match-source, match-source;
+      pointer-events: none;
+    }
+    .is-interactive .glass-button:hover:after { --angle-1: -125deg; }
+
+    /* 글래스 버튼은 이제 텔레그램 연결 버튼 전용입니다 — 연결됨 상태만 글자색을 브랜드톤으로 강조합니다. */
+    .glass-button-text.is-linked { color: var(--brand-dark); font-weight: 800; }
     .action-btn {
       flex: 2 1 0; display: flex; align-items: center; justify-content: center; text-align: center;
       padding: 10px 16px; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 700; line-height: 1.3;
@@ -471,6 +613,26 @@
     .sched-action-bar:has(.sched-issue-btn) .sched-tel-btn { flex: 1 1 0; padding: 10px 6px; font-size: 12.5px; }
     .sched-action-bar:has(.sched-issue-btn) .action-btn { flex: 2.4 1 0; padding: 10px 8px; font-size: 13px; }
     .action-btn.is-done { background: #F3F4F6; color: #9CA3AF; box-shadow: none; cursor: default; display: inline-flex; align-items: center; justify-content: center; }
+    /* 출발 인증 지오펜싱(fallback ②) — 자동 감지가 어려운 상태로 넘어가면 기존 메인 버튼만 이 톤으로
+       바뀝니다(어스톤 = 이 화면의 다른 '확인/주의 필요' 표시와 같은 색, .badge.is-pending 등 참고). */
+    .action-btn.is-warn { background: var(--earth-fg); }
+    .action-btn.is-warn:hover:not(:disabled) { filter: brightness(1.08); }
+    /* 출발 인증 지오펜싱 배너/힌트 슬롯 — 카드 레이아웃(.sched-compact)의 다른 섹션과 같은 여백 리듬을
+       따르면서도, 평소(hidden)에는 자리를 전혀 차지하지 않습니다. */
+    .geofence-slot:not([hidden]) { margin: 10px 0; }
+    .geofence-banner {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      padding: 12px 14px; border-radius: var(--radius-sm); background: var(--brand-soft); border: 1px solid var(--brand-line);
+    }
+    .geofence-banner-text { margin: 0; font-size: 13.5px; font-weight: 700; color: var(--brand-dark); }
+    .geofence-banner-btn {
+      flex-shrink: 0; padding: 9px 16px; border: none; border-radius: 9999px; background: var(--brand);
+      color: #fff; font-size: 13.5px; font-weight: 700; cursor: pointer; white-space: nowrap;
+      transition: background-color .15s ease;
+    }
+    .geofence-banner-btn:hover:not(:disabled) { background: var(--brand-dark); }
+    .geofence-banner-btn:disabled { opacity: .6; cursor: not-allowed; }
+    .geofence-hint { margin: 0 0 8px; font-size: 12.5px; font-weight: 600; color: var(--earth-fg); }
     .kv { display: grid; grid-template-columns: 76px 1fr; gap: 6px 12px; margin: 0 0 18px; font-size: 14.5px; }
     .kv dt { color: var(--ink-body); font-weight: 600; }
     .kv dd { margin: 0; word-break: keep-all; }
@@ -673,6 +835,10 @@
 
     /* ---------- 원클릭 선택 칩(어르신 컨디션 · 보행 상태 — 단일 선택 라디오 그룹) ---------- */
     .chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+    /* 신청 대기 목록 위 정렬 탭(네이버 지도 스타일) — 지역 필터와 같은 .chip-btn 모양을 그대로 써서
+       한 카드 안에서 톤을 통일하되, 위치만 필터보다 먼저(정렬이 더 먼저 보게) 둡니다. */
+    .req-sort-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    #requestSortBar .chip-btn { padding: 7px 14px; font-size: 13px; }
     /* 신청 대기 목록 위 지역별 퀵 필터 — 대분류(전체/인천/경기) 3개 필만 가로로 두고, 구/시 단위
        세부 지역은 대분류를 고른 뒤에만 나타나는 작은 드롭다운 하나로 접어 둡니다. 구/시를 전부
        필(pill)로 늘어놓으면 지역이 늘어날수록 한 줄에 다 안 들어와 줄바꿈되거나 화면이 복잡해지는
@@ -694,27 +860,44 @@
     .chip-btn.is-selected { border-color: var(--brand); background: var(--brand-soft); color: var(--brand-dark); }
     .field textarea.compact { height: 64px; }
 
-    /* ---------- 케어 리포트 첨부: 처방전 · 진료비 영수증 · 약 봉투 사진 (미리보기 + 삭제) ---------- */
-    .report-photo-drop {
-      display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 12px; border-radius: var(--radius-sm);
-      background: #fff; border: 1px solid var(--card-border); color: var(--brand-dark); font-size: 13.5px; font-weight: 700; cursor: pointer;
-      transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease; margin-bottom: 10px;
+    /* ---------- AI 케어 리포트: 핵심 메모 → AI 초안 생성 → 보호자에게 전송 ---------- */
+    .ai-draft-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+    .ai-draft-head label { margin-bottom: 0; }
+    .ai-draft-head .btn-sm { white-space: nowrap; }
+    #reportAiMessage { min-height: 140px; }
+    .rv-text-box { white-space: pre-line; word-break: break-word; font-size: 14px; color: var(--ink-body); }
+    .rv-memo { margin: 0 0 10px; font-size: 13px; color: var(--ink-sub); white-space: pre-line; }
+    /* 상세 기록(진료 소견 등)은 선택 사항이라 기본은 접어 두고, 필요한 경우에만 펼쳐 봅니다 */
+    .report-detail-fields { margin: 4px 0 14px; padding-top: 10px; border-top: 1px dashed var(--card-border); }
+    .report-detail-fields summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--ink-sub); padding: 2px 0 10px; }
+    .report-detail-fields[open] summary { color: var(--brand-dark); }
+    .report-detail-fields .field:first-of-type { margin-top: 4px; }
+
+    /* ---------- 케어 리포트 첨부: 서류 · 현장 사진 — 가로 스크롤 갤러리 ----------
+       인스타그램/카카오톡 사진 첨부처럼 "추가" 슬롯 + 76px 정사각 썸네일이 한 줄로 나란히 스크롤되는
+       구조입니다. createPhotoUploader() 가 .photo-strip(#photoGrid 등) 맨 앞에 .photo-add-slot 을
+       한 번만 만들어 고정하고, 그 뒤에 .report-photo-thumb 들을 매 렌더마다 다시 그립니다. */
+    .photo-strip-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+    .photo-strip-head label { margin-bottom: 0; } /* .field label 기본 margin-bottom 을 이 줄에서만 취소 — 개수 텍스트와 한 줄에 나란히 */
+    .photo-count { font-size: 12px; font-weight: 600; color: var(--ink-sub); }
+    .photo-strip { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 2px; -webkit-overflow-scrolling: touch; }
+    .photo-add-slot {
+      flex: 0 0 auto; width: 76px; height: 76px; border-radius: 12px; border: 1.5px dashed #CBD5E1;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+      color: var(--ink-sub); cursor: pointer; background: #fff;
+      transition: border-color .15s ease, background-color .15s ease, color .15s ease;
     }
-    .report-photo-drop:hover { background: var(--brand-soft); border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-line); }
-    .report-photo-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-    .report-photo-thumb { position: relative; aspect-ratio: 1 / 1; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--card-border); background: var(--bg); }
+    .photo-add-slot span { font-size: 11px; font-weight: 700; }
+    .photo-add-slot:hover { border-color: var(--brand); color: var(--brand-dark); background: var(--brand-soft); }
+    .photo-add-slot.is-full { opacity: .4; pointer-events: none; } /* REPORT_PHOTO_MAX 도달 시 더 추가할 수 없음을 알림 */
+    .report-photo-thumb { flex: 0 0 auto; position: relative; width: 76px; height: 76px; border-radius: 12px; overflow: hidden; border: 1px solid var(--card-border); background: var(--bg); }
     .report-photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .report-photo-thumb-remove {
-      position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%; border: none; z-index: 1;
-      background: rgba(0,0,0,.6); color: #fff; font-size: 12px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%; border: none; z-index: 1;
+      background: rgba(0,0,0,.6); color: #fff; font-size: 11px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center;
       transition: background-color .15s ease;
     }
     .report-photo-thumb-remove:hover { background: rgba(0,0,0,.8); }
-    .report-photo-thumb-label-select {
-      position: absolute; left: 0; right: 0; bottom: 0; width: 100%; border: none; padding: 4px 22px 4px 6px; font-size: 10.5px; font-weight: 700;
-      color: #fff; background: rgba(0,0,0,.55); appearance: none; -webkit-appearance: none; cursor: pointer;
-    }
-    .report-photo-thumb-label-select option { color: #000; }
 
     /* 인증 사진 라이트박스 — mypage.html 의 .rv-lightbox-* 와 같은 구조 */
     .rv-lightbox-backdrop { z-index: 400; background: rgba(15, 23, 42, .85); }
@@ -819,6 +1002,7 @@
 
     .field { margin-bottom: 14px; }
     .field label { display: block; margin-bottom: 4px; font-size: 13px; font-weight: 700; }
+    .field label.field-sub-label { margin-top: 12px; } /* 한 .field 안에 칩 그룹 두 줄(컨디션/보행 상태)을 같이 둘 때 사이 간격 */
     .field textarea {
       width: 100%; height: 110px; resize: none; padding: 14px 16px; border: 1px solid var(--input-border); border-radius: var(--radius);
       font: inherit; line-height: 1.55; color: var(--ink); background: #fff; outline: none;
@@ -1215,6 +1399,19 @@
           </div>
           <span class="status-tag" id="activityBadge">불러오는 중</span>
           <p class="status-hint" id="activityHint" hidden></p>
+          <!-- 신규 케어 신청을 텔레그램 개인 봇(DM)으로 받고 [동행 수락하기] 버튼으로 바로 수락하기 위한
+               연결 버튼(handleTelegramLinkClick/refreshTelegramLinkStatus 참고) — 클릭 가능한 액티브
+               글래스 버튼(is-interactive). 연결 전/후 문구만 바뀌고, 데모 모드(?demo=1)에서는 실제
+               계정이 없어 wrap 전체를 숨깁니다. -->
+          <div class="glass-button-wrap is-interactive" id="telegramLinkWrap" hidden>
+            <div class="glass-button-shadow"></div>
+            <button type="button" class="glass-button" id="telegramLinkBtn">
+              <span class="glass-button-text">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"></path><path d="M22 2 11 13"></path></svg>
+                <span id="telegramLinkText">텔레그램 알림 연결</span>
+              </span>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -1272,6 +1469,15 @@
             <button type="button" class="btn btn-sm btn-ghost" id="requestRefreshBtn">새로고침</button>
           </div>
           <p class="card-lead">아직 담당 매니저가 정해지지 않은 동행 신청이에요. 가능한 일정은 <strong>수락하기</strong>를 눌러 바로 배정받으세요.</p>
+          <!-- 네이버 지도 스타일 정렬 탭 — 관련도순(기본: 내 활동 지역 + 마감 임박도) / 거리순(내 등록
+               주소 ↔ 신청 출발지) / 최신순(접수 시간 내림차순). requestSortBar 리스너/sortRequests() 참고. -->
+          <div class="req-sort-bar">
+            <div class="chip-group" id="requestSortBar" role="radiogroup" aria-label="정렬 기준">
+              <button type="button" class="chip-btn is-selected" data-sort="relevance">관련도순</button>
+              <button type="button" class="chip-btn" data-sort="distance">거리순</button>
+              <button type="button" class="chip-btn" data-sort="latest">최신순</button>
+            </div>
+          </div>
           <div class="req-region-filter">
             <div class="chip-group" id="requestRegionFilterBar" role="radiogroup" aria-label="지역 필터">
               <button type="button" class="chip-btn is-selected" data-group="all">전체</button>
@@ -1408,27 +1614,36 @@
       <div class="target" id="reportTarget"></div>
 
       <div class="field">
-        <label for="physicianNotes">진료 소견 · 의사 안내사항 *</label>
-        <textarea id="physicianNotes" maxlength="1500" placeholder="예: 혈압 132/84, 처방약 2주분 수령. 다음 진료는 10월 3일."></textarea>
+        <label id="reportCareTypeLabel">케어 대상 유형 *</label>
+        <div class="chip-group" id="reportCareTypeGroup" role="radiogroup" aria-labelledby="reportCareTypeLabel">
+          <button type="button" class="chip-btn" data-value="senior">어르신 케어</button>
+          <button type="button" class="chip-btn" data-value="child">아동 케어</button>
+        </div>
       </div>
 
       <div class="field">
-        <label for="nextVisitDate">다음 진료 예약일 (선택)</label>
-        <input type="date" id="nextVisitDate">
+        <label id="reportQuickTagLabel">빠른 선택 태그 (복수 선택 가능)</label>
+        <div class="chip-group" id="reportQuickTagGroup" role="group" aria-labelledby="reportQuickTagLabel">
+          <button type="button" class="chip-btn" data-value="진료 완료" data-for="senior">진료 완료</button>
+          <button type="button" class="chip-btn" data-value="처방약 수령" data-for="senior">처방약 수령</button>
+          <button type="button" class="chip-btn" data-value="하원 완료" data-for="child">하원 완료</button>
+          <button type="button" class="chip-btn" data-value="식사 확인" data-for="child">식사 확인</button>
+          <button type="button" class="chip-btn" data-value="안전 귀가" data-for="both">안전 귀가</button>
+        </div>
       </div>
 
-      <div class="field">
-        <label id="conditionChipLabel">어르신 컨디션 *</label>
+      <!-- 어르신 컨디션/보행 상태 — 아동 케어에는 해당하지 않는 항목이라 케어 대상 유형이 '아동 케어'면
+           이 블록 전체를 숨깁니다(reportCareTypeGroup 클릭 핸들러 참고). 탭 한 번으로 끝나는 선택지라
+           타이핑 없이 핵심 데이터를 채우는 메인 흐름에 둡니다 — 더 이상 '상세 기록'에 숨어있지 않습니다. -->
+      <div class="field" id="reportSeniorStatusFields">
+        <label id="conditionChipLabel">어르신 컨디션</label>
         <div class="chip-group" id="conditionChipGroup" role="radiogroup" aria-labelledby="conditionChipLabel">
           <button type="button" class="chip-btn" data-value="양호">양호</button>
           <button type="button" class="chip-btn" data-value="보통">보통</button>
           <button type="button" class="chip-btn" data-value="피곤/기력저하">피곤/기력저하</button>
           <button type="button" class="chip-btn" data-value="불편/통증">불편/통증</button>
         </div>
-      </div>
-
-      <div class="field">
-        <label id="mobilityChipLabel">보행 상태 *</label>
+        <label id="mobilityChipLabel" class="field-sub-label">보행 상태</label>
         <div class="chip-group" id="mobilityChipGroup" role="radiogroup" aria-labelledby="mobilityChipLabel">
           <button type="button" class="chip-btn" data-value="자립 보행">자립 보행</button>
           <button type="button" class="chip-btn" data-value="부축 보행">부축 보행</button>
@@ -1436,24 +1651,55 @@
         </div>
       </div>
 
+      <!-- 사진 한 장이면 태그만으로도 AI 초안이 훨씬 풍부해지므로(현장 사진 촬영 사실을 리포트에 반영),
+           타이핑이 필요한 '상세 기록'이 아니라 태그 선택과 같은 비중의 메인 입력으로 끌어올립니다.
+           가로 스크롤 갤러리(추가 슬롯 + 76px 썸네일) — createPhotoUploader() 가 내용을 채웁니다. -->
       <div class="field">
-        <label for="seniorCondition">특이사항 (선택)</label>
-        <textarea id="seniorCondition" class="compact" maxlength="500" placeholder="위 선택만으로 부족한 내용이 있다면 짧게 적어주세요."></textarea>
+        <div class="photo-strip-head">
+          <label for="photoInput">서류 · 현장 사진 (선택)</label>
+          <span class="photo-count" id="photoCount">0/5</span>
+        </div>
+        <input type="file" id="photoInput" accept="image/*" multiple hidden>
+        <div class="photo-strip" id="photoGrid"></div>
       </div>
 
       <div class="field">
-        <label for="photoInput">처방전 · 진료비 영수증 · 약 봉투 사진 (선택)</label>
-        <label class="report-photo-drop" for="photoInput">
-          <span id="photoDropText">＋ 사진 추가하기</span>
-        </label>
-        <input type="file" id="photoInput" accept="image/*" multiple hidden>
-        <div class="report-photo-grid" id="photoGrid" hidden></div>
+        <label for="reportMemo">핵심 메모 (선택)</label>
+        <textarea id="reportMemo" class="compact" maxlength="300" placeholder="한 줄로 충분해요. 비워 두고 위 선택만으로 AI 초안을 받아도 괜찮아요."></textarea>
       </div>
+
+      <div class="field ai-draft-field">
+        <div class="ai-draft-head">
+          <label for="reportAiMessage">보호자에게 보낼 리포트</label>
+          <button type="button" class="btn btn-ghost btn-sm" id="reportAiGenerateBtn">AI 리포트 초안 생성</button>
+        </div>
+        <textarea id="reportAiMessage" maxlength="2000" rows="8" placeholder="위 태그 · 사진만으로 [AI 리포트 초안 생성]을 눌러 초안을 받거나, 이 칸에 직접 작성해 주세요."></textarea>
+        <p class="form-hint" id="reportAiHint" hidden>AI가 작성한 초안이에요. 보내기 전에 꼭 확인하고 필요한 부분을 고쳐 주세요.</p>
+      </div>
+
+      <details class="report-detail-fields">
+        <summary>상세 기록 추가 (선택)</summary>
+
+        <div class="field">
+          <label for="physicianNotes" id="physicianNotesLabel">진료 소견 · 의사 안내사항</label>
+          <textarea id="physicianNotes" maxlength="1500" placeholder="예: 혈압 132/84, 처방약 2주분 수령. 다음 진료는 10월 3일."></textarea>
+        </div>
+
+        <div class="field">
+          <label for="nextVisitDate">다음 진료 예약일 (선택)</label>
+          <input type="date" id="nextVisitDate">
+        </div>
+
+        <div class="field">
+          <label for="seniorCondition">특이사항 (선택)</label>
+          <textarea id="seniorCondition" class="compact" maxlength="500" placeholder="위 선택만으로 부족한 내용이 있다면 짧게 적어주세요."></textarea>
+        </div>
+      </details>
 
       <p class="form-error" id="reportFormError" role="alert" hidden></p>
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" id="reportCancelBtn">취소</button>
-        <button type="submit" class="btn" id="reportSaveBtn">리포트 제출</button>
+        <button type="submit" class="btn" id="reportSaveBtn">보호자에게 전송</button>
       </div>
     </form>
   </div>
@@ -1473,12 +1719,20 @@
         <ol class="rv-timeline" id="reportViewTimeline" aria-label="동행/수행 타임라인"></ol>
       </div>
 
+      <!-- AI 케어 리포트 — care_reports.ai_message 가 있는(새 UI로 작성한) 리포트만 보여줍니다 -->
+      <div class="rv-section" id="reportViewAiSection" hidden>
+        <h4 class="rv-section-title">AI 케어 리포트 (보호자 전달)</h4>
+        <div class="rv-tags" id="reportViewQuickTags" hidden></div>
+        <p class="rv-memo" id="reportViewMemo" hidden></p>
+        <div class="rv-text-box" id="reportViewAiMessage"></div>
+      </div>
+
       <div class="rv-next-visit" id="reportViewNextVisitBox" hidden>
         <span class="rv-next-visit-label">다음 병원 방문 예정일</span>
         <span class="rv-next-visit-badge" id="reportViewNextVisit"></span>
       </div>
 
-      <div class="report-detail">
+      <div class="report-detail" id="reportViewLegacySection">
         <h4 id="reportViewPhysicianNotesTitle">진료 소견 · 의사 안내사항</h4>
         <p id="reportViewPhysicianNotes"></p>
         <h4>어르신 컨디션</h4>
@@ -1661,12 +1915,12 @@
         </div>
 
         <div class="field">
-          <label for="completePhotoInput">처방전 · 진료비 영수증 · 약 봉투 사진 (선택)</label>
-          <label class="report-photo-drop" for="completePhotoInput">
-            <span id="completePhotoDropText">＋ 사진 추가하기</span>
-          </label>
+          <div class="photo-strip-head">
+            <label for="completePhotoInput">서류 · 현장 사진 (선택)</label>
+            <span class="photo-count" id="completePhotoCount">0/5</span>
+          </div>
           <input type="file" id="completePhotoInput" accept="image/*" multiple hidden>
-          <div class="report-photo-grid" id="completePhotoGrid" hidden></div>
+          <div class="photo-strip" id="completePhotoGrid"></div>
         </div>
       </div>
 
@@ -1908,6 +2162,10 @@
       returning: '귀가 이동 인증', completed: '케어 완료 인증'
     };
     const SCHEDULE_VISIBLE_COUNT = 3; // '오늘의 배정 케어 일정' 기본 노출 건수 — 이 이상은 [더보기]를 눌러야 펼쳐짐
+    // createPhotoUploader() 가 생성 즉시(렌더 1회) 참조하므로, 그 함수보다 먼저 실행되는 completeModal
+    // 쪽 createPhotoUploader() 호출(아래 completePhotoUploader)보다도 앞에 선언돼 있어야 합니다 — 같은
+    // const 라도 선언문이 실행되기 전까지는 TDZ(Temporal Dead Zone)라 더 아래에 두면 ReferenceError 가 납니다.
+    const REPORT_PHOTO_MAX = 5;
     // '케어 완료 및 시간 입력' 모달에서 [완료 및 정산 요청]까지 마친 건의 id 모음 — DB 상 status 는 계속
     // 'completed' 이지만(CHECK 제약상 별도 상태가 없음), 이 화면에서만 '정산 대기 중' 뱃지로 구분해 보여줍니다.
     // 새로고침하면 초기화되는 세션 한정 표시입니다.
@@ -2108,6 +2366,8 @@
         when_text: det.when, mobility: det.mobility, purpose: det.purpose, notes: det.note,
         addons: addonLabels(a.addon_codes),
         origin: sep >= 0 ? addr.slice(0, sep).trim() : '', destination: sep >= 0 ? addr.slice(sep + 3).trim() : addr,
+        origin_lat: typeof a.origin_lat === 'number' ? a.origin_lat : null,
+        origin_lng: typeof a.origin_lng === 'number' ? a.origin_lng : null,
         guardian_name: name || '보호자', guardian_phone: phone ? phone[0] : '',
         is_mine: !!(currentUser && a.user_id && a.user_id === currentUser.id) // 내가 직접 낸 신청 (테스트용 표시)
       };
@@ -2389,7 +2649,9 @@
         async loadRequests() {
           // 신청서 조회: 수락 정보 컬럼(manager_id)은 supabase-applications-to-manager.sql 이 추가합니다. 아직 적용 전이면
           // 그 컬럼이 없어 42703(undefined_column)이 나므로, 이때는 원래 있는 컬럼만으로 다시 조회해 목록은 계속 보여 줍니다(수락만 막음).
-          const APP_COLS = 'id, created_at, user_id, service_type, user_relation, user_contact, address, request_details, status, addon_codes';
+          // origin_lat/origin_lng: '거리순' 정렬(requestDistanceMeters)에 씁니다 — apply.html 주소 검색
+          // 단계에서 이미 저장해 둔 좌표라 재지오코딩 없이 바로 거리 계산에 쓸 수 있습니다.
+          const APP_COLS = 'id, created_at, user_id, service_type, user_relation, user_contact, address, request_details, status, addon_codes, origin_lat, origin_lng';
           // 접수 후 ACCEPT_WINDOW_HOURS(48시간)가 지나면 수락 기한이 끝난 것으로 보고, DB 조회 단계에서부터 제외합니다
           // (화면에서도 renderRequests() 가 같은 기준으로 한 번 더 걸러 내므로, 탭을 오래 열어 둔 사이 기한이 지나도 목록에서 사라집니다).
           const acceptCutoffIso = new Date(Date.now() - ACCEPT_WINDOW_HOURS * 3600e3).toISOString();
@@ -2543,7 +2805,7 @@
         },
         async loadReports() {
           return must(await supabaseClient.from('care_reports')
-            .select('id, schedule_id, physician_notes, senior_condition, condition_tags, next_visit_date, photos, created_at')
+            .select('id, schedule_id, physician_notes, senior_condition, condition_tags, next_visit_date, photos, created_at, care_type, quick_tags, manager_memo, ai_message')
             .eq('manager_id', user.id)
             .order('created_at', { ascending: false }).limit(50));
         },
@@ -2576,10 +2838,13 @@
         //     advance() 로 상태만 바꿉니다(advance_care_status RPC 가 있으면 미러링까지는 살아 있음). 반환값에
         //     _verificationSkipped 를 표시해 호출부가 안내 문구를 다르게 보여줄 수 있게 합니다. 위치/사진까지
         //     정상 저장하려면 supabase-fix-status-sync.sql 을 Supabase 대시보드 → SQL Editor 에서 실행해야 합니다.
-        async verifyAdvance(scheduleId, status, location, photo) {
+        // authMethod/authReason(sql/departure_geofence_auth.sql): 출발 인증이 자동(auto_gps/expanded_gps)·
+        // 수동(manual_gps_fallback)·사진 대체(photo_fallback) 중 무엇으로 통과했는지. 'arrived' 호출은 지금처럼 생략.
+        async verifyAdvance(scheduleId, status, location, photo, authMethod, authReason) {
           try {
             return must(await supabaseClient.rpc('record_care_verification', {
-              p_schedule_id: scheduleId, p_status: status, p_location: location || null, p_photo: photo || null
+              p_schedule_id: scheduleId, p_status: status, p_location: location || null, p_photo: photo || null,
+              p_auth_method: authMethod || null, p_auth_reason: authReason || null
             }));
           } catch (err) {
             const msg = String((err && err.message) || err);
@@ -2595,11 +2860,26 @@
         async submitReport(scheduleId, physicianNotes, seniorCondition, extra = {}) {
           must(await supabaseClient.from('care_reports').insert([{
             schedule_id: scheduleId, manager_id: user.id,
-            physician_notes: physicianNotes, senior_condition: seniorCondition || null,
+            physician_notes: physicianNotes || null, senior_condition: seniorCondition || null,
             condition_tags: extra.conditionTags || [],
             next_visit_date: extra.nextVisitDate || null,
-            photos: extra.photos || []
+            photos: extra.photos || [],
+            // AI 케어 리포트(sql/ai_care_report.sql) — completeModal 의 기존 호출부는 extra 에 이 네 값을
+            // 넘기지 않으므로 그대로 care_type 기본값('senior')/빈 배열/null 로 저장됩니다.
+            care_type: extra.careType || 'senior',
+            quick_tags: extra.quickTags || [],
+            manager_memo: extra.managerMemo || null,
+            ai_message: extra.aiMessage || null,
+            ai_generated_at: extra.aiGeneratedAt || null
           }]));
+        },
+        // 매니저가 입력한 케어 대상 유형 · 빠른 선택 태그 · 핵심 메모만으로 AI가 보호자에게 보낼 리포트
+        // 초안을 만들어 줍니다(Edge Function generate-care-report, OPENAI_API_KEY/GEMINI_API_KEY 필요).
+        // DB에는 아무것도 쓰지 않는 순수 조회성 호출이라 실패해도 리포트 작성 자체는 계속할 수 있습니다.
+        async generateAiDraft({ careType, tags, memo, hasPhoto, seniorName }) {
+          const { data, error } = await WBEdgeFn.invoke(supabaseClient, 'generate-care-report', { careType, tags, memo, hasPhoto, seniorName });
+          if (error) throw new Error(error.message || 'AI 리포트 초안 생성에 실패했습니다.');
+          return data && data.draft;
         },
         // 병원 도착 인증 1건의 감사 로그 (supabase-arrival-verification-logs.sql). 실패해도 호출부(best-effort)가
         // 도착 처리 자체는 막지 않으므로, 여기서는 그대로 던지기만 합니다.
@@ -2725,11 +3005,14 @@
           s.status = status;
           if (status === 'completed') completed.unshift({ id: s.id, senior_name: s.senior_name, destination: s.destination, scheduled_at: s.scheduled_at, completed_at: new Date().toISOString(), payout_amount: s.payout_amount });
         },
-        async verifyAdvance(id, status, location, photo) {
+        async verifyAdvance(id, status, location, photo, authMethod, authReason) {
           await wait();
           const s = assigned.find((x) => x.id === id);
           s.status = status;
-          if (status === 'departed') { s.departed_at = new Date().toISOString(); s.departed_location = location || null; s.departed_photo = photo || null; }
+          if (status === 'departed') {
+            s.departed_at = new Date().toISOString(); s.departed_location = location || null; s.departed_photo = photo || null;
+            s.departure_auth_method = authMethod || null; s.departure_auth_reason = authReason || null;
+          }
           if (status === 'arrived') { s.arrived_at = new Date().toISOString(); s.arrived_location = location || null; s.arrived_photo = photo || null; }
         },
         async logArrivalVerification(payload) {
@@ -2749,10 +3032,24 @@
         async submitReport(scheduleId, physicianNotes, seniorCondition, extra = {}) {
           await wait();
           const s = completed.find((x) => x.id === scheduleId);
-          reports.unshift({ id: 'r' + Date.now(), schedule_id: scheduleId, physician_notes: physicianNotes, senior_condition: seniorCondition,
+          reports.unshift({ id: 'r' + Date.now(), schedule_id: scheduleId, physician_notes: physicianNotes || null, senior_condition: seniorCondition,
             condition_tags: extra.conditionTags || [], next_visit_date: extra.nextVisitDate || null, photos: extra.photos || [],
             created_at: new Date().toISOString(),
+            care_type: extra.careType || 'senior', quick_tags: extra.quickTags || [],
+            manager_memo: extra.managerMemo || null, ai_message: extra.aiMessage || null,
             care_schedules: { senior_name: s.senior_name, destination: s.destination, scheduled_at: s.scheduled_at } });
+        },
+        // 데모 모드는 로그인 세션/서버 설정이 없어 실제 Edge Function을 호출할 수 없으므로, 입력한 태그·메모를
+        // 그대로 엮어 '이런 모양의 초안이 온다'를 바로 보여주는 로컬 템플릿으로 대신합니다.
+        async generateAiDraft({ careType, tags, memo, hasPhoto, seniorName }) {
+          await wait();
+          const who = seniorName || (careType === 'child' ? '아이' : '어르신');
+          const greeting = careType === 'child'
+            ? who + '와 즐거운 시간 보내고 왔어요! 오늘 케어 소식을 전해드려요.'
+            : who + '님과 함께한 오늘 동행을 안심하고 보실 수 있도록 전해드립니다.';
+          const bullets = (tags.length ? tags : ['케어 진행']).map((t) => '· ' + t).join('\n');
+          const closing = careType === 'child' ? '다음에도 안전하고 즐겁게 함께하겠습니다.' : '앞으로도 정성껏 살펴보겠습니다.';
+          return [greeting, bullets, memo ? '· ' + memo : null, hasPhoto ? '· 현장 사진 촬영 완료' : null, closing].filter(Boolean).join('\n');
         }
       };
     }
@@ -2857,7 +3154,81 @@
 
       renderActivity();
       renderDutyToggle();
+      refreshTelegramLinkStatus();
     }
+
+    // ---------- 텔레그램 알림 연결 ----------
+    // @BotFather 로 만든 실제 운영 봇의 사용자명으로 바꿔야 딥링크(https://t.me/<봇>?start=<토큰>)가 열립니다
+    // — supabase/functions/_shared/telegram.ts 의 TELEGRAM_BOT_TOKEN 과 반드시 같은 봇이어야 합니다.
+    const TELEGRAM_BOT_USERNAME = 'withbridge_alert_bot';
+
+    function setTelegramLinkBtnUI(state) { // 'checking' | 'linked' | 'unlinked' | 'busy'
+      const wrap = $('telegramLinkWrap');
+      const btn = $('telegramLinkBtn');
+      const label = $('telegramLinkText');
+      if (!wrap || !btn || !label) return;
+      wrap.hidden = false;
+      btn.disabled = state === 'checking' || state === 'busy';
+      wrap.classList.toggle('is-linked', state === 'linked');
+      label.textContent = state === 'linked' ? '텔레그램 연결됨 (끊기)'
+        : state === 'busy' ? '연결 처리 중…'
+        : state === 'checking' ? '불러오는 중'
+        : '텔레그램 알림 연결';
+    }
+
+    // 데모 모드(?demo=1)나 DB 설정 전(테이블 없음)에는 버튼을 숨깁니다 — 신청 수락 자체는 이 연결과
+    // 무관하게 마이페이지 웹 화면에서 계속 가능하므로, 조회 실패를 오류로 보여주지 않습니다.
+    async function refreshTelegramLinkStatus() {
+      const wrap = $('telegramLinkWrap');
+      if (!wrap) return;
+      if (DEMO || !supabaseClient || !currentUser) { wrap.hidden = true; return; }
+      setTelegramLinkBtnUI('checking');
+      try {
+        const { data: row, error } = await supabaseClient
+          .from('manager_telegram_links').select('user_id').eq('user_id', currentUser.id).maybeSingle();
+        if (error) throw error;
+        setTelegramLinkBtnUI(row ? 'linked' : 'unlinked');
+      } catch (err) {
+        console.warn('[텔레그램 연결 상태] 조회 실패(DB 설정 전일 수 있음):', (err && err.message) || err);
+        wrap.hidden = true;
+      }
+    }
+
+    async function handleTelegramLinkClick() {
+      const wrap = $('telegramLinkWrap');
+      if (!wrap) return;
+      const isLinked = wrap.classList.contains('is-linked');
+
+      if (isLinked) {
+        if (!confirm('텔레그램 알림 연결을 끊을까요? 이후 신규 신청 알림이 더 이상 오지 않습니다.')) return;
+        setTelegramLinkBtnUI('busy');
+        try {
+          const { error } = await supabaseClient.from('manager_telegram_links').delete().eq('user_id', currentUser.id);
+          if (error) throw error;
+          setTelegramLinkBtnUI('unlinked');
+          showToast('텔레그램 연결을 끊었습니다.');
+        } catch (err) {
+          setTelegramLinkBtnUI('linked');
+          alert('연결을 끊지 못했습니다: ' + ((err && err.message) || err));
+        }
+        return;
+      }
+
+      setTelegramLinkBtnUI('busy');
+      try {
+        const { data: token, error } = await supabaseClient.rpc('request_telegram_link_token');
+        if (error) throw error;
+        window.open('https://t.me/' + TELEGRAM_BOT_USERNAME + '?start=' + token, '_blank');
+        showToast('열린 텔레그램 창에서 [시작] 버튼을 눌러 연결을 완료해 주세요.');
+        setTelegramLinkBtnUI('unlinked');
+        // 연결 완료는 텔레그램 쪽 /start 처리 이후라 이 페이지에선 바로 알 수 없어, 몇 초 뒤 한 번 더 확인합니다.
+        setTimeout(refreshTelegramLinkStatus, 4000);
+      } catch (err) {
+        setTelegramLinkBtnUI('unlinked');
+        alert('연결 토큰을 발급하지 못했습니다: ' + ((err && err.message) || err));
+      }
+    }
+    $('telegramLinkBtn').addEventListener('click', handleTelegramLinkClick);
 
     // 출근(근무 가능)/휴식 수동 토글 — 매니저 본인이 직접 켜고 끄는 컨트롤입니다.
     function setDutyToggleUI(status, opts) {
@@ -3156,6 +3527,112 @@
       });
     }
 
+    // ---------- 신청 대기 목록 정렬(네이버 지도 스타일 탭: 관련도순/거리순/최신순) ----------
+    // '관련도순'(기본)은 내 활동 지역(manager_applications.activity_areas) 일치 여부를 1순위, 마감
+    // 임박도(acceptRemainMs)를 2순위로 봅니다. '거리순'은 내 등록 주소(manager_applications.address)를
+    // 한 번 지오코딩해 둔 좌표와 각 신청의 출발지 좌표(origin_lat/lng) 사이 거리(distanceMeters, 위에서
+    // GPS 인증에 쓰는 바로 그 Haversine 함수)로 정렬합니다. 두 기준 모두 manager_applications 조회가
+    // 필요해 지역 필터처럼 즉시 쓸 수 없으므로, 처음 필요한 시점에 한 번만 불러와 캐시합니다.
+    let requestSortKey = 'relevance';
+    let managerSortProfile = null;       // { address, activity_areas } — manager_applications 최신 승인 지원서
+    let managerSortProfilePromise = null;
+    let managerBaseCoord = null;         // { lat, lng } — managerSortProfile.address 를 지오코딩한 결과
+    let managerBaseCoordPromise = null;
+
+    async function ensureManagerSortProfile() {
+      if (managerSortProfilePromise) return managerSortProfilePromise;
+      managerSortProfilePromise = (async () => {
+        if (DEMO || !supabaseClient || !currentUser) { managerSortProfile = { address: '', activity_areas: [] }; return; }
+        try {
+          const { data, error } = await supabaseClient
+            .from('manager_applications')
+            .select('address, activity_areas')
+            .eq('user_id', currentUser.id)
+            .eq('status', 'approved')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (error) throw error;
+          managerSortProfile = data || { address: '', activity_areas: [] };
+        } catch (e) {
+          console.warn('[신청 대기 정렬] manager_applications(지역/주소) 조회 실패 — 관련도순은 임박도만으로, 거리순은 비활성됩니다:', (e && e.message) || e);
+          managerSortProfile = { address: '', activity_areas: [] };
+        }
+      })();
+      return managerSortProfilePromise;
+    }
+
+    async function ensureManagerBaseCoord() {
+      if (managerBaseCoordPromise) return managerBaseCoordPromise;
+      managerBaseCoordPromise = (async () => {
+        await ensureManagerSortProfile();
+        if (managerSortProfile && managerSortProfile.address) {
+          managerBaseCoord = await geocodeAddress(managerSortProfile.address);
+          if (!managerBaseCoord) {
+            console.warn('[신청 대기 정렬] 등록 주소 좌표 변환 실패 — 거리순을 쓸 수 없습니다:', managerSortProfile.address);
+          }
+        }
+      })();
+      return managerBaseCoordPromise;
+    }
+
+    // 신청 주소(출발지+목적지)에 내 활동 지역 중 하나라도 겹치면 true. activity_areas 는
+    // "인천 남동구"/"경기 시흥시"처럼 '시도 + 구시' 형태라, 마지막 토큰(구/시 이름)만 뽑아 비교합니다.
+    function isRegionRelevant(r) {
+      const areas = (managerSortProfile && managerSortProfile.activity_areas) || [];
+      if (!areas.length) return false;
+      const addr = (r.origin || '') + ' ' + (r.destination || '');
+      return areas.some((area) => {
+        const token = String(area || '').trim().split(/\s+/).pop();
+        return token && addr.includes(token);
+      });
+    }
+    function requestDistanceMeters(r) {
+      if (!managerBaseCoord || typeof r.origin_lat !== 'number' || typeof r.origin_lng !== 'number') return null;
+      return distanceMeters(managerBaseCoord.lat, managerBaseCoord.lng, r.origin_lat, r.origin_lng);
+    }
+    function sortRequests(arr) {
+      const items = arr.slice();
+      if (requestSortKey === 'latest') {
+        items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)); // 등록 시간 내림차순
+      } else if (requestSortKey === 'distance') {
+        items.sort((a, b) => {
+          const da = requestDistanceMeters(a), db = requestDistanceMeters(b);
+          if (da === null && db === null) return 0;
+          if (da === null) return 1;  // 좌표 없는 건은 뒤로
+          if (db === null) return -1;
+          return da - db;
+        });
+      } else { // 관련도순(기본): 내 활동 지역 일치 → 마감 임박도 순
+        items.sort((a, b) => {
+          const ra = isRegionRelevant(a) ? 0 : 1, rb = isRegionRelevant(b) ? 0 : 1;
+          if (ra !== rb) return ra - rb;
+          const ua = acceptRemainMs(a.created_at), ub = acceptRemainMs(b.created_at);
+          return (ua === null ? Infinity : ua) - (ub === null ? Infinity : ub);
+        });
+      }
+      return items;
+    }
+
+    const requestSortBar = $('requestSortBar');
+    if (requestSortBar) {
+      requestSortBar.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.chip-btn');
+        if (!btn || btn.dataset.sort === requestSortKey) return;
+        requestSortKey = btn.dataset.sort;
+        requestSortBar.querySelectorAll('.chip-btn').forEach((b) => b.classList.toggle('is-selected', b === btn));
+        renderRequests(); // 데이터가 아직 없어도(관련도=임박도만, 거리=null 취급) 일단 즉시 재정렬해 반응성부터 보여줌
+        if (requestSortKey === 'relevance') await ensureManagerSortProfile();
+        else if (requestSortKey === 'distance') await ensureManagerBaseCoord();
+        if (requestSortKey === btn.dataset.sort) renderRequests(); // 그 사이 다른 탭으로 또 바뀌지 않았을 때만 최종 결과 반영
+      });
+    }
+    // 기본값이 '관련도순'이라 목록을 그리기 전에 한 번 미리 불러와 둡니다(실패해도 임박도순으로만 보여줄 뿐 막지 않음).
+    // data(신청 목록)가 아직 없을 수 있습니다 — 이 호출은 로그인/권한 확인이 끝나기 전(init() 이전)에도
+    // 스크립트 로드 즉시 실행되므로, loadAll() 이 최초로 data 를 채우기 전에 이 프로미스가 먼저 풀리면
+    // renderRequests() 가 아직 null 인 data 를 읽다 그대로 터집니다 — 그래서 반드시 data 존재를 먼저 확인합니다.
+    ensureManagerSortProfile().then(() => { if (requestSortKey === 'relevance' && data && data.requests) renderRequests(); });
+
     // ---------- 신청 대기 목록 (수락 전) ----------
     function renderRequests() {
       const box = $('requestList');
@@ -3212,7 +3689,7 @@
 
       // 지역 필터는 배지/탭 건수(전체 대기량)에는 영향을 주지 않고, 아래 카드 목록에만 적용합니다 —
       // 필터를 걸었다고 "대기 중 N건"이 줄어든 것처럼 보이면 안 되므로.
-      const filtered = list.filter(matchesRegionFilter);
+      const filtered = sortRequests(list.filter(matchesRegionFilter));
       if (filtered.length === 0) {
         emptyBox(box, '이 지역에는 대기 중인 신청이 없어요', '다른 지역 필터를 선택하거나 [전체]를 눌러 모든 신청을 확인해 주세요.');
         appendNotes();
@@ -3673,6 +4150,7 @@
     function scheduleCard(s, isUpcoming, showDayTag, showOverdueBadge) {
       const cur = ORDER.indexOf(s.status);
       const card = h('div', 'sched-compact' + (s.status === 'completed' ? ' is-completed' : ''));
+      card.dataset.scheduleId = s.id; // 출발 인증 지오펜싱(renderGeofenceSlots)이 카드를 다시 찾아 들어가는 키
       const isReported = s.status === 'completed' && reportedIds().has(s.id);
       const isSettling = s.status === 'completed' && !isReported && settlementRequestedIds.has(s.id);
 
@@ -3786,7 +4264,14 @@
         actionBar.appendChild(issueBtn);
 
         const next = FLOW[cur]; // 다음 단계 (배정됨→출발, 이동 중→병원 도착, 병원 도착→진료/대행 완료, 진료/대행 완료→귀가 이동, 귀가 이동→케어 완료)
-        const btn = h('button', 'action-btn' + (next && next.key === 'completed' ? ' is-accent' : ''), ACTION_BTN_TEXT[next.key]);
+        // 출발 인증 지오펜싱 배너/힌트가 들어갈 빈 슬롯 — renderGeofenceSlots() 가 geofenceTick() 결과에
+        // 따라 이 안을 채우거나 비웁니다(기본은 숨김). actionBar 보다 먼저 붙여 카드 위쪽에 배너가 뜨게 합니다.
+        if (next && next.key === 'departed') {
+          const slot = h('div', 'geofence-slot');
+          slot.hidden = true;
+          card.appendChild(slot);
+        }
+        const btn = h('button', 'action-btn' + (next && next.key === 'completed' ? ' is-accent' : '') + (next && next.key === 'departed' ? ' sched-main-action-btn' : ''), ACTION_BTN_TEXT[next.key]);
         btn.type = 'button';
         btn.addEventListener('click', () => onAdvance(s, next, btn));
         actionBar.appendChild(btn);
@@ -3881,7 +4366,7 @@
     const completeConditionChip = createChipGroup($('completeConditionChipGroup'));
     const completeMobilityChip = createChipGroup($('completeMobilityChipGroup'));
     const completeSeniorCondition = $('completeSeniorCondition');
-    const completePhotoUploader = createPhotoUploader($('completePhotoInput'), $('completePhotoGrid'));
+    const completePhotoUploader = createPhotoUploader($('completePhotoInput'), $('completePhotoGrid'), $('completePhotoCount'));
     const completeFormError = $('completeFormError');
     let completeState = null; // { schedule, step, button }
 
@@ -4134,12 +4619,16 @@
       }
     });
 
-    async function performAdvance(schedule, step, button, needsFullReload, location, photo) {
+    // authInfo = { method, reason }(sql/departure_geofence_auth.sql, 'departed' 전용) — 지오펜싱 자동 인증
+    // (auto_gps/expanded_gps), 배너 없이 매니저가 직접 측정(manual_gps_fallback), 현장 사진 대체(photo_fallback)
+    // 중 무엇으로 이 출발 건이 통과했는지. 'arrived' 등 다른 단계 호출은 생략해도 그대로 null 로 저장됩니다.
+    async function performAdvance(schedule, step, button, needsFullReload, location, photo, authInfo) {
       button.disabled = true;
       try {
         let verificationSkipped = false; // true: RPC 미배포로 위치/사진 없이 상태만 저장됨(verifyAdvance() fallback 참고)
         if (step.key === 'departed' || step.key === 'arrived') {
-          const result = await api.verifyAdvance(schedule.id, step.key, location, photo); // 인증 데이터와 함께 저장 → 보호자 화면에서 그대로 보여 줌
+          const result = await api.verifyAdvance(schedule.id, step.key, location, photo,
+            authInfo && authInfo.method, authInfo && authInfo.reason); // 인증 데이터와 함께 저장 → 보호자 화면에서 그대로 보여 줌
           verificationSkipped = !!(result && result._verificationSkipped);
           // ★ 이 페이지는 renderToday() 가 다시 불러오기 전까지 data.assigned 의 같은 schedule 객체를 계속 재사용합니다
           // (departed/arrived 는 needsFullReload=false 라 loadAll() 이 안 돌아 DB 재조회가 없음) — 방금 인증한 시각·GPS·
@@ -4151,6 +4640,8 @@
             schedule.departed_at = (result && result.departed_at) || new Date().toISOString();
             schedule.departed_location = (result && result.departed_location) || location || null;
             schedule.departed_photo = (result && result.departed_photo) || photo || null;
+            schedule.departure_auth_method = (result && result.departure_auth_method) || (authInfo && authInfo.method) || null;
+            schedule.departure_auth_reason = (result && result.departure_auth_reason) || (authInfo && authInfo.reason) || null;
           } else {
             schedule.arrived_at = (result && result.arrived_at) || new Date().toISOString();
             schedule.arrived_location = (result && result.arrived_location) || location || null;
@@ -4454,6 +4945,19 @@
       return { rawDataUrl, watermarkedDataUrl: canvas.toDataURL('image/jpeg', 0.8) };
     }
 
+    const DEPARTURE_PHOTO_BUCKET = 'care-departure-photos'; // sql/departure_geofence_auth.sql (public 버킷)
+    // 출발 인증(현장 사진 대체)의 워터마크 data URL을 실제 Storage 에 올리고 공개 URL을 돌려줍니다.
+    // 실패하면(오프라인·버킷 미배포 등) 예외를 그대로 던져 호출부가 data URL 로 대체하게 합니다.
+    async function uploadDeparturePhoto(scheduleId, dataUrl) {
+      const blob = await (await fetch(dataUrl)).blob();
+      const path = scheduleId + '/' + Date.now() + '-' + Math.random().toString(16).slice(2) + '.jpg';
+      const { error } = await supabaseClient.storage.from(DEPARTURE_PHOTO_BUCKET).upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+      if (error) throw error;
+      const { data } = supabaseClient.storage.from(DEPARTURE_PHOTO_BUCKET).getPublicUrl(path);
+      if (!data || !data.publicUrl) throw new Error('PUBLIC_URL_UNAVAILABLE');
+      return data.publicUrl;
+    }
+
     // ---------- 케어 리포트 작성 보조 UI: 원클릭 선택 칩(어르신 컨디션 · 보행 상태) ----------
     // containerEl 안의 .chip-btn 들을 라디오처럼 단일 선택으로 묶습니다. completeModal/reportModal 두 군데가
     // 똑같은 동작(컨디션 칩 1개, 보행 상태 칩 1개)을 쓰므로 한 번만 만들어 재사용합니다.
@@ -4472,12 +4976,40 @@
       };
     }
 
-    // ---------- 케어 리포트 첨부 사진: 처방전 · 진료비 영수증 · 약 봉투 등 (미리보기 + 종류 선택 + 삭제) ----------
+    // containerEl 안의 .chip-btn 들을 다중 선택으로 묶습니다(AI 케어 리포트의 '빠른 선택 태그' 전용) —
+    // createChipGroup() 과 달리 누를 때마다 선택/해제가 토글되고, 여러 개를 동시에 고를 수 있습니다.
+    // setVisibleFor(careType) 는 data-for 속성이 'both' 이거나 careType 과 같은 칩만 보여주고, 화면에서
+    // 숨긴 칩이 선택돼 있었다면 선택도 함께 풀어 둡니다(다른 케어 유형의 태그가 조용히 같이 제출되는 것을 막음).
+    function createMultiChipGroup(containerEl) {
+      const buttons = Array.from(containerEl.querySelectorAll('.chip-btn'));
+      let values = [];
+      buttons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const v = btn.dataset.value;
+          if (values.includes(v)) { values = values.filter((x) => x !== v); btn.classList.remove('is-selected'); }
+          else { values.push(v); btn.classList.add('is-selected'); }
+        });
+      });
+      return {
+        get value() { return values.slice(); },
+        reset() { values = []; buttons.forEach((b) => b.classList.remove('is-selected')); },
+        setVisibleFor(careType) {
+          buttons.forEach((b) => {
+            const show = b.dataset.for === 'both' || b.dataset.for === careType;
+            b.hidden = !show;
+            if (!show && values.includes(b.dataset.value)) {
+              values = values.filter((x) => x !== b.dataset.value);
+              b.classList.remove('is-selected');
+            }
+          });
+        }
+      };
+    }
+
+    // ---------- 케어 리포트 첨부 사진: 서류 · 현장 사진 (가로 갤러리 미리보기 + 삭제, REPORT_PHOTO_MAX 는 위에서 선언) ----------
     // 워터마크 인증 사진(buildVerificationPhoto)과 달리 증빙용이라 워터마크 없이 가로 1000px 로만 축소해
     // jsonb 컬럼(care_reports.photos)에 데이터 URL 그대로 저장합니다 — 이 프로젝트의 다른 현장 사진들
     // (arrival_verification_logs 의 watermarked_image_url/raw_image_url)도 Storage 버킷 대신 같은 방식을 씁니다.
-    const REPORT_PHOTO_LABELS = ['처방전', '진료비 영수증', '약 봉투', '기타'];
-    const REPORT_PHOTO_MAX = 6;
     async function resizeReceiptPhoto(file) {
       const img = await loadImageFromFile(file);
       const maxWidth = 1000;
@@ -4488,32 +5020,37 @@
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
       return canvas.toDataURL('image/jpeg', 0.72);
     }
-    function createPhotoUploader(inputEl, gridEl) {
-      let items = []; // [{ url, label }]
+    // 인스타그램/카카오톡 사진 첨부처럼 "추가" 슬롯(점선 카드, 맨 앞 고정) + 76px 정사각 썸네일이
+    // 한 줄로 나란히 스크롤되는 미니멀 업로더. 사진 종류를 고르는 라벨 선택 UI는 매니저가 현장에서
+    // 타이핑/선택할 거리를 늘릴 뿐이라 완전히 없앴습니다(label 은 더 이상 쓰지 않지만, 보호자 화면이
+    // 과거 데이터의 label 을 여전히 기대할 수 있어 빈 문자열로만 채웁니다 — 뷰어 쪽은 label 이 없으면
+    // 캡션을 그냥 안 그리도록 이미 방어돼 있습니다).
+    function createPhotoUploader(inputEl, gridEl, countEl) {
+      let items = []; // [{ url, label: '' }]
+      // 추가 슬롯은 한 번만 만들어 .photo-strip 맨 앞에 고정합니다 — 매 렌더마다 썸네일만 다시 그립니다.
+      const addSlot = h('label', 'photo-add-slot');
+      addSlot.setAttribute('for', inputEl.id);
+      addSlot.setAttribute('aria-label', '사진 추가');
+      addSlot.innerHTML =
+        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+        '<path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>' +
+        '<path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span>추가</span>';
+      gridEl.appendChild(addSlot);
       function render() {
-        gridEl.innerHTML = '';
+        gridEl.querySelectorAll('.report-photo-thumb').forEach((el) => el.remove());
         items.forEach((item, idx) => {
           const thumb = h('div', 'report-photo-thumb');
           const img = document.createElement('img');
-          img.src = item.url; img.alt = item.label;
-          const sel = document.createElement('select');
-          sel.className = 'report-photo-thumb-label-select';
-          sel.setAttribute('aria-label', '사진 종류');
-          REPORT_PHOTO_LABELS.forEach((label) => {
-            const opt = document.createElement('option');
-            opt.value = label; opt.textContent = label;
-            if (label === item.label) opt.selected = true;
-            sel.appendChild(opt);
-          });
-          sel.addEventListener('change', () => { item.label = sel.value; });
+          img.src = item.url; img.alt = '증빙 사진';
           const del = h('button', 'report-photo-thumb-remove', '✕');
           del.type = 'button';
           del.setAttribute('aria-label', '사진 삭제');
           del.addEventListener('click', () => { items.splice(idx, 1); render(); });
-          thumb.append(img, sel, del);
+          thumb.append(img, del);
           gridEl.appendChild(thumb);
         });
-        gridEl.hidden = items.length === 0;
+        addSlot.classList.toggle('is-full', items.length >= REPORT_PHOTO_MAX);
+        if (countEl) countEl.textContent = items.length + '/' + REPORT_PHOTO_MAX;
       }
       inputEl.addEventListener('change', async () => {
         const files = Array.from(inputEl.files || []);
@@ -4521,7 +5058,7 @@
           if (items.length >= REPORT_PHOTO_MAX) break;
           try {
             const url = await resizeReceiptPhoto(file);
-            items.push({ url, label: REPORT_PHOTO_LABELS[items.length] || '기타' });
+            items.push({ url, label: '' });
           } catch (err) {
             console.warn('[케어 리포트] 증빙 사진을 읽을 수 없습니다:', err);
           }
@@ -4529,6 +5066,7 @@
         inputEl.value = '';
         render();
       });
+      render();
       return {
         get value() { return items.map((item) => ({ url: item.url, label: item.label })); },
         reset() { items = []; render(); }
@@ -4555,6 +5093,17 @@
         const { rawDataUrl, watermarkedDataUrl } = await buildVerificationPhoto(file, depState.location);
         depState.rawPhoto = rawDataUrl;
         depState.photo = watermarkedDataUrl;
+        // 출발 인증(현장 사진 대체, fallback ③)에 한해서만 data URL 대신 Supabase Storage 에 실제로 올리고
+        // 공개 URL을 씁니다 — 병원 도착 등 다른 단계는 예전처럼 data URL 그대로(이 프로젝트의 다른 현장
+        // 사진들과 같은 방식) 둡니다. 업로드가 실패해도(오프라인 등) data URL 로 조용히 대체해 흐름을 막지 않습니다.
+        if (depState.step.key === 'departed') {
+          $('photo-status-text').textContent = '촬영 완료 — 업로드 중…';
+          try {
+            depState.photo = await uploadDeparturePhoto(depState.schedule.id, watermarkedDataUrl);
+          } catch (uploadErr) {
+            console.warn('[출발 인증 · 현장 사진] Storage 업로드 실패 — data URL 로 대체합니다:', uploadErr.message || uploadErr);
+          }
+        }
         $('photo-status-text').textContent = '촬영 완료 (인증 워터마크 적용됨)';
       } catch (err) {
         $('gps-error-text').textContent = '사진을 처리하지 못했어요. 다시 시도하거나 GPS로 인증해 주세요.';
@@ -4588,6 +5137,26 @@
       }
     }
 
+    // 지오펜싱 자동 인증 배너(원탭)를 거치지 않고 이 모달로 직접 들어온 '출발' 건은, 안에서 방법 1(GPS)
+    // 과 방법 2(현장 사진) 중 실제로 무엇을 써서 통과했는지로 auth_method 를 나눠 기록합니다 — 사진이
+    // 있으면(권한 거부/GPS 실패로 넘어왔을 가능성이 크므로) '사진 대체', GPS 좌표만 있으면 '수동 GPS'.
+    function departureAuthInfoFromModal(snapshot) {
+      if (snapshot.step.key !== 'departed') return undefined;
+      const distText = (typeof snapshot.distance === 'number') ? ('(거리 약 ' + snapshot.distance.toLocaleString() + 'm)') : '';
+      if (snapshot.photo) {
+        return {
+          method: 'photo_fallback',
+          reason: snapshot.location
+            ? ('현장 사진으로 대체 인증' + distText)
+            : '위치 확인 실패(권한 거부 또는 GPS 오류) → 현장 사진으로 대체 인증'
+        };
+      }
+      if (snapshot.location) {
+        return { method: 'manual_gps_fallback', reason: '자동 감지 배너 없이 매니저가 직접 위치를 측정해 통과' + distText };
+      }
+      return undefined;
+    }
+
     // 버그 수정: 예전에는 클릭 즉시 closeDepartureModal() 을 불러 모달을 먼저 닫고 나서야 performAdvance()
     // (실제 Supabase 인증 저장)를 시작했습니다 — 저장이 끝나기도 전에 창이 닫혀, 네트워크 오류 등으로
     // 저장이 실패해도 매니저는 이미 닫힌 모달을 보고 "인증이 끝났다"고 오해하게 됐습니다(위치/사진을
@@ -4601,7 +5170,8 @@
       submitBtn.disabled = true;
       submitBtn.textContent = '처리 중…';
       try {
-        await performAdvance(snapshot.schedule, snapshot.step, snapshot.button, false, snapshot.location, snapshot.photo);
+        await performAdvance(snapshot.schedule, snapshot.step, snapshot.button, false, snapshot.location, snapshot.photo,
+          departureAuthInfoFromModal(snapshot));
         // performAdvance() 는 성공했을 때만 schedule.status 를 step.key 로 바꿉니다(실패하면 내부적으로
         // alert + loadAll() 로 이미 안내·재동기화까지 끝낸 상태) — 그 값으로 성공 여부를 판단해, 실패 시엔
         // 모달을 열어 둔 채 입력했던 위치/사진을 그대로 두고 다시 시도할 수 있게 합니다.
@@ -4996,7 +5566,21 @@
     const formError = $('reportFormError');
     const reportConditionChip = createChipGroup($('conditionChipGroup'));
     const reportMobilityChip = createChipGroup($('mobilityChipGroup'));
-    const reportPhotoUploader = createPhotoUploader($('photoInput'), $('photoGrid'));
+    const reportPhotoUploader = createPhotoUploader($('photoInput'), $('photoGrid'), $('photoCount'));
+    // AI 케어 리포트: 케어 대상 유형(단일 선택, 기본 '어르신 케어') · 빠른 선택 태그(다중 선택, 유형에 따라 보이는 칩이 달라짐)
+    const reportCareTypeChip = createChipGroup($('reportCareTypeGroup'));
+    const reportQuickTagChip = createMultiChipGroup($('reportQuickTagGroup'));
+    $('reportCareTypeGroup').querySelectorAll('.chip-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const careType = btn.dataset.value;
+        reportQuickTagChip.setVisibleFor(careType);
+        // 어르신 컨디션/보행 상태는 아동 케어에 해당하지 않는 항목이라 블록째 숨기고, 숨기는 동안 골라둔
+        // 값도 함께 비워 둡니다(화면에는 안 보이는 선택이 조용히 같이 제출되는 것을 막기 위함).
+        const isChild = careType === 'child';
+        $('reportSeniorStatusFields').hidden = isChild;
+        if (isChild) { reportConditionChip.reset(); reportMobilityChip.reset(); }
+      });
+    });
 
     function openReportModal(schedule) {
       reportTarget = schedule;
@@ -5005,16 +5589,63 @@
       reportConditionChip.reset();
       reportMobilityChip.reset();
       reportPhotoUploader.reset();
+      reportQuickTagChip.reset();
+      $('reportMemo').value = '';
+      $('reportAiMessage').value = '';
+      $('reportAiHint').hidden = true;
+      // 케어 대상 유형은 기본 '어르신 케어'로 — 지금까지의 모든 실제 케어가 어르신 병원 동행이라, 매니저가
+      // 매번 눌러야 하는 수고를 줄입니다. 아동 케어가 실제로 생기면 매니저가 직접 '아동 케어'로 바꾸면 됩니다.
+      const defaultTypeBtn = $('reportCareTypeGroup').querySelector('[data-value="senior"]');
+      defaultTypeBtn.click();
       formError.hidden = true;
       $('reportTarget').textContent = schedule.senior_name + ' · ' + schedule.destination + ' (' + fmtDate(schedule.scheduled_at) + ')';
       modal.hidden = false;
-      $('physicianNotes').focus();
     }
     function closeReportModal() { modal.hidden = true; reportTarget = null; }
 
     $('reportCancelBtn').addEventListener('click', closeReportModal);
     modal.addEventListener('mousedown', (e) => { if (e.target === modal) closeReportModal(); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.hidden) closeReportModal(); });
+
+    $('reportAiGenerateBtn').addEventListener('click', async () => {
+      // 빠른 선택 태그 + 어르신 컨디션/보행 상태 선택까지 모두 "태그"로 합쳐 AI에 넘깁니다 — 타이핑 없이
+      // 버튼 선택만으로도 핵심 사실이 충분히 전달되도록(핵심 메모는 완전히 선택, 비워도 됩니다).
+      const tags = reportQuickTagChip.value
+        .concat(reportConditionChip.value ? [reportConditionChip.value] : [])
+        .concat(reportMobilityChip.value ? [reportMobilityChip.value] : []);
+      const memo = $('reportMemo').value.trim();
+      const hasPhoto = reportPhotoUploader.value.length > 0;
+      if (!tags.length && !memo && !hasPhoto) {
+        formError.textContent = '태그를 고르거나, 사진을 첨부하거나, 메모를 입력한 뒤 눌러주세요.';
+        formError.hidden = false;
+        return;
+      }
+      formError.hidden = true;
+      const btn = $('reportAiGenerateBtn');
+      const originalLabel = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = '생성 중…';
+      try {
+        const draft = await api.generateAiDraft({
+          careType: reportCareTypeChip.value || 'senior',
+          tags, memo, hasPhoto,
+          seniorName: reportTarget && reportTarget.senior_name
+        });
+        $('reportAiMessage').value = draft;
+        $('reportAiHint').hidden = false;
+      } catch (err) {
+        // 원본 에러(HTTP 코드, 키 미설정 등)는 콘솔에만 남기고, 화면에는 항상 같은 친절한 안내문만
+        // 보여줍니다 — 그 자리에서 바로 수동으로 적어 넣을 수 있도록 초안 textarea 에 포커스를 둡니다
+        // (이 칸은 평소에도 늘 열려 있는 입력창이라 별도의 '수동 입력창'을 새로 띄울 필요가 없습니다).
+        console.error('[AI 케어 리포트] 초안 생성 실패:', err);
+        formError.textContent = '현재 AI 서버 연결이 원활하지 않습니다. 수동으로 내용을 확인 후 전송해 주세요.';
+        formError.hidden = false;
+        $('reportAiMessage').focus();
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+      }
+    });
 
     // ---------- 제출한 케어 리포트 보기 모달 (읽기 전용) ----------
     const viewModal = $('reportViewModal');
@@ -5101,6 +5732,21 @@
         list.appendChild(li);
       });
 
+      // AI 케어 리포트 — ai_message 가 있는(새 모달로 작성한) 리포트만 보여줍니다.
+      const aiSection = $('reportViewAiSection');
+      aiSection.hidden = !report.ai_message;
+      if (report.ai_message) {
+        const quickTagsBox = $('reportViewQuickTags');
+        quickTagsBox.innerHTML = '';
+        const quickTags = report.quick_tags || [];
+        quickTagsBox.hidden = quickTags.length === 0;
+        quickTags.forEach((t) => quickTagsBox.appendChild(h('span', 'rv-tag', t.startsWith('#') ? t : '#' + t)));
+        const memoEl = $('reportViewMemo');
+        memoEl.hidden = !report.manager_memo;
+        memoEl.textContent = report.manager_memo || '';
+        $('reportViewAiMessage').textContent = report.ai_message;
+      }
+
       $('reportViewPhysicianNotesTitle').textContent = PHYSICIAN_NOTES_TITLE_BY_CAT[serviceCatFor(scheduleServiceName(schedule))];
       $('reportViewPhysicianNotes').textContent = report.physician_notes || '(작성된 내용 없음)';
 
@@ -5114,6 +5760,11 @@
       tagsBox.hidden = tags.length === 0;
       tags.forEach((t) => tagsBox.appendChild(h('span', 'rv-tag', t.startsWith('#') ? t : '#' + t)));
       $('reportViewSeniorCondition').textContent = report.senior_condition || '(작성된 내용 없음)';
+
+      // 상세 기록(진료 소견 등)을 아무것도 안 채운 채 AI 리포트만 보낸 경우, '(작성된 내용 없음)' 블록이
+      // 의미 없이 떠 있지 않도록 전체 섹션을 숨깁니다.
+      $('reportViewLegacySection').hidden = !report.physician_notes && !report.senior_condition
+        && tags.length === 0 && (report.photos || []).length === 0;
 
       const photosSection = $('reportViewPhotosSection');
       const photoGrid = $('reportViewPhotoGrid');
@@ -5153,39 +5804,202 @@
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const careType = reportCareTypeChip.value || 'senior';
+      const quickTags = reportQuickTagChip.value;
+      const memo = $('reportMemo').value.trim();
+      const aiMessage = $('reportAiMessage').value.trim();
       const notes = $('physicianNotes').value.trim();
       const cond = $('seniorCondition').value.trim();
-      if (!notes) {
-        formError.textContent = '진료 소견 · 의사 안내사항을 입력해 주세요.';
-        formError.hidden = false;
-        return;
-      }
-      if (!reportConditionChip.value || !reportMobilityChip.value) {
-        formError.textContent = '어르신 컨디션과 보행 상태를 선택해 주세요.';
+      // 둘 중 하나는 있어야 보호자에게 보낼 내용이 있는 셈입니다 — AI 초안(또는 직접 작성한) 리포트,
+      // 또는 '상세 기록 추가'에 직접 적은 진료 소견. 컨디션/보행 상태 칩은 더 이상 필수가 아닙니다
+      // (아동 케어 리포트에는 해당하지 않는 항목이라 선택으로 남겨 둡니다).
+      if (!aiMessage && !notes) {
+        formError.textContent = '보호자에게 보낼 리포트 내용을 입력해 주세요 — 핵심 메모로 AI 초안을 생성하거나, 위 칸에 직접 작성해 주세요.';
         formError.hidden = false;
         return;
       }
       const save = $('reportSaveBtn');
       save.disabled = true;
-      save.textContent = '제출 중…';
+      save.textContent = '전송 중…';
       try {
         await api.submitReport(reportTarget.id, notes, cond, {
-          conditionTags: [reportConditionChip.value, reportMobilityChip.value],
+          conditionTags: (reportConditionChip.value && reportMobilityChip.value)
+            ? [reportConditionChip.value, reportMobilityChip.value] : [],
           nextVisitDate: $('nextVisitDate').value || null,
-          photos: reportPhotoUploader.value
+          photos: reportPhotoUploader.value,
+          careType, quickTags, managerMemo: memo || null, aiMessage: aiMessage || null,
+          aiGeneratedAt: !$('reportAiHint').hidden ? new Date().toISOString() : null
         });
         closeReportModal();
-        showToast('케어 리포트를 제출했습니다.');
+        showToast('보호자에게 케어 리포트를 전송했습니다.');
         await loadAll();
       } catch (err) {
         console.error('리포트 제출 실패:', err);
         formError.textContent = err && err.code === '23505'
           ? '이미 제출된 리포트입니다.'
-          : '제출 중 오류가 발생했습니다: ' + (err.message || err);
+          : '전송 중 오류가 발생했습니다: ' + (err.message || err);
         formError.hidden = false;
       }
       save.disabled = false;
-      save.textContent = '리포트 제출';
+      save.textContent = '보호자에게 전송';
+    });
+
+    // ==========================================================================
+    // 출발 인증 — 지오펜싱 자동 인증 + 3단계 예외 처리(Fallback) 하이브리드
+    //
+    //   기존 수동 모달(#departure-modal, openDepartureModal)은 그대로 남겨 둡니다 — 언제든 매니저가
+    //   직접 눌러 수동으로 인증할 수 있는 안전장치입니다(아래에서 사라지거나 비활성화되지 않습니다).
+    //   이 블록은 그 위에 "매니저가 출발지 반경 안에 들어오면 모달을 열 필요 없이 원탭으로 끝내는" 배경
+    //   감지 레이어를 얹습니다. 탭이 보이는 동안만 AUTO_GEOFENCE_POLL_MS 간격으로 위치를 1회 확인하고,
+    //   '배정됨' 상태 + 희망 일시가 가까운 일정에 한해서만 거리 비교를 합니다(배터리/권한 팝업 남용 방지).
+    // ==========================================================================
+    const AUTO_GEOFENCE_RADIUS_M = 100;          // 기본 인식 반경 — 이 안이면 바로 자동 인증(auto_gps)
+    const AUTO_GEOFENCE_EXPANDED_RADIUS_M = 300;  // 예외 처리 ①: 10분 전부터 확장되는 반경(expanded_gps)
+    const AUTO_GEOFENCE_START_BEFORE_MIN = 30;    // 희망 일시 이만큼 전부터 배경 감지 시작
+    const AUTO_GEOFENCE_EXPAND_BEFORE_MIN = 10;   // 이 시점까지 100m 안에서 못 잡으면 300m로 확장
+    const AUTO_GEOFENCE_MANUAL_BEFORE_MIN = 15;   // 예외 처리 ②: 이 시점까지도 못 잡으면 수동 버튼을 강조
+    const AUTO_GEOFENCE_POLL_MS = 20000;
+
+    // scheduleId → { phase: 'watching' | 'auto_matched' | 'manual_needed', method, reason, distance, location }
+    const geofenceState = new Map();
+    // scheduleId → 출발지 좌표({lat,lng}) 또는 못 찾으면 null — 매 tick 마다 카카오 API 를 다시 부르지 않도록 캐시
+    const geofenceOriginCache = new Map();
+
+    function minutesUntil(iso) {
+      const t = new Date(iso).getTime();
+      return isNaN(t) ? Infinity : (t - Date.now()) / 60000;
+    }
+
+    async function resolveGeofenceOrigin(schedule) {
+      if (geofenceOriginCache.has(schedule.id)) return geofenceOriginCache.get(schedule.id);
+      let point = (typeof schedule.origin_lat === 'number' && typeof schedule.origin_lng === 'number')
+        ? { lat: schedule.origin_lat, lng: schedule.origin_lng } : null;
+      if (!point && schedule.origin) point = await geocodeAddress(schedule.origin);
+      geofenceOriginCache.set(schedule.id, point);
+      return point;
+    }
+
+    // '배정됨' 상태 + 희망 일시가 AUTO_GEOFENCE_START_BEFORE_MIN 분 이내로 다가온 오늘의 일정만 감시 대상.
+    // 수동 모달이 이미 이 일정으로 열려 있으면(depState) 배너가 모달과 겹치지 않도록 건너뜁니다.
+    function eligibleDepartureSchedules() {
+      if (!data || !data.assigned || !data.assigned.value) return [];
+      return data.assigned.value.filter((s) =>
+        s.status === 'assigned' && minutesUntil(s.scheduled_at) <= AUTO_GEOFENCE_START_BEFORE_MIN
+        && !(depState && depState.schedule && depState.schedule.id === s.id));
+    }
+
+    async function geofenceTick() {
+      const list = eligibleDepartureSchedules();
+      if (!list.length) return;
+      let pos;
+      try {
+        // enableHighAccuracy: true — 배경 자동 감지는 매니저가 버튼을 눌러 기다려주는 수동 측정과 달리
+        // 타이밍을 고를 수 없으므로, 100m 반경 판정에 필요한 정확도를 우선합니다.
+        pos = await getCurrentPositionAsync({ enableHighAccuracy: true, timeout: 15000, maximumAge: 15000 });
+      } catch (err) {
+        // 예외 처리 ②: 위치 권한 거부는 조건을 기다릴 필요 없이 즉시 수동 버튼을 강조합니다.
+        const deniedPermission = err.code === err.PERMISSION_DENIED;
+        list.forEach((s) => {
+          const manualNeeded = deniedPermission || minutesUntil(s.scheduled_at) <= AUTO_GEOFENCE_MANUAL_BEFORE_MIN;
+          geofenceState.set(s.id, manualNeeded
+            ? { phase: 'manual_needed', reason: deniedPermission ? '위치 권한이 꺼져 있어요.' : 'GPS 확인이 지연되고 있어요.' }
+            : { phase: 'watching' });
+        });
+        renderGeofenceSlots(list.map((s) => s.id));
+        return;
+      }
+      const lat = pos.coords.latitude, lng = pos.coords.longitude, accuracy = Math.round(pos.coords.accuracy);
+      for (const s of list) {
+        const mins = minutesUntil(s.scheduled_at);
+        const target = await resolveGeofenceOrigin(s);
+        if (!target) {
+          geofenceState.set(s.id, mins <= AUTO_GEOFENCE_MANUAL_BEFORE_MIN
+            ? { phase: 'manual_needed', reason: '출발지 위치 정보를 확인할 수 없어요.' } : { phase: 'watching' });
+          continue;
+        }
+        const dist = distanceMeters(lat, lng, target.lat, target.lng);
+        const location = { lat, lng, accuracy };
+        if (dist <= AUTO_GEOFENCE_RADIUS_M) {
+          geofenceState.set(s.id, { phase: 'auto_matched', method: 'auto_gps', distance: dist, location });
+        } else if (dist <= AUTO_GEOFENCE_EXPANDED_RADIUS_M && mins <= AUTO_GEOFENCE_EXPAND_BEFORE_MIN) {
+          // 예외 처리 ①: 10분 전까지 100m 안에서 못 잡았다면 300m까지 넓혀서 인근 도착만으로도 인증
+          geofenceState.set(s.id, { phase: 'auto_matched', method: 'expanded_gps', distance: dist, location });
+        } else {
+          geofenceState.set(s.id, mins <= AUTO_GEOFENCE_MANUAL_BEFORE_MIN
+            ? { phase: 'manual_needed', reason: '출발지와 거리가 있어요(약 ' + dist.toLocaleString() + 'm).' }
+            : { phase: 'watching', distance: dist });
+        }
+      }
+      renderGeofenceSlots(list.map((s) => s.id));
+    }
+
+    // scheduleCard() 가 만들어 둔 .geofence-slot / .sched-main-action-btn 을 직접 찾아 갱신합니다 — renderToday()
+    // 전체를 다시 그리지 않아 스크롤 위치·펼침 상태(더보기 등)가 흔들리지 않습니다.
+    function renderGeofenceSlots(ids) {
+      ids.forEach((id) => {
+        const card = document.querySelector('.sched-compact[data-schedule-id="' + id + '"]');
+        if (!card) return;
+        const slot = card.querySelector('.geofence-slot');
+        const mainBtn = card.querySelector('.sched-main-action-btn');
+        if (!slot) return;
+        const state = geofenceState.get(id);
+        slot.innerHTML = '';
+        if (!state || state.phase === 'watching') {
+          slot.hidden = true;
+          if (mainBtn) { mainBtn.textContent = ACTION_BTN_TEXT.departed; mainBtn.classList.remove('is-warn'); }
+          return;
+        }
+        if (state.phase === 'auto_matched') {
+          slot.hidden = false;
+          // 자동 감지가 떴다면 메인 버튼은 더 이상 '오류' 상태가 아니므로(이전 tick 이 manual_needed 였을
+          // 수 있음) 평소 라벨로 되돌립니다 — 배너의 [동행 시작]이 이제 주된 동선입니다.
+          if (mainBtn) { mainBtn.textContent = ACTION_BTN_TEXT.departed; mainBtn.classList.remove('is-warn'); }
+          const banner = h('div', 'geofence-banner');
+          banner.appendChild(h('p', 'geofence-banner-text', '📍 출발지 도착이 자동 확인되었습니다. 동행을 시작할까요?'));
+          const confirmBtn = h('button', 'geofence-banner-btn', '동행 시작');
+          confirmBtn.type = 'button';
+          confirmBtn.addEventListener('click', () => confirmAutoDeparture(id, confirmBtn));
+          banner.appendChild(confirmBtn);
+          slot.appendChild(banner);
+          return;
+        }
+        // manual_needed: 배너 대신 경고 힌트만 띄우고, 기존 메인 버튼을 "위치 오류 시 수동 출발 인증"으로
+        // 강조합니다 — 버튼 자체는 전부터 항상 클릭 가능했던 그대로이므로 기능이 줄어들지 않습니다.
+        slot.hidden = false;
+        slot.appendChild(h('p', 'geofence-hint', '⚠ ' + (state.reason || '위치 자동 확인이 어려워요.') + ' 아래 버튼으로 직접 인증해 주세요.'));
+        if (mainBtn) { mainBtn.textContent = '위치 오류 시 수동 출발 인증'; mainBtn.classList.add('is-warn'); }
+      });
+    }
+
+    // 배너의 [동행 시작] 원탭 — 기존 모달을 열지 않고 바로 performAdvance() 를 호출합니다.
+    async function confirmAutoDeparture(scheduleId, button) {
+      const state = geofenceState.get(scheduleId);
+      const schedule = (data.assigned.value || []).find((s) => s.id === scheduleId);
+      if (!state || !schedule) return;
+      button.disabled = true;
+      button.textContent = '처리 중…';
+      const radiusLabel = state.method === 'expanded_gps' ? '반경 300m(확장 적용)' : '반경 100m';
+      const reason = 'GPS 자동 감지 성공 · ' + radiusLabel + ' · 거리 약 ' + state.distance.toLocaleString() + 'm';
+      try {
+        await performAdvance(schedule, FLOW[0], button, false, state.location, null, { method: state.method, reason });
+        geofenceState.delete(scheduleId);
+      } catch (err) {
+        console.error('[지오펜싱 자동 출발 인증] 실패:', err);
+        button.disabled = false;
+        button.textContent = '동행 시작';
+      }
+    }
+
+    let geofenceTimer = null;
+    function startGeofenceWatcher() {
+      if (geofenceTimer || !('geolocation' in navigator)) return;
+      geofenceTimer = setInterval(() => {
+        if (document.visibilityState === 'visible') geofenceTick();
+      }, AUTO_GEOFENCE_POLL_MS);
+      geofenceTick(); // 접속 직후 한 번 즉시 확인
+    }
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') geofenceTick();
     });
 
     // ---------- 진입: 로그인 + 매니저 권한 검증 ----------
@@ -5226,6 +6040,7 @@
       loading.hidden = true;
       $('app').hidden = false;
       await loadAll();
+      startGeofenceWatcher(); // 출발 인증 지오펜싱 자동 감지 — 대상 일정이 없으면 매 tick 조용히 건너뜀
 
       // 접속 직후, 작성할 리포트가 남아있다면 '오늘의 케어' 대신 바로 '리포트 작성 대기' 탭을 보여줍니다
       // — 놓치기 쉽다는 피드백에 따른 처리라, 최초 진입 이 한 번만 적용합니다(이후 loadAll() 재호출마다

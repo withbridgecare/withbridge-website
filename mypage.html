@@ -22,7 +22,7 @@
   <!-- 브라우저 기본 날짜/시간 피커 대신 쓰는 공통 커스텀 피커 (wb-datepicker.js 참고) -->
   <script src="/js/wb-datepicker.js?v=1.6"></script>
   <!-- 카카오(다음) 우편번호 서비스: 어르신 프로필의 '거주지 주소'를 자유 입력 대신 정식 도로명 주소로 선택하게 함 -->
-  <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+  <script src="//t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
   <!-- '자주 가는 병원' 검색 모달 — 카카오 로컬 키워드 검색으로 실제 장소명 + 주소만 선택 가능 (wb-place-search.js 참고) -->
   <script src="/js/wb-place-search.js?v=1.0"></script>
   <!-- 추가 요금(기본 요금 선결제 + 초과 시 추가 요금 정산) 결제창 — apply.html 과 같은 포트원 V2 SDK -->
@@ -1000,6 +1000,7 @@
       padding: 14px 16px; background: var(--bg); border: 1px solid var(--card-border); border-radius: var(--radius-sm);
       font-size: 14px; line-height: 1.6; color: var(--ink-body); white-space: pre-line; word-break: break-all;
     }
+    .rv-memo { margin: 0 0 10px; font-size: 13px; color: var(--ink-sub); white-space: pre-line; }
 
     /* 동행 타임라인: 출발/미팅 → 병원 도착 → 진료 완료 → 귀가 이동 → 귀가 및 케어 완료(5단계).
        한 단계 안에 시각·GPS 텍스트·인증 사진 썸네일까지 들어가야 해서, 가로 스테퍼(.stepper) 대신
@@ -1040,9 +1041,19 @@
     .rv-tl-step.is-none .rv-tl-time { color: #CBD5E1; }
 
     /* 다음 병원 방문 예정일: 강조 뱃지 — 나머지 섹션과 같은 브랜드 톤이되, 눈에 띄도록 진하게 */
-    .rv-next-visit { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: -8px 0 20px; padding: 12px 16px; background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: var(--radius); }
+    .rv-next-visit { display: flex; flex-direction: column; gap: 10px; margin: -8px 0 20px; padding: 12px 16px; background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: var(--radius); }
+    .rv-next-visit-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .rv-next-visit-label { font-size: 12.5px; font-weight: 700; color: var(--brand-dark); }
     .rv-next-visit-badge { font-size: 15px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+    /* [다음 진료 동행 간편 예약하기] — 브랜드 메인 컬러(--sage-500 = #78866B)를 그대로 써서 한눈에 눈에 띄게 */
+    .rv-rebook-btn {
+      display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%;
+      padding: 11px 16px; border: none; border-radius: var(--radius);
+      background: var(--brand); color: #fff; font-size: 14px; font-weight: 800; cursor: pointer;
+      transition: background .15s, transform .1s;
+    }
+    .rv-rebook-btn:hover { background: var(--brand-dark); }
+    .rv-rebook-btn:active { transform: translateY(1px); }
 
     /* 어르신 컨디션 태그 */
     .rv-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
@@ -1678,15 +1689,26 @@
         <ol class="rv-timeline" id="careReportViewTimeline" aria-label="동행 타임라인"></ol>
       </div>
 
+      <!-- AI 케어 리포트 — care_reports.ai_message 가 있는(매니저가 새 리포트 작성 모달로 작성한) 건만 보여줍니다 -->
+      <div class="rv-section" id="careReportViewAiSection" hidden>
+        <h4 class="rv-section-title">케어 리포트</h4>
+        <div class="rv-tags" id="careReportViewQuickTags" hidden></div>
+        <p class="rv-memo" id="careReportViewMemo" hidden></p>
+        <div class="rv-text-box" id="careReportViewAiMessage"></div>
+      </div>
+
       <!-- 3. 진료 및 약제 핵심 정보 (생활 편의 대행이면 '대행 업무 수행 내용 및 특이사항'으로 제목만 바뀜) -->
-      <div class="rv-section">
+      <div class="rv-section" id="careReportViewLegacySection">
         <h4 class="rv-section-title" id="careReportViewPhysicianNotesTitle">진료 소견 · 의사 안내사항</h4>
         <div class="rv-text-box" id="careReportViewPhysicianNotes"></div>
       </div>
 
       <div class="rv-next-visit" id="careReportViewNextVisitBox" hidden>
-        <span class="rv-next-visit-label">다음 병원 방문 예정일</span>
-        <span class="rv-next-visit-badge" id="careReportViewNextVisit"></span>
+        <div class="rv-next-visit-row">
+          <span class="rv-next-visit-label">다음 병원 방문 예정일</span>
+          <span class="rv-next-visit-badge" id="careReportViewNextVisit"></span>
+        </div>
+        <button type="button" class="rv-rebook-btn" id="careReportViewRebookBtn">다음 진료 동행 간편 예약하기</button>
       </div>
 
       <div class="rv-section" id="careReportViewMedicationSection" hidden>
@@ -1695,7 +1717,7 @@
       </div>
 
       <!-- 4. 어르신 컨디션 & 체크리스트 -->
-      <div class="rv-section">
+      <div class="rv-section" id="careReportViewConditionSection">
         <h4 class="rv-section-title">어르신 컨디션</h4>
         <div class="rv-tags" id="careReportViewConditionTags" hidden></div>
         <div class="rv-text-box" id="careReportViewSeniorCondition"></div>
@@ -2213,7 +2235,7 @@
     // 같은 종류의 문제). accept_service_application() 이 care_schedules.guardian_id 를 신청자의 user_id로
     // 항상 채우므로(위 함수 762행 근처), 여기서도 guardian_id 로 한 번 더 좁혀 '내가 보호자로서 신청한' 건만 남깁니다.
     const PORTONE_STORE_ID = 'store-d049e114-625d-4a7d-9202-b38f9072f3bc';
-    const PORTONE_CHANNEL_KEY = 'channel-key-abecc24a-efe4-49fc-9c93-d82444735477';
+    const PORTONE_CHANNEL_KEY = 'channel-key-9b483b99-d68d-4f49-99cf-76cdc0264dbb';
 
     async function loadExtraCharges() {
       const section = document.getElementById('extraChargeSection');
@@ -3926,6 +3948,7 @@
 
       renderCareCalendar(); // 이 신청 목록(lastCareApps) 기준으로 하단 '이용 내역 & 케어 리포트' 달력도 함께 갱신
       updateGuardianStatusBadge(activeApps, apps.length); // 프로필 헤더의 상태 배지도 같은 목록 기준으로 동기화
+      maybeAutoOpenReportFromUrl(); // ?report_id=... 로 들어온 경우, 신청/리포트 데이터가 둘 다 갖춰지는 순간 모달을 1회 자동으로 엶
     }
     // ---------- 어르신 목록 (Supabase: seniors) ----------
     async function loadSeniors() {
@@ -4181,7 +4204,9 @@
     const REPORT_BASE_COLS = 'report_id, submitted_at, scheduled_at, senior_name, destination, manager_name, physician_notes, senior_condition';
     // condition_tags/photos/next_visit_date: 케어 리포트 작성 모달 개선(sql/care_report_rich_fields.sql)으로
     // 추가된 컬럼 — 마이그레이션 전이어도(42703) 아래 재시도 로직이 자동으로 빼고 나머지는 계속 보여줍니다.
-    const REPORT_OPTIONAL_COLS = ['schedule_id', 'read_at', 'application_id', 'condition_tags', 'photos', 'next_visit_date'];
+    // care_type/quick_tags/manager_memo/ai_message: AI 케어 리포트(sql/ai_care_report.sql)로 추가된 컬럼 —
+    // 마이그레이션 전이어도(42703) 아래 재시도 로직이 자동으로 빼고 나머지는 계속 보여줍니다.
+    const REPORT_OPTIONAL_COLS = ['schedule_id', 'read_at', 'application_id', 'condition_tags', 'photos', 'next_visit_date', 'care_type', 'quick_tags', 'manager_memo', 'ai_message'];
     async function queryReports() {
       let remaining = REPORT_OPTIONAL_COLS.slice();
       for (;;) {
@@ -4821,6 +4846,21 @@
         timelineScheduleId ? careCheckpointsDbCache[timelineScheduleId] : '(schedule_id 없음 — 조회 자체를 못 함)');
       await renderReportTimeline(a, report);
 
+      // 2-1. AI 케어 리포트 — ai_message 가 있는(매니저가 새 '케어 리포트 작성' 모달로 작성한) 리포트만 보여줍니다.
+      const aiSection = document.getElementById('careReportViewAiSection');
+      aiSection.hidden = !report.ai_message;
+      if (report.ai_message) {
+        const quickTagsBox = document.getElementById('careReportViewQuickTags');
+        quickTagsBox.textContent = '';
+        const quickTags = report.quick_tags || [];
+        quickTagsBox.hidden = quickTags.length === 0;
+        quickTags.forEach((t) => quickTagsBox.appendChild(h('span', 'rv-tag', t.startsWith('#') ? t : '#' + t)));
+        const memoEl = document.getElementById('careReportViewMemo');
+        memoEl.hidden = !report.manager_memo;
+        memoEl.textContent = report.manager_memo || '';
+        document.getElementById('careReportViewAiMessage').textContent = report.ai_message;
+      }
+
       // 3. 진료 및 약제 핵심 정보 — next_visit_date/medication_notes 는 아직 DB 컬럼이 없어도(마이그레이션 전)
       // 화면이 깨지지 않도록 값이 있을 때만 해당 섹션을 보여줍니다. 제목은 '생활 편의 대행'일 때만 업무 성격에
       // 맞게 바꿉니다(진료가 없는 서비스에 '진료 소견'이라는 문구가 그대로 남지 않도록).
@@ -4842,6 +4882,13 @@
       tagsBox.hidden = tags.length === 0;
       tags.forEach((t) => tagsBox.appendChild(h('span', 'rv-tag', t.startsWith('#') ? t : '#' + t)));
       document.getElementById('careReportViewSeniorCondition').textContent = report.senior_condition || '(작성된 내용 없음)';
+
+      // AI 리포트만 작성되고 상세 기록(진료 소견·어르신 컨디션 등)은 비어 있는 경우, '(작성된 내용 없음)'
+      // 블록 두 개가 의미 없이 떠 있지 않도록 두 섹션을 숨깁니다.
+      const hasLegacyDetail = !!(report.physician_notes || tags.length || (report.photos || []).length);
+      document.getElementById('careReportViewLegacySection').hidden = !hasLegacyDetail && !!report.ai_message;
+      document.getElementById('careReportViewConditionSection').hidden =
+        !report.senior_condition && tags.length === 0 && !!report.ai_message;
 
       // 5. 증빙 사진 라이트박스 갤러리
       renderReportPhotos(report);
@@ -4872,10 +4919,53 @@
         }
       }
     }
+    // ---------- 알림톡 링크로 들어온 리포트 모달 자동 오픈 (?report_id=...) ----------
+    // 솔라피 알림톡의 "상세 리포트 보기" 링크(notify-care-report-alimtalk Edge Function 참고)가 이
+    // 파라미터를 붙여 보냅니다 — 보호자가 '이용 내역'에서 직접 찾아 누르지 않아도 그 리포트 모달이
+    // 바로 열립니다. loadCare()/loadReports() 는 둘 다 폴링되는 비동기 함수라 lastCareApps/lastCareReports
+    // 중 어느 쪽이 먼저 채워지는지 보장되지 않으므로, renderCare() 끝(아래 호출부)마다 이 함수를 불러
+    // 두 데이터가 모두 갖춰지는 순간 한 번만 열리게 합니다.
+    let pendingAutoOpenReportId = new URLSearchParams(location.search).get('report_id');
+    function maybeAutoOpenReportFromUrl() {
+      if (!pendingAutoOpenReportId) return;
+      const report = (lastCareReports || []).find((r) => r.report_id === pendingAutoOpenReportId);
+      if (!report) return; // 아직 로딩 전이거나(다음 폴링에서 재시도) 이 보호자 소유가 아닌 리포트
+      const app = (lastCareApps || []).find((a) =>
+        (report.application_id && report.application_id === a.id) ||
+        (((a._schedule && a._schedule.schedule_id) || a.schedule_id) === report.schedule_id));
+      if (!app) return; // 신청 목록이 아직 안 불려왔으면 다음 폴링에서 재시도
+
+      pendingAutoOpenReportId = null; // 한 번만 열림 — 모달을 닫은 뒤 다음 폴링에서 다시 뜨지 않게
+      const params = new URLSearchParams(location.search);
+      params.delete('report_id');
+      const newSearch = params.toString();
+      history.replaceState(null, '', location.pathname + (newSearch ? '?' + newSearch : '') + location.hash);
+      openCareReportViewModal(app, report);
+    }
     function closeCareReportViewModal() { careReportViewModal.hidden = true; careReportViewCurrentReport = null; }
     document.getElementById('careReportViewCloseBtn').addEventListener('click', closeCareReportViewModal);
     careReportViewModal.addEventListener('mousedown', (e) => { if (e.target === careReportViewModal) closeCareReportViewModal(); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !careReportViewModal.hidden) closeCareReportViewModal(); });
+
+    // [다음 진료 동행 간편 예약하기] — 리포트 모달에 next_visit_date 가 있을 때만 보이는 버튼(careReportViewNextVisitBox
+    // 가 hidden 이면 이 버튼도 같이 숨겨짐). apply.html 의 prefillFromCareReportRebook() 과 짝 — 쿼리 파라미터
+    // 이름을 바꾸면 그쪽도 같이 고쳐야 합니다. 어르신 거동 상태는 별도 컬럼이 없어, 원래 신청서(service_applications.
+    // request_details)에 apply.html 이 저장해 둔 '어르신 거동 상태: …' 줄에서 그대로 추출합니다.
+    document.getElementById('careReportViewRebookBtn').addEventListener('click', () => {
+      const a = careReportViewCurrentApp, report = careReportViewCurrentReport;
+      if (!a || !report) return;
+      const params = new URLSearchParams();
+      if (a.service_type) params.set('service', a.service_type);
+      if (report.senior_name) params.set('senior_name', report.senior_name);
+      const origin = report.origin || (a._schedule && a._schedule.origin);
+      if (origin) params.set('origin', origin);
+      const destination = report.destination || (a._schedule && a._schedule.destination) || a.address;
+      if (destination) params.set('destination', destination);
+      const mobilityMatch = /어르신 거동 상태:\s*([^\n]+)/.exec(a.request_details || '');
+      if (mobilityMatch) params.set('mobility', mobilityMatch[1].trim());
+      if (report.next_visit_date) params.set('desired_date', report.next_visit_date);
+      window.location.href = 'apply.html?' + params.toString();
+    });
 
     // 매니저가 현장 5단계 인증 버튼을 누를 때마다(GPS/사진) Realtime·BroadcastChannel·storage 세 경로 중
     // 하나로 신호를 받으면 이 함수를 부릅니다 — care_checkpoints 를 다시 조회한 뒤:

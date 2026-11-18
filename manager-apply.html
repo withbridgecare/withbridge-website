@@ -16,7 +16,7 @@
   <script src="/js/auth-header.js?v=2.4" charset="utf-8"></script>
   <script src="/js/notice-modal.js?v=1.0" charset="utf-8" defer></script>
   <!-- 카카오(다음) 우편번호 서비스: 거주지 주소를 자유 입력 대신 정식 도로명·지번 주소로 선택하게 함 -->
-  <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+  <script src="//t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
   <!-- 도배/봇 방지: Cloudflare Turnstile (STEP4의 .cf-turnstile 위젯을 자동으로 렌더링) -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <!-- 브라우저 기본 날짜 피커 대신 쓰는 공통 커스텀 피커 (wb-datepicker.js 참고) -->
@@ -436,16 +436,16 @@
             <fieldset class="field" id="f-areas">
               <legend>주요 활동 가능 지역 <span class="req">*</span><span class="opt-tag">(중복 선택 가능)</span></legend>
               <div class="options" id="areaOptions">
-                <label class="opt"><input type="checkbox" name="area" value="인천 남동구 A"><span>인천 남동구 A</span></label>
-                <label class="opt"><input type="checkbox" name="area" value="인천 남동구 B"><span>인천 남동구 B</span></label>
+                <label class="opt"><input type="checkbox" name="area" value="인천 남동구"><span>인천 남동구</span></label>
                 <label class="opt"><input type="checkbox" name="area" value="인천 연수구"><span>인천 연수구</span></label>
                 <label class="opt"><input type="checkbox" name="area" value="인천 미추홀구"><span>인천 미추홀구</span></label>
-                <label class="opt"><input type="checkbox" name="area" value="인천 부평구/계양구"><span>인천 부평구/계양구</span></label>
-                <label class="opt"><input type="checkbox" name="area" value="인천 서구 일부"><span>인천 서구 일부</span></label>
+                <label class="opt"><input type="checkbox" name="area" value="인천 부평구"><span>인천 부평구</span></label>
+                <label class="opt"><input type="checkbox" name="area" value="인천 계양구"><span>인천 계양구</span></label>
+                <label class="opt"><input type="checkbox" name="area" value="인천 서구"><span>인천 서구</span></label>
                 <label class="opt"><input type="checkbox" name="area" value="경기 시흥시"><span>경기 시흥시</span></label>
                 <label class="opt"><input type="checkbox" name="area" value="경기 부천시"><span>경기 부천시</span></label>
                 <label class="opt"><input type="checkbox" name="area" value="경기 안산시"><span>경기 안산시</span></label>
-                <label class="opt"><input type="checkbox" id="areaOtherCheck" value="기타"><span>기타</span></label>
+                <label class="opt"><input type="checkbox" id="areaOtherCheck" value="기타"><span>기타 (직접 입력)</span></label>
               </div>
               <input class="text-input other-area-input" type="text" id="areaOtherText" maxlength="40" placeholder="그 외 활동 가능 지역을 입력해 주세요" hidden>
               <p class="err" id="e-areas" hidden></p>
