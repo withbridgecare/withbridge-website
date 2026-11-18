@@ -85,12 +85,31 @@ Deno.serve(async (req: Request) => {
     return json(500, { error: "PROFILE_LOOKUP_FAILED", message: profileErr.message });
   }
   const normalizedRole = String(profile?.role ?? "").trim().toLowerCase();
-  if (normalizedRole !== "admin") {
+  if (normalizedRole !== "admin" && normalizedRole !== "super_admin") {
     console.error("[admin-set-member-status] 관리자 권한 없음 — user_id=" + userData.user.id +
       ", email=" + userData.user.email + ", 조회된 role=" + JSON.stringify(profile?.role ?? null));
     return json(403, {
       error: "NOT_ADMIN",
       message: "관리자 권한이 없는 계정입니다 (user_id: " + userData.user.id + ", email: " + userData.user.email + ").",
+    });
+  }
+
+  // 권한 위계: 관리자는 일반·매니저·관리자 계정만 정지/활성화할 수 있고, 최고관리자 계정은
+  // 최고관리자만 다룰 수 있습니다(sql/role_hierarchy_hardening.sql 의 can_manage_user() 와 같은 규칙).
+  const { data: target, error: targetErr } = await admin
+    .from("profiles")
+    .select("role")
+    .eq("id", user_id)
+    .maybeSingle();
+  if (targetErr) {
+    console.error("[admin-set-member-status] 대상 profiles 조회 실패 — target user_id=" + user_id + ":", targetErr);
+    return json(500, { error: "PROFILE_LOOKUP_FAILED", message: targetErr.message });
+  }
+  const targetRole = String(target?.role ?? "").trim().toLowerCase();
+  if (targetRole === "super_admin" && normalizedRole !== "super_admin") {
+    return json(403, {
+      error: "CANNOT_MANAGE_SUPER_ADMIN",
+      message: "최고관리자 계정은 최고관리자만 정지/활성화할 수 있습니다.",
     });
   }
 

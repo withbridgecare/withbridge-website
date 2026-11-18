@@ -2,17 +2,14 @@
 -- super-admin.html / super-admin.js 전용 — 최고 관리자(super_admin)만 다른 계정에 관리자(admin)
 -- 권한을 부여/회수할 수 있게 하는 함수들입니다.
 --
---   is_super_admin() 은 아래 둘 중 하나면 true 입니다:
---     1) profiles.role = 'super_admin'
---     2) 로그인 이메일이 suseung396@gmail.com (대표님 계정) — DB의 role 값이 잘못 바뀌거나
---        비어 있어도 이 계정은 항상 최고 관리자로 인정되는 failsafe 입니다.
+--   is_super_admin() 은 profiles.role = 'super_admin' 일 때만 true 입니다(예전의 고정 이메일 예외는
+--   sql/role_hierarchy_hardening.sql 에서 제거했습니다).
 --   이 함수가 false 를 돌려주면 아래 grant/revoke 함수는 전부 예외를 던지고 아무것도 바꾸지
 --   않습니다(fail closed) — super-admin.js 의 화면단 접근 차단도 이 함수 하나만 호출해서 판단합니다.
 --
 --   role 값은 자유 text 컬럼(check 제약 없음, sql/supabase_schema_latest.sql)이라 'super_admin'
 --   값을 쓰는 데 별도 스키마 변경이 필요 없습니다. 최초의 super_admin 계정은 이 파일만으로는
---   만들어지지 않습니다 — 위 failsafe 이메일로 로그인하면 role 값과 무관하게 바로 쓸 수 있고,
---   다른 계정을 super_admin 으로 올리고 싶으면 Supabase 대시보드에서 직접
+--   만들어지지 않습니다 — 최고관리자로 쓸 계정은 Supabase 대시보드에서 직접
 --   `update public.profiles set role = 'super_admin' where id = '...'` 을 실행하세요
 --   (sql/_recover_admin_account.sql 과 같은 1회성 수기 작업 패턴).
 --
@@ -31,19 +28,14 @@
 -- 0) is_super_admin()
 -- ----------------------------------------------------------------------------
 create or replace function public.is_super_admin() returns boolean
-language plpgsql stable security definer set search_path = public as $$
-declare
-  v_role  text;
-  v_email text;
-begin
-  select p.role into v_role from public.profiles p where p.id = auth.uid();
-  if lower(coalesce(btrim(v_role), '')) = 'super_admin' then
-    return true;
-  end if;
-
-  select u.email into v_email from auth.users u where u.id = auth.uid();
-  return lower(coalesce(btrim(v_email), '')) = 'suseung396@gmail.com';
-end $$;
+language sql stable security definer set search_path = public as $$
+  -- 최고관리자는 profiles.role = 'super_admin' 하나로만 판단합니다(고정 이메일 예외는 제거됨 —
+  -- sql/role_hierarchy_hardening.sql). 계정을 최고관리자로 지정하는 일은 대시보드 SQL Editor 에서만.
+  select exists (
+    select 1 from public.profiles p
+    where p.id = auth.uid() and lower(btrim(coalesce(p.role, ''))) = 'super_admin'
+  );
+$$;
 revoke all on function public.is_super_admin() from public, anon;
 grant  execute on function public.is_super_admin() to authenticated;
 
@@ -110,6 +102,7 @@ begin
   -- 그 이름들이 OUT 매개변수 변수로도 동시에 존재합니다 — 아래처럼 테이블 별칭 없이 그냥
   -- "id" 라고만 쓰면 그 변수와 profiles.id 컬럼 중 어느 쪽인지 알 수 없어 "column reference
   -- 'id' is ambiguous" 에러가 납니다. 테이블에 별칭(p)을 주고 p.id 로 명시해 해결합니다.
+  perform set_config('app.allow_admin_role_change', 'on', true); -- role 보호 트리거 통과(검사 완료 후, 이 트랜잭션만)
   update public.profiles as p set role = 'admin' where p.id = v_target_id;
 
   perform public.log_admin_action('super_admin_grant_admin', 'profiles', v_target_id::text,

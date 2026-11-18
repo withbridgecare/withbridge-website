@@ -775,9 +775,8 @@
     if (els.name) els.name.textContent = (profile.name || user.email || '관리자') + '님 (' + gradeLabel + ')';
     if (els.account) els.account.hidden = false;
 
-    // super-admin.html 링크는 is_super_admin() RPC 로 다시 한번 확인한 뒤에만 보여줍니다 — role
-    // 'super_admin' 외에 failsafe 이메일(sql/super_admin_management.sql)로도 통과할 수 있어,
-    // profiles.role 만 보고 판단하면 그 경우를 놓칩니다.
+    // super-admin.html 링크는 서버의 is_super_admin() RPC 로 확인한 뒤에만 보여줍니다
+    // (화면에 읽어 온 role 값보다 DB 판단을 기준으로 삼기 위함).
     if (els.superAdminNavLink) {
       supabaseClient.rpc('is_super_admin').then(function (res) {
         if (!res.error && res.data === true) els.superAdminNavLink.hidden = false;
@@ -4742,7 +4741,17 @@
   var memberDetailTarget = null;
   var memberEditMode = false;
 
+  // 권한 위계(sql/role_hierarchy_hardening.sql): 관리자가 최고관리자 계정을 다루려 하면 서버가
+  // CANNOT_MANAGE_SUPER_ADMIN 으로 거절합니다 — 영문 코드 대신 이해할 수 있는 문장으로 바꿔 보여줍니다.
+  function explainPermissionError(msg) {
+    if (msg && String(msg).indexOf('CANNOT_MANAGE_SUPER_ADMIN') !== -1) {
+      return '최고관리자 계정은 최고관리자만 변경할 수 있습니다.';
+    }
+    return msg;
+  }
+
   function showMemberActionError(msg) {
+    msg = explainPermissionError(msg);
     if (els.memberActionSuccess) els.memberActionSuccess.hidden = true;
     var el = els.memberActionError;
     if (!el) return;
@@ -4816,6 +4825,7 @@
     var addressDetail = (els.memberEditAddressDetail && els.memberEditAddressDetail.value || '').trim();
 
     function showEditError(msg) {
+      msg = explainPermissionError(msg);
       if (els.memberEditSuccess) els.memberEditSuccess.hidden = true;
       if (els.memberEditError) { els.memberEditError.textContent = msg; els.memberEditError.hidden = false; }
     }
@@ -5115,6 +5125,7 @@
 
   function showBenefitFormError(errorEl, msg) {
     if (!errorEl) return;
+    msg = explainPermissionError(msg);
     errorEl.textContent = msg;
     errorEl.hidden = false;
   }
