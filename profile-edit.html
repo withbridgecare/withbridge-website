@@ -183,6 +183,47 @@
       .pe-row { padding-bottom: 24px; margin-bottom: 24px; }
       .pe-row.is-danger-row .pe-row-fields { justify-content: flex-start; }
     }
+    /* ---------- 휴대폰(767px 이하) 화면 최적화 ----------
+       구역(기본 정보·주소지·알림·계정)을 흰 카드로 나눠 연회색 배경 위에서 경계가 보이게 하고,
+       입력칸은 16px(iPhone 에서 입력할 때 화면이 확대되지 않는 최소 크기)·높이 46px 로 키웁니다.
+       [취소]/[저장하기]는 화면 하단에 붙는 큰 버튼 바로 바꿔 어디까지 스크롤해도 바로 저장할 수 있게 합니다.
+       PC(768px 이상)는 영향 없음. */
+    @media (max-width: 767.98px) {
+      body { background: #F3F5F2; }
+      .pe-main { padding: 16px 0 32px; }
+      .pe-head-wrap { padding: 0 16px; margin-bottom: 14px; }
+      .pe-page-title { font-size: 21px; }
+      .pe-page-sub { font-size: 13px; }
+      .pe-form-wrap { padding: 0 12px; display: flex; flex-direction: column; gap: 12px; }
+      .pe-row {
+        margin: 0; padding: 16px 14px; background: #FFFFFF;
+        border: 1px solid #E5E7EB; border-radius: 14px; border-bottom-width: 1px;
+      }
+      .pe-row + .pe-row { border-top: 1px solid #E5E7EB; padding-top: 16px; }
+      .pe-row-label { margin-bottom: 12px; }
+      .pe-row-label h2 { font-size: 15.5px; margin-bottom: 2px; }
+      .pe-row-label p { font-size: 12.5px; }
+      .pe-fields-grid { gap: 14px; }
+      .pe-field label { font-size: 13px; }
+      .pe-field input { height: 46px; padding: 0 12px; font-size: 16px; border-radius: 10px; }
+      .pe-hint { font-size: 11.5px; }
+      .pe-field-row { gap: 6px; }
+      .pe-search-btn { height: 46px; padding: 0 12px; font-size: 13px; border-radius: 10px; white-space: nowrap; }
+      .pe-checkbox-field { gap: 10px; }
+      .pe-checkbox-title { font-size: 14px; }
+      .pe-checkbox-desc { font-size: 12px; }
+
+      .pe-action-bar {
+        position: sticky; bottom: 0; z-index: 20;
+        display: grid; grid-template-columns: 1fr 2fr; gap: 8px;
+        margin: 0 -12px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+        background: #FFFFFF; /* 흐림(backdrop-filter) 없이 — 휴대폰 스크롤 성능 */
+        border-top: 1px solid #E5E7EB;
+        box-shadow: 0 -6px 16px -10px rgba(15, 23, 42, .25);
+      }
+      .pe-action-bar .pe-btn-sm { height: 48px; padding: 0 12px; font-size: 15px; border-radius: 12px; justify-content: center; }
+      .pe-row.is-danger-row { order: 5; }
+    }
   </style>
 </head>
 <body>
@@ -281,7 +322,7 @@
 
 <main class="pe-main">
   <div class="pe-head-wrap">
-    <a href="mypage.html" class="pe-back">
+    <a href="mypage" class="pe-back">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
       마이페이지로
     </a>
@@ -385,7 +426,7 @@
 
     <!-- 하단 액션: 취소(Go back) / 저장하기(Save settings) -->
     <div class="pe-action-bar">
-      <a href="mypage.html" class="pe-btn-sm is-ghost">취소</a>
+      <a href="mypage" class="pe-btn-sm is-ghost">취소</a>
       <button type="submit" class="pe-btn-sm is-primary" id="peSaveBtn">저장하기</button>
     </div>
 
@@ -630,9 +671,9 @@
     if (error || !session || !session.user) {
       // 비로그인 상태 — 로그인 후 이 페이지로 돌아오도록 기억해 두고 보냅니다.
       if (window.WBAuth && window.WBAuth.rememberPostLoginRedirect) {
-        window.WBAuth.rememberPostLoginRedirect('profile-edit.html');
+        window.WBAuth.rememberPostLoginRedirect('profile-edit');
       }
-      window.location.href = 'login.html?redirect=' + encodeURIComponent('profile-edit.html');
+      window.location.href = 'login.html?redirect=' + encodeURIComponent('profile-edit');
       return;
     }
 
@@ -747,7 +788,7 @@
         }
 
         showSuccess('저장되었습니다. 마이페이지로 이동합니다...');
-        setTimeout(() => { window.location.href = 'mypage.html'; }, 1100);
+        setTimeout(() => { window.location.href = 'mypage'; }, 1100);
       } catch (e) {
         console.error('[profile-edit] update_user_profile 호출 중 예외:', e);
         showError('저장 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');

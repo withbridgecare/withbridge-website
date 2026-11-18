@@ -1040,7 +1040,7 @@ setActive()/goTo() 는 슬라이드 개수를 하드코딩하지 않고 매번 .
         btn.style.cursor = '';
       } else if (mode === 'issued') {
         btn.textContent = '이미 발급된 웰컴 쿠폰입니다 (내 쿠폰함 보기)';
-        btn.href = 'mypage.html?openCoupons=1';
+        btn.href = 'mypage?openCoupons=1';
         btn.style.backgroundColor = '#9CA3AF'; // 중립 그레이 — 완료 상태를 더 이상 할 일이 없는 톤으로 표시
         btn.style.cursor = 'pointer';
       }
@@ -2923,7 +2923,7 @@ setActive()/goTo() 는 슬라이드 개수를 하드코딩하지 않고 매번 .
       따뜻했던 동행의 순간을 들려주세요.
     </p>
     <div class="wb-invite-actions">
-      <a href="mypage.html?tab=history" class="wb-more-btn" onclick="window.WBAuth && window.WBAuth.goIfLoggedIn(event, 'mypage.html?tab=history');">
+      <a href="mypage?tab=history" class="wb-more-btn" onclick="window.WBAuth && window.WBAuth.goIfLoggedIn(event, 'mypage?tab=history');">
         이용 후기 작성하기
       </a>
       <a href="http://pf.kakao.com/_PKxemX" target="_blank" rel="noopener noreferrer" class="wb-more-btn wb-more-btn--ghost">

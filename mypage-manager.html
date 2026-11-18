@@ -6032,12 +6032,12 @@
         if (!(await window.WBAuth.checkIsManager(currentUser.id))) {
           window.WBAuth.setUserMode('guardian'); // 'manager' 설정이 남아 두 페이지가 서로 되돌려 보내는 왕복 방지
           alert('매니저 권한이 필요합니다');
-          window.location.replace('mypage.html'); // 보호자(고객) 마이페이지로 돌려보냄
+          window.location.replace('mypage'); // 보호자(고객) 마이페이지로 돌려보냄
           return;
         }
         // 자격은 있지만 화면 모드가 '보호자'이면(보호자 모드로 전환한 뒤 새로고침/북마크 등) 보호자 화면으로
         if (window.WBAuth.getUserMode() !== 'manager') {
-          window.location.replace('mypage.html');
+          window.location.replace('mypage');
           return;
         }
       }

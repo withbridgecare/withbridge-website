@@ -554,7 +554,7 @@
       '충전된 잔여 시간: ' + catalog.hours + '시간 / ' + catalog.sessions + '회분';
     document.getElementById('pkgPurchaseModal').hidden = false;
     document.getElementById('pkgPurchaseModalMypageBtn').onclick = () => {
-      window.location.href = 'mypage.html?purchased=' + encodeURIComponent(catalog.label) + '&hours=' + catalog.hours;
+      window.location.href = 'mypage?purchased=' + encodeURIComponent(catalog.label) + '&hours=' + catalog.hours;
     };
     document.getElementById('pkgPurchaseModalApplyBtn').onclick = () => {
       window.location.href = 'apply.html';

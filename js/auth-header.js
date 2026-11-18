@@ -138,7 +138,7 @@
   }
 
   // ---------- 화면 모드 전환 (보호자 ↔ 케어 매니저) ----------
-  var GUARDIAN_PAGE = 'mypage.html';
+  var GUARDIAN_PAGE = 'mypage';
   var MANAGER_PAGE = 'mypage-manager.html';
   // CS(고객 지원) 슬림 메뉴 링크 — index.html/mypage.html 하단 '자주 묻는 질문 & 1:1 고객센터 문의'
   // 배너와 같은 주소를 그대로 씁니다(사이트 전역에서 이미 쓰고 있는 표준 링크).
@@ -146,10 +146,10 @@
   var KAKAO_CHANNEL_URL = 'http://pf.kakao.com/_PKxemX';
   // 어르신 프로필 관리는 보호자 전용 기능이라(매니저 모드와 무관) mypage.html 의 '어르신 프로필 관리'
   // 탭으로 고정 이동합니다 — '마이페이지' 링크(.wb-mypage-link)처럼 모드에 따라 바뀌지 않습니다.
-  var ELDER_PROFILE_PAGE = 'mypage.html?tab=elder';
+  var ELDER_PROFILE_PAGE = 'mypage?tab=elder';
   // '내 정보 수정' — 모달 대신 전용 페이지로 이동합니다(profile-edit.html, 이름/연락처 저장은
   // sql/profile_self_update.sql 의 update_user_profile() RPC).
-  var PROFILE_EDIT_PAGE = 'profile-edit.html';
+  var PROFILE_EDIT_PAGE = 'profile-edit';
   // 이 사용자가 managers 에 등록돼 있는지: 서버 조회가 끝나면 그 결과로 메뉴를 그립니다.
   // 조회가 오래 걸려도 끝나는 즉시 항목이 나타나고, 조회 자체가 실패하면(네트워크/일시 오류) '아님'으로 굳히지 않고 몇 번 다시 시도합니다.
   var knownIsManager = null; // null = 아직 모름(확인 중/실패), true = 매니저, false = 매니저 아님
@@ -831,10 +831,11 @@
   // 로그인이 끝나면 늘 index.html 로 돌아옵니다. 그래서 원래 가려던 목적지(예: apply.html)는 이 브라우저 탭에만
   // 남는 sessionStorage 에 잠깐 기억해 두고, index.html 에서 세션이 확인되는 순간(위 applySession) 그 쪽으로 한 번 더 이동시킵니다.
   var POST_LOGIN_REDIRECT_KEY = 'wb_post_login_redirect';
-  // 사이트 안의 '파일명.html' 형태만 허용 — 외부 주소나 javascript: 등을 넣으면 로그인 후 다른 곳으로 보내는
-  // 열린 리다이렉트(open redirect)가 될 수 있어 막습니다
+  // 사이트 안의 '파일명.html' 또는 확장자 없는 '파일명'(Vercel cleanUrls: profile-edit, mypage 등) 형태만 허용 —
+  // 외부 주소나 javascript: 등을 넣으면 로그인 후 다른 곳으로 보내는 열린 리다이렉트(open redirect)가 될 수 있어
+  // 막습니다(슬래시·콜론·점이 들어간 값은 모두 거부)
   function isSafeLocalRedirect(target) {
-    return typeof target === 'string' && /^[A-Za-z0-9_-]+\.html(?:\?[^\s'"<>]*)?$/.test(target);
+    return typeof target === 'string' && /^[A-Za-z0-9_-]+(?:\.html)?(?:\?[^\s'"<>]*)?$/.test(target);
   }
   function rememberPostLoginRedirect(target) {
     if (!isSafeLocalRedirect(target)) return;

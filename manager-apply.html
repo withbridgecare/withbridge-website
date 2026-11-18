@@ -239,6 +239,46 @@
       .status-card { padding: 36px 20px; }
       .step-nav .nav-prev { flex-basis: 96px; padding: 16px 10px; }
     }
+    /* ---------- 성별 선택(STEP 1) — 두 개뿐이라 같은 너비 2칸, 라디오라 표시 원을 동그랗게 ---------- */
+    .gender-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-width: 360px; }
+    .gender-options .opt span { width: 100%; justify-content: center; }
+    .gender-options .opt span::before { border-radius: 50%; }
+    /* 기존 '.field:last-of-type { margin-bottom: 0 }' 규칙이 STEP 1 의 유일한 fieldset 인 성별 칸 아래 여백을 지우므로 되살림 */
+    #f-gender.field { margin-bottom: 24px; }
+
+    /* ---------- 휴대폰(767px 이하) 화면 최적화 ----------
+       카드·여백을 줄이고, 선택 버튼(지역·요일·자격증)은 들쭉날쭉한 알약 대신 같은 너비 2칸으로,
+       입력칸은 16px(iPhone 에서 입력할 때 화면 확대 방지)로 맞춥니다. PC(768px 이상)는 영향 없음. */
+    @media (max-width: 767.98px) {
+      .ap-main { padding-bottom: 40px; }
+      .ap-wrap { padding: 14px 12px 0; gap: 12px; }
+      .ap-back-link { padding: 7px 12px; font-size: 12.5px; }
+      .card { padding: 20px 16px; border-radius: 14px; }
+      .ap-title { font-size: 21px; margin-bottom: 6px; }
+      .ap-lead { font-size: 13.5px; margin-bottom: 16px; line-height: 1.6; }
+      .wizard-head { margin-bottom: 18px; }
+      .wizard-steps-label .current { font-size: 12.5px; }
+      .wizard-steps-label .names { font-size: 12px; }
+      .wizard-track { height: 6px; }
+      .step-title { font-size: 17px; }
+      .step-desc { font-size: 12.5px; margin-bottom: 18px; }
+      .field, #f-gender.field { margin-bottom: 18px; }
+      .field > label, .field > legend { font-size: 14.5px; margin-bottom: 8px; }
+      .opt-tag { font-size: 12px; }
+      .text-input { padding: 12px 14px; font-size: 16px; border-radius: 10px; }
+      .addr-search-btn { padding: 0 12px; font-size: 13px; border-radius: 10px; white-space: nowrap; }
+      .err { font-size: 12.5px; }
+      .hint { font-size: 12px; }
+      .options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .options .opt span { width: 100%; padding: 10px 12px; font-size: 13.5px; border-radius: 12px; }
+      .gender-options { max-width: none; }
+      .consent-card { margin-bottom: 14px; }
+      .consent-row span.ct { font-size: 14px; }
+      .consent-detail { font-size: 12px; margin-left: 30px; }
+      .step-nav { padding-top: 16px; gap: 8px; }
+      .step-nav .nav-btn { padding: 14px 16px; font-size: 15px; }
+      .step-nav .nav-prev { flex-basis: 92px; }
+    }
   </style>
 </head>
 <body>
@@ -340,7 +380,7 @@
   <main class="ap-main">
     <div class="ap-wrap">
 
-      <a href="manager-landing.html" class="ap-back-link">
+      <a href="manager-landing" class="ap-back-link">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         랜딩 페이지로 돌아가기
       </a>
@@ -395,6 +435,17 @@
               <p class="err" id="e-birth" hidden></p>
             </div>
 
+            <!-- 성별 — 어르신·보호자가 동성 매니저를 원하는 경우가 많아 매칭에 쓰는 필수 항목입니다
+                 (manager_applications.gender, sql/manager_applications_gender.sql). -->
+            <fieldset class="field" id="f-gender">
+              <legend>성별 <span class="req">*</span></legend>
+              <div class="options gender-options" role="radiogroup" aria-label="성별">
+                <label class="opt"><input type="radio" name="gender" value="여"><span>여성</span></label>
+                <label class="opt"><input type="radio" name="gender" value="남"><span>남성</span></label>
+              </div>
+              <p class="err" id="e-gender" hidden></p>
+            </fieldset>
+
             <div class="field" id="f-address">
               <label for="mgrAddressBase">거주지 주소 <span class="req">*</span></label>
               <div class="addr-search-row">
@@ -405,7 +456,9 @@
               <p class="err" id="e-address" hidden></p>
             </div>
 
-            <div class="field" id="f-idfile">
+            <!-- 신분증 사본 첨부 — 현재 지원 단계에서는 받지 않아 숨겨 둡니다(아래 스크립트 ID_UPLOAD_ENABLED = false).
+                 다시 받으려면 이 hidden 속성을 지우고 ID_UPLOAD_ENABLED 를 true 로 바꾸세요. -->
+            <div class="field" id="f-idfile" hidden>
               <label for="mgrIdFile">신분증 사본 첨부 <span class="req">*</span></label>
               <label class="file-drop" id="fileDropLabel" for="mgrIdFile" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:36px 24px; border-radius:16px;">
                 <div class="file-drop-icon" aria-hidden="true">
@@ -558,7 +611,7 @@
             <div class="consent-card">
               <label class="consent-row">
                 <input type="checkbox" id="agreePrivacy">
-                <span class="ct">성명, 연락처, 신분증 사본, 계좌정보의 수집 및 이용에 동의합니다. <span class="req">*</span></span>
+                <span class="ct">성명, 연락처, 성별, 계좌정보의 수집 및 이용에 동의합니다. <span class="req">*</span></span>
               </label>
               <p class="consent-detail">수집한 정보는 매니저 자격 심사 및 정산 목적으로만 사용되며, <a href="terms.html" data-open-terms>이용약관</a>에 따라 관리됩니다.</p>
               <p class="consent-detail">매니저는 활동 중 발생할 수 있는 대인·대물 사고에 대비해 회사가 제공하는 안심케어(배상책임) 프로그램에 자동 참여되며, 별도의 개인 부담금 없이 회사가 정한 기준에 따른 약정 활동 수수료를 정산받습니다.</p>
@@ -601,7 +654,7 @@
         <h2>지원서를 검토 중입니다</h2>
         <p>관리자 확인 후 승인 여부를 알려드려요. 잠시만 기다려 주세요.</p>
         <div class="status-actions">
-          <a class="btn btn-ghost" href="mypage.html">마이페이지로 이동</a>
+          <a class="btn btn-ghost" href="mypage">마이페이지로 이동</a>
         </div>
       </section>
 
@@ -610,7 +663,7 @@
         <h2 id="doneTitle" tabindex="-1">지원서가 접수되었습니다</h2>
         <p>관리자 검토 후 승인 여부를 안내해 드립니다.</p>
         <div class="status-actions">
-          <a class="btn" href="mypage.html">마이페이지로 이동</a>
+          <a class="btn" href="mypage">마이페이지로 이동</a>
         </div>
       </section>
 
@@ -685,6 +738,22 @@
     let currentStep = 1;
     const STEP_NAMES = { 1: '기본 정보', 2: '활동 조건 및 경력', 3: '정산 계좌 정보', 4: '서약 및 약관 동의' };
     const idUpload = { path: null, uploading: false, fileName: null };
+    // 신분증 사본 업로드 사용 여부 — false 면 STEP 1 의 업로드 칸(#f-idfile)이 숨겨져 있고, 검증·제출에서도
+    // 빠집니다(id_image_path 는 null 로 제출, 서버 submit-manager-application 도 선택값으로 받음).
+    const ID_UPLOAD_ENABLED = false;
+    function selectedGender() {
+      const el = document.querySelector('input[name="gender"]:checked');
+      return el ? el.value : '';
+    }
+    // 성별을 고르는 즉시 그 칸의 오류 표시를 지웁니다
+    document.querySelectorAll('input[name="gender"]').forEach((el) => {
+      el.addEventListener('change', () => {
+        document.getElementById('f-gender').classList.remove('has-error');
+        const err = document.getElementById('e-gender');
+        err.textContent = '';
+        err.hidden = true;
+      });
+    });
 
     // ---------- 단계 전환 ----------
     function showStep(n) {
@@ -857,9 +926,12 @@
       const phoneDigits = digitsOnly($('mgrPhone').value).length;
       if (!$('mgrPhone').value.trim() || phoneDigits < 9) errors.phone = '연락처를 정확히 입력해 주세요. (예: 010-1234-5678)';
       if (!$('mgrBirth').value) errors.birth = '생년월일을 선택해 주세요.';
+      if (!selectedGender()) errors.gender = '성별을 선택해 주세요.';
       if (!$('mgrAddressBase').value.trim()) errors.address = '주소 검색을 통해 거주지 주소를 입력해 주세요.';
-      if (idUpload.uploading) errors.idfile = '신분증 사본 업로드가 끝날 때까지 잠시 기다려 주세요.';
-      else if (!idUpload.path) errors.idfile = '신분증 사본을 첨부해 주세요.';
+      if (ID_UPLOAD_ENABLED) {
+        if (idUpload.uploading) errors.idfile = '신분증 사본 업로드가 끝날 때까지 잠시 기다려 주세요.';
+        else if (!idUpload.path) errors.idfile = '신분증 사본을 첨부해 주세요.';
+      }
       return errors;
     }
 
@@ -923,7 +995,7 @@
     // ---------- 다음/이전 버튼 ----------
     $('toStep2').addEventListener('click', () => {
       const errors = validateStep1();
-      applyFieldErrors(['name', 'phone', 'birth', 'address', 'idfile'], errors);
+      applyFieldErrors(['name', 'phone', 'birth', 'gender', 'address', 'idfile'], errors);
       if (Object.keys(errors).length) return;
       showStep(2);
     });
@@ -1072,7 +1144,7 @@
       const errors4 = validateStep4();
 
       if (Object.keys(errors1).length) {
-        applyFieldErrors(['name', 'phone', 'birth', 'address', 'idfile'], errors1);
+        applyFieldErrors(['name', 'phone', 'birth', 'gender', 'address', 'idfile'], errors1);
         showStep(1);
         return;
       }
@@ -1102,8 +1174,9 @@
         name: $('mgrName').value.trim(),
         phone: $('mgrPhone').value.trim(),
         birth_date: $('mgrBirth').value,
+        gender: selectedGender(),
         address: combineAddress($('mgrAddressBase').value, $('mgrAddressDetail').value),
-        id_image_path: idUpload.path,
+        id_image_path: ID_UPLOAD_ENABLED ? idUpload.path : null,
         activity_areas: getAreas(),
         activity_schedule: getSchedule(),
         certifications: getCerts(),

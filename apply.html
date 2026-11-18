@@ -57,12 +57,12 @@
         settled = true;
         onReady(function () {
           var overlay = document.getElementById('extraChargeLockOverlay');
-          if (!overlay) { window.location.href = 'mypage.html#extraChargeSection'; return; }
+          if (!overlay) { window.location.href = 'mypage#extraChargeSection'; return; }
           overlay.classList.add('is-open');
           overlay.setAttribute('aria-hidden', 'false');
           document.body.style.overflow = 'hidden';
           var btn = document.getElementById('extraChargeLockConfirm');
-          if (btn) { btn.focus(); btn.onclick = function () { window.location.href = 'mypage.html#extraChargeSection'; }; }
+          if (btn) { btn.focus(); btn.onclick = function () { window.location.href = 'mypage#extraChargeSection'; }; }
         });
       }
       // localStorage 에 저장된 세션 토큰이 있는지만 보는 보조 확인(auth-header.js 의 maybeLoggedIn() 과 같은 휴리스틱).
@@ -1050,7 +1050,7 @@
         <p class="done-login" id="doneLoginHint" hidden>로그인하지 않고 신청하셨어요. <a href="login.html">카카오로 로그인</a>하시면 이 신청이 마이페이지에 자동으로 연결돼요.</p>
         <div class="done-actions">
           <a class="btn" href="index.html">홈으로</a>
-          <a class="btn btn-ghost" id="doneMypage" href="mypage.html" hidden>마이페이지</a>
+          <a class="btn btn-ghost" id="doneMypage" href="mypage" hidden>마이페이지</a>
         </div>
       </section>
 

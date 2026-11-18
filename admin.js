@@ -791,11 +791,21 @@
     list.innerHTML = '<p class="admin-loading">불러오는 중…</p>';
     if (els.pendingManagersCount) els.pendingManagersCount.hidden = true;
 
+    var MANAGER_APP_COLUMNS = 'id, name, phone, birth_date, address, id_image_path, activity_areas, activity_schedule, certifications, career_experience, bank_name, account_number, account_holder, created_at';
     var res = await supabaseClient
       .from('manager_applications')
-      .select('id, name, phone, birth_date, address, id_image_path, activity_areas, activity_schedule, certifications, career_experience, bank_name, account_number, account_holder, created_at')
+      .select(MANAGER_APP_COLUMNS + ', gender')
       .eq('status', 'pending')
       .order('created_at', { ascending: true });
+    // gender 컬럼은 sql/manager_applications_gender.sql 로 추가됩니다. 아직 실행 전인 환경(42703:
+    // 컬럼 없음)에서도 승인 대기 목록이 비지 않도록, 그 경우에만 gender 없이 한 번 더 조회합니다.
+    if (res.error && res.error.code === '42703') {
+      res = await supabaseClient
+        .from('manager_applications')
+        .select(MANAGER_APP_COLUMNS)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true });
+    }
 
     if (res.error) {
       console.error('[Admin] 매니저 지원서 조회 실패:', res.error.code, res.error.message,
@@ -834,6 +844,7 @@
     meta.className = 'admin-row-meta';
     meta.innerHTML =
       '<dt>생년월일</dt><dd>' + escapeHtml(a.birth_date || '미등록') + '</dd>' +
+      '<dt>성별</dt><dd>' + escapeHtml(a.gender === '남' ? '남성' : a.gender === '여' ? '여성' : '미등록') + '</dd>' +
       '<dt>거주지 주소</dt><dd>' + escapeHtml(a.address || '미등록') + '</dd>' +
       '<dt>활동 가능 지역</dt><dd>' + escapeHtml((a.activity_areas || []).join(', ') || '미등록') + '</dd>' +
       '<dt>활동 가능 요일/시간대</dt><dd>' + escapeHtml((a.activity_schedule || []).join(', ') || '미등록') + '</dd>' +
