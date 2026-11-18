@@ -1,0 +1,19 @@
+/* pricing 페이지 전용 스타일 — public/pricing.html 의 <style> 을 그대로 옮김 */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: #ffffff; color: #1A1D21;
+  font-family: 'Pretendard Variable', Pretendard, 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+  font-size: 16px; line-height: 1.6; letter-spacing: -0.01em; -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; }
+button { font-family: inherit; }
+[hidden] { display: none !important; }
+.site-chrome, .site-footer { display: contents; } /* 감싸는 상자 없이 그대로 배치 (sticky 머리글 유지) */
+/* index.html 은 Tailwind preflight 가 기본 여백을 지워 주므로, 같은 pricing.css 가 이 페이지에서도
+   똑같이 보이도록 요금 영역 안의 기본 여백만 맞춥니다. */
+.wb-price-page h1, .wb-price-page h2, .wb-price-page h3, .wb-price-page p { margin: 0; }
+.wb-price-page button { margin: 0; }
+header, footer { letter-spacing: normal; line-height: 1.5; }
+footer h3 { margin-top: 0; }
+  
