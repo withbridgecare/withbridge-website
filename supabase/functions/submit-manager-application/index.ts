@@ -125,6 +125,8 @@ function validatePayload(body: SubmitRequestBody): string | null {
   if (!isNonEmptyString(body.career_experience)) return "관련 경력을 입력해 주세요.";
   if (!isNonEmptyString(body.bank_name)) return "정산 은행명을 입력해 주세요.";
   if (!isNonEmptyString(body.account_number)) return "계좌번호를 입력해 주세요.";
+  // 숫자(와 하이픈·공백)만 허용 — DB 트리거가 숫자만 뽑아 암호화하므로, 그 밖의 문자가 섞인 값은 미리 거절합니다.
+  if (!/^[\d\s-]{6,30}$/.test(body.account_number.trim())) return "계좌번호는 숫자만 입력해 주세요.";
   if (!isNonEmptyString(body.account_holder)) return "예금주명을 입력해 주세요.";
   if (body.agree_safety !== true || body.agree_no_direct_deal !== true || body.agree_privacy !== true) {
     return "모든 서약 및 약관에 동의해야 지원할 수 있습니다.";

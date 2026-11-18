@@ -237,6 +237,27 @@
   };
 
   var toastTimer = null;
+  // ---------- 매니저 정산 계좌번호 (암호화 저장) ----------
+  function isMaskedAccount(value) {
+    return typeof value === 'string' && value.indexOf('*') === 0;
+  }
+  // 관리자 전용 RPC 로 전체 계좌번호를 받아 잠깐 보여줍니다. 조회 기록은 DB(admin_logs)에 남고,
+  // 화면에서는 60초 뒤 다시 마스킹 값으로 되돌립니다(자리 비움·화면 공유 대비).
+  async function revealManagerAccount(applicationId, targetEl, btn) {
+    if (!targetEl) return;
+    var masked = targetEl.textContent;
+    btn.disabled = true;
+    var res = await supabaseClient.rpc('admin_reveal_manager_account', { p_application_id: applicationId });
+    btn.disabled = false;
+    if (res.error || !res.data) {
+      showToast('계좌번호를 불러오지 못했습니다' + (res.error ? ': ' + res.error.message : '.'));
+      return;
+    }
+    targetEl.textContent = res.data;
+    btn.hidden = true;
+    setTimeout(function () { targetEl.textContent = masked; btn.hidden = false; }, 60000);
+  }
+
   function showToast(message) {
     if (!els.toast) return;
     els.toast.textContent = message;
@@ -850,8 +871,19 @@
       '<dt>활동 가능 요일/시간대</dt><dd>' + escapeHtml((a.activity_schedule || []).join(', ') || '미등록') + '</dd>' +
       '<dt>보유 자격증</dt><dd>' + escapeHtml((a.certifications || []).join(', ') || '해당 없음') + '</dd>' +
       '<dt>관련 경력</dt><dd>' + escapeHtml(a.career_experience || '-') + '</dd>' +
-      '<dt>정산 계좌</dt><dd>' + escapeHtml((a.bank_name || '-') + ' ' + (a.account_number || '-') + ' (예금주: ' + (a.account_holder || '-') + ')') + '</dd>' +
+      // 계좌번호는 DB 에 암호화되어 저장되고 account_number 에는 마스킹 값(****1234)만 있습니다
+      // (sql/manager_bank_account_encryption.sql). 전체 번호는 [전체 보기]로 관리자 RPC 를 거쳐서만 조회합니다.
+      '<dt>정산 계좌</dt><dd>' + escapeHtml(a.bank_name || '-') + ' <span data-role="account-number">' + escapeHtml(a.account_number || '-') + '</span>' +
+        (isMaskedAccount(a.account_number) ? ' <button type="button" class="admin-btn is-ghost" data-role="reveal-account" style="padding:2px 8px;font-size:12px;">전체 보기</button>' : '') +
+        ' (예금주: ' + escapeHtml(a.account_holder || '-') + ')</dd>' +
       '<dt>지원 일시</dt><dd>' + formatDateTime(a.created_at) + '</dd>';
+
+    var revealBtn = meta.querySelector('[data-role="reveal-account"]');
+    if (revealBtn) {
+      revealBtn.addEventListener('click', function () {
+        revealManagerAccount(a.id, meta.querySelector('[data-role="account-number"]'), revealBtn);
+      });
+    }
 
     var actions = document.createElement('div');
     actions.className = 'admin-row-actions';
