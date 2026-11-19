@@ -1,5 +1,6 @@
 import './apply.css';
 import type { Metadata } from 'next';
+import { ADDONS, SERVICES, hoursLabel, won } from '@/lib/services';
 import { NotoSansKr } from '@/components/site/NotoSansKr';
 import { TermsLink } from '@/components/site/TermsLink';
 import { ApplyBehaviors } from './ApplyBehaviors';
@@ -149,18 +150,12 @@ export default function ApplyPage() {
                   <option value="">
                     선택해주세요
                   </option>
-                  <option value="1시간 라이트 케어">
-                    [NEW] 1시간 콕집 라이트 케어 (30,000원 / 1시간)
-                  </option>
-                  <option value="시니어 병원 동행">
-                    시니어 병원 동행 (50,000원 / 2시간)
-                  </option>
-                  <option value="생활 편의 대행">
-                    생활 편의 대행 (40,000원 / 2시간)
-                  </option>
-                  <option value="복합 매칭 서비스 (동행 + 생활편의)">
-                    복합 매칭 서비스 (동행 + 생활편의) (60,000원 / 2시간)
-                  </option>
+                  {/* 서비스 목록·금액은 lib/catalog.json 에서 (서비스를 추가하면 여기 자동으로 나옴) */}
+                  {SERVICES.map((s) => (
+                    <option key={s.key} value={s.name}>
+                      {s.optionLabel} ({won(s.basePrice)}원 / {hoursLabel(s.baseMinutes)})
+                    </option>
+                  ))}
                 </select>
                 {' '}
                 {/* '1시간 콕집 라이트 케어' 선택 시에만 표시 — 세부 유형 선택(택 1). applyService/f-service 의 change 리스너가 토글합니다. 값은 request_details 에 '세부 목적: …' 줄로 함께 저장되고 (toDbRow), 마이페이지·매니저·어드민 화면이 같은 키로 다시 읽어 노출합니다. */}
@@ -249,7 +244,7 @@ export default function ApplyPage() {
                     <b>
                       긴급 매칭
                     </b>
-                    {' '}이용 24시간 이내 긴급 예약은 +10,000원이 추가돼요.
+                    {' '}이용 24시간 이내 긴급 예약은 +{won(ADDONS.urgent.amount)}원이 추가돼요.
                   </li>
                 </ul>
                 <a className="fee-rules-link" href="/pricing#rules" target="_blank" rel="noopener">
@@ -495,7 +490,7 @@ export default function ApplyPage() {
                 <label className="opt">
                   <input type="checkbox" id="addonUrgent" name="addon_urgent" />
                   <span>
-                    긴급 매칭 서비스 (+10,000원){' '}
+                    {ADDONS.urgent.label} (+{won(ADDONS.urgent.amount)}원){' '}
                     <small>
                       24시간 이내 긴급 예약 요청 시
                     </small>

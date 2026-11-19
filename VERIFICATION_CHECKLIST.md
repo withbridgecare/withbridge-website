@@ -198,3 +198,45 @@ select id, public from storage.buckets where id in ('care-departure-photos','man
 - 코드 규칙 점검(ESLint) 도입 — `npm run lint`, GitHub Actions 자동 점검(`.github/workflows/ci.yml`)
 - 검색엔진용 `robots.txt`·`sitemap.xml`, 오류 안내 화면(`app/error.tsx`), 공유 미리보기 기본값, 빈 페이지 설명 2곳 채움
 - `X-Powered-By` 헤더 제거, AI·개발자 작업 규칙 파일(`CLAUDE.md`) 추가
+
+---
+
+## 전달 내용
+
+### 1. 가격(요금) 관리 방식 — 2026-11-19 변경
+
+**무엇이 바뀌었나**
+- 화면에 보이는 서비스 요금·옵션 금액·패키지 가격이 **`lib/catalog.json` 한 파일**에서 나옵니다.
+  메인 요금 카드, 예상 요금 계산 페이지, 신청서(서비스 선택 목록·긴급 옵션·결제 금액·안내 문구), 패키지 구매 페이지, 매니저 모집 페이지의 이용 요금이 모두 이 파일을 읽습니다.
+  (전에는 같은 금액이 화면 5곳에 따로 적혀 있었음. 바꾼 뒤에도 모든 화면의 글자·금액이 예전과 똑같은지 비교 확인함)
+- 가격은 DB 가 아니라 코드 파일입니다 → **바꾸려면 파일 수정 → 커밋 → 배포**가 필요합니다(관리자 화면에서 바꿀 수 없음).
+  자주·직접 바꿔야 하게 되면 DB(`services` 테이블 + 관리자 화면)로 옮기는 것을 검토하세요 — 이 파일이 그대로 출발점이 됩니다.
+
+**가격을 바꿀 때 반드시 함께 바꿀 곳 — 서버 결제 검증**
+결제가 끝난 직후 서버가 SQL 함수로 '받아야 할 금액'을 다시 계산해 실제 결제 금액과 비교합니다
+(카드·계좌이체는 결제 직후 `issue-virtual-account`, 가상계좌 입금 등은 `portone-webhook`, 패키지는 `confirm-package-order-payment`).
+금액이 다르면 **고객 돈은 이미 결제됐는데 신청이 처리되지 않습니다**(`AMOUNT_MISMATCH` → 텔레그램 알림 → 운영자가 수동 처리·환불).
+
+| 바꾸는 것 | 화면 (lib/catalog.json) | 서버 SQL (같은 값으로) |
+|---|---|---|
+| 서비스 기본 요금 | `services[].basePrice` | `sql/one_hour_light_care_service.sql` → `expected_service_price()` |
+| 초과 30분당 요금 | `services[].extraPer30Min` | 같은 파일 → `expected_overtime_rate_per_30min()` |
+| 긴급 매칭 옵션 | `addons.urgent.amount` | `sql/user_coupons_checkout.sql` → `expected_addon_total()` |
+| 패키지 가격 | `packages[].price` | `sql/user_packages_system.sql` → `expected_package_price()` |
+
+순서: ① SQL 파일 수정 → ② **Supabase SQL Editor 에서 그 함수 부분을 실행(실제 DB 반영)** → ③ `lib/catalog.json` 수정 → ④ `npm run check:prices` 통과 확인 → ⑤ 배포
+
+- [ ] `npm run check:prices` (GitHub 자동 점검에도 포함)가 화면과 SQL **파일**의 금액이 같은지 검사합니다 — 다르면 실패.
+- [ ] 단, 이 검사는 **②를 실제로 했는지는 모릅니다.** 가격을 바꾼 뒤에는 위 3장 SQL 대신 아래로 실제 DB 값을 확인하세요:
+  ```sql
+  select expected_service_price('시니어 병원 동행'), expected_overtime_rate_per_30min('시니어 병원 동행'),
+         expected_addon_total(array['URGENT_MATCHING']), expected_package_price('10_hours');
+  ```
+- [ ] 가격 변경 후 소액 결제 1건으로 신청이 '매칭 대기'로 넘어가는지 확인
+
+**자동으로 바뀌지 않는 곳 (가격을 바꿀 때 직접 확인)**
+- 이용약관 요금표(`app/(site)/terms`) — 법적 문서라 약관 개정 절차(버전·시행일)와 함께 직접 수정
+- 매니저 시급 15,000원(매니저 모집 페이지 문구) — 고객 요금이 아니라 정산 기준이며 서버 정산 SQL 과 함께 관리
+- 웰컴 쿠폰 5,000원 문구 — 실제 할인액은 DB 쿠폰 데이터가 정함
+- 패키지 유효기간(180일)·FAQ 등 문장 속 숫자
+- 서비스 **이름**은 DB 의 `service_type` 값과 같아야 하므로 바꾸지 마세요(바꾸려면 DB·SQL 함수까지 함께 이전 필요)

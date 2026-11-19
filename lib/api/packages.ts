@@ -1,15 +1,15 @@
 /**
  * 시간 패키지 구매 (예전 package.html). 금액 검증·충전은 confirm-package-order-payment Edge Function 이 합니다 (원칙 1).
- * ⚠ 가격은 서버 쪽 package 금액과 같아야 결제 확인이 통과합니다 (NEXTJS_MIGRATION_PLAN.md 6장 — DB 이전 대상).
+ * ⚠ 가격은 서버 expected_package_price()(sql/user_packages_system.sql)와 같아야 결제 확인이 통과합니다 — lib/services.ts 설명 참고.
  */
 import type { WBSupabaseClient } from '@/lib/supabase/client';
 import { invokeEdgeFunction } from './edge-functions';
 
-export type PackageType = '10_hours' | '20_hours';
-export const PACKAGE_CATALOG: Record<PackageType, { label: string; price: number; hours: number; sessions: number }> = {
-  '10_hours': { label: '10시간권', price: 230000, hours: 10, sessions: 5 },
-  '20_hours': { label: '20시간권', price: 440000, hours: 20, sessions: 10 },
-};
+import { PACKAGES, type PackageType } from '@/lib/services';
+
+export type { PackageType };
+/** 패키지 가격·시간 (원본: lib/catalog.json) */
+export const PACKAGE_CATALOG = PACKAGES;
 
 /** 결제 전에 주문서를 만듭니다. 주문 id 가 PortOne paymentId 로 쓰입니다. */
 export async function createPackageOrder(client: WBSupabaseClient, userId: string, packageType: PackageType) {

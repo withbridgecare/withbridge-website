@@ -331,7 +331,7 @@ withbridge-website/
 | 항목 | 현재 | 옮길 곳 | 우선순위 |
 |---|---|---|---|
 | 공지사항 | `notices` 테이블 + 관리자 화면 (이미 됨) | 유지 | — |
-| 서비스 목록·가격 | **네 군데에 같은 값을 따로 적어 둠**: 메인 요금 카드(`app/(site)/(home)/page.tsx`), `lib/pricing.ts`(요금 계산 페이지), `apply.html` `SERVICES`, 서버 `expected_service_price()`·`expected_overtime_rate_per_30min()` (`sql/one_hour_light_care_service.sql`). 2026-11-18 기준 금액은 모두 일치 | `services` 테이블 1곳 (서버 함수도 이 테이블을 읽게 변경) | **높음** — 한 곳만 고치면 화면 금액이 틀리거나 결제가 `AMOUNT_MISMATCH`로 막힘 |
+| 서비스 목록·가격 | **2026-11-19: 화면용 금액을 `lib/catalog.json` 한 곳으로 모음**(메인·요금 계산·신청서·패키지·매니저 모집이 읽음). 서버 검증 SQL 함수와의 일치는 `npm run check:prices`(CI 포함)로 검사 | 운영자가 직접 바꿔야 하면 `services` 테이블 + 관리자 화면으로 이전 (서버 함수도 이 테이블을 읽게 변경) | 중간 — 자세한 내용은 VERIFICATION_CHECKLIST.md '전달 내용 1' |
 | FAQ | HTML에 하드코딩 | `faqs` 테이블 | 중간 |
 | 메인 상단 띠배너·안내 문구 | HTML에 하드코딩 | `site_settings` 테이블 (키-값) | 중간 |
 | 메인·소개 페이지 이미지 | `images/` 파일 | Supabase Storage + 관리자 업로드 | 낮음 |

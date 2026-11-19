@@ -1,6 +1,7 @@
 import './pricing-shared.css';
 import './pricing.css';
 import type { Metadata } from 'next';
+import { ADDONS, SERVICE, won } from '@/lib/services';
 import { NotoSansKr } from '@/components/site/NotoSansKr';
 import { LoginGateLink } from '@/components/site/LoginGateLink';
 import { PricingCalculator } from './PricingCalculator';
@@ -85,7 +86,7 @@ export default function PricingPage() {
                   </span>
                 </div>
                 <span className="wb-addon-banner-price">
-                  +10,000원
+                  +{won(ADDONS.urgent.amount)}원
                 </span>
               </div>
             </div>
@@ -215,7 +216,7 @@ export default function PricingPage() {
                       <div className="wb-plan-price-wrap">
                         <div className="wb-plan-price-row">
                           <span className="wb-plan-price">
-                            30,000원
+                            {won(SERVICE.light.basePrice)}원
                           </span>
                           {' '}
                           <span className="wb-plan-price-unit">
@@ -273,7 +274,7 @@ export default function PricingPage() {
                       <div className="wb-plan-price-wrap">
                         <div className="wb-plan-price-row">
                           <span className="wb-plan-price">
-                            50,000원
+                            {won(SERVICE.hospital.basePrice)}원
                           </span>
                           {' '}
                           <span className="wb-plan-price-unit">
@@ -281,7 +282,7 @@ export default function PricingPage() {
                           </span>
                         </div>
                         <p className="wb-plan-price-note is-accent">
-                          초과 30분당 12,500원
+                          초과 30분당 {won(SERVICE.hospital.extraPer30Min)}원
                         </p>
                       </div>
                     </div>
@@ -334,7 +335,7 @@ export default function PricingPage() {
                       <div className="wb-plan-price-wrap">
                         <div className="wb-plan-price-row">
                           <span className="wb-plan-price">
-                            40,000원~
+                            {won(SERVICE.life.basePrice)}원~
                           </span>
                           {' '}
                           <span className="wb-plan-price-unit">
@@ -342,7 +343,7 @@ export default function PricingPage() {
                           </span>
                         </div>
                         <p className="wb-plan-price-note is-muted">
-                          복합 매칭 60,000원 / 초과 30분당 10,000원~
+                          복합 매칭 {won(SERVICE.complex.basePrice)}원 / 초과 30분당 {won(Math.min(SERVICE.life.extraPer30Min, SERVICE.complex.extraPer30Min))}원~
                         </p>
                       </div>
                     </div>

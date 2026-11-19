@@ -17,6 +17,7 @@ import { requestPayment } from '@/lib/payments/portone';
 import { loadScript, SCRIPTS } from '@/lib/browser/load-script';
 import { readPendingApplications, writePendingApplications } from '@/lib/browser/storage';
 import { ROUTES, SITE } from '@/lib/config';
+import { ADDONS as CATALOG_ADDONS, SERVICES as CATALOG_SERVICES } from '@/lib/services';
 
 declare global {
   interface Window {
@@ -75,48 +76,12 @@ export function initApplyForm(): () => void {
   const RELATIONSHIPS = ['어르신 본인', '자녀', '사위·며느리', '기타'];
   const MOBILITIES = ['혼자 걸음 가능', '지팡이·보행기 사용', '휠체어 사용', '매니저 부축 필수'];
   const PAY_METHOD_MAP: Record<string, string> = { '카드': 'CARD', '계좌이체': 'TRANSFER' };
-  const SERVICES: Record<string, any> = {
-    '1시간 라이트 케어': {
-      price: 30000,
-      overtimeRate: 15000,
-      durationLabel: '(기본 1시간)',
-      destLabel: '목적지 / 방문 장소',
-      destPlaceholder: '예: 길병원(수면내시경 귀가) 또는 단지 내 산책, 집 앞 마트',
-      routeHint: '수면내시경/검사 후 귀가하실 병원, 산책하실 장소, 장보실 마트 등을 적어 주세요.',
-      detailsPlaceholder: '예: 수면내시경 후 보호자 동반 귀가, 단지 내 30분 산책, 장보기 목록(우유 2개, 두부 1모 등)'
-    },
-    '시니어 병원 동행': {
-      price: 50000,
-      overtimeRate: 12500,
-      durationLabel: '(기본 2시간)',
-      destLabel: '목적지 (병원명)',
-      destPlaceholder: '예: 길병원',
-      routeHint: '방문하실 병원의 정확한 이름을 적어 주시면 매칭에 도움이 돼요.',
-      detailsPlaceholder: '예: 진료과(내과), 진료 예약 시간, 검사·수납·약 수령 등 도움이 필요한 부분'
-    },
-    '생활 편의 대행': {
-      price: 40000,
-      overtimeRate: 10000,
-      durationLabel: '(기본 2시간)',
-      destLabel: '목적지 (방문 장소·업무)',
-      destPlaceholder: '방문할 병원, 관공서, 은행명을 입력해 주세요',
-      routeHint: '방문 장소(관공서·은행·마트 등)와 간단한 업무를 적어 주세요. 자세한 내용은 아래 ‘요청 상세 내용’에 적어 주셔도 좋아요.',
-      detailsPlaceholder: '예: 은행 통장 재발급, 주민센터 서류 발급, 장보기 목록(우유 2개, 두부 1모 등)'
-    },
-    '복합 매칭 서비스 (동행 + 생활편의)': {
-      price: 60000,
-      overtimeRate: 15000,
-      durationLabel: '(기본 2시간)',
-      destLabel: '목적지 (병원 → 이후 방문 장소)',
-      destPlaceholder: '예: 길병원 → 약국 → 우리은행',
-      routeHint: '병원 진료 후 들르실 곳(약국·은행·마트 등)을 순서대로 적어 주세요.',
-      detailsPlaceholder: '예: 진료과 + 진료 후 처리할 업무(약국 약 수령, 은행 업무, 장보기 목록 등)'
-    }
-  };
+  // 서비스별 요금·안내 문구 — 원본은 lib/catalog.json (lib/services.ts 설명 참고). 아래 코드는 예전과 같은 모양으로 만들어 씁니다.
+  const SERVICES: Record<string, any> = Object.fromEntries(
+    CATALOG_SERVICES.map((s) => [s.name, { price: s.basePrice, overtimeRate: s.extraPer30Min, ...s.apply }]),
+  );
   const SERVICE_NAMES = Object.keys(SERVICES);
-  const ADDONS: Record<string, any> = {
-    urgent: { code: 'URGENT_MATCHING', amount: 10000, label: '긴급 매칭 서비스' }
-  };
+  const ADDONS: Record<string, any> = { urgent: { ...CATALOG_ADDONS.urgent } };
   const DEFAULT_TEXT = {
     destLabel: '목적지 / 방문 장소',
     destPlaceholder: '예: 방문하실 병원명 또는 장소',

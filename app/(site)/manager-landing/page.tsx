@@ -1,5 +1,6 @@
 import './manager-landing.css';
 import type { Metadata } from 'next';
+import { SERVICE, hoursLabel, won } from '@/lib/services';
 import { NotoSansKr } from '@/components/site/NotoSansKr';
 import { BodyClass } from '@/components/site/BodyClass';
 
@@ -304,7 +305,7 @@ export default function ManagerLandingPage() {
                     병원 동행 케어
                   </h3>
                   <span className="activity-price">
-                    이용 요금 50,000원 · 2시간 기준
+                    이용 요금 {won(SERVICE.hospital.basePrice)}원 · {hoursLabel(SERVICE.hospital.baseMinutes)} 기준
                   </span>
                 </div>
               </div>
@@ -358,7 +359,7 @@ export default function ManagerLandingPage() {
                     일상 생활 동행 · 1시간 라이트 케어
                   </h3>
                   <span className="activity-price">
-                    이용 요금 40,000원(2시간) · 30,000원(1시간)
+                    이용 요금 {won(SERVICE.life.basePrice)}원({hoursLabel(SERVICE.life.baseMinutes)}) · {won(SERVICE.light.basePrice)}원({hoursLabel(SERVICE.light.baseMinutes)})
                   </span>
                 </div>
               </div>

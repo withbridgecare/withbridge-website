@@ -17,8 +17,12 @@
   고칠 때는 동작이 바뀌지 않게 주의하고, 가능하면 상태 기반 React 컴포넌트로 조금씩 옮기세요.
 - 페이지 이동은 일부러 전체 새로 고침(`<a>`)을 씁니다 — 옮긴 스크립트가 페이지가 열릴 때 한 번만 동작을 붙이기 때문.
 
+## 가격
+- 화면의 모든 요금은 `lib/catalog.json`(설명: `lib/services.ts`). 바꿀 때는 서버 결제 검증 SQL 함수도 같은 값으로 바꾸고 DB 에 실행해야 함 —
+  `npm run check:prices` 로 확인. 자세한 절차: VERIFICATION_CHECKLIST.md '전달 내용 1'.
+
 ## 명령어
-- `npm run dev` (http://localhost:5500) · `npm run lint` · `npm run typecheck` · `npm run build` / `npm start`
+- `npm run dev` (http://localhost:5500) · `npm run lint` · `npm run typecheck` · `npm run check:prices` · `npm run build` / `npm start`
 - 로컬 `.env` 는 **운영 DB** 를 가리킵니다 — 신청·결제·탈퇴 등 데이터가 바뀌는 동작을 함부로 실행하지 마세요.
 
 ## 배포 전 확인

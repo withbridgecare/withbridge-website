@@ -1,7 +1,15 @@
 import './package.css';
 import type { Metadata } from 'next';
+import { PACKAGES, packageDeal, won } from '@/lib/services';
+
 import { NotoSansKr } from '@/components/site/NotoSansKr';
 import { PackageBehaviors } from './PackageBehaviors';
+
+/** 패키지 가격·시간 — 원본은 lib/catalog.json */
+const P10 = PACKAGES['10_hours'];
+const P20 = PACKAGES['20_hours'];
+const D10 = packageDeal(P10);
+const D20 = packageDeal(P20);
 
 export const metadata: Metadata = {
   title: "케어 패키지 안내",
@@ -149,29 +157,29 @@ export default function PackagePage() {
           <div className="pkg-price-grid">
             <div className="pkg-price-card">
               <h3 className="pkg-price-name">
-                10시간 패키지
+                {P10.name}
               </h3>
               <div className="pkg-price-head">
                 <span className="pkg-price-original">
-                  245,000원
+                  {won(P10.listPrice)}원
                 </span>
                 {' '}
                 <span className="pkg-price-off">
-                  15,000원 할인 · 약 6% OFF
+                  {won(D10.discount)}원 할인 · 약 {D10.discountPercent}% OFF
                 </span>
               </div>
               <p className="pkg-price-amount">
-                230,000
+                {won(P10.price)}
                 <span>
                   원
                 </span>
               </p>
               <p className="pkg-price-persession">
-                시간당 23,000원 상당 · 전담 매니저 선점
+                시간당 {won(D10.perHour)}원 상당 · 전담 매니저 선점
               </p>
               <ul className="pkg-price-features">
                 <li>
-                  2시간 기준 정기 케어 5회 (총 10시간)
+                  2시간 기준 정기 케어 {P10.sessions}회 (총 {P10.hours}시간)
                 </li>
                 <li>
                   유효기간 구매일로부터 180일
@@ -180,8 +188,8 @@ export default function PackagePage() {
                   결제 없이 바로 차감 예약
                 </li>
               </ul>
-              <button type="button" className="pkg-btn is-ghost" id="buyPackage10hBtn" data-original-label="10시간권 구매하기">
-                10시간권 구매하기
+              <button type="button" className="pkg-btn is-ghost" id="buyPackage10hBtn" data-original-label={`${P10.label} 구매하기`}>
+                {P10.label} 구매하기
               </button>
             </div>
             <div className="pkg-price-card is-featured">
@@ -189,29 +197,29 @@ export default function PackagePage() {
                 인기
               </span>
               <h3 className="pkg-price-name">
-                20시간 패키지
+                {P20.name}
               </h3>
               <div className="pkg-price-head">
                 <span className="pkg-price-original">
-                  490,000원
+                  {won(P20.listPrice)}원
                 </span>
                 {' '}
                 <span className="pkg-price-off is-hot">
-                  50,000원 할인 · 약 10% OFF
+                  {won(D20.discount)}원 할인 · 약 {D20.discountPercent}% OFF
                 </span>
               </div>
               <p className="pkg-price-amount">
-                440,000
+                {won(P20.price)}
                 <span>
                   원
                 </span>
               </p>
               <p className="pkg-price-persession">
-                시간당 22,000원 상당 · 지정 매니저 우선 배정
+                시간당 {won(D20.perHour)}원 상당 · 지정 매니저 우선 배정
               </p>
               <ul className="pkg-price-features">
                 <li>
-                  2시간 기준 정기 케어 10회 (총 20시간)
+                  2시간 기준 정기 케어 {P20.sessions}회 (총 {P20.hours}시간)
                 </li>
                 <li>
                   유효기간 구매일로부터 180일
@@ -223,8 +231,8 @@ export default function PackagePage() {
                   장기 이용 보호자님이 가장 많이 선택하는 패키지
                 </li>
               </ul>
-              <button type="button" className="pkg-btn is-primary" id="buyPackage20hBtn" data-original-label="20시간권 구매하기">
-                20시간권 구매하기
+              <button type="button" className="pkg-btn is-primary" id="buyPackage20hBtn" data-original-label={`${P20.label} 구매하기`}>
+                {P20.label} 구매하기
               </button>
             </div>
           </div>
