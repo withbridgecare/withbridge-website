@@ -17,7 +17,19 @@
 | 2. 홍보·정보 | ✅ 완료 | 메인(`/`) `terms` `privacy` `story` `notice` `partner` `manager-landing` `pricing`. 원본과 휴대폰·PC 폭에서 요소 위치·크기·글꼴·색이 같은지 자동 비교로 확인 |
 | 3. 회원 기능 | ✅ 완료 | `login` `signup` `reset-password` `profile-edit`. 화면 비교·입력 검사·약관 팝업·비로그인 이동 확인. **실제 로그인/가입/탈퇴는 운영 DB라 미확인** |
 | 4. 신청·결제 | 🟡 코드 완료, 결제 미검증 | `apply` `package` `manager-apply`. 화면·입력 검사·금액 계산이 원본과 같은지 확인. **실제 결제(PortOne)·신청 저장·지원서 제출은 운영 DB·실결제 채널이라 미확인 → 아래 '결제 테스트' 필수** |
-| 5~6단계 | ⬜ 시작 전 | 마이페이지·관리자 페이지는 아직 `public/*.html` 레거시 |
+| 5. 마이페이지 | 🟡 코드 완료, 로그인 상태 미검증 | `mypage`(보호자) `mypage-manager`(케어 매니저). 화면(모든 섹션·모달 포함)이 원본과 같은지, 비로그인 시 로그인 화면으로 가는지 확인. **로그인한 상태의 실제 동작은 운영 계정이 필요해 미확인** |
+| 6단계 | ⬜ 시작 전 | 관리자(`admin` `admin-logs` `super-admin`)는 아직 `public/*.html` 레거시 |
+
+**5단계 구조** — 두 마이페이지 스크립트(각 2,700·3,000줄)도 4단계처럼 로직을 줄 단위로 옮겼습니다.
+`app/(site)/mypage/mypageScript.ts`, `mypage-manager/managerMypageScript.ts`. DB 호출은 `lib/api/guardian-mypage.ts`(21개)·`lib/api/manager-mypage.ts`(28개)로 이름을 붙여 옮김.
+예전 전역 도우미(`WBAuth`·`WBEdgeFn`·`PortOne`·`WBPrivacy`)는 `lib/browser/legacy-shims.ts` 가 새 모듈로 연결합니다.
+⚠ 이 두 파일은 맨 위에 `// @ts-nocheck`(타입 검사 끔) — 옮긴 코드를 고치지 않기 위해서입니다. 없는 이름 참조는 따로 검사해 0건.
+실시간 구독(보호자 마이페이지의 `supabaseClient.channel(...)`)은 화면 갱신과 붙어 있어 아직 화면 코드 안에 있습니다(원칙 2 예외, 정리 대상).
+개인정보 보호(`privacy-guard.js`)도 옮김: 운영 도메인 콘솔 로그 끄기(`app/layout.tsx`), 비공개 사진 서명 URL(`lib/browser/privacy.ts`, AuthProvider 에서 실행).
+
+**마이페이지 확인 목록 (보호자/매니저 테스트 계정으로)** — 보호자: 예약 목록·취소·확정, 케어 진행 상태·체크포인트 사진, 케어 리포트 열람·후기 작성,
+어르신 프로필 추가/수정/삭제(주소·병원 검색), 쿠폰·적립금·패키지 표시, 추가 요금 결제. 매니저: 활동 상태 전환, 요청 수락, 상태 진행·출발/도착 인증(위치·사진),
+케어 리포트 작성(AI 초안), 정산 내역, 텔레그램 연결, 보호자↔매니저 모드 전환.
 
 **4단계 구조** — 결제가 걸린 화면이라 예전 스크립트의 로직을 줄 단위로 그대로 옮겼습니다(할인·금액 계산이 달라지지 않도록).
 `app/(site)/apply/applyForm.ts`(신청·결제), `package/PackageBehaviors.tsx`, `manager-apply/ManagerApplyBehaviors.tsx`.

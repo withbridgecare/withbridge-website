@@ -122,3 +122,12 @@ export function recordTermsAgreement(version: string) {
     /* 무시 */
   }
 }
+
+// ---------- 사용자가 직접 로그아웃 중인지 (페이지별 'SIGNED_OUT → 로그인 화면' 이동과 구분) ----------
+let loggingOut = false;
+export function markLoggingOut(v: boolean) {
+  loggingOut = v;
+}
+export function isLoggingOut() {
+  return loggingOut;
+}

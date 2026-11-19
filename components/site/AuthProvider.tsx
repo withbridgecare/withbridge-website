@@ -22,6 +22,8 @@ import {
   writePendingApplications,
 } from '@/lib/browser/storage';
 import { ROUTES, SITE } from '@/lib/config';
+import { attachPhotoResolver, scrubLegacyCheckpoints } from '@/lib/browser/privacy';
+import { markLoggingOut } from '@/lib/browser/storage';
 
 type AuthContextValue = {
   /** 세션 확인이 끝났는지 (끝나기 전엔 헤더 로그인 영역을 숨겨 깜빡임 방지) */
@@ -102,6 +104,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [client]);
 
+  // 개인정보 보호: 비공개 사진 서명 URL 자동 교체 + 예전 로컬 체크포인트 정리 (예전 privacy-guard.js)
+  useEffect(() => {
+    attachPhotoResolver(client);
+    scrubLegacyCheckpoints();
+  }, [client]);
+
   useEffect(() => {
     // 저장된 토큰이 없으면 기다릴 필요 없이 바로 '로그아웃 상태'로 그림
     if (!maybeLoggedIn()) setReady(true);
@@ -137,8 +145,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(
     async (opts?: { redirectTo?: string }) => {
+      markLoggingOut(true); // 사용자가 직접 누른 로그아웃 — 마이페이지의 '로그인 만료' 이동과 구분
       const { error } = await client.auth.signOut();
       if (error) {
+        markLoggingOut(false);
         alert('로그아웃 중 오류가 발생했습니다: ' + error.message);
         return;
       }
@@ -149,6 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         window.location.href = opts.redirectTo;
         return;
       }
+      markLoggingOut(false);
       alert('로그아웃 되었습니다.');
     },
     [client],

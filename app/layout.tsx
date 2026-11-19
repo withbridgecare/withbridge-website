@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import { PRIVACY_CONSOLE_SCRIPT } from '@/lib/browser/privacy';
 
 export const metadata: Metadata = {
   // 운영 도메인은 Vercel 환경 변수 NEXT_PUBLIC_SITE_URL 에 등록하세요 (검색엔진·공유 미리보기 주소 기준)
@@ -15,6 +16,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ko">
       <head>
+        {/* 운영 도메인에서 디버그 로그 끄기 (회원정보 노출 방지) — lib/browser/privacy.ts */}
+        <script dangerouslySetInnerHTML={{ __html: PRIVACY_CONSOLE_SCRIPT }} />
         {/* ?embed=1 : 다른 페이지의 팝업(iframe) 안에서 열릴 때 머리글·바닥글 숨김. 화면을 그리기 전에 적용해야 깜빡이지 않습니다. */}
         <script
           dangerouslySetInnerHTML={{
