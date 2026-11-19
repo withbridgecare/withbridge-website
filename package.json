@@ -6,8 +6,7 @@
     "build": "npm run build:legacy && next build",
     "start": "next start -p 5500",
     "typecheck": "tsc --noEmit",
-    "build:legacy": "node scripts/build-env.mjs && npm run build:legacy-css",
-    "build:legacy-css": "tailwindcss -c legacy/tailwind.legacy.config.js -i legacy/tailwind.legacy.css -o public/css/tailwind.css --minify"
+    "build:legacy": "node scripts/build-env.mjs"
   },
   "dependencies": {
     "@portone/browser-sdk": "^0.1.13",

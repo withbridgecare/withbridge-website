@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// 브라우저에서 쓰는 설정값을 .env(로컬) 또는 Vercel 환경 변수(배포)에서 읽어 public/js/env.js 로 만들어 줍니다 (아직 Next.js 로 옮기지 않은 레거시 HTML 페이지 전용 — 레거시가 사라지면 이 스크립트도 삭제).
+// 브라우저에서 쓰는 설정값을 .env(로컬) 또는 Vercel 환경 변수(배포)에서 읽어 public/js/env.js 로 만들어 줍니다 (일부러 남겨 둔 옛 HTML — public/about_old.html, public/test/ — 전용. 그 페이지들을 지우면 이 스크립트도 삭제).
 // 이 사이트는 빌드 도구 없는 정적 HTML 이라 브라우저가 .env 를 직접 읽을 수 없어서, 이 스크립트가
 // 그 값을 window.WB_ENV 로 옮겨 적은 작은 JS 파일을 생성합니다. public/js/env.js 는 생성물이라 커밋하지 않습니다.
 //

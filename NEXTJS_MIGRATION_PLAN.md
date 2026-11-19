@@ -19,7 +19,7 @@
 | 4. 신청·결제 | 🟡 코드 완료, 결제 미검증 | `apply` `package` `manager-apply`. 화면·입력 검사·금액 계산이 원본과 같은지 확인. **실제 결제(PortOne)·신청 저장·지원서 제출은 운영 DB·실결제 채널이라 미확인 → 아래 '결제 테스트' 필수** |
 | 5. 마이페이지 | 🟡 코드 완료, 로그인 상태 미검증 | `mypage`(보호자) `mypage-manager`(케어 매니저). 화면(모든 섹션·모달 포함)이 원본과 같은지, 비로그인 시 로그인 화면으로 가는지 확인. **로그인한 상태의 실제 동작은 운영 계정이 필요해 미확인** |
 | 6. 관리자 | 🟡 코드 완료, 관리자 로그인 상태 미검증 | `admin` `admin-logs` `super-admin` → `app/(admin)/` (사이트 머리글 없는 별도 틀). 모든 화면·모달(어드민 콘솔 307개 요소)이 원본과 같은지 확인. **관리자 계정으로의 실제 동작은 미확인** |
-| 7. 마무리 | ⬜ | `public/about_old.html`·`test/`, 레거시 공용 스크립트(`public/js`), `legacy/`·`build:legacy` 정리, CSP 실제 적용, PWA |
+| 7. 마무리 | ✅ 완료 | 안 쓰는 옛 파일 정리, CSP 점검·전환 스위치, PWA(홈 화면 추가) — 5장 '7단계' 참고 |
 
 **6단계 구조** — `admin.js`(5,500줄)·`admin-notices.js`·`admin-sidebar.js`·`admin-logs.js`·`super-admin.js` 를 로직 그대로 옮김
 (`app/(admin)/admin/adminConsole.ts` 등, 맨 위 `// @ts-nocheck`). DB·서버 함수 호출 83개는 `lib/api/admin-console.ts` · `admin-notices.ts` · `admin-logs.ts` · `super-admin.ts`
@@ -54,7 +54,6 @@ DB 호출은 `lib/api/applications.ts` · `seniors.ts` · `packages.ts` · `mana
 1. PortOne 콘솔에서 테스트 채널 키를 받아 Vercel Preview 에서만 쓰도록 바꾸거나, 소액 실결제 후 즉시 취소로 확인
 2. 확인할 흐름: 카드 결제 · 계좌이체 · 쿠폰/적립금 적용 · 긴급 옵션 · 패키지 차감 예약 · 결제창 닫기(취소) · 패키지 구매
 3. 각 흐름 뒤 관리자 화면에서 신청서·결제 상태, 알림톡/텔레그램 알림이 정상인지 확인
-| 7. 마무리 | ⬜ | |
 
 **배포 전 확인할 것**
 - Vercel 프로젝트 설정 → Framework Preset이 **Next.js**인지 (vercel.json에 `"framework": "nextjs"`를 넣어 두었음), Build Command/Output Directory를 수동으로 지정해 두었다면 비우기
@@ -308,12 +307,19 @@ withbridge-website/
 - `noindex`·`no-store` 헤더 유지 확인
 - **완료 기준:** 관리자·최고관리자 권한별로 보이는 메뉴와 실제로 가능한 작업이 기존과 같음 (권한 없는 계정으로 RPC 호출 시 거부되는지 확인)
 
-### 7단계 — 마무리
+### 7단계 — 마무리 (2026-11-19 완료)
 
-- `public/legacy/` 삭제, 남은 rewrite 제거, `scripts/build-env.mjs`·`js/env.js` 삭제
-- `about_old.html`, `test/` 실험 페이지 정리 (삭제 여부 **확인 필요**)
-- CSP를 Report-Only → 실제 적용으로 전환 검토
-- PWA 적용: `manifest`, 앱 아이콘, 홈 화면 추가 (8장)
+- **옛 페이지 2개는 운영자 결정으로 그대로 유지**: `/about_old`(예전 소개), `/test/child-care-landing`(아동 케어 실험 랜딩).
+  이 둘이 쓰는 옛 공용 스크립트(`public/js/auth-header.js` 등), `public/js/env.js` 생성(`scripts/build-env.mjs`, `npm run build:legacy`),
+  `public/mobile-nav.css`, `next.config.ts` 의 rewrites 도 그래서 남겨 둠. 두 페이지를 지우기로 하면 이것들도 함께 지우면 됩니다.
+- **삭제**: 어디서도 안 쓰게 된 `public/js/edge-function-fetch.js`, 옛 Tailwind 빌드(`legacy/`, `public/css/tailwind.css`, `build:legacy-css`).
+- **날짜 선택기·장소 검색**(`public/js/wb-datepicker.js`, `wb-place-search.js`)은 신청서·마이페이지가 쓰는 공용 위젯이라 유지(React 전환은 후속 과제).
+- **CSP**: 로컬에서 모든 페이지가 불러오는 외부 주소가 정책 안에 있음을 확인하고, 안 쓰는 Tailwind CDN 을 목록에서 뺐습니다.
+  결제창·Turnstile·카카오 지도·카카오 로그인은 로컬에서 확인할 수 없어 **아직 '보고만' 모드**입니다.
+  Vercel 미리보기에서 그 흐름을 해 보고 콘솔에 `[Report Only]` 경고가 없으면 `next.config.ts` 의 `ENFORCE_CSP` 를 `true` 로.
+- **PWA**: `app/manifest.ts`(이름·색·아이콘), `public/icons/`(192·512·애플 180px), iOS 홈 화면용 메타, 테마 색 `#78866B`.
+  오프라인 캐시(서비스 워커)는 결제·예약 화면이 옛 데이터를 보여 줄 위험이 있어 넣지 않았습니다.
+  아이콘 원본(`images/withbridge_logo.png`)이 256px 라 512px 는 확대본 — 더 선명한 원본이 생기면 교체.
 
 ---
 

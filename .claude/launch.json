@@ -1,6 +1,23 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "next", "runtimeExecutable": "sh", "runtimeArgs": ["-c", "npm run build:legacy && npx next dev -p 5600"], "port": 5600 }
+    {
+      "name": "next",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "npm run build:legacy && npx next dev -p 5600"
+      ],
+      "port": 5600
+    },
+    {
+      "name": "next-prod",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "npm run build && npx next start -p 5700"
+      ],
+      "port": 5700
+    }
   ]
 }

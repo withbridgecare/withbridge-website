@@ -3,16 +3,41 @@ import type { NextConfig } from 'next';
 /**
  * 위드브릿지 Next.js 설정
  *
- * ── 전환 중 구조 (NEXTJS_MIGRATION_PLAN.md 4장) ──────────────────────────────
- * 아직 Next.js 로 옮기지 않은 페이지는 public/*.html 에 그대로 있습니다.
- *   /apply        → (app/apply/page.tsx 가 없으면) public/apply.html 을 보여 줌   ← rewrites.fallback
- *   /apply.html   → /apply 로 308 리다이렉트 (예전 링크·북마크 유지)            ← redirects
- * 어떤 페이지를 app/<이름>/page.tsx 로 새로 만들면 Next.js 페이지가 자동으로 우선합니다.
- * 그때 public/<이름>.html 은 삭제하세요(남겨 두면 /<이름>.html 리다이렉트만 타고 화면엔 안 쓰임).
+ * ── 옛 HTML 페이지 ─────────────────────────────────────────────────────
+ * 모든 화면은 app/ 의 Next.js 페이지입니다. 일부러 남겨 둔 옛 HTML 2개만 public/ 에 있습니다:
+ *   /about_old (예전 소개 페이지), /test/child-care-landing (아동 케어 실험 랜딩)
+ * 이 둘은 public/js 의 옛 공용 스크립트(auth-header.js 등)와 public/js/env.js(빌드 시 생성)를 씁니다.
+ *   /about_old       → public/about_old.html          ← rewrites.fallback
+ *   /어떤페이지.html  → /어떤페이지 로 308 리다이렉트 (예전 링크·북마크 유지)  ← redirects
  *
  * ── 보안 헤더 ──────────────────────────────────────────────────────────────
  * 예전 vercel.json 의 headers 를 그대로 옮겼습니다. 로컬(next dev)에서도 똑같이 적용됩니다.
  */
+
+/**
+ * 콘텐츠 보안 정책(CSP) — 페이지가 불러올 수 있는 외부 주소 목록.
+ *
+ * 지금은 '보고만'(Report-Only) 합니다: 목록에 없는 주소를 불러와도 막지 않고 브라우저 개발자 도구 콘솔에
+ * "[Report Only] Refused to …" 경고만 남깁니다.
+ * 7단계 점검(2026-11-19): 로컬에서 열리는 모든 페이지가 불러오는 외부 주소는 전부 이 목록 안에 있었습니다.
+ * 로컬에서 확인할 수 없었던 것: PortOne 결제창, Cloudflare Turnstile, 카카오 지도 타일, 카카오 로그인 후 화면.
+ *
+ * ▶ 실제 적용으로 바꾸는 방법: Vercel 미리보기 주소에서 결제·지도·매니저 지원(Turnstile)·카카오 로그인을 해 보고
+ *   콘솔에 "[Report Only]" 경고가 하나도 없으면 아래 ENFORCE_CSP 를 true 로 바꾸세요. (경고가 있으면 그 주소를 목록에 추가)
+ */
+const ENFORCE_CSP = false;
+
+const CSP_POLICY = [
+  "default-src 'self'",
+  // 'unsafe-inline': Next.js 와 남은 옛 HTML 의 인라인 스크립트 / 'unsafe-eval': 결제·지도 SDK 호환용(필요 없으면 빼 보세요)
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdn.portone.io https://challenges.cloudflare.com https://dapi.kakao.com https://*.kakao.com https://*.kakaocdn.net https://*.daumcdn.net",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
+  "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net",
+  "img-src 'self' data: blob: https:",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://dapi.kakao.com https://*.kakao.com https://*.portone.io https://challenges.cloudflare.com",
+  "frame-src 'self' https:",
+  "worker-src 'self' blob:",
+].join('; ');
 
 const securityHeaders = [
   { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
@@ -21,15 +46,12 @@ const securityHeaders = [
   { key: 'Strict-Transport-Security', value: 'max-age=63072000' },
   { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=(self), interest-cohort=()' },
   {
+    // 항상 적용: 다른 사이트가 이 사이트를 iframe 으로 감싸지 못하게(클릭재킹 방지) 등 기본 규칙
     key: 'Content-Security-Policy',
-    value: "frame-ancestors 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests",
-  },
-  {
-    // 아직 Report-Only(차단하지 않고 위반만 보고). 실제 적용 전환은 7단계에서 검토.
-    key: 'Content-Security-Policy-Report-Only',
     value:
-      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdn.tailwindcss.com https://cdn.portone.io https://challenges.cloudflare.com https://dapi.kakao.com https://*.kakao.com https://*.kakaocdn.net https://*.daumcdn.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://dapi.kakao.com https://*.kakao.com https://*.portone.io https://challenges.cloudflare.com; frame-src 'self' https:; worker-src 'self' blob:",
+      "frame-ancestors 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests" + (ENFORCE_CSP ? '; ' + CSP_POLICY : ''),
   },
+  ...(ENFORCE_CSP ? [] : [{ key: 'Content-Security-Policy-Report-Only', value: CSP_POLICY }]),
 ];
 
 // 검색엔진에 노출하지 않고 캐시하지 않는 개인/관리자 페이지

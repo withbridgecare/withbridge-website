@@ -1,4 +1,0 @@
-/* [레거시 전용] Tailwind 빌드 입력 — npm run build:legacy-css 가 public/css/tailwind.css 로 만듭니다(직접 고치지 마세요). */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;

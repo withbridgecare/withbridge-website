@@ -7,10 +7,12 @@ export const metadata: Metadata = {
   ...(process.env.NEXT_PUBLIC_SITE_URL ? { metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL) } : {}),
   title: { default: '위드브릿지', template: '%s | 위드브릿지' },
   description: '사람과 사람을 잇는 따뜻한 연결, 위드브릿지 — 시니어 병원 동행·생활 편의 케어 서비스',
-  icons: { icon: '/images/withbridge_logo.png' },
+  icons: { icon: '/images/withbridge_logo.png', apple: '/icons/apple-touch-icon.png' },
+  // iOS 에서 홈 화면에 추가했을 때 앱처럼 열리도록
+  appleWebApp: { capable: true, title: '위드브릿지', statusBarStyle: 'default' },
 };
 
-export const viewport: Viewport = { width: 'device-width', initialScale: 1 };
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#78866B' };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
