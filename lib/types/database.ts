@@ -52,6 +52,8 @@ export type Database = {
         created_at: string;
       }>;
       user_coupons: Row<{ id: string; user_id: string; coupon_code: string; amount: number | null; status: string | null; notified_at: string | null }>;
+      package_orders: Row<{ id: string; user_id: string; package_type: string; amount: number; status: string | null; created_at: string }>;
+      manager_applications: Row<{ id: string; user_id: string; status: string; reject_reason: string | null; created_at: string }>;
     };
     Views: Record<string, never>;
     Functions: {

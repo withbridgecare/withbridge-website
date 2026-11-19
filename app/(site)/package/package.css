@@ -1,0 +1,199 @@
+/* package 페이지 전용 스타일 — public/package.html 의 <style> 을 그대로 옮김 */
+  :root {
+--brand: #78866B; --brand-dark: #3B4B3C; --brand-soft: #F1F6F0; --brand-line: #E2ECE0;
+--accent: #556B2F; --accent-dark: #455822;
+--beige: #FBF4E8; --beige-line: #EEE2CB;
+--offwhite: #FDFBF7;
+--ink: #1A1D21; --ink-sub: #5B6358; --line: #EBE7E0; --danger: #C0392B;
+--radius: 22px; --radius-sm: 14px;
+  }
+  * { box-sizing: border-box; }
+  /* .pkg-modal-backdrop 등 display:flex 를 직접 지정하는 클래스 규칙이 같은 우선순위로 맞붙으면
+ 브라우저 기본 [hidden]{display:none} 규칙을 이겨버려, hidden 속성이 있어도 보여버립니다
+ (실제로 결제도 안 했는데 구매 완료 모달이 로드 즉시 떠버린 원인). !important 로 hidden 속성이
+ 항상 최종적으로 이기도록 고정합니다(apply.html/mypage.html 과 같은 규칙).  */
+  [hidden] { display: none !important; }
+  html { scroll-behavior: smooth; }
+  body {
+margin: 0; background: var(--offwhite); color: var(--ink);
+font-family: 'Pretendard Variable', Pretendard, 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+font-size: 15.5px; line-height: 1.7; letter-spacing: -0.01em; -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  button { font-family: inherit; }
+  .site-chrome, .site-footer { display: contents; } /* 감싸는 상자 없이 그대로 배치 (sticky 머리글 유지) */
+  img { max-width: 100%; }
+
+  .pkg-wrap { max-width: 1120px; margin: 0 auto; padding: 0 28px; }
+  .pkg-section { padding: 88px 0; }
+  .pkg-section.is-beige { background: var(--beige); }
+  #pricing {
+position: relative;
+background-image: url('/images/zyanya-citlalli-pqXe113_dq8-unsplash.webp');
+background-size: cover; background-position: center; background-repeat: no-repeat;
+  }
+  #pricing::before {
+content: ''; position: absolute; inset: 0;
+background: rgba(251,244,232,.86);
+  }
+  #pricing > .pkg-wrap { position: relative; z-index: 1; }
+  #faq {
+position: relative;
+background-image: url('/images/victoria-strukovskaya-Q2v1cElixMw-unsplash.webp');
+background-size: cover; background-position: center; background-repeat: no-repeat;
+  }
+  #faq::before {
+content: ''; position: absolute; inset: 0;
+background: rgba(253,251,245,.88);
+  }
+  #faq > .pkg-wrap { position: relative; z-index: 1; }
+  .pkg-eyebrow { display: inline-block; margin: 0 0 14px; padding: 6px 16px; border-radius: 9999px; background: var(--brand-soft); color: var(--accent-dark); font-size: 13px; font-weight: 800; letter-spacing: 0.3px; }
+  .pkg-h2 { margin: 0 0 14px; font-size: 30px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.35; word-break: keep-all; }
+  .pkg-lead { margin: 0 auto; max-width: 560px; font-size: 15.5px; color: var(--ink-sub); text-align: center; word-break: keep-all; }
+  .pkg-head { text-align: center; margin-bottom: 52px; }
+
+  /* ---------- HERO ---------- */
+  .pkg-hero { position: relative; display: flex; align-items: center; justify-content: flex-start; min-height: 560px; padding: 120px 0; overflow: hidden; background: var(--brand-dark); isolation: isolate; }
+  .pkg-hero-bg { position: absolute; inset: 0; z-index: 0; }
+  .pkg-hero-bg img { width: 100%; height: 100%; display: block; object-fit: cover; }
+  .pkg-hero-bg::after {
+content: ''; position: absolute; inset: 0;
+background: linear-gradient(90deg, rgba(0,0,0,.8) 0%, rgba(0,0,0,.4) 55%, rgba(0,0,0,0) 100%);
+  }
+  .pkg-hero-content { position: relative; z-index: 1; width: 100%; max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+  .pkg-hero-text { max-width: 560px; text-align: left; }
+  .pkg-eyebrow.is-on-dark { background: rgba(255,255,255,.14); color: #fff; }
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in-up { opacity: 0; animation: fadeInUp .7s ease-out forwards; }
+  @media (prefers-reduced-motion: reduce) { .fade-in-up { animation: none; opacity: 1; } }
+  .pkg-hero-title { margin: 0 0 20px; font-size: 40px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.38; word-break: keep-all; color: #fff; }
+  .pkg-hero-sub { margin: 0 0 32px; font-size: 16.5px; color: #E7E9E2; word-break: keep-all; max-width: 480px; }
+  .pkg-hero-cta { display: flex; flex-wrap: wrap; gap: 12px; }
+  .pkg-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 15px 28px; border-radius: 9999px; border: none; font-size: 15.5px; font-weight: 700; text-decoration: none; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease, background-color .15s ease; }
+  .pkg-btn.is-primary { background: var(--accent); color: #fff; box-shadow: 0 10px 24px rgba(85,107,47,.28); }
+  .pkg-btn.is-primary:hover { background: var(--accent-dark); transform: translateY(-1px); }
+  .pkg-btn.is-ghost { background: #fff; color: var(--brand-dark); border: 1.5px solid var(--brand-line); }
+  .pkg-btn.is-ghost:hover { background: var(--brand-soft); }
+  .pkg-btn.is-ghost.is-on-dark { background: rgba(255,255,255,.08); color: #fff; border: 1.5px solid rgba(255,255,255,.65); }
+  .pkg-btn.is-ghost.is-on-dark:hover { background: rgba(255,255,255,.2); }
+  .pkg-btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+
+  /* ---------- WHY (카드 4개) ---------- */
+  .pkg-why-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  .pkg-why-card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 28px 22px; text-align: left; }
+  .pkg-why-icon { display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; margin-bottom: 16px; border-radius: 50%; background: var(--brand-soft); color: var(--accent-dark); }
+  .pkg-why-icon svg { width: 24px; height: 24px; }
+  .pkg-why-card h3 { margin: 0 0 8px; font-size: 16px; font-weight: 800; color: var(--brand-dark); word-break: keep-all; }
+  .pkg-why-card p { margin: 0; font-size: 13.5px; color: var(--ink-sub); line-height: 1.6; word-break: keep-all; }
+
+  /* ---------- PRICING ---------- */
+  .pkg-price-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 28px; max-width: 760px; margin: 0 auto; }
+  .pkg-price-card { position: relative; background: #fff; border: 1.5px solid var(--line); border-radius: var(--radius); padding: 36px 32px; display: flex; flex-direction: column; }
+  .pkg-price-card.is-featured {
+border-color: var(--accent); border-width: 2px;
+box-shadow: 0 24px 48px -20px rgba(85,107,47,.4);
+background: linear-gradient(175deg, #F8FBF6 0%, #ffffff 46%);
+  }
+  .pkg-price-badge { position: absolute; top: -14px; left: 32px; padding: 6px 16px; border-radius: 9999px; background: var(--accent); color: #fff; font-size: 12.5px; font-weight: 800; letter-spacing: .3px; }
+  .pkg-price-name { margin: 0 0 10px; font-size: 20px; font-weight: 800; color: var(--brand-dark); }
+
+  /* 원가 취소선 + 할인 배지 — 할인가로 바로 이어지는 "정상가 → 혜택 → 할인가" 흐름을 한눈에 보여줍니다 */
+  .pkg-price-head { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin-bottom: 8px; }
+  .pkg-price-original { font-size: 14.5px; font-weight: 600; color: #9AA396; text-decoration: line-through; text-decoration-color: #C2CABA; text-decoration-thickness: 1.5px; }
+  .pkg-price-off {
+display: inline-flex; align-items: center; padding: 3px 11px; border-radius: 9999px;
+background: #FDECEC; color: #C0392B; font-size: 12px; font-weight: 800; letter-spacing: -0.01em; white-space: nowrap;
+  }
+  .pkg-price-off.is-hot {
+padding: 5px 14px; font-size: 13.5px; color: #fff;
+background: linear-gradient(135deg, #E8583F, #C0392B);
+box-shadow: 0 8px 18px -8px rgba(192,57,43,.55);
+animation: pkgPulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pkgPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.045); } }
+  @media (prefers-reduced-motion: reduce) { .pkg-price-off.is-hot { animation: none; } }
+
+  .pkg-price-amount { margin: 0 0 4px; font-size: 32px; font-weight: 800; letter-spacing: -0.02em; color: var(--brand-dark); }
+  .pkg-price-amount span { font-size: 15px; font-weight: 700; color: var(--ink-sub); }
+  /* 마진율이 더 높은 20시간 패키지(is-featured)로 시선이 먼저 가도록 할인가를 한층 더 크고 진하게 강조 */
+  .pkg-price-card.is-featured .pkg-price-amount { font-size: 40px; color: var(--accent-dark); }
+  .pkg-price-card.is-featured .pkg-price-amount span { font-size: 17px; }
+  .pkg-price-persession { margin: 0 0 22px; font-size: 13px; color: var(--ink-sub); }
+  .pkg-price-features { list-style: none; margin: 0 0 28px; padding: 0; display: flex; flex-direction: column; gap: 10px; font-size: 14px; color: var(--ink); }
+  .pkg-price-features li { display: flex; align-items: flex-start; gap: 8px; word-break: keep-all; }
+  .pkg-price-features li::before { content: '✓'; flex: none; color: var(--accent); font-weight: 800; }
+  .pkg-price-card .pkg-btn { width: 100%; margin-top: auto; }
+  .pkg-price-note { margin: 28px auto 0; max-width: 640px; text-align: center; font-size: 12.5px; color: var(--ink-sub); word-break: keep-all; }
+
+  /* ---------- HOW IT WORKS ---------- */
+  .pkg-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; position: relative; }
+  .pkg-step { position: relative; padding: 0 20px; text-align: center; }
+  .pkg-step-num { display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; margin: 0 auto 18px; border-radius: 50%; background: var(--brand-dark); color: #fff; font-size: 19px; font-weight: 800; }
+  .pkg-step h3 { margin: 0 0 8px; font-size: 16px; font-weight: 800; }
+  .pkg-step p { margin: 0; font-size: 13.5px; color: var(--ink-sub); word-break: keep-all; }
+  .pkg-step::after {
+content: ''; position: absolute; top: 26px; right: -10%; width: 20%; height: 2px;
+background: repeating-linear-gradient(90deg, var(--brand-line) 0 8px, transparent 8px 14px);
+  }
+  .pkg-step:last-child::after { display: none; }
+
+  /* ---------- FAQ ---------- */
+  .pkg-faq { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+  .pkg-faq details { background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; box-shadow: 0 8px 20px -14px rgba(26,29,33,.2); }
+  .pkg-faq summary { list-style: none; cursor: pointer; padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 15px; font-weight: 700; color: var(--brand-dark); }
+  .pkg-faq summary::-webkit-details-marker { display: none; }
+  .pkg-faq .chev { flex: none; transition: transform .2s ease; color: var(--ink-sub); }
+  .pkg-faq details[open] .chev { transform: rotate(180deg); }
+  .pkg-faq-body { padding: 0 24px 20px; font-size: 14px; color: var(--ink-sub); line-height: 1.7; word-break: keep-all; }
+
+  /* ---------- 최종 CTA 배너 ---------- */
+  .pkg-cta-band { background: var(--brand-dark); color: #fff; padding: 64px 0; text-align: center; }
+  .pkg-cta-band h2 { margin: 0 0 12px; font-size: 26px; font-weight: 800; word-break: keep-all; }
+  .pkg-cta-band p { margin: 0 0 28px; font-size: 15px; color: #D7DDCF; word-break: keep-all; }
+
+  /* ---------- 토스트 ---------- */
+  .pkg-toast {
+position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 300;
+padding: 12px 22px; border-radius: 9999px; background: var(--ink); color: #fff; font-size: 14px;
+box-shadow: 0 10px 25px rgba(0,0,0,.25); max-width: calc(100vw - 40px); text-align: center;
+  }
+
+  /* ---------- 구매 완료 모달 ---------- */
+  /* 결제 완료를 토스트(2.6초 후 자동 소멸)로만 알리면 마이페이지로 넘어가기 전에 못 보고 지나칠 수
+ 있어, 사용자가 직접 확인을 누를 때까지 남아 있는 모달로 명확하게 알립니다. */
+  .pkg-modal-backdrop {
+position: fixed; inset: 0; z-index: 400; background: rgba(0,0,0,.5);
+display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .pkg-modal {
+background: #fff; border-radius: var(--radius); padding: 40px 32px; max-width: 380px; width: 100%;
+text-align: center; box-shadow: 0 24px 60px -24px rgba(0,0,0,.4);
+  }
+  .pkg-modal-icon { display: block; margin: 0 auto 18px; }
+  .pkg-modal h3 { margin: 0 0 14px; font-size: 19px; font-weight: 800; color: var(--brand-dark); word-break: keep-all; }
+  .pkg-modal-pkgname { margin: 0 0 6px; font-size: 14.5px; font-weight: 700; color: var(--ink); word-break: keep-all; }
+  .pkg-modal-charged { margin: 0 0 28px; font-size: 14px; color: var(--ink-sub); word-break: keep-all; }
+  .pkg-modal-actions { display: flex; gap: 10px; }
+  .pkg-modal-actions .pkg-btn { flex: 1 1 0; padding: 14px 10px; font-size: 14px; }
+  @media (max-width: 420px) { .pkg-modal-actions { flex-direction: column; } }
+
+  @media (min-width: 1024px) {
+.pkg-hero-content { padding: 0 48px; }
+  }
+  @media (max-width: 900px) {
+.pkg-hero { min-height: 480px; padding: 90px 0; }
+.pkg-hero-bg::after { background: linear-gradient(90deg, rgba(0,0,0,.84) 0%, rgba(0,0,0,.5) 65%, rgba(0,0,0,.15) 100%); }
+.pkg-hero-text { max-width: 420px; }
+.pkg-why-grid { grid-template-columns: repeat(2, 1fr); }
+.pkg-steps { grid-template-columns: 1fr; gap: 32px; }
+.pkg-step::after { display: none; }
+  }
+  @media (max-width: 640px) {
+.pkg-section { padding: 56px 0; }
+.pkg-wrap { padding: 0 20px; }
+.pkg-hero-title { font-size: 30px; }
+.pkg-h2 { font-size: 24px; }
+.pkg-why-grid { grid-template-columns: 1fr; }
+.pkg-price-grid { grid-template-columns: 1fr; }
+  }
+

@@ -10,6 +10,7 @@
     "build:legacy-css": "tailwindcss -c legacy/tailwind.legacy.config.js -i legacy/tailwind.legacy.css -o public/css/tailwind.css --minify"
   },
   "dependencies": {
+    "@portone/browser-sdk": "^0.1.13",
     "@supabase/supabase-js": "^2.119.0",
     "next": "^16.4.6",
     "react": "^19.3.1",

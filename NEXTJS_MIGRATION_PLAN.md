@@ -16,7 +16,19 @@
 | 1. 공통 틀 | ✅ 완료 | `components/site/` 헤더·띠배너·드로어·로그인 메뉴·푸터, `AuthProvider`, `lib/api`·`lib/browser` 분리 |
 | 2. 홍보·정보 | ✅ 완료 | 메인(`/`) `terms` `privacy` `story` `notice` `partner` `manager-landing` `pricing`. 원본과 휴대폰·PC 폭에서 요소 위치·크기·글꼴·색이 같은지 자동 비교로 확인 |
 | 3. 회원 기능 | ✅ 완료 | `login` `signup` `reset-password` `profile-edit`. 화면 비교·입력 검사·약관 팝업·비로그인 이동 확인. **실제 로그인/가입/탈퇴는 운영 DB라 미확인** |
-| 4~6단계 | ⬜ 시작 전 | 신청/결제·마이페이지·관리자 페이지는 아직 `public/*.html` 레거시 |
+| 4. 신청·결제 | 🟡 코드 완료, 결제 미검증 | `apply` `package` `manager-apply`. 화면·입력 검사·금액 계산이 원본과 같은지 확인. **실제 결제(PortOne)·신청 저장·지원서 제출은 운영 DB·실결제 채널이라 미확인 → 아래 '결제 테스트' 필수** |
+| 5~6단계 | ⬜ 시작 전 | 마이페이지·관리자 페이지는 아직 `public/*.html` 레거시 |
+
+**4단계 구조** — 결제가 걸린 화면이라 예전 스크립트의 로직을 줄 단위로 그대로 옮겼습니다(할인·금액 계산이 달라지지 않도록).
+`app/(site)/apply/applyForm.ts`(신청·결제), `package/PackageBehaviors.tsx`, `manager-apply/ManagerApplyBehaviors.tsx`.
+DB 호출은 `lib/api/applications.ts` · `seniors.ts` · `packages.ts` · `managers.ts`, 결제창은 `lib/payments/portone.ts` 한 곳.
+화면 요소를 id 로 직접 다루는 방식이라 타입이 느슨합니다 — 상태 기반 React 컴포넌트로 정리하는 건 후속 과제.
+날짜 선택기·장소 검색은 마이페이지(레거시)와 함께 쓰는 공용 스크립트(`public/js/wb-datepicker.js`, `wb-place-search.js`)를 그대로 불러옵니다.
+
+**결제 테스트 (배포 전 필수)** — `lib/payments/portone.ts` 의 `PORTONE_CHANNEL_KEY` 는 **운영(실결제) 채널**입니다.
+1. PortOne 콘솔에서 테스트 채널 키를 받아 Vercel Preview 에서만 쓰도록 바꾸거나, 소액 실결제 후 즉시 취소로 확인
+2. 확인할 흐름: 카드 결제 · 계좌이체 · 쿠폰/적립금 적용 · 긴급 옵션 · 패키지 차감 예약 · 결제창 닫기(취소) · 패키지 구매
+3. 각 흐름 뒤 관리자 화면에서 신청서·결제 상태, 알림톡/텔레그램 알림이 정상인지 확인
 | 7. 마무리 | ⬜ | |
 
 **배포 전 확인할 것**

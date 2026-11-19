@@ -17,6 +17,10 @@ export const SITE = {
    * 배포 도메인이 등록돼 있어야 지도가 표시됩니다 — Vercel 미리보기 주소에서는 안 보일 수 있습니다.
    */
   kakaoMapAppKey: 'd4e5f004fe7750dd67ce15da3863f06c',
+  /** 카카오 로컬 REST 키 (주소→좌표, 장소 검색). 예전부터 브라우저에서 직접 쓰던 키 — 카카오 콘솔에서 도메인 제한 권장 */
+  kakaoRestApiKey: '4e94e702177afc63f2f05c3abfffdf3c',
+  /** 신청 오류 시 안내하는 예비 신청서(구글폼) */
+  fallbackFormUrl: 'https://docs.google.com/forms/d/e/1FAIpQLSfgRiyXruggtZuztlkBsgHGt9akDqo5zZpr0gnf-bUsLGsIGw/viewform',
 } as const;
 
 /** 이용약관 버전 — app/(site)/terms 의 '약관 버전'과 같게 유지 (약관을 개정하면 함께 갱신) */
