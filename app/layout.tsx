@@ -24,11 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: "if(new URLSearchParams(location.search).has('embed'))document.documentElement.classList.add('embed');",
           }}
         />
-        <link
-          rel="stylesheet"
-          crossOrigin="anonymous"
-          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
-        />
+        {/* Pretendard 웹폰트는 일반 사이트 페이지만 불러옵니다 (app/(site)/layout.tsx) — 예전 어드민 화면은 불러오지 않았음 */}
         {/* 'Noto Sans KR' 은 페이지마다 components/site/NotoSansKr.tsx 로 따로 불러옵니다 (예전 화면 그대로 유지) */}
       </head>
       <body>{children}</body>

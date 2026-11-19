@@ -10,6 +10,12 @@ import { SiteFooter } from '@/components/site/SiteFooter';
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
+      <link
+        rel="stylesheet"
+        precedence="default"
+        crossOrigin="anonymous"
+        href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
+      />
       <SiteHeader />
       {children}
       <SiteFooter />

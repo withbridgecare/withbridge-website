@@ -8,7 +8,8 @@ import { claimServiceApplications, hasUnpaidExtraCharge, lookupAdmin, lookupMana
 import { invokeEdgeFunction } from '@/lib/api/edge-functions';
 import { requestPayment } from '@/lib/payments/portone';
 import { getUserMode, isLoggingOut, readPendingApplications, setUserMode, writePendingApplications, type UserMode } from './storage';
-import { stripCheckpointPii } from './privacy';
+import { attachPhotoResolver, stripCheckpointPii } from './privacy';
+import { clearLocalCareData } from './storage';
 
 export function createLegacyShims(opts: { showLoginModal?: (target?: string, o?: { required?: boolean }) => void } = {}) {
   const client = getSupabase();
@@ -45,6 +46,11 @@ export function createLegacyShims(opts: { showLoginModal?: (target?: string, o?:
     // storeId/channelKey 는 lib/payments/portone.ts 의 값이 쓰입니다 (요청에 같은 값이 있어도 동일)
     requestPayment: (req: Record<string, unknown>) => requestPayment(req),
   };
-  const WBPrivacy = { stripCheckpointPii };
+  const WBPrivacy = {
+    stripCheckpointPii,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    attachPhotoResolver: (c?: any) => attachPhotoResolver(c ?? client),
+    clearLocalCareData,
+  };
   return { WBAuth, WBEdgeFn, PortOne, WBPrivacy };
 }

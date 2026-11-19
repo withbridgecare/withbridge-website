@@ -1,0 +1,2 @@
+/* 어드민 콘솔: 예전처럼 admin.css 다음에 Tailwind 유틸리티가 오도록 다시 불러옵니다 (뒤에 오는 규칙이 우선) */
+@tailwind utilities;

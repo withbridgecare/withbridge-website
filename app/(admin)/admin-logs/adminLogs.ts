@@ -1,3 +1,18 @@
+// @ts-nocheck — 예전 스크립트를 로직 그대로 옮긴 파일이라 타입 검사를 끕니다(옮긴 코드를 고치지 않기 위해).
+//   호출하는 lib/api · lib/browser 모듈은 타입 검사를 받습니다. React 로 정리하면서 이 줄을 지우세요.
+// 관리자 로그 화면 — 예전 public/admin-logs.js 를 로직 그대로 옮긴 것입니다. DB 호출은 lib/api/admin-logs.ts 를 거칩니다.
+/* eslint-disable */
+import { getSupabase } from '@/lib/supabase/client';
+import * as api from '@/lib/api/admin-logs';
+import { createLegacyShims } from '@/lib/browser/legacy-shims';
+
+let started = false;
+/** 화면에 동작을 붙입니다 (개발 모드의 이중 실행은 무시). */
+export function initAdminLogs(): void {
+  if (started) return;
+  started = true;
+  const { WBEdgeFn, WBPrivacy } = createLegacyShims();
+  const $id = (id: string): any => document.getElementById(id);
 /* =========================================================
    위드브릿지 어드민 콘솔 — 관리자 로그 전용 페이지 (admin-logs.html)
    - admin.js 와 마찬가지로 이 페이지도 자체 Supabase 클라이언트를 만들고, 진입 시 다시
@@ -5,23 +20,11 @@
    - admin_logs 테이블은 sql/admin_logs.sql 의 admin_logs_select_admin 정책으로 관리자만 읽을 수
      있고, UPDATE/DELETE 정책 자체가 없어 이 화면에서도(또한 어떤 API로도) 고치거나 지울 수 없습니다.
 ========================================================= */
-(function () {
-  'use strict';
-
-  var WB_ENV = window.WB_ENV || {}; // js/env.js (scripts/build-env.mjs 가 .env 로 생성)
-  var SUPABASE_URL = WB_ENV.SUPABASE_URL;
-  var SUPABASE_ANON_KEY = WB_ENV.SUPABASE_ANON_KEY;
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) console.error('[설정] window.WB_ENV 가 없습니다. js/env.js 가 이 스크립트보다 먼저 로드되는지, node scripts/build-env.mjs 를 실행했는지 확인하세요.');
-
-  var sdk = window.supabase;
-  if (!sdk || !sdk.createClient) {
-    alert('Supabase 연결에 실패했습니다. 새로고침해 주세요.');
-    throw new Error('[AdminLogs] Supabase SDK 가 로드되지 않았습니다.');
-  }
-  var supabaseClient = sdk.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-  function $(id) { return document.getElementById(id); }
-  var els = {
+  let SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  let SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  let supabaseClient = getSupabase();
+  function $(id) { return $id(id); }
+  let els = {
     account: $('adminAccount'),
     name: $('adminName'),
     logoutBtn: $('logoutBtn'),
@@ -40,31 +43,25 @@
     detailCloseBtn: $('logDetailCloseBtn'),
     detailCloseBtn2: $('logDetailCloseBtn2')
   };
-
-  var toastTimer = null;
-  function showToast(message) {
+  let toastTimer: any = null;
+  function showToast(message?: any) {
     if (!els.toast) return;
     els.toast.textContent = message;
     els.toast.hidden = false;
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function () { els.toast.hidden = true; }, 2400);
   }
-
-  function escapeHtml(value) {
-    return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
+  function escapeHtml(value?: any) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (c: any) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
-
-  function formatDateTime(iso) {
-    var d = iso ? new Date(iso) : null;
+  function formatDateTime(iso?: any) {
+    let d = iso ? new Date(iso) : null;
     if (!d || isNaN(d.getTime())) return '-';
     return d.toLocaleString('ko-KR', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
   }
-
-  // 알려진 작업 종류의 한글 라벨 — 새 종류가 생겨도(아직 여기 없는 action_type) 원래 문자열을
-  // 그대로 보여주므로 화면이 깨지지는 않습니다(아래 ACTION_TYPE_LABEL[x] || x 패턴).
-  var ACTION_TYPE_LABEL = {
+  let ACTION_TYPE_LABEL = {
     reveal_bank_account: '매니저 계좌번호 전체 조회',
     member_profile_update: '회원 정보 수정',
     member_note_add: 'CS 메모 작성',
@@ -77,78 +74,56 @@
     super_admin_grant_admin: '관리자 권한 부여',
     super_admin_revoke_admin: '관리자 권한 회수'
   };
-
-  // 표의 한 줄짜리 요약("세부 내용" 칸, CSS 말줄임표로 잘림 + title 로 호버 시 전체 노출)에 씁니다.
-  function formatDetail(detail) {
+  function formatDetail(detail?: any) {
     if (!detail || typeof detail !== 'object') return '-';
-    var keys = Object.keys(detail);
+    let keys = Object.keys(detail);
     if (!keys.length) return '-';
-    return keys.map(function (k) { return k + ': ' + (detail[k] == null ? '-' : detail[k]); }).join(' · ');
+    return keys.map(function (k: any) { return k + ': ' + (detail[k] == null ? '-' : detail[k]); }).join(' · ');
   }
-
-  // 상세 모달에 쓰는 여러 줄 버전 — 줄바꿈으로 나열해 긴 메모도 읽기 편하게 보여줍니다
-  // (#logDetailGrid dd 에 white-space: pre-wrap 이 걸려 있어 \n 이 그대로 줄바꿈으로 보입니다).
-  function formatDetailMultiline(detail) {
+  function formatDetailMultiline(detail?: any) {
     if (!detail || typeof detail !== 'object') return '(세부 내용 없음)';
-    var keys = Object.keys(detail);
+    let keys = Object.keys(detail);
     if (!keys.length) return '(세부 내용 없음)';
-    return keys.map(function (k) { return k + ': ' + (detail[k] == null ? '-' : detail[k]); }).join('\n');
+    return keys.map(function (k: any) { return k + ': ' + (detail[k] == null ? '-' : detail[k]); }).join('\n');
   }
-
-  // "대상" 칸 — target_type 이 'member' 면 profiles 조회 결과(memberMap)로 "이름 (전화번호)" 형태로
-  // 바꿔 보여주고, 조회가 안 되면(탈퇴 등) 짧게 줄인 ID 를 대신 보여 줍니다. member 가 아니거나
-  // target 자체가 없으면 기존처럼 target_type/target_id 를 그대로 보여줍니다.
-  function formatTargetLabel(log, memberMap) {
+  function formatTargetLabel(log?: any, memberMap?: any) {
     if (!log.target_type && !log.target_id) return '-';
     if (log.target_type === 'member' && log.target_id) {
-      var member = memberMap && memberMap[log.target_id];
+      let member = memberMap && memberMap[log.target_id];
       if (member) return (member.name || '이름 미등록') + (member.phone ? ' (' + member.phone + ')' : '');
       return '알 수 없는 회원 (ID: ' + String(log.target_id).slice(0, 8) + '…)';
     }
     return [log.target_type, log.target_id].filter(Boolean).join(' · ');
   }
-
-  // ============================================================
-  // 01. 관리자 접근 권한 검증 (admin.js verifyAdminAccess() 와 동일한 패턴)
-  // ============================================================
   async function verifyAdminAccess() {
-    var sessionRes = await supabaseClient.auth.getSession();
-    var session = sessionRes.data && sessionRes.data.session;
+    let sessionRes = await supabaseClient.auth.getSession();
+    let session = sessionRes.data && sessionRes.data.session;
     if (!session) {
       alert('로그인이 필요합니다.');
       window.location.replace('index.html');
       return null;
     }
-
-    var profileRes = await supabaseClient
-      .from('profiles')
-      .select('id, role, name')
-      .eq('id', session.user.id)
-      .maybeSingle();
-
+    let profileRes = await api.getProfiles(supabaseClient, session);
     if (profileRes.error) {
       console.error('[AdminLogs] profiles 조회 실패:', profileRes.error.code, profileRes.error.message);
       alert('관리자 권한이 없습니다.');
       window.location.replace('index.html');
       return null;
     }
-
-    var profile = profileRes.data;
-    var normalizedRole = String((profile && profile.role) || '').trim().toLowerCase();
+    let profile = profileRes.data;
+    let normalizedRole = String((profile && profile.role) || '').trim().toLowerCase();
     if (!profile || (normalizedRole !== 'admin' && normalizedRole !== 'super_admin')) {
       alert('관리자 권한이 없습니다.');
       window.location.replace('index.html');
       return null;
     }
-
     return { user: session.user, profile: profile };
   }
-
   function bindLogout() {
     if (!els.logoutBtn) return;
     els.logoutBtn.addEventListener('click', async function () {
       els.logoutBtn.disabled = true;
-      var res = await supabaseClient.auth.signOut();
+      let res = await supabaseClient.auth.signOut();
       if (res.error) {
         alert('로그아웃 중 오류가 발생했습니다: ' + res.error.message);
         els.logoutBtn.disabled = false;
@@ -157,17 +132,10 @@
       window.location.replace('index.html');
     });
   }
-
-  // ============================================================
-  // 02. 관리자 로그 목록 — admin_logs 테이블을 직접 조회합니다(별도 RPC 불필요 — 관리자 전용
-  //     select 정책(admin_logs_select_admin)만으로 충분하고, supabase-js 의 count:'exact' 옵션으로
-  //     페이지네이션에 필요한 전체 건수도 같은 호출에서 함께 받습니다).
-  // ============================================================
-  var LOGS_PAGE_SIZE = 20;
-  var logsPage = 1;
-  var logsTotalCount = 0;
-  var lastLogsRows = [];
-
+  let LOGS_PAGE_SIZE = 20;
+  let logsPage = 1;
+  let logsTotalCount = 0;
+  let lastLogsRows: any[] = [];
   function currentFilters() {
     return {
       dateFrom: els.dateFrom && els.dateFrom.value ? els.dateFrom.value : '',
@@ -176,29 +144,19 @@
       actionType: els.actionFilter && els.actionFilter.value ? els.actionFilter.value : ''
     };
   }
-
-  // 날짜 입력(YYYY-MM-DD)을 그대로 'T00:00:00'/'T23:59:59' 를 붙여 보냅니다 — Postgres 가 이를
-  // 서버(UTC) 기준으로 해석하므로 자정 근처 몇 시간은 KST 기준 경계와 살짜 어긋날 수 있습니다.
-  // 이 콘솔의 다른 날짜 필터(정산 월 선택 등)도 같은 수준의 근사치로 다루고 있어, 여기서도 맞춥니다.
-  function applyDateRange(query, filters) {
+  function applyDateRange(query?: any, filters?: any) {
     if (filters.dateFrom) query = query.gte('created_at', filters.dateFrom + 'T00:00:00');
     if (filters.dateTo) query = query.lte('created_at', filters.dateTo + 'T23:59:59');
     return query;
   }
-
-  async function fetchLogsPage(page, filters) {
-    var from = (page - 1) * LOGS_PAGE_SIZE;
-    var to = from + LOGS_PAGE_SIZE - 1;
-    var query = supabaseClient
-      .from('admin_logs')
-      .select('*', { count: 'exact' })
-      .order('created_at', { ascending: false })
-      .range(from, to);
+  async function fetchLogsPage(page?: any, filters?: any) {
+    let from = (page - 1) * LOGS_PAGE_SIZE;
+    let to = from + LOGS_PAGE_SIZE - 1;
+    let query = api.countAdminLogs(supabaseClient, from, to);
     query = applyDateRange(query, filters);
     if (filters.adminId) query = query.eq('admin_id', filters.adminId);
     if (filters.actionType) query = query.eq('action_type', filters.actionType);
-
-    var res = await query;
+    let res = await query;
     if (res.error) {
       console.error('[AdminLogs] 목록 조회 실패:', res.error.code, res.error.message,
         '→ sql/admin_logs.sql 을 Supabase SQL Editor 에서 실행했는지 확인하세요.');
@@ -206,50 +164,45 @@
     }
     return { rows: res.data || [], total: res.count || 0, error: null };
   }
-
-  // target_type === 'member' 인 행들의 target_id(=profiles.id) 를 모아 한 번에 조회합니다 — 행마다
-  // 따로 조회하면 페이지당(최대 20건) 쿼리가 20번 날아가므로, 페이지 하나당 딱 한 번만 조회합니다.
-  async function loadMemberLookup(rows) {
-    var ids = [];
-    var seen = {};
-    rows.forEach(function (log) {
+  async function loadMemberLookup(rows?: any) {
+    let ids: any[] = [];
+    let seen: any = {};
+    rows.forEach(function (log: any) {
       if (log.target_type === 'member' && log.target_id && !seen[log.target_id]) {
         seen[log.target_id] = true;
         ids.push(log.target_id);
       }
     });
     if (!ids.length) return {};
-
-    var res = await supabaseClient.from('profiles').select('id, name, phone').in('id', ids);
+    let res = await api.listProfiles(supabaseClient, ids);
     if (res.error) {
       console.error('[AdminLogs] 대상 회원 정보 조회 실패:', res.error.code, res.error.message);
       return {};
     }
-    var map = {};
-    (res.data || []).forEach(function (p) { map[p.id] = p; });
+    let map: any = {};
+    (res.data || []).forEach(function (p: any) { map[p.id] = p; });
     return map;
   }
-
-  function renderLogsTable(rows, memberMap) {
-    var body = els.tableBody;
+  function renderLogsTable(rows?: any, memberMap?: any) {
+    let body = els.tableBody;
     if (!body) return;
     if (!rows.length) {
       body.innerHTML = '<tr><td colspan="5" class="admin-empty">조건에 맞는 로그가 없습니다.</td></tr>';
       return;
     }
     body.innerHTML = '';
-    rows.forEach(function (log) {
-      var targetLabel = formatTargetLabel(log, memberMap);
-      var detailText = formatDetail(log.detail);
-      var tr = document.createElement('tr');
+    rows.forEach(function (log: any) {
+      let targetLabel = formatTargetLabel(log, memberMap);
+      let detailText = formatDetail(log.detail);
+      let tr = document.createElement('tr');
       tr.innerHTML =
         '<td>' + escapeHtml(formatDateTime(log.created_at)) + '</td>' +
         '<td>' + escapeHtml(log.admin_name || '(이름 없음)') + '<span class="admin-logs-target-sub">' + escapeHtml(log.admin_email || '') + '</span></td>' +
         '<td><span class="admin-badge is-neutral">' + escapeHtml(ACTION_TYPE_LABEL[log.action_type] || log.action_type) + '</span></td>' +
         '<td>' + escapeHtml(targetLabel) + '</td>' +
         '<td></td>';
-      var detailCell = tr.lastElementChild;
-      var detailBtn = document.createElement('button');
+      let detailCell = tr.lastElementChild;
+      let detailBtn = document.createElement('button');
       detailBtn.type = 'button';
       detailBtn.className = 'admin-logs-detail-trunc';
       detailBtn.title = detailText; // 마우스를 올리면 브라우저 기본 툴팁으로 전체 내용을 보여줍니다
@@ -259,9 +212,7 @@
       body.appendChild(tr);
     });
   }
-
-  // ---------- 세부 내용 전체보기 모달 ----------
-  function openLogDetailModal(log, targetLabel) {
+  function openLogDetailModal(log?: any, targetLabel?: any) {
     if (!els.detailModal || !els.detailGrid) return;
     els.detailGrid.innerHTML =
       '<dt>일시</dt><dd>' + escapeHtml(formatDateTime(log.created_at)) + '</dd>' +
@@ -277,19 +228,17 @@
   if (els.detailCloseBtn) els.detailCloseBtn.addEventListener('click', closeLogDetailModal);
   if (els.detailCloseBtn2) els.detailCloseBtn2.addEventListener('click', closeLogDetailModal);
   if (els.detailModal) {
-    els.detailModal.addEventListener('click', function (e) { if (e.target === els.detailModal) closeLogDetailModal(); });
+    els.detailModal.addEventListener('click', function (e: any) { if (e.target === els.detailModal) closeLogDetailModal(); });
   }
-
-  function renderPagination(totalPages) {
-    var wrap = els.paginationWrap;
+  function renderPagination(totalPages?: any) {
+    let wrap = els.paginationWrap;
     if (!wrap) return;
     if (totalPages <= 1) { wrap.hidden = true; wrap.innerHTML = ''; return; }
     wrap.hidden = false;
     wrap.innerHTML = '';
-
-    function addPageBtn(label, page, opts) {
+    function addPageBtn(label?: any, page?: any, opts?: any) {
       opts = opts || {};
-      var btn = document.createElement('button');
+      let btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'admin-page-btn' + (opts.active ? ' is-active' : '');
       btn.textContent = label;
@@ -297,56 +246,49 @@
       if (!opts.disabled && !opts.active) btn.addEventListener('click', function () { goToPage(page); });
       wrap.appendChild(btn);
     }
-
     addPageBtn('‹ 이전', logsPage - 1, { disabled: logsPage <= 1 });
-    var windowStart = Math.max(1, logsPage - 2);
-    var windowEnd = Math.min(totalPages, logsPage + 2);
+    let windowStart = Math.max(1, logsPage - 2);
+    let windowEnd = Math.min(totalPages, logsPage + 2);
     if (windowStart > 1) {
       addPageBtn('1', 1, {});
-      if (windowStart > 2) { var e1 = document.createElement('span'); e1.className = 'admin-page-ellipsis'; e1.textContent = '…'; wrap.appendChild(e1); }
+      if (windowStart > 2) { let e1 = document.createElement('span'); e1.className = 'admin-page-ellipsis'; e1.textContent = '…'; wrap.appendChild(e1); }
     }
-    for (var p = windowStart; p <= windowEnd; p++) addPageBtn(String(p), p, { active: p === logsPage });
+    for (let p = windowStart; p <= windowEnd; p++) addPageBtn(String(p), p, { active: p === logsPage });
     if (windowEnd < totalPages) {
-      if (windowEnd < totalPages - 1) { var e2 = document.createElement('span'); e2.className = 'admin-page-ellipsis'; e2.textContent = '…'; wrap.appendChild(e2); }
+      if (windowEnd < totalPages - 1) { let e2 = document.createElement('span'); e2.className = 'admin-page-ellipsis'; e2.textContent = '…'; wrap.appendChild(e2); }
       addPageBtn(String(totalPages), totalPages, {});
     }
     addPageBtn('다음 ›', logsPage + 1, { disabled: logsPage >= totalPages });
   }
-
-  async function goToPage(page) {
+  async function goToPage(page?: any) {
     if (page < 1) return;
     logsPage = page;
     await loadLogs();
-    var table = $('logsTable');
+    let table = $('logsTable');
     if (table) table.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
-
   async function loadLogs() {
-    var body = els.tableBody;
+    let body = els.tableBody;
     if (!body) return;
     body.innerHTML = '<tr><td colspan="5" class="admin-loading">불러오는 중…</td></tr>';
-
-    var result = await fetchLogsPage(logsPage, currentFilters());
+    let result = await fetchLogsPage(logsPage, currentFilters());
     if (result.error) {
       body.innerHTML = '<tr><td colspan="5" class="admin-empty">목록을 불러오지 못했습니다: ' + escapeHtml(result.error.message) + '</td></tr>';
       if (els.paginationWrap) els.paginationWrap.hidden = true;
       return;
     }
-
     lastLogsRows = result.rows;
     logsTotalCount = result.total;
     if (els.count) { els.count.textContent = logsTotalCount + '건'; els.count.hidden = false; }
-    var memberMap = await loadMemberLookup(lastLogsRows);
+    let memberMap = await loadMemberLookup(lastLogsRows);
     renderLogsTable(lastLogsRows, memberMap);
     renderPagination(Math.max(1, Math.ceil(logsTotalCount / LOGS_PAGE_SIZE)));
   }
-
-  // ---------- 필터 바인딩 ----------
   function onFilterChanged() {
     logsPage = 1;
     loadLogs();
   }
-  [els.dateFrom, els.dateTo, els.adminFilter, els.actionFilter].forEach(function (el) {
+  [els.dateFrom, els.dateTo, els.adminFilter, els.actionFilter].forEach(function (el: any) {
     if (el) el.addEventListener('change', onFilterChanged);
   });
   if (els.resetFilterBtn) {
@@ -358,91 +300,75 @@
       onFilterChanged();
     });
   }
-
-  // 관리자 선택 드롭다운 — profiles.role = 'admin' 전체를 옵션으로 채웁니다(아직 로그가 없는
-  // 관리자도 목록에 보이게 하려는 목적 — admin_logs 에 실제로 찍힌 admin_id만 모으면 "아직 아무
-  // 활동도 안 한 관리자"가 드롭다운에서 빠지게 됩니다).
   async function loadAdminFilterOptions() {
     if (!els.adminFilter) return;
-    var res = await supabaseClient.from('profiles').select('id, name').in('role', ['admin', 'super_admin']).order('name');
+    let res = await api.listProfiles2(supabaseClient);
     if (res.error) {
       console.error('[AdminLogs] 관리자 목록 조회 실패:', res.error.code, res.error.message);
       return;
     }
-    (res.data || []).forEach(function (p) {
-      var opt = document.createElement('option');
+    (res.data || []).forEach(function (p: any) {
+      let opt = document.createElement('option');
       opt.value = p.id;
       opt.textContent = p.name || '(이름 없음)';
       els.adminFilter.appendChild(opt);
     });
   }
-
-  // 작업 종류 드롭다운 — 알려진 라벨(ACTION_TYPE_LABEL)을 기본으로 깔고, 실제 테이블에 그 외의
-  // action_type 이 있으면(향후 다른 RPC가 새 종류를 기록하기 시작한 경우) 그 값도 추가합니다.
   async function loadActionFilterOptions() {
     if (!els.actionFilter) return;
-    var known = Object.keys(ACTION_TYPE_LABEL);
-    var res = await supabaseClient.from('admin_logs').select('action_type');
-    var seen = {};
-    known.forEach(function (k) { seen[k] = true; });
-    var extra = [];
-    (res.data || []).forEach(function (row) {
+    let known = Object.keys(ACTION_TYPE_LABEL);
+    let res = await api.listAdminLogs(supabaseClient);
+    let seen: any = {};
+    known.forEach(function (k: any) { seen[k] = true; });
+    let extra: any[] = [];
+    (res.data || []).forEach(function (row: any) {
       if (row.action_type && !seen[row.action_type]) { seen[row.action_type] = true; extra.push(row.action_type); }
     });
-    known.concat(extra).forEach(function (actionType) {
-      var opt = document.createElement('option');
+    known.concat(extra).forEach(function (actionType: any) {
+      let opt = document.createElement('option');
       opt.value = actionType;
       opt.textContent = ACTION_TYPE_LABEL[actionType] || actionType;
       els.actionFilter.appendChild(opt);
     });
   }
-
-  // ---------- 엑셀(CSV) 다운로드 — 지금 필터 조건에 맞는 전체 목록(현재 페이지만이 아님) ----------
-  function csvEscape(value) {
-    var s = value == null ? '' : String(value);
+  function csvEscape(value?: any) {
+    let s = value == null ? '' : String(value);
     if (/[",\n\r]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
     return s;
   }
-
   async function exportLogsToCsv() {
-    var btn = els.exportBtn;
+    let btn = els.exportBtn;
     if (!btn) return;
     btn.disabled = true;
-    var originalLabel = btn.textContent;
+    let originalLabel = btn.textContent;
     btn.textContent = '다운로드 준비 중…';
     try {
-      var filters = currentFilters();
-      var allRows = [];
-      var batchSize = 500;
-      for (var offset = 0; ; offset += batchSize) {
-        var query = supabaseClient
-          .from('admin_logs')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .range(offset, offset + batchSize - 1);
+      let filters = currentFilters();
+      let allRows: any[] = [];
+      let batchSize = 500;
+      for (let offset = 0; ; offset += batchSize) {
+        let query = api.listAdminLogs2(supabaseClient, offset, batchSize);
         query = applyDateRange(query, filters);
         if (filters.adminId) query = query.eq('admin_id', filters.adminId);
         if (filters.actionType) query = query.eq('action_type', filters.actionType);
-        var res = await query;
+        let res = await query;
         if (res.error) {
           console.error('[AdminLogs] CSV 조회 실패:', res.error.code, res.error.message);
           showToast('엑셀 다운로드에 실패했습니다: ' + res.error.message);
           return;
         }
-        var batch = res.data || [];
+        let batch = res.data || [];
         allRows = allRows.concat(batch);
         if (batch.length < batchSize) break;
       }
-
       if (!allRows.length) {
         showToast('다운로드할 로그가 없습니다(현재 필터 조건에 맞는 로그가 없음).');
         return;
       }
-
-      var memberMap = await loadMemberLookup(allRows);
-      var header = ['일시', '관리자', '관리자 이메일', '작업 종류', '대상 회원', '대상 ID', '세부 내용'];
-      var lines = [header.map(csvEscape).join(',')];
-      allRows.forEach(function (log) {
+      let memberMap = await loadMemberLookup(allRows);
+      let header = ['일시', '관리자', '관리자 이메일', '작업 종류', '대상 회원', '대상 ID', '세부 내용'];
+      let lines = [header.map(csvEscape).join(',')];
+      allRows.forEach(function (log: any) {
         lines.push([
           formatDateTime(log.created_at),
           log.admin_name || '(이름 없음)',
@@ -453,12 +379,10 @@
           log.detail ? JSON.stringify(log.detail) : ''
         ].map(csvEscape).join(','));
       });
-
-      // Excel(Windows)에서 한글이 깨지지 않도록 UTF-8 BOM을 맨 앞에 붙입니다.
-      var csvContent = '﻿' + lines.join('\r\n');
-      var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement('a');
+      let csvContent = '﻿' + lines.join('\r\n');
+      let blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      let url = URL.createObjectURL(blob);
+      let a = document.createElement('a');
       a.href = url;
       a.download = '위드브릿지_관리자로그_' + new Date().toISOString().slice(0, 10) + '.csv';
       document.body.appendChild(a);
@@ -472,21 +396,18 @@
     }
   }
   if (els.exportBtn) els.exportBtn.addEventListener('click', exportLogsToCsv);
-
-  // ---------- 진입 ----------
   (async function init() {
-    var access = await verifyAdminAccess();
+    let access = await verifyAdminAccess();
     if (!access) return;
-
     if (els.name) els.name.textContent = (access.profile.name || access.user.email || '관리자') + '님';
     if (els.account) els.account.hidden = false;
     bindLogout();
-
     await Promise.all([loadAdminFilterOptions(), loadActionFilterOptions()]);
     await loadLogs();
-
-    supabaseClient.auth.onAuthStateChange(function (event) {
+    supabaseClient.auth.onAuthStateChange(function (event: any) {
       if (event === 'SIGNED_OUT') window.location.replace('index.html');
     });
   })();
-})();
+
+
+}

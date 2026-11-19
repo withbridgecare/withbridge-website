@@ -354,3 +354,6 @@ html.embed body { padding-top: 0 !important; }
 .wbt-link{display:inline-flex;align-items:center;box-sizing:border-box;min-height:40px;font-size:14px;font-weight:700;line-height:1.2;color:#455822;text-decoration:underline;text-underline-offset:3px}
 html.wbt-lock,html.wbt-lock body{overflow:hidden}
 @media (max-width:640px){.wbt-backdrop{padding:0}.wbt-dialog{height:100%;max-width:none;border-radius:0}.wbt-head{padding:14px}.wbt-foot{padding:12px 14px}.wbt-btn{padding:0 14px}}
+
+/* hidden 속성은 항상 숨김 (일반 사이트 페이지 공통 — 어드민 화면은 예전처럼 이 규칙이 없음) */
+[hidden] { display: none !important; }

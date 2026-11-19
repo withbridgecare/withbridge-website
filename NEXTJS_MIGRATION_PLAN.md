@@ -18,7 +18,16 @@
 | 3. 회원 기능 | ✅ 완료 | `login` `signup` `reset-password` `profile-edit`. 화면 비교·입력 검사·약관 팝업·비로그인 이동 확인. **실제 로그인/가입/탈퇴는 운영 DB라 미확인** |
 | 4. 신청·결제 | 🟡 코드 완료, 결제 미검증 | `apply` `package` `manager-apply`. 화면·입력 검사·금액 계산이 원본과 같은지 확인. **실제 결제(PortOne)·신청 저장·지원서 제출은 운영 DB·실결제 채널이라 미확인 → 아래 '결제 테스트' 필수** |
 | 5. 마이페이지 | 🟡 코드 완료, 로그인 상태 미검증 | `mypage`(보호자) `mypage-manager`(케어 매니저). 화면(모든 섹션·모달 포함)이 원본과 같은지, 비로그인 시 로그인 화면으로 가는지 확인. **로그인한 상태의 실제 동작은 운영 계정이 필요해 미확인** |
-| 6단계 | ⬜ 시작 전 | 관리자(`admin` `admin-logs` `super-admin`)는 아직 `public/*.html` 레거시 |
+| 6. 관리자 | 🟡 코드 완료, 관리자 로그인 상태 미검증 | `admin` `admin-logs` `super-admin` → `app/(admin)/` (사이트 머리글 없는 별도 틀). 모든 화면·모달(어드민 콘솔 307개 요소)이 원본과 같은지 확인. **관리자 계정으로의 실제 동작은 미확인** |
+| 7. 마무리 | ⬜ | `public/about_old.html`·`test/`, 레거시 공용 스크립트(`public/js`), `legacy/`·`build:legacy` 정리, CSP 실제 적용, PWA |
+
+**6단계 구조** — `admin.js`(5,500줄)·`admin-notices.js`·`admin-sidebar.js`·`admin-logs.js`·`super-admin.js` 를 로직 그대로 옮김
+(`app/(admin)/admin/adminConsole.ts` 등, 맨 위 `// @ts-nocheck`). DB·서버 함수 호출 83개는 `lib/api/admin-console.ts` · `admin-notices.ts` · `admin-logs.ts` · `super-admin.ts`
+(이름은 표·동작 기준 자동 생성: 예 `listServiceApplications2` — 정리하면서 더 알맞은 이름으로 바꾸세요). 어드민은 예전처럼 Pretendard 웹폰트를 불러오지 않고,
+`admin.css → mobile-nav.css → Tailwind` 순서를 그대로 지킵니다. 실시간 구독(`supabaseClient.channel`)은 화면 코드 안에 남아 있음(정리 대상).
+
+**어드민 확인 목록 (관리자 테스트 계정으로)** — 매니저 지원 승인/반려, 신청 수동 배정·재배정, 환불(전액/부분)·결제 취소·수동 입금 확인,
+추가 요금 요청/취소, 케어 강제 완료, 정산 내역, 회원 관리(정지·쿠폰·패키지 지급), 공지 등록/수정/삭제, 제휴 문의 상태, 관리자 로그·엑셀, 최고 관리자 권한 부여/회수.
 
 **5단계 구조** — 두 마이페이지 스크립트(각 2,700·3,000줄)도 4단계처럼 로직을 줄 단위로 옮겼습니다.
 `app/(site)/mypage/mypageScript.ts`, `mypage-manager/managerMypageScript.ts`. DB 호출은 `lib/api/guardian-mypage.ts`(21개)·`lib/api/manager-mypage.ts`(28개)로 이름을 붙여 옮김.
