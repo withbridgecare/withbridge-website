@@ -15,7 +15,8 @@
 | 0. 준비 | ✅ 완료 | Next.js 16 + TypeScript + Tailwind 3. 기존 HTML은 `public/`에 그대로 두고 같은 주소로 서비스 (4장 방식) |
 | 1. 공통 틀 | ✅ 완료 | `components/site/` 헤더·띠배너·드로어·로그인 메뉴·푸터, `AuthProvider`, `lib/api`·`lib/browser` 분리 |
 | 2. 홍보·정보 | ✅ 완료 | 메인(`/`) `terms` `privacy` `story` `notice` `partner` `manager-landing` `pricing`. 원본과 휴대폰·PC 폭에서 요소 위치·크기·글꼴·색이 같은지 자동 비교로 확인 |
-| 3~6단계 | ⬜ 시작 전 | 회원·신청/결제·마이페이지·관리자 페이지는 아직 `public/*.html` 레거시 |
+| 3. 회원 기능 | ✅ 완료 | `login` `signup` `reset-password` `profile-edit`. 화면 비교·입력 검사·약관 팝업·비로그인 이동 확인. **실제 로그인/가입/탈퇴는 운영 DB라 미확인** |
+| 4~6단계 | ⬜ 시작 전 | 신청/결제·마이페이지·관리자 페이지는 아직 `public/*.html` 레거시 |
 | 7. 마무리 | ⬜ | |
 
 **배포 전 확인할 것**
@@ -241,7 +242,7 @@ withbridge-website/
 
 `login`, `signup`, `reset-password`, `profile-edit`
 
-- 카카오 로그인 후 돌아오는 주소(현재 `/index.html`)와 이메일 인증 주소(현재 `/signup.html`)를 새 주소로 바꾸고, **Supabase 대시보드 → Authentication → URL Configuration의 허용 주소도 함께 수정**
+- 카카오 로그인 후 돌아오는 주소(`/index.html`), 이메일 인증 주소(`/signup.html`), 비밀번호 재설정 주소(`/reset-password.html`)는 **Supabase 허용 주소를 바꾸지 않도록 예전 주소 그대로** 두었습니다(새 주소로 자동 이동). 나중에 바꿀 때는 Supabase 대시보드 → Authentication → URL Configuration 도 함께 수정 (`lib/config.ts` 의 `authRedirectUrl`)
 - **완료 기준:** 이메일 가입·로그인, 카카오 로그인, 비밀번호 재설정, 프로필 수정이 Preview에서 동작. 기존 페이지로 이동해도 로그인 유지
 
 ### 4단계 — 신청·결제 (가장 신중하게)

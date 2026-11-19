@@ -15,7 +15,16 @@ type Row<T> = { Row: T; Insert: Partial<T>; Update: Partial<T>; Relationships: [
 export type Database = {
   public: {
     Tables: {
-      profiles: Row<{ id: string; role: string | null; name: string | null; phone: string | null }>;
+      profiles: Row<{
+        id: string;
+        role: string | null;
+        name: string | null;
+        phone: string | null;
+        address: string | null;
+        address_detail: string | null;
+        notify_care: boolean | null;
+        notify_marketing: boolean | null;
+      }>;
       managers: Row<{ id: string; certification_verified: boolean | null }>;
       care_schedules: Row<{ id: string; guardian_id: string | null; extra_charge_status: string | null }>;
       notices: Row<{
@@ -47,6 +56,13 @@ export type Database = {
     Views: Record<string, never>;
     Functions: {
       claim_service_applications: { Args: { p_ids: string[] }; Returns: string[] };
+      is_phone_registered: { Args: { p_phone: string }; Returns: boolean };
+      set_initial_phone_if_missing: { Args: { p_phone: string }; Returns: { phone: string | null } };
+      update_user_profile: {
+        Args: { p_name: string; p_address: string | null; p_address_detail: string | null; p_notify_care: boolean; p_notify_marketing: boolean };
+        Returns: unknown;
+      };
+      deactivate_own_account: { Args: Record<string, never>; Returns: unknown };
       mark_welcome_coupon_notified: { Args: Record<string, never>; Returns: { amount: number | null }[] };
       claim_welcome_coupon: { Args: Record<string, never>; Returns: { amount: number | null; status: string | null }[] };
     };

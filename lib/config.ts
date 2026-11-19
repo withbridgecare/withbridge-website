@@ -19,6 +19,9 @@ export const SITE = {
   kakaoMapAppKey: 'd4e5f004fe7750dd67ce15da3863f06c',
 } as const;
 
+/** 이용약관 버전 — app/(site)/terms 의 '약관 버전'과 같게 유지 (약관을 개정하면 함께 갱신) */
+export const TERMS_VERSION = '2026-10-26';
+
 /** 화면 주소. 아직 레거시 HTML 인 페이지도 같은 주소로 열립니다(next.config.ts rewrites). */
 export const ROUTES = {
   home: '/',

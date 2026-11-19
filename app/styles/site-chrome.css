@@ -334,3 +334,23 @@ a.wb-nav-active-cta{background-color:#2E6D53 !important;box-shadow:0 0 0 3px rgb
 /* ?embed=1 (다른 페이지의 팝업 iframe 안에서 열릴 때): 머리글·바닥글 없이 본문만 */
 html.embed .site-chrome, html.embed .site-footer { display: none !important; }
 html.embed body { padding-top: 0 !important; }
+
+/* 이용약관 팝업 (예전 js/terms-modal.js → components/site/TermsLink.tsx) */
+.wbt-backdrop{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(30,35,32,.62);font-family:"Pretendard Variable",Pretendard,"Noto Sans KR",-apple-system,"Malgun Gothic",sans-serif}
+.wbt-dialog{display:flex;flex-direction:column;width:100%;max-width:880px;height:min(88vh,900px);background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,.4)}
+.wbt-head{display:flex;align-items:center;padding:16px 20px;border-bottom:1px solid #EBE7E0}
+.wbt-head h2{margin:0;font-size:18px;font-weight:800;color:#1A1D21}
+.wbt-foot-actions{display:flex;align-items:center;gap:8px}
+.wbt-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;min-height:40px;padding:0 18px;border:1.5px solid #2D6A4F;border-radius:9999px;background:#fff;color:#2D6A4F;font-family:inherit;font-size:14px;font-weight:700;line-height:1.2;cursor:pointer;transition:background .15s,color .15s}
+.wbt-btn:hover{background:#2D6A4F;color:#fff}
+.wbt-btn.wbt-plain{border-color:#9AA3AF;color:#374151}
+.wbt-btn.wbt-plain:hover{background:#374151;border-color:#374151;color:#fff}
+.wbt-btn.wbt-primary{background:#2D6A4F;color:#fff}
+.wbt-btn.wbt-primary:hover{background:#1B4332;border-color:#1B4332}
+.wbt-btn:focus-visible,.wbt-link:focus-visible{outline:3px solid rgba(45,106,79,.5);outline-offset:2px}
+.wbt-body{flex:1;min-height:0;background:#fff}
+.wbt-frame{display:block;width:100%;height:100%;border:0}
+.wbt-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;border-top:1px solid #EBE7E0;background:#FBFCFA}
+.wbt-link{display:inline-flex;align-items:center;box-sizing:border-box;min-height:40px;font-size:14px;font-weight:700;line-height:1.2;color:#455822;text-decoration:underline;text-underline-offset:3px}
+html.wbt-lock,html.wbt-lock body{overflow:hidden}
+@media (max-width:640px){.wbt-backdrop{padding:0}.wbt-dialog{height:100%;max-width:none;border-radius:0}.wbt-head{padding:14px}.wbt-foot{padding:12px 14px}.wbt-btn{padding:0 14px}}

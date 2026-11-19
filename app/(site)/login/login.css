@@ -1,0 +1,14 @@
+/* login 페이지 전용 스타일 — public/login.html 의 <style> 을 그대로 옮김 */
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Noto Sans KR', sans-serif;
+  background-color: #ffffff;
+  color: #1A1D21;
+}
+/* 로그인 버튼 아래 약관 안내 문구의 링크 */
+.login-terms a { color: #455822; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
+.login-terms a:hover { color: #2F3D18; }
+.login-terms a:focus-visible { outline: 3px solid rgba(85,107,47,.5); outline-offset: 2px; border-radius: 2px; }
+  

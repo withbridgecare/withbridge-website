@@ -112,3 +112,13 @@ export function maybeLoggedIn(): boolean {
   }
   return false;
 }
+
+// ---------- 이용약관 동의 기록 (이 브라우저에 '어느 버전에 동의했는지'만 — 서버 기록 아님) ----------
+const TERMS_KEY = 'wb_terms_agreed';
+export function recordTermsAgreement(version: string) {
+  try {
+    localStorage.setItem(TERMS_KEY, JSON.stringify({ version, at: new Date().toISOString() }));
+  } catch {
+    /* 무시 */
+  }
+}

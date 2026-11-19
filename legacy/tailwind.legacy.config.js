@@ -4,9 +4,6 @@
  *  (NEXTJS_MIGRATION_PLAN.md 7단계). Next.js 화면용 설정은 루트의 tailwind.config.ts 입니다. */
 module.exports = {
   content: [
-    './public/login.html',
-    './public/signup.html',
-    './public/reset-password.html',
     './public/admin.html',
     './public/admin.js',
     './public/js/**/*.js',
