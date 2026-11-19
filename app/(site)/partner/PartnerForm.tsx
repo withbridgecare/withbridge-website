@@ -18,6 +18,15 @@ const ORG_TYPE_LABEL: Record<PartnerOrgType, string> = {
   기타: '기타',
 };
 
+/** 필수 입력 표시(*) */
+function Req() {
+  return (
+    <span className="req" aria-hidden="true">
+      *
+    </span>
+  );
+}
+
 export function PartnerForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const [errors, setErrors] = useState<Partial<Record<Field | 'org_type', string>>>({});
@@ -78,12 +87,6 @@ export function PartnerForm() {
       setSending(false);
     }
   };
-
-  const Req = () => (
-    <span className="req" aria-hidden="true">
-      *
-    </span>
-  );
 
   return (
     <form className="inq-form" id="partnerForm" noValidate ref={formRef} onSubmit={onSubmit}>

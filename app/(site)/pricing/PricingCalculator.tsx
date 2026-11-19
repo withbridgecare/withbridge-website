@@ -4,11 +4,13 @@
  * 예상 요금 계산기 + 모바일 하단 고정 요약 바 (예전 js/price-calculator.js 를 React 로 옮김).
  * 금액·서비스 목록은 lib/pricing.ts 한 곳에서 가져옵니다.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '@/components/site/AuthProvider';
 import { estimatePrice, formatExtraDuration, formatWon, MAX_EXTRA_UNITS, NIGHT_SURCHARGE_RATE, SERVICES, URGENT_MATCHING_FEE } from '@/lib/pricing';
 import { ROUTES } from '@/lib/config';
+
+const noopSubscribe = () => () => {};
 
 export function PricingCalculator() {
   const { goIfLoggedIn } = useAuth();
@@ -17,8 +19,8 @@ export function PricingCalculator() {
   const [urgent, setUrgent] = useState(false);
   const [night, setNight] = useState(false);
   const [stickyHidden, setStickyHidden] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  // 고정 바는 브라우저에서만 body 아래에 붙임 (서버에서 그릴 땐 없음)
+  const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const resultBarRef = useRef<HTMLDivElement>(null);
 
   const service = SERVICES[serviceIdx];

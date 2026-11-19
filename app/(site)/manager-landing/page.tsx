@@ -5,7 +5,7 @@ import { BodyClass } from '@/components/site/BodyClass';
 
 export const metadata: Metadata = {
   title: "위드브릿지 케어 매니저 모집",
-  description: "",
+  description: "내가 원하는 시간, 우리 동네에서 시작하는 따뜻한 케어 파트너. 위드브릿지 케어 매니저를 모집합니다 — 시간당 투명 정산, 자격증·경력 무관 지원.",
 };
 
 /** 위드브릿지 케어 매니저 모집 — public/manager-landing.html 에서 옮김 */

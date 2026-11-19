@@ -5,7 +5,8 @@ import { ManagerApplyBehaviors } from './ManagerApplyBehaviors';
 
 export const metadata: Metadata = {
   title: "케어 매니저 지원하기",
-  description: "",
+  description: "위드브릿지 케어 매니저 지원서 — 기본 정보, 활동 조건, 정산 계좌, 서약 4단계로 간편하게 지원하세요.",
+  robots: { index: false },
 };
 
 /** 케어 매니저 지원하기 — public/manager-apply.html 에서 옮김 */

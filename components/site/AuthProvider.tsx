@@ -8,7 +8,7 @@
  *   비로그인 신청서 연결, 로그인 전에 가려던 페이지로 이동
  * - 로그인 필요 안내 모달 / 전화 상담 모달도 여기서 띄웁니다.
  */
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { getSupabase } from '@/lib/supabase/client';
 import { claimServiceApplications, lookupAdmin, lookupManager, type LookupState } from '@/lib/api/auth';
@@ -50,9 +50,9 @@ export function useAuth(): AuthContextValue {
 const CHECK_RETRIES = 3;
 
 function useRoleCheck(userId: string | null, lookup: (id: string) => Promise<LookupState>) {
-  const [state, setState] = useState<boolean | null>(null);
+  // 결과를 '어느 사용자에 대한 것인지'와 함께 저장 → 사용자가 바뀌면 이전 결과는 자동으로 무시(null)
+  const [result, setResult] = useState<{ userId: string; value: boolean } | null>(null);
   useEffect(() => {
-    setState(null);
     if (!userId) return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -61,9 +61,9 @@ function useRoleCheck(userId: string | null, lookup: (id: string) => Promise<Loo
         if (cancelled) return;
         if (res === 'error') {
           if (attempt < CHECK_RETRIES) timer = setTimeout(() => run(attempt + 1), 1500 * (attempt + 1));
-          return; // null 그대로 → 메뉴를 그리지 않음 (fail closed)
+          return; // 결과 없음 → 메뉴를 그리지 않음 (fail closed)
         }
-        setState(res === 'yes');
+        setResult({ userId, value: res === 'yes' });
       });
     };
     run(0);
@@ -72,11 +72,17 @@ function useRoleCheck(userId: string | null, lookup: (id: string) => Promise<Loo
       if (timer) clearTimeout(timer);
     };
   }, [userId, lookup]);
-  return state;
+  return result && userId && result.userId === userId ? result.value : null;
 }
 
+const noopSubscribe = () => () => {};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [ready, setReady] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(false);
+  // 저장된 로그인 토큰이 아예 없으면 확인을 기다릴 필요 없이 바로 '로그아웃 상태'로 그림
+  // (서버에서 그릴 때는 false → 화면이 뜬 뒤 브라우저 값으로 바뀜)
+  const noStoredSession = useSyncExternalStore(noopSubscribe, () => !maybeLoggedIn(), () => false);
+  const ready = sessionChecked || noStoredSession;
   const [user, setUser] = useState<User | null>(null);
   const [loginModal, setLoginModal] = useState<{ target: string | null; required: boolean } | null>(null);
   const [callModal, setCallModal] = useState(false);
@@ -111,13 +117,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [client]);
 
   useEffect(() => {
-    // 저장된 토큰이 없으면 기다릴 필요 없이 바로 '로그아웃 상태'로 그림
-    if (!maybeLoggedIn()) setReady(true);
-    const fallback = setTimeout(() => setReady(true), 2000); // 어떤 이유로든 확인이 늦어도 영구히 숨지 않도록
+    const fallback = setTimeout(() => setSessionChecked(true), 2000); // 어떤 이유로든 확인이 늦어도 영구히 숨지 않도록
 
     const apply = (session: Session | null) => {
       setUser(session?.user ?? null);
-      setReady(true);
+      setSessionChecked(true);
       if (session?.user) {
         claimPendingApplications();
         const target = consumePostLoginRedirect();
@@ -130,7 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .then(({ data }) => apply(data.session))
       .catch((err) => {
         console.error('[auth] getSession 실패:', err);
-        setReady(true);
+        setSessionChecked(true);
       });
 
     const { data: sub } = client.auth.onAuthStateChange((event, session) => {

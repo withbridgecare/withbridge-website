@@ -63,10 +63,13 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '',
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '',
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || '',
     NEXT_PUBLIC_WB_ENV_NAME: process.env.NEXT_PUBLIC_WB_ENV_NAME || process.env.WB_ENV_NAME || 'production',
   },
 
   trailingSlash: false,
+  // 응답 헤더에 'X-Powered-By: Next.js' 를 붙이지 않음 (사용 기술을 외부에 알리지 않기)
+  poweredByHeader: false,
 
   async headers() {
     return [

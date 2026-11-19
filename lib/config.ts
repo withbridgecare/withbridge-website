@@ -23,6 +23,12 @@ export const SITE = {
   fallbackFormUrl: 'https://docs.google.com/forms/d/e/1FAIpQLSfgRiyXruggtZuztlkBsgHGt9akDqo5zZpr0gnf-bUsLGsIGw/viewform',
 } as const;
 
+/**
+ * 운영 사이트 주소 (검색엔진 사이트맵·공유 미리보기 기준). Vercel 환경 변수 SITE_URL(또는 NEXT_PUBLIC_SITE_URL)이 우선이고,
+ * 없으면 아래 기본값을 씁니다. ⚠ 실제 운영 도메인과 같은지 확인하세요 (VERIFICATION_CHECKLIST.md).
+ */
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://www.withbridge.kr').replace(/\/$/, '');
+
 /** 이용약관 버전 — app/(site)/terms 의 '약관 버전'과 같게 유지 (약관을 개정하면 함께 갱신) */
 export const TERMS_VERSION = '2026-10-26';
 

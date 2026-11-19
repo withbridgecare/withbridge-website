@@ -1,10 +1,17 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { PRIVACY_CONSOLE_SCRIPT } from '@/lib/browser/privacy';
+import { SITE_URL } from '@/lib/config';
 
 export const metadata: Metadata = {
-  // 운영 도메인은 Vercel 환경 변수 NEXT_PUBLIC_SITE_URL 에 등록하세요 (검색엔진·공유 미리보기 주소 기준)
-  ...(process.env.NEXT_PUBLIC_SITE_URL ? { metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL) } : {}),
+  // 검색엔진·공유 미리보기의 기준 주소 (lib/config.ts SITE_URL — Vercel 환경 변수 SITE_URL 로 바꿀 수 있음)
+  metadataBase: new URL(SITE_URL),
+  openGraph: {
+    type: 'website',
+    locale: 'ko_KR',
+    siteName: '위드브릿지',
+    images: [{ url: '/icons/icon-512.png', width: 512, height: 512, alt: '위드브릿지' }],
+  },
   title: { default: '위드브릿지', template: '%s | 위드브릿지' },
   description: '사람과 사람을 잇는 따뜻한 연결, 위드브릿지 — 시니어 병원 동행·생활 편의 케어 서비스',
   icons: { icon: '/images/withbridge_logo.png', apple: '/icons/apple-touch-icon.png' },

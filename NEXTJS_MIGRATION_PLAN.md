@@ -55,6 +55,9 @@ DB 호출은 `lib/api/applications.ts` · `seniors.ts` · `packages.ts` · `mana
 2. 확인할 흐름: 카드 결제 · 계좌이체 · 쿠폰/적립금 적용 · 긴급 옵션 · 패키지 차감 예약 · 결제창 닫기(취소) · 패키지 구매
 3. 각 흐름 뒤 관리자 화면에서 신청서·결제 상태, 알림톡/텔레그램 알림이 정상인지 확인
 
+**전체 점검 (2026-11-19)** — 코드 규칙 점검(ESLint, `npm run lint`)·타입·빌드·전 페이지 실행 오류 검사 완료, GitHub Actions 자동 점검 추가.
+사람이 직접 확인해야 하는 API·설정·기능 테스트는 **[VERIFICATION_CHECKLIST.md](VERIFICATION_CHECKLIST.md)** 에 모아 두었습니다.
+
 **배포 전 확인할 것**
 - Vercel 프로젝트 설정 → Framework Preset이 **Next.js**인지 (vercel.json에 `"framework": "nextjs"`를 넣어 두었음), Build Command/Output Directory를 수동으로 지정해 두었다면 비우기
 - Vercel Node.js 버전을 **22 이상**으로 (supabase-js가 20 지원 종료 예고)

@@ -1545,7 +1545,7 @@ export default function AdminPage() {
         </label>
         <div className="admin-radio-row">
           <label className="admin-radio-opt">
-            <input type="radio" name="adminRefundType" id="adminRefundTypeFull" defaultValue="full" checked />
+            <input type="radio" name="adminRefundType" id="adminRefundTypeFull" defaultValue="full" defaultChecked />
             <span>
               전액 환불
             </span>
@@ -1652,7 +1652,7 @@ export default function AdminPage() {
         </label>
         {' '}
         <label className="admin-toggle-row is-boxed">
-          <input type="checkbox" id="noticeFormPublished" checked />
+          <input type="checkbox" id="noticeFormPublished" defaultChecked />
           {' '}
           <span>
             공개 — 체크 해제하면 notice.html에는 보이지 않고 관리자 목록에만 남습니다(초안)

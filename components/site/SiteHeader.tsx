@@ -173,7 +173,7 @@ export function SiteHeader() {
 
           {/* 로고 */}
           <a href={ROUTES.home} style={{ justifySelf: 'start', display: 'flex', alignItems: 'center', textDecoration: 'none', flex: 'none' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+            { }
             <img src="/images/logo_main.webp" alt="위드브릿지 로고" style={{ height: 48, width: 'auto', display: 'block', objectFit: 'contain', margin: 0, padding: 0, position: 'relative', top: 3 }} />
           </a>
 
@@ -267,7 +267,7 @@ export function SiteHeader() {
       >
         <div className="wb-drawer-topbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #F0F1F3', flex: 'none' }}>
           <a href={ROUTES.home} style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+            { }
             <img src="/images/logo_main.webp" alt="위드브릿지 로고" style={{ height: 32, width: 'auto', display: 'block', objectFit: 'contain' }} />
           </a>
           <button type="button" id="wbDrawerClose" aria-label="메뉴 닫기" onClick={closeDrawer} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer' }}>

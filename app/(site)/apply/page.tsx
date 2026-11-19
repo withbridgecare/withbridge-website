@@ -557,7 +557,7 @@ export default function ApplyPage() {
                 </label>
                 {' '}
                 <label className="opt">
-                  <input type="radio" name="payment_method" defaultValue="카드" checked />
+                  <input type="radio" name="payment_method" defaultValue="카드" defaultChecked />
                   <span>
                     카드
                   </span>

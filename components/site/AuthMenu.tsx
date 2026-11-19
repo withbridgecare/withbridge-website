@@ -6,7 +6,7 @@
  *  - 로그인 상태(데스크톱): 프로필 사진 버튼 + 카드형 드롭다운
  *  - 로그인 상태(모바일 드로어): 같은 내용을 펼친 목록으로
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from './AuthProvider';
 import { ChatIcon, DEFAULT_AVATAR, LogoutIcon, QuestionIcon, ShieldIcon, SwitchIcon, UserIcon } from './icons';
@@ -15,17 +15,17 @@ import { getUserMode, isUserModeKey, setUserMode, type UserMode } from '@/lib/br
 import { ROUTES, SITE } from '@/lib/config';
 
 /** 지금 보고 있는 화면의 역할: 마이페이지 두 곳은 주소로, 그 밖은 저장된 선택으로 */
+function subscribeUserMode(onChange: () => void) {
+  const onStorage = (e: StorageEvent) => {
+    if (isUserModeKey(e.key)) onChange(); // 다른 탭에서 모드를 바꾸면 이 탭 메뉴도 갱신
+  };
+  window.addEventListener('storage', onStorage);
+  return () => window.removeEventListener('storage', onStorage);
+}
+
 function useCurrentRole(): UserMode {
   const pathname = usePathname();
-  const [stored, setStored] = useState<UserMode>('guardian');
-  useEffect(() => {
-    setStored(getUserMode());
-    const onStorage = (e: StorageEvent) => {
-      if (isUserModeKey(e.key)) setStored(getUserMode());
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, []);
+  const stored = useSyncExternalStore(subscribeUserMode, getUserMode, () => 'guardian' as UserMode);
   if (/^\/mypage-manager$/.test(pathname)) return 'manager';
   if (/^\/mypage$/.test(pathname)) return 'guardian';
   return stored;
@@ -33,7 +33,7 @@ function useCurrentRole(): UserMode {
 
 function Avatar({ src, style }: { src: string; style?: React.CSSProperties }) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- 카카오 등 외부 프로필 이미지(도메인 미정)
+     
     <img
       src={src || DEFAULT_AVATAR}
       alt="프로필 이미지"
