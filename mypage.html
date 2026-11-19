@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
+  <meta name="robots" content="noindex, nofollow">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>마이페이지 | 위드브릿지</title>
   <link rel="icon" href="./images/withbridge_logo.png" type="image/png">
@@ -11,12 +12,15 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
   <!-- Supabase SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js" integrity="sha384-uteMfOloLDGt042uDz+xHGF3ym63/WQ6rFq7murQRG8Ih7QrXGEGNtWd8688sb4O" crossorigin="anonymous"></script>
+  <script src="/js/privacy-guard.js?v=1.0"></script>
   <!-- 공통 Supabase 클라이언트 (index.html / login.html 과 같은 세션 공유). SDK 뒤에 로드해야 합니다 -->
-  <script src="/js/auth-header.js?v=2.4" charset="utf-8"></script>
+  <!-- Supabase 접속 정보(window.WB_ENV). scripts/build-env.mjs 가 .env / Vercel 환경 변수로 생성 -->
+  <script src="/js/env.js"></script>
+  <script src="/js/auth-header.js?v=2.7" charset="utf-8"></script>
   <!-- 결제 확인 Edge Function(confirm-extra-charge-payment) 호출용 — supabaseClient.functions.invoke()
        대신 명시적 fetch() 래퍼. auth-header.js 가 만든 supabaseClient 를 받아 쓰므로 그 뒤에 로드합니다 -->
-  <script src="/js/edge-function-fetch.js?v=1.2"></script>
+  <script src="/js/edge-function-fetch.js?v=1.3"></script>
 <script src="/js/terms-modal.js?v=1.0" charset="utf-8" defer></script>
 <script src="/js/notice-modal.js?v=1.0" charset="utf-8" defer></script>
   <!-- 브라우저 기본 날짜/시간 피커 대신 쓰는 공통 커스텀 피커 (wb-datepicker.js 참고) -->
@@ -406,7 +410,7 @@
        .mgr-recruit-inner 는 그 사진 위에서 콘텐츠만 max-width 로 중앙 정렬하는 투명한 래퍼입니다. */
     .mgr-recruit-full {
       position: relative; overflow: hidden; width: 100%; padding: 96px 0;
-      background-image: linear-gradient(rgba(16, 20, 27, .84), rgba(16, 20, 27, .84)), url('/images/getty-images-258_Fcxevy8-unsplash.jpg');
+      background-image: linear-gradient(rgba(16, 20, 27, .84), rgba(16, 20, 27, .84)), url('/images/getty-images-258_Fcxevy8-unsplash.webp');
       /* bottom 5%(= 95%, 위에서부터) — 손목·맞잡은 손 아랫부분까지 전부 들어오도록 거의 최하단에 초점.
          주의: bottom 뒤 숫자가 '사진 아래쪽을 얼마나 잘라낼지'가 아니라 '바닥에서 얼마나 띄울지'라
          숫자가 작을수록(0%에 가까울수록) 사진 하단이 더 많이 보입니다 — bottom 30%(=70%)는 오히려
@@ -753,7 +757,12 @@
     .modal-backdrop {
       position: fixed; inset: 0; z-index: 200; padding: 16px;
       background: rgba(15, 23, 42, 0.5); display: flex; align-items: center; justify-content: center;
+      overscroll-behavior: contain; /* 팝업 바깥(어두운 배경)을 끌어도 뒤 페이지로 스크롤이 넘어가지 않게 */
     }
+    /* 팝업이 열려 있는 동안(아래 lockScrollWhileModalOpen 스크립트가 html 에 붙임) 뒤 페이지 스크롤 잠금 */
+    html.wb-modal-open, html.wb-modal-open body { overflow: hidden; }
+    /* 팝업 안 스크롤 영역: 끝까지 내려도 뒤 페이지로 스크롤이 이어지지(scroll chaining) 않게 */
+    .modal, .modal-senior-body { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
     .modal {
       width: 100%; max-width: 440px; max-height: calc(100vh - 32px); overflow-y: auto;
       background: #fff; border: 1px solid var(--card-border); border-radius: var(--radius); padding: 28px; box-shadow: 0 25px 50px -12px rgba(0,0,0,.35);
@@ -781,6 +790,26 @@
     .modal-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
     .modal-actions .btn { flex: 1 1 140px; padding: 14px; }
     .form-error { margin: 0 0 12px; color: var(--danger); font-size: 13.5px; }
+    /* 입력 오류 표시(어르신 등록/수정 모달) — 저장 시 필수값이 비었거나 형식이 틀린 칸을 빨간 테두리·옅은
+       빨간 배경·빨간 라벨로 표시하고, 칸 바로 아래에 이유를 적습니다. 값을 고치면 그 칸 표시만 바로 사라집니다
+       (setSeniorFieldError / clearSeniorFieldError). 날짜 칸은 wb-datepicker.js 의 버튼(.wbdp-trigger)에 표시합니다. */
+    .field.has-error > label { color: var(--danger); }
+    .field.has-error > input,
+    .field.has-error > textarea,
+    .field.has-error .field-search-row input,
+    .field.has-error .wbdp-trigger {
+      border-color: var(--danger) !important;
+      background-color: #FFF5F5 !important;
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, .12) !important;
+    }
+    .field-error {
+      display: flex; align-items: center; gap: 5px; margin: 6px 2px 0;
+      font-size: 12.5px; font-weight: 600; line-height: 1.45; color: var(--danger); word-break: keep-all;
+    }
+    .field-error::before {
+      content: '!'; flex: none; display: inline-grid; place-items: center; width: 15px; height: 15px;
+      border-radius: 50%; background: var(--danger); color: #fff; font-size: 10.5px; font-weight: 800; line-height: 1;
+    }
 
     /* ---------- 어르신 등록/수정 모달 ----------
        헤더(제목 + 닫기 버튼) / 본문(스크롤 영역) / 하단 버튼을 각각 독립된 flex 영역으로 나눠, 본문만
@@ -1130,6 +1159,68 @@
       .modal-senior-footer { padding: 14px 18px; }
       .field-row { grid-template-columns: 1fr; gap: 10px; }
     }
+    /* ---------- 휴대폰(767px 이하) 화면 최적화 ----------
+       카드 안의 카드(섹션 카드 → 신청 카드 → 정보 박스)로 여백이 세 겹 쌓여 내용 폭이 좁아지던 것을
+       줄이고, 신청 카드 머리(서비스명 + 금액)·정보 표(라벨 열 136px → 84px)를 휴대폰 폭에 맞춥니다.
+       하단 케어 매니저 모집·고객센터 안내도 한 화면 안에 들어오게 압축합니다. PC(768px 이상)는 영향 없음. */
+    @media (max-width: 767.98px) {
+      .mp-main { padding: 12px 12px 40px; }
+      .mp-header { padding: 12px 14px; }
+      .profile-avatar { width: 40px; height: 40px; font-size: 16px; }
+      .profile-role { font-size: 11.5px; }
+      .profile-name { font-size: 18px; }
+      .profile-email { font-size: 12px; }
+      .mgr-tab { font-size: 12px; }
+
+      .card { padding: 14px 12px; }
+      .card-head { margin-bottom: 10px; }
+      .card-title { font-size: 16px; }
+
+      .app-card { padding: 14px 12px; }
+      .app-top { align-items: center; gap: 10px; margin-bottom: 10px; }
+      .app-title { flex-direction: column; align-items: flex-start; gap: 4px; font-size: 16px; }
+      .app-title .app-icon { font-size: 11px; padding: 2px 8px; }
+      .app-price-top .app-price-label { font-size: 11px; }
+      .app-price-top b { font-size: 20px; }
+      .app-price-top small { font-size: 11px; }
+      .app-stepper { margin-bottom: 12px; }
+      .app-stepper .step { font-size: 11.5px; padding: 7px 2px 6px; min-width: 0; }
+      .app-kv {
+        grid-template-columns: 84px minmax(0, 1fr);
+        gap: 7px 10px;
+        padding: 12px;
+        margin-bottom: 12px;
+        font-size: 13px;
+        border-radius: 12px;
+      }
+      .app-kv dt { gap: 4px; font-size: 12.5px; }
+      .app-kv dt svg { width: 14px; height: 14px; }
+      .app-foot { padding-top: 10px; }
+      .app-date { font-size: 11.5px; }
+      .app-timer { font-size: 11px; }
+      .app-hint { font-size: 12px; padding: 8px 10px; }
+
+      .mgr-recruit-full { padding: 40px 0; }
+      .mgr-recruit-inner { padding: 0 16px; }
+      .mgr-recruit-card { gap: 18px; }
+      .mgr-recruit-eyebrow { font-size: 11.5px; }
+      .mgr-recruit-title { font-size: 20px; margin-top: 10px; }
+      .mgr-recruit-desc { margin-top: 8px; font-size: 13px; }
+      .mgr-recruit-chips { gap: 6px; margin-top: 14px; }
+      .mgr-recruit-chips li { font-size: 12px; padding: 5px 10px; }
+      .mgr-recruit-btn { height: 48px; font-size: 14.5px; }
+
+      .guardian-support-banner-full { padding: 40px 0; }
+      .guardian-support-banner-inner { padding: 0 16px; }
+      .guardian-support-banner { gap: 18px; }
+      .guardian-support-banner-title { font-size: 19px; margin-bottom: 8px; }
+      .guardian-support-banner-text { font-size: 13px; margin-bottom: 14px; }
+      .guardian-support-banner-ctas { flex-wrap: nowrap; gap: 8px; }
+      .guardian-support-banner-ctas > * { flex: 1 1 0; justify-content: center; min-height: 46px; padding: 0 10px; font-size: 13.5px; white-space: nowrap; }
+      .guardian-support-banner-checks { gap: 8px; }
+      .guardian-support-banner-checks li { font-size: 13px; gap: 8px; }
+    }
+
     /* index.html 헤더/푸터와 동일하게 렌더링되도록 보정 (index 는 Tailwind preflight 적용) */
     header, footer { letter-spacing: normal; line-height: 1.5; }
     footer h3 { margin-top: 0; }
@@ -1199,12 +1290,12 @@
 
     <!-- 로고 영역 (클릭 시 메인 페이지로 이동하도록 index.html 적용) -->
     <a href="index.html" style="justify-self: start; display: flex; align-items: center; text-decoration: none; flex: none;">
-      <img src="./images/logo_main.png" alt="위드브릿지 로고" style="height: 48px; width: auto; display: block; object-fit: contain; margin: 0; padding: 0; position: relative; top: 3px;" />
+      <img src="./images/logo_main.webp" alt="위드브릿지 로고" style="height: 48px; width: auto; display: block; object-fit: contain; margin: 0; padding: 0; position: relative; top: 3px;" />
     </a>
 
     <!-- 중앙 메뉴 링크 (소개 메뉴를 about.html로 연결) : 가운데 auto 칸에 놓여 좌우 1fr 칸이 같은 폭이라 항상 화면 정중앙에 옵니다 -->
     <nav class="wb-desktop-nav" style="display: flex; align-items: center; gap: 18px; font-size: 14.5px; font-weight: 600; white-space: nowrap; flex-wrap: nowrap;">
-      <a href="story.html" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">소개</a>
+      <a href="story" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">소개</a>
       <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
       <a href="index.html#services" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">서비스</a>
       <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
@@ -1243,14 +1334,14 @@
 <aside class="wb-drawer" id="wbMobileDrawer" role="dialog" aria-modal="true" aria-label="모바일 메뉴" aria-hidden="true">
   <div class="wb-drawer-topbar" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #F0F1F3; flex: none;">
     <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
-      <img src="./images/logo_main.png" alt="위드브릿지 로고" style="height: 32px; width: auto; display: block; object-fit: contain;" />
+      <img src="./images/logo_main.webp" alt="위드브릿지 로고" style="height: 32px; width: auto; display: block; object-fit: contain;" />
     </a>
     <button type="button" id="wbDrawerClose" aria-label="메뉴 닫기" style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: none; background: transparent; cursor: pointer;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1D21" stroke-width="2" stroke-linecap="round"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
     </button>
   </div>
   <nav style="display: flex; flex-direction: column; padding: 10px 16px; gap: 2px; font-family: 'Noto Sans KR', sans-serif;">
-    <a href="story.html" class="wb-drawer-link">소개</a>
+    <a href="story" class="wb-drawer-link">소개</a>
     <a href="index.html#services" class="wb-drawer-link">서비스</a>
     <a href="index.html#how-it-works" class="wb-drawer-link">이용 방법</a>
     <a href="notice.html" class="wb-drawer-link">공지사항</a>
@@ -1445,7 +1536,7 @@
           </ul>
         </div>
         <div class="mgr-recruit-actions">
-          <a href="manager-landing.html" class="mgr-recruit-btn">케어 매니저 혜택 보고 지원하기
+          <a href="manager-landing" class="mgr-recruit-btn">케어 매니저 혜택 보고 지원하기
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </a>
         </div>
@@ -1848,6 +1939,51 @@
       <button type="button" class="btn btn-confirm extra-charge-lock-confirm" id="extraChargeLockConfirmBtn">확인</button>
     </div>
   </div>
+
+  <!-- 팝업 뒤 배경 스크롤 잠금 — 이 페이지의 모든 팝업(.modal-backdrop: 어르신 등록, 케어 리포트, 영수증 등)이
+       hidden 속성으로 열고 닫히므로, 그 속성 변화를 지켜보다가 하나라도 열려 있으면 뒤 페이지를 현재 위치에
+       고정합니다. 팝업 안에서 스크롤을 끝까지 내려도 뒤 페이지가 같이 밀려 움직이던 문제를 막습니다.
+       overflow:hidden 만으로는 iPhone 사파리에서 배경이 계속 스크롤되므로 body 를 position:fixed 로 고정하고
+       (top 에 현재 스크롤 위치를 음수로 넣어 화면이 튀지 않게), 닫을 때 원래 위치로 되돌립니다. 팝업 열고 닫는
+       코드는 그대로 두고 이 블록만으로 동작합니다. -->
+  <script>
+    (function lockScrollWhileModalOpen() {
+      const backdrops = Array.prototype.slice.call(document.querySelectorAll('.modal-backdrop'));
+      if (!backdrops.length) return;
+      const root = document.documentElement;
+      const body = document.body;
+      let lockedY = null;
+
+      function lock() {
+        if (lockedY !== null) return;
+        lockedY = window.scrollY || root.scrollTop || 0;
+        root.classList.add('wb-modal-open');
+        body.style.position = 'fixed';
+        body.style.top = -lockedY + 'px';
+        body.style.left = '0';
+        body.style.right = '0';
+        body.style.width = '100%';
+      }
+      function unlock() {
+        if (lockedY === null) return;
+        const y = lockedY;
+        lockedY = null;
+        root.classList.remove('wb-modal-open');
+        body.style.position = '';
+        body.style.top = '';
+        body.style.left = '';
+        body.style.right = '';
+        body.style.width = '';
+        window.scrollTo({ top: y, behavior: 'instant' }); // html 의 scroll-behavior:smooth 를 무시하고 제자리로
+      }
+      function sync() {
+        if (backdrops.some((el) => !el.hidden)) lock(); else unlock();
+      }
+      const observer = new MutationObserver(sync);
+      backdrops.forEach((el) => observer.observe(el, { attributes: true, attributeFilter: ['hidden'] }));
+      sync();
+    })();
+  </script>
 
   <!-- ==================================================================== -->
   <!-- 06. 자바스크립트 (Supabase 연동) -->
@@ -4027,7 +4163,8 @@
         empty.appendChild(document.createElement('br'));
         const add = h('button', 'btn', '+ 어르신 등록하기');
         add.type = 'button';
-        add.addEventListener('click', openSeniorModal);
+        // 클릭 이벤트 객체가 senior 인자로 넘어가면 '수정' 모드로 열리므로(제목·버튼이 '수정'으로 바뀜) 인자 없이 호출
+        add.addEventListener('click', () => openSeniorModal());
         empty.appendChild(add);
         box.appendChild(empty);
         return;
@@ -5182,9 +5319,69 @@
     }
 
     // senior 를 주면 수정 모드로, 안 주면(또는 생략하면) 신규 등록 모드로 모달을 엽니다.
+    // ---------- 칸별 입력 오류 표시 ----------
+    // 저장 시 문제가 있는 칸마다 빨간 테두리(.field.has-error)와 칸 아래 안내 문구(.field-error)를 붙이고,
+    // 그 칸의 값을 고치는 즉시 해당 표시만 지웁니다. 남은 오류가 없으면 하단 요약 문구(formError)도 숨깁니다.
+    function seniorFieldOf(inputId) {
+      const input = document.getElementById(inputId);
+      return input ? input.closest('.field') : null;
+    }
+    function setSeniorFieldError(inputId, message) {
+      const field = seniorFieldOf(inputId);
+      if (!field) return;
+      field.classList.add('has-error');
+      const input = document.getElementById(inputId);
+      input.setAttribute('aria-invalid', 'true');
+      let msg = field.querySelector(':scope > .field-error');
+      if (!msg) {
+        msg = document.createElement('p');
+        msg.className = 'field-error';
+        msg.id = inputId + 'Error';
+        field.appendChild(msg);
+      }
+      msg.textContent = message;
+      input.setAttribute('aria-describedby', msg.id);
+    }
+    function clearSeniorFieldError(inputId) {
+      const field = seniorFieldOf(inputId);
+      if (!field || !field.classList.contains('has-error')) return;
+      field.classList.remove('has-error');
+      const input = document.getElementById(inputId);
+      input.removeAttribute('aria-invalid');
+      input.removeAttribute('aria-describedby');
+      const msg = field.querySelector(':scope > .field-error');
+      if (msg) msg.remove();
+      updateSeniorErrorSummary();
+    }
+    // 하단 요약 문구를 남은 오류 개수에 맞춥니다: 0개면 숨김, 1개면 그 칸의 안내 문구, 여러 개면 개수.
+    function updateSeniorErrorSummary() {
+      const left = form.querySelectorAll('.field.has-error > .field-error');
+      if (!left.length) { formError.hidden = true; return; }
+      formError.textContent = left.length > 1 ? '빨간색으로 표시된 ' + left.length + '개 항목을 확인해 주세요.' : left[0].textContent;
+      formError.hidden = false;
+    }
+    function clearAllSeniorFieldErrors() {
+      ['seniorName', 'seniorAddress', 'seniorBirth'].forEach(clearSeniorFieldError);
+    }
+    // 첫 번째 오류 칸으로 스크롤하고 커서를 옮깁니다. 주소 칸은 직접 입력할 수 없는(readonly, 검색으로만
+    // 채움) 칸이라 바로 옆 [주소 검색] 버튼에, 생년월일은 커스텀 날짜 선택 버튼에 포커스를 줍니다.
+    function focusSeniorField(inputId) {
+      const field = seniorFieldOf(inputId);
+      if (!field) return;
+      field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const target = inputId === 'seniorAddress' ? document.getElementById('seniorAddressSearchBtn')
+        : (field.querySelector('.wbdp-trigger') || document.getElementById(inputId));
+      if (target) target.focus({ preventScroll: true });
+    }
+    document.getElementById('seniorName').addEventListener('input', (e) => {
+      if (e.target.value.trim()) clearSeniorFieldError('seniorName');
+    });
+    document.getElementById('seniorBirth').addEventListener('change', () => clearSeniorFieldError('seniorBirth'));
+
     function openSeniorModal(senior) {
       form.reset();
       formError.hidden = true;
+      clearAllSeniorFieldErrors();
       document.getElementById('seniorPhone').readOnly = false;
       document.getElementById('frequentHospitalAddrNote').hidden = true; // 이전에 고른 병원 주소 안내는 모달을 다시 열 때마다 지움
       editingSeniorId = senior ? senior[SENIOR_PK] : null;
@@ -5223,6 +5420,7 @@
           // roadAddress(도로명 주소)를 우선 쓰고, 도로명 주소가 없는 예전 건물이면 jibunAddress(지번 주소)로 대체
           const addressInput = document.getElementById('seniorAddress');
           addressInput.value = data.roadAddress || data.jibunAddress || '';
+          if (addressInput.value) clearSeniorFieldError('seniorAddress');
           document.getElementById('seniorAddressDetail').focus();
         }
       }).open();
@@ -5293,17 +5491,19 @@
       const frequentHospital = document.getElementById('frequentHospital').value.trim() || null;
       const frequentHospitalDetail = document.getElementById('frequentHospitalDetail').value.trim() || null;
 
-      if (!name || !address) {
-        formError.textContent = '성함과 주소는 필수 입력 항목입니다.';
-        formError.hidden = false;
-        return;
-      }
+      // 문제가 있는 칸을 한 번에 모두 찾아 칸마다 빨간 표시 + 안내 문구를 붙이고, 첫 번째 칸으로 커서를 옮깁니다.
       // 생년월일은 선택 입력이라 비워 둬도 되지만(연령 미입력으로 표시), 값을 넣었다면 계산 가능한 과거 날짜여야
       // 합니다 — 여기서 걸러내지 않으면 형식이 깨졌거나 미래로 잘못 입력된 값이 그대로 저장돼, 목록에서 '만 0세'로
       // 잘못 보이거나(옛날 코드) 혼란스러운 값이 남습니다. calcAge() 가 null 을 반환하는 값은 전부 여기서 막습니다.
-      if (birth && calcAge(birth) === null) {
-        formError.textContent = '생년월일을 올바르게 입력해 주세요. (미래 날짜이거나 형식이 올바르지 않습니다)';
-        formError.hidden = false;
+      clearAllSeniorFieldErrors();
+      const invalid = [];
+      if (!name) invalid.push(['seniorName', '어르신 성함을 입력해 주세요.']);
+      if (birth && calcAge(birth) === null) invalid.push(['seniorBirth', '생년월일을 올바르게 입력해 주세요. (미래 날짜이거나 형식이 올바르지 않습니다)']);
+      if (!address) invalid.push(['seniorAddress', '[주소 검색]을 눌러 거주지 주소를 선택해 주세요.']);
+      if (invalid.length) {
+        invalid.forEach(([id, message]) => setSeniorFieldError(id, message));
+        updateSeniorErrorSummary();
+        focusSeniorField(invalid[0][0]);
         return;
       }
 
@@ -5460,13 +5660,17 @@
     window.addEventListener('load', moveMpTabPill);
     moveMpTabPill();
 
-    // 헤더 드롭다운의 '어르신 프로필 관리' 바로가기(mypage.html?tab=elder) — 도착하면 '어르신 프로필 관리'
-    // 탭을 바로 열어 줍니다. 새로고침해도 다시 열리지 않도록(그냥 '진행 중인 케어'로 돌아가도록) 확인한
-    // 즉시 쿼리 파라미터를 지웁니다(package.html 결제 완료 배너의 checkPackagePurchaseBanner() 와 같은 패턴).
+    // ?tab= 바로가기 — 도착하면 해당 탭을 바로 열어 줍니다.
+    //  - ?tab=elder   : 헤더 드롭다운 '어르신 프로필 관리' → '어르신 프로필 관리' 탭
+    //  - ?tab=history : 메인 '이용 후기 작성하기' 등 → '지난 이용 내역' 탭(완료된 이용 건에서 후기 작성)
+    // 새로고침해도 다시 열리지 않도록(그냥 '진행 중인 케어'로 돌아가도록) 확인한 즉시 쿼리 파라미터를
+    // 지웁니다(package.html 결제 완료 배너의 checkPackagePurchaseBanner() 와 같은 패턴).
+    const MP_TAB_FROM_QUERY = { elder: 'seniors', history: 'history' };
     (function openTabFromQuery() {
       const params = new URLSearchParams(location.search);
-      if (params.get('tab') !== 'elder') return;
-      activateMpTab('seniors');
+      const tab = MP_TAB_FROM_QUERY[params.get('tab')];
+      if (!tab) return;
+      activateMpTab(tab);
       params.delete('tab');
       const newSearch = params.toString();
       history.replaceState(null, '', location.pathname + (newSearch ? '?' + newSearch : '') + location.hash);

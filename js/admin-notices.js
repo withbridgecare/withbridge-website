@@ -10,8 +10,10 @@
 (function () {
   'use strict';
 
-  var SUPABASE_URL = 'https://layvjisfeivkzowopkco.supabase.co';
-  var SUPABASE_ANON_KEY = 'sb_publishable_M7wpIAR7-aXvG78Xv-WBoQ_q1wj_FcR';
+  var WB_ENV = window.WB_ENV || {}; // js/env.js (scripts/build-env.mjs 가 .env 로 생성)
+  var SUPABASE_URL = WB_ENV.SUPABASE_URL;
+  var SUPABASE_ANON_KEY = WB_ENV.SUPABASE_ANON_KEY;
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) console.error('[설정] window.WB_ENV 가 없습니다. js/env.js 가 이 스크립트보다 먼저 로드되는지, node scripts/build-env.mjs 를 실행했는지 확인하세요.');
 
   var sdk = window.supabase;
   if (!sdk || !sdk.createClient) return; // admin.js 가 이미 같은 조건에서 alert 를 띄우므로 중복 경고하지 않음

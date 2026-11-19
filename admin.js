@@ -8,8 +8,10 @@
 (function () {
   'use strict';
 
-  var SUPABASE_URL = 'https://layvjisfeivkzowopkco.supabase.co';
-  var SUPABASE_ANON_KEY = 'sb_publishable_M7wpIAR7-aXvG78Xv-WBoQ_q1wj_FcR';
+  var WB_ENV = window.WB_ENV || {}; // js/env.js (scripts/build-env.mjs 가 .env 로 생성)
+  var SUPABASE_URL = WB_ENV.SUPABASE_URL;
+  var SUPABASE_ANON_KEY = WB_ENV.SUPABASE_ANON_KEY;
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) console.error('[설정] window.WB_ENV 가 없습니다. js/env.js 가 이 스크립트보다 먼저 로드되는지, node scripts/build-env.mjs 를 실행했는지 확인하세요.');
 
   var sdk = window.supabase;
   if (!sdk || !sdk.createClient) {
@@ -17,6 +19,8 @@
     throw new Error('[Admin] Supabase SDK 가 로드되지 않았습니다. SDK <script> 가 admin.js 보다 먼저 있어야 합니다.');
   }
   var supabaseClient = sdk.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // 비공개 버킷 사진(출발 인증 사진 등)을 관리자 권한의 서명 URL 로 표시(js/privacy-guard.js)
+  if (window.WBPrivacy) window.WBPrivacy.attachPhotoResolver(supabaseClient);
 
   // ---------- DOM ----------
   function $(id) { return document.getElementById(id); }
@@ -233,6 +237,27 @@
   };
 
   var toastTimer = null;
+  // ---------- 매니저 정산 계좌번호 (암호화 저장) ----------
+  function isMaskedAccount(value) {
+    return typeof value === 'string' && value.indexOf('*') === 0;
+  }
+  // 관리자 전용 RPC 로 전체 계좌번호를 받아 잠깐 보여줍니다. 조회 기록은 DB(admin_logs)에 남고,
+  // 화면에서는 60초 뒤 다시 마스킹 값으로 되돌립니다(자리 비움·화면 공유 대비).
+  async function revealManagerAccount(applicationId, targetEl, btn) {
+    if (!targetEl) return;
+    var masked = targetEl.textContent;
+    btn.disabled = true;
+    var res = await supabaseClient.rpc('admin_reveal_manager_account', { p_application_id: applicationId });
+    btn.disabled = false;
+    if (res.error || !res.data) {
+      showToast('계좌번호를 불러오지 못했습니다' + (res.error ? ': ' + res.error.message : '.'));
+      return;
+    }
+    targetEl.textContent = res.data;
+    btn.hidden = true;
+    setTimeout(function () { targetEl.textContent = masked; btn.hidden = false; }, 60000);
+  }
+
   function showToast(message) {
     if (!els.toast) return;
     els.toast.textContent = message;
@@ -750,9 +775,8 @@
     if (els.name) els.name.textContent = (profile.name || user.email || '관리자') + '님 (' + gradeLabel + ')';
     if (els.account) els.account.hidden = false;
 
-    // super-admin.html 링크는 is_super_admin() RPC 로 다시 한번 확인한 뒤에만 보여줍니다 — role
-    // 'super_admin' 외에 failsafe 이메일(sql/super_admin_management.sql)로도 통과할 수 있어,
-    // profiles.role 만 보고 판단하면 그 경우를 놓칩니다.
+    // super-admin.html 링크는 서버의 is_super_admin() RPC 로 확인한 뒤에만 보여줍니다
+    // (화면에 읽어 온 role 값보다 DB 판단을 기준으로 삼기 위함).
     if (els.superAdminNavLink) {
       supabaseClient.rpc('is_super_admin').then(function (res) {
         if (!res.error && res.data === true) els.superAdminNavLink.hidden = false;
@@ -770,6 +794,7 @@
         els.logoutBtn.disabled = false;
         return;
       }
+      if (window.WBPrivacy) window.WBPrivacy.clearLocalCareData();
       window.location.replace('index.html');
     });
   }
@@ -786,11 +811,21 @@
     list.innerHTML = '<p class="admin-loading">불러오는 중…</p>';
     if (els.pendingManagersCount) els.pendingManagersCount.hidden = true;
 
+    var MANAGER_APP_COLUMNS = 'id, name, phone, birth_date, address, id_image_path, activity_areas, activity_schedule, certifications, career_experience, bank_name, account_number, account_holder, created_at';
     var res = await supabaseClient
       .from('manager_applications')
-      .select('id, name, phone, birth_date, address, id_image_path, activity_areas, activity_schedule, certifications, career_experience, bank_name, account_number, account_holder, created_at')
+      .select(MANAGER_APP_COLUMNS + ', gender')
       .eq('status', 'pending')
       .order('created_at', { ascending: true });
+    // gender 컬럼은 sql/manager_applications_gender.sql 로 추가됩니다. 아직 실행 전인 환경(42703:
+    // 컬럼 없음)에서도 승인 대기 목록이 비지 않도록, 그 경우에만 gender 없이 한 번 더 조회합니다.
+    if (res.error && res.error.code === '42703') {
+      res = await supabaseClient
+        .from('manager_applications')
+        .select(MANAGER_APP_COLUMNS)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true });
+    }
 
     if (res.error) {
       console.error('[Admin] 매니저 지원서 조회 실패:', res.error.code, res.error.message,
@@ -829,13 +864,25 @@
     meta.className = 'admin-row-meta';
     meta.innerHTML =
       '<dt>생년월일</dt><dd>' + escapeHtml(a.birth_date || '미등록') + '</dd>' +
+      '<dt>성별</dt><dd>' + escapeHtml(a.gender === '남' ? '남성' : a.gender === '여' ? '여성' : '미등록') + '</dd>' +
       '<dt>거주지 주소</dt><dd>' + escapeHtml(a.address || '미등록') + '</dd>' +
       '<dt>활동 가능 지역</dt><dd>' + escapeHtml((a.activity_areas || []).join(', ') || '미등록') + '</dd>' +
       '<dt>활동 가능 요일/시간대</dt><dd>' + escapeHtml((a.activity_schedule || []).join(', ') || '미등록') + '</dd>' +
       '<dt>보유 자격증</dt><dd>' + escapeHtml((a.certifications || []).join(', ') || '해당 없음') + '</dd>' +
       '<dt>관련 경력</dt><dd>' + escapeHtml(a.career_experience || '-') + '</dd>' +
-      '<dt>정산 계좌</dt><dd>' + escapeHtml((a.bank_name || '-') + ' ' + (a.account_number || '-') + ' (예금주: ' + (a.account_holder || '-') + ')') + '</dd>' +
+      // 계좌번호는 DB 에 암호화되어 저장되고 account_number 에는 마스킹 값(****1234)만 있습니다
+      // (sql/manager_bank_account_encryption.sql). 전체 번호는 [전체 보기]로 관리자 RPC 를 거쳐서만 조회합니다.
+      '<dt>정산 계좌</dt><dd>' + escapeHtml(a.bank_name || '-') + ' <span data-role="account-number">' + escapeHtml(a.account_number || '-') + '</span>' +
+        (isMaskedAccount(a.account_number) ? ' <button type="button" class="admin-btn is-ghost" data-role="reveal-account" style="padding:2px 8px;font-size:12px;">전체 보기</button>' : '') +
+        ' (예금주: ' + escapeHtml(a.account_holder || '-') + ')</dd>' +
       '<dt>지원 일시</dt><dd>' + formatDateTime(a.created_at) + '</dd>';
+
+    var revealBtn = meta.querySelector('[data-role="reveal-account"]');
+    if (revealBtn) {
+      revealBtn.addEventListener('click', function () {
+        revealManagerAccount(a.id, meta.querySelector('[data-role="account-number"]'), revealBtn);
+      });
+    }
 
     var actions = document.createElement('div');
     actions.className = 'admin-row-actions';
@@ -4694,7 +4741,17 @@
   var memberDetailTarget = null;
   var memberEditMode = false;
 
+  // 권한 위계(sql/role_hierarchy_hardening.sql): 관리자가 최고관리자 계정을 다루려 하면 서버가
+  // CANNOT_MANAGE_SUPER_ADMIN 으로 거절합니다 — 영문 코드 대신 이해할 수 있는 문장으로 바꿔 보여줍니다.
+  function explainPermissionError(msg) {
+    if (msg && String(msg).indexOf('CANNOT_MANAGE_SUPER_ADMIN') !== -1) {
+      return '최고관리자 계정은 최고관리자만 변경할 수 있습니다.';
+    }
+    return msg;
+  }
+
   function showMemberActionError(msg) {
+    msg = explainPermissionError(msg);
     if (els.memberActionSuccess) els.memberActionSuccess.hidden = true;
     var el = els.memberActionError;
     if (!el) return;
@@ -4768,6 +4825,7 @@
     var addressDetail = (els.memberEditAddressDetail && els.memberEditAddressDetail.value || '').trim();
 
     function showEditError(msg) {
+      msg = explainPermissionError(msg);
       if (els.memberEditSuccess) els.memberEditSuccess.hidden = true;
       if (els.memberEditError) { els.memberEditError.textContent = msg; els.memberEditError.hidden = false; }
     }
@@ -5067,6 +5125,7 @@
 
   function showBenefitFormError(errorEl, msg) {
     if (!errorEl) return;
+    msg = explainPermissionError(msg);
     errorEl.textContent = msg;
     errorEl.hidden = false;
   }

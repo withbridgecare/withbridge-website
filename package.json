@@ -1,0 +1,12 @@
+{
+  "name": "withbridge-website",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build-env.mjs && npm run build:css",
+    "build:css": "tailwindcss -c tailwind.config.js -i src/tailwind.css -o css/tailwind.css --minify",
+    "dev": "npm run build && node scripts/dev-server.mjs 5500"
+  },
+  "devDependencies": {
+    "tailwindcss": "3.4.17"
+  }
+}

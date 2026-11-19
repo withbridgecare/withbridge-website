@@ -13,9 +13,12 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
   <link rel="stylesheet" href="/mobile-nav.css?v=1.0">
   <!-- 💡 Supabase 라이브러리 -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js" integrity="sha384-uteMfOloLDGt042uDz+xHGF3ym63/WQ6rFq7murQRG8Ih7QrXGEGNtWd8688sb4O" crossorigin="anonymous"></script>
+  <script src="/js/privacy-guard.js?v=1.0"></script>
   <!-- 💡 공통 인증 헤더 (로그인 상태 감지 · 프로필 아바타/드롭다운). Supabase SDK 뒤에 로드해야 합니다 -->
-  <script src="/js/auth-header.js?v=2.4" charset="utf-8"></script>
+  <!-- Supabase 접속 정보(window.WB_ENV). scripts/build-env.mjs 가 .env / Vercel 환경 변수로 생성 -->
+  <script src="/js/env.js"></script>
+  <script src="/js/auth-header.js?v=2.7" charset="utf-8"></script>
   <script src="/js/terms-modal.js?v=1.0" charset="utf-8" defer></script>
   <script src="/js/notice-modal.js?v=1.0" charset="utf-8" defer></script>
   <style>
@@ -66,7 +69,7 @@
 
     /* ---------- SECTION 1. HERO ---------- */
     .story-page .hero {
-      background: linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)), url('/images/hero-bg.jpg');
+      background: linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)), url('/images/hero-bg.webp');
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
@@ -195,7 +198,7 @@
          오버레이는 45%로 사진이 선명하게 보이도록 유지하고, background-position: center 60% 로 인물이
          섹션 안에 보기 좋게 자리하도록 세로 기준점을 잡습니다. min-height는 480px로 맞춥니다. */
       background-color: var(--sage);
-      background-image: linear-gradient(rgba(223, 228, 219, 0.45), rgba(223, 228, 219, 0.45)), url('/images/story-hero-bg-v2.jpg');
+      background-image: linear-gradient(rgba(223, 228, 219, 0.45), rgba(223, 228, 219, 0.45)), url('/images/story-hero-bg-v2.webp');
       background-size: cover;
       background-position: center 60%;
       background-repeat: no-repeat;
@@ -243,6 +246,60 @@
       .story-page .steps { grid-template-columns: 1fr; gap: 12px; }
       .story-page .step::after { display: none; }
       .story-page .closing h2 span { display: inline; }
+    }
+
+    /* ---------- 휴대폰(767px 이하) 화면 최적화 ----------
+       글자·여백을 한 단계 줄이고, 가치 3개는 번호 원 + 내용의 가로형 행, 검증 4단계는 2×2 그리드로
+       바꿔 섹션이 한두 화면 안에 들어오게 합니다. PC(768px 이상)는 영향 없음. */
+    @media (max-width: 767.98px) {
+      .story-page .container { padding: 0 20px; }
+      .story-page section { padding: 56px 0; }
+      .story-page h1 { font-size: 26px; line-height: 1.35; }
+      .story-page h2 { font-size: 21px; line-height: 1.4; }
+      .story-page .lead { font-size: 14px; line-height: 1.7; }
+
+      .story-page .hero { padding: 64px 0 56px; background-position: center 30%; }
+      .story-page .hero .body { margin-top: 22px; gap: 12px; }
+      .story-page .hero .body p { font-size: 14px; line-height: 1.7; }
+      .story-page .hero .body p.strong br { display: none; }
+
+      .story-page .vision .mission { margin-top: 12px; }
+      .story-page .values { margin-top: 24px; }
+      .story-page .value, .story-page .value + .value {
+        display: grid;
+        grid-template-columns: 34px 1fr;
+        column-gap: 12px;
+        padding: 16px 0;
+        border-left: none;
+      }
+      .story-page .value + .value { border-top: 1px solid var(--line); }
+      .story-page .value .num {
+        grid-row: 1 / span 2;
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: #fff;
+        font-size: 12px;
+        letter-spacing: 0;
+      }
+      .story-page .value h3 { margin: 4px 0 4px; font-size: 15.5px; }
+      .story-page .value p { font-size: 13px; line-height: 1.6; }
+
+      .story-page .trust .lead { margin-top: 12px; }
+      .story-page .steps { margin-top: 24px; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .story-page .step { padding: 14px; border-radius: 14px; }
+      .story-page .step .num { font-size: 12px; margin-bottom: 2px; }
+      .story-page .step strong { font-size: 14px; line-height: 1.45; display: block; }
+      .story-page .badges { margin-top: 14px; gap: 6px; }
+      .story-page .badge { padding: 8px 12px; gap: 7px; font-size: 12.5px; }
+      .story-page .badge::before { width: 6px; height: 6px; }
+
+      .story-page .closing { min-height: 340px; padding: 56px 0; }
+      .story-page .closing h2 { font-size: 19px; }
+      .story-page .closing h2 span { display: block; }
+      .story-page .btn { margin-top: 22px; padding: 14px 30px; font-size: 15px; }
     }
   </style>
 </head>
@@ -307,12 +364,12 @@
 
       <!-- 로고 영역 -->
       <a href="index.html" style="justify-self: start; display: flex; align-items: center; text-decoration: none; flex: none;">
-        <img src="./images/logo_main.png" alt="위드브릿지 로고" style="height: 48px; width: auto; display: block; object-fit: contain; margin: 0; padding: 0; position: relative; top: 3px;" />
+        <img src="./images/logo_main.webp" alt="위드브릿지 로고" style="height: 48px; width: auto; display: block; object-fit: contain; margin: 0; padding: 0; position: relative; top: 3px;" />
       </a>
 
       <!-- 중앙 메뉴 링크 : 가운데 auto 칸에 놓여 좌우 1fr 칸이 같은 폭이라 항상 화면 정중앙에 옵니다 -->
       <nav class="wb-desktop-nav" style="display: flex; align-items: center; gap: 18px; font-size: 14.5px; font-weight: 600; white-space: nowrap; flex-wrap: nowrap;">
-        <a href="story.html" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">소개</a>
+        <a href="story" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">소개</a>
         <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
         <a href="index.html#services" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">서비스</a>
         <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
@@ -351,14 +408,14 @@
   <aside class="wb-drawer" id="wbMobileDrawer" role="dialog" aria-modal="true" aria-label="모바일 메뉴" aria-hidden="true">
     <div class="wb-drawer-topbar" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #F0F1F3; flex: none;">
       <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
-        <img src="./images/logo_main.png" alt="위드브릿지 로고" style="height: 32px; width: auto; display: block; object-fit: contain;" />
+        <img src="./images/logo_main.webp" alt="위드브릿지 로고" style="height: 32px; width: auto; display: block; object-fit: contain;" />
       </a>
       <button type="button" id="wbDrawerClose" aria-label="메뉴 닫기" style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: none; background: transparent; cursor: pointer;">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1D21" stroke-width="2" stroke-linecap="round"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
       </button>
     </div>
     <nav style="display: flex; flex-direction: column; padding: 10px 16px; gap: 2px; font-family: 'Noto Sans KR', sans-serif;">
-      <a href="story.html" class="wb-drawer-link">소개</a>
+      <a href="story" class="wb-drawer-link">소개</a>
       <a href="index.html#services" class="wb-drawer-link">서비스</a>
       <a href="index.html#how-it-works" class="wb-drawer-link">이용 방법</a>
       <a href="notice.html" class="wb-drawer-link">공지사항</a>
@@ -391,7 +448,7 @@
         <div class="body">
           <p>대한민국은 초고령사회에 들어섰습니다. 하지만 병원 가는 길, 오랜만의 외출처럼 일상의 많은 순간은 여전히 가족의 부담으로 남아있습니다.</p>
           <p>보호자는 일과 돌봄 사이에서 매일 고민하고, 어르신은 미안한 마음에 문밖을 망설입니다.</p>
-          <p class="strong">위드브릿지는 가족이 미처 채우지 못한 그 공백 위에 따뜻한 다리를 놓습니다.<br />어르신에게는 안전한 외출을, 보호자에게는 안심할 수 있는 하루를 선물합니다.</p>
+          <p class="strong">위드브릿지는 가족이 미처 채우지 못한 그 공백 위에 따뜻한 다리를 놓습니다. <br />어르신에게는 안전한 외출을, 보호자에게는 안심할 수 있는 하루를 선물합니다.</p>
         </div>
       </div>
     </section>

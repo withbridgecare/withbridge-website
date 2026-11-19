@@ -2,9 +2,8 @@
    위드브릿지 어드민 콘솔 — 최고 관리자 전용 페이지 (super-admin.html)
    - admin.html/admin-logs.html 과 별개의 자체 Supabase 클라이언트를 만들고, 진입 시
      is_super_admin() RPC(sql/super_admin_management.sql)로 접근을 판정합니다.
-     profiles.role 을 클라이언트에서 직접 읽어 판단하지 않는 이유: is_super_admin() 은
-     role = 'super_admin' 외에 failsafe 이메일(대표님 계정)도 함께 인정하므로, role 값만
-     보면 그 경우를 놓칩니다 — fail closed 를 DB 쪽 함수 하나로 일관되게 유지합니다.
+     화면에서 profiles.role 을 직접 읽지 않고 DB 함수 하나로 판정해, 접근 판단(fail closed)을
+     서버 쪽 한 곳에서 일관되게 유지합니다(role = 'super_admin' 일 때만 통과).
    - 관리자 권한 부여/회수는 전부 SECURITY DEFINER RPC(super_admin_grant_admin/
      super_admin_revoke_admin)를 통해서만 이뤄지고, 두 RPC 모두 내부에서 다시
      is_super_admin() 을 확인합니다(이 화면의 접근 차단이 뚫려도 2차 방어선).
@@ -12,8 +11,10 @@
 (function () {
   'use strict';
 
-  var SUPABASE_URL = 'https://layvjisfeivkzowopkco.supabase.co';
-  var SUPABASE_ANON_KEY = 'sb_publishable_M7wpIAR7-aXvG78Xv-WBoQ_q1wj_FcR';
+  var WB_ENV = window.WB_ENV || {}; // js/env.js (scripts/build-env.mjs 가 .env 로 생성)
+  var SUPABASE_URL = WB_ENV.SUPABASE_URL;
+  var SUPABASE_ANON_KEY = WB_ENV.SUPABASE_ANON_KEY;
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) console.error('[설정] window.WB_ENV 가 없습니다. js/env.js 가 이 스크립트보다 먼저 로드되는지, node scripts/build-env.mjs 를 실행했는지 확인하세요.');
 
   var sdk = window.supabase;
   if (!sdk || !sdk.createClient) {

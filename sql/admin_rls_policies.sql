@@ -40,7 +40,9 @@ create policy profiles_update_admin on public.profiles
   using (public.is_admin())
   with check (public.is_admin());
 
-grant update (role, name, phone) on public.profiles to authenticated;
+-- role 은 직접 수정 권한을 주지 않습니다 — 등급 변경은 검사를 거친 함수로만(sql/role_hierarchy_hardening.sql).
+grant update (name, phone) on public.profiles to authenticated;
+revoke update (role) on public.profiles from authenticated, anon;
 
 
 -- ----------------------------------------------------------------------------

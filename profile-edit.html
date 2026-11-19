@@ -11,12 +11,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/js/auth-header.js?v=2.4" charset="utf-8"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js" integrity="sha384-uteMfOloLDGt042uDz+xHGF3ym63/WQ6rFq7murQRG8Ih7QrXGEGNtWd8688sb4O" crossorigin="anonymous"></script>
+  <script src="/js/privacy-guard.js?v=1.0"></script>
+  <!-- Supabase 접속 정보(window.WB_ENV). scripts/build-env.mjs 가 .env / Vercel 환경 변수로 생성 -->
+  <script src="/js/env.js"></script>
+  <script src="/js/auth-header.js?v=2.7" charset="utf-8"></script>
   <script src="/js/notice-modal.js?v=1.0" charset="utf-8" defer></script>
   <!-- 회원 탈퇴 2단계(로그인 차단)를 처리하는 Edge Function(delete-account) 호출용 — apply.html/mypage.html
        과 같은 명시적 fetch 래퍼를 그대로 씁니다. -->
-  <script src="/js/edge-function-fetch.js?v=1.2"></script>
+  <script src="/js/edge-function-fetch.js?v=1.3"></script>
   <!-- 주소지 관리: 카카오(다음) 우편번호 서비스 — mypage.html 어르신 주소 검색과 같은 위젯 -->
   <script src="//t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
   <link rel="stylesheet" href="/mobile-nav.css?v=1.0">
@@ -180,6 +183,47 @@
       .pe-row { padding-bottom: 24px; margin-bottom: 24px; }
       .pe-row.is-danger-row .pe-row-fields { justify-content: flex-start; }
     }
+    /* ---------- 휴대폰(767px 이하) 화면 최적화 ----------
+       구역(기본 정보·주소지·알림·계정)을 흰 카드로 나눠 연회색 배경 위에서 경계가 보이게 하고,
+       입력칸은 16px(iPhone 에서 입력할 때 화면이 확대되지 않는 최소 크기)·높이 46px 로 키웁니다.
+       [취소]/[저장하기]는 화면 하단에 붙는 큰 버튼 바로 바꿔 어디까지 스크롤해도 바로 저장할 수 있게 합니다.
+       PC(768px 이상)는 영향 없음. */
+    @media (max-width: 767.98px) {
+      body { background: #F3F5F2; }
+      .pe-main { padding: 16px 0 32px; }
+      .pe-head-wrap { padding: 0 16px; margin-bottom: 14px; }
+      .pe-page-title { font-size: 21px; }
+      .pe-page-sub { font-size: 13px; }
+      .pe-form-wrap { padding: 0 12px; display: flex; flex-direction: column; gap: 12px; }
+      .pe-row {
+        margin: 0; padding: 16px 14px; background: #FFFFFF;
+        border: 1px solid #E5E7EB; border-radius: 14px; border-bottom-width: 1px;
+      }
+      .pe-row + .pe-row { border-top: 1px solid #E5E7EB; padding-top: 16px; }
+      .pe-row-label { margin-bottom: 12px; }
+      .pe-row-label h2 { font-size: 15.5px; margin-bottom: 2px; }
+      .pe-row-label p { font-size: 12.5px; }
+      .pe-fields-grid { gap: 14px; }
+      .pe-field label { font-size: 13px; }
+      .pe-field input { height: 46px; padding: 0 12px; font-size: 16px; border-radius: 10px; }
+      .pe-hint { font-size: 11.5px; }
+      .pe-field-row { gap: 6px; }
+      .pe-search-btn { height: 46px; padding: 0 12px; font-size: 13px; border-radius: 10px; white-space: nowrap; }
+      .pe-checkbox-field { gap: 10px; }
+      .pe-checkbox-title { font-size: 14px; }
+      .pe-checkbox-desc { font-size: 12px; }
+
+      .pe-action-bar {
+        position: sticky; bottom: 0; z-index: 20;
+        display: grid; grid-template-columns: 1fr 2fr; gap: 8px;
+        margin: 0 -12px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+        background: #FFFFFF; /* 흐림(backdrop-filter) 없이 — 휴대폰 스크롤 성능 */
+        border-top: 1px solid #E5E7EB;
+        box-shadow: 0 -6px 16px -10px rgba(15, 23, 42, .25);
+      }
+      .pe-action-bar .pe-btn-sm { height: 48px; padding: 0 12px; font-size: 15px; border-radius: 12px; justify-content: center; }
+      .pe-row.is-danger-row { order: 5; }
+    }
   </style>
 </head>
 <body>
@@ -218,10 +262,10 @@
       <svg id="wbMenuIconClose" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1A1D21" stroke-width="2" stroke-linecap="round" style="display: none;"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
     </button>
     <a href="index.html" style="justify-self: start; display: flex; align-items: center; text-decoration: none; flex: none;">
-      <img src="./images/logo_main.png" alt="위드브릿지 로고" style="height: 48px; width: auto; display: block; object-fit: contain; margin: 0; padding: 0; position: relative; top: 3px;" />
+      <img src="./images/logo_main.webp" alt="위드브릿지 로고" style="height: 48px; width: auto; display: block; object-fit: contain; margin: 0; padding: 0; position: relative; top: 3px;" />
     </a>
     <nav class="wb-desktop-nav" style="display: flex; align-items: center; gap: 18px; font-size: 14.5px; font-weight: 600; white-space: nowrap; flex-wrap: nowrap;">
-      <a href="story.html" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">소개</a>
+      <a href="story" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">소개</a>
       <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
       <a href="index.html#services" style="color: #1A1D21; text-decoration: none; transition: color 0.2s;">서비스</a>
       <span aria-hidden="true" style="flex: none; display: inline-block; width: 1px; height: 14px; background-color: #E2E4E8;"></span>
@@ -251,14 +295,14 @@
 <aside class="wb-drawer" id="wbMobileDrawer" role="dialog" aria-modal="true" aria-label="모바일 메뉴" aria-hidden="true">
   <div class="wb-drawer-topbar" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #F0F1F3; flex: none;">
     <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
-      <img src="./images/logo_main.png" alt="위드브릿지 로고" style="height: 32px; width: auto; display: block; object-fit: contain;" />
+      <img src="./images/logo_main.webp" alt="위드브릿지 로고" style="height: 32px; width: auto; display: block; object-fit: contain;" />
     </a>
     <button type="button" id="wbDrawerClose" aria-label="메뉴 닫기" style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: none; background: transparent; cursor: pointer;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1D21" stroke-width="2" stroke-linecap="round"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
     </button>
   </div>
   <nav style="display: flex; flex-direction: column; padding: 10px 16px; gap: 2px; font-family: 'Noto Sans KR', sans-serif;">
-    <a href="story.html" class="wb-drawer-link">소개</a>
+    <a href="story" class="wb-drawer-link">소개</a>
     <a href="index.html#services" class="wb-drawer-link">서비스</a>
     <a href="index.html#how-it-works" class="wb-drawer-link">이용 방법</a>
     <a href="notice.html" class="wb-drawer-link">공지사항</a>
@@ -278,7 +322,7 @@
 
 <main class="pe-main">
   <div class="pe-head-wrap">
-    <a href="mypage.html" class="pe-back">
+    <a href="mypage" class="pe-back">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
       마이페이지로
     </a>
@@ -382,7 +426,7 @@
 
     <!-- 하단 액션: 취소(Go back) / 저장하기(Save settings) -->
     <div class="pe-action-bar">
-      <a href="mypage.html" class="pe-btn-sm is-ghost">취소</a>
+      <a href="mypage" class="pe-btn-sm is-ghost">취소</a>
       <button type="submit" class="pe-btn-sm is-primary" id="peSaveBtn">저장하기</button>
     </div>
 
@@ -627,9 +671,9 @@
     if (error || !session || !session.user) {
       // 비로그인 상태 — 로그인 후 이 페이지로 돌아오도록 기억해 두고 보냅니다.
       if (window.WBAuth && window.WBAuth.rememberPostLoginRedirect) {
-        window.WBAuth.rememberPostLoginRedirect('profile-edit.html');
+        window.WBAuth.rememberPostLoginRedirect('profile-edit');
       }
-      window.location.href = 'login.html?redirect=' + encodeURIComponent('profile-edit.html');
+      window.location.href = 'login.html?redirect=' + encodeURIComponent('profile-edit');
       return;
     }
 
@@ -744,7 +788,7 @@
         }
 
         showSuccess('저장되었습니다. 마이페이지로 이동합니다...');
-        setTimeout(() => { window.location.href = 'mypage.html'; }, 1100);
+        setTimeout(() => { window.location.href = 'mypage'; }, 1100);
       } catch (e) {
         console.error('[profile-edit] update_user_profile 호출 중 예외:', e);
         showError('저장 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');

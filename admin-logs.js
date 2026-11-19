@@ -8,8 +8,10 @@
 (function () {
   'use strict';
 
-  var SUPABASE_URL = 'https://layvjisfeivkzowopkco.supabase.co';
-  var SUPABASE_ANON_KEY = 'sb_publishable_M7wpIAR7-aXvG78Xv-WBoQ_q1wj_FcR';
+  var WB_ENV = window.WB_ENV || {}; // js/env.js (scripts/build-env.mjs 가 .env 로 생성)
+  var SUPABASE_URL = WB_ENV.SUPABASE_URL;
+  var SUPABASE_ANON_KEY = WB_ENV.SUPABASE_ANON_KEY;
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) console.error('[설정] window.WB_ENV 가 없습니다. js/env.js 가 이 스크립트보다 먼저 로드되는지, node scripts/build-env.mjs 를 실행했는지 확인하세요.');
 
   var sdk = window.supabase;
   if (!sdk || !sdk.createClient) {
@@ -63,6 +65,7 @@
   // 알려진 작업 종류의 한글 라벨 — 새 종류가 생겨도(아직 여기 없는 action_type) 원래 문자열을
   // 그대로 보여주므로 화면이 깨지지는 않습니다(아래 ACTION_TYPE_LABEL[x] || x 패턴).
   var ACTION_TYPE_LABEL = {
+    reveal_bank_account: '매니저 계좌번호 전체 조회',
     member_profile_update: '회원 정보 수정',
     member_note_add: 'CS 메모 작성',
     member_suspend: '계정 정지',

@@ -141,7 +141,7 @@ Deno.serve(async (req: Request) => {
   } catch (e) {
     if (e instanceof PortOneApiError) {
       console.error("[issue-virtual-account] PortOne 결제 조회 실패:", e.status, e.body);
-      return json(502, { error: "PORTONE_LOOKUP_FAILED", detail: e.body });
+      return json(502, { error: "PORTONE_LOOKUP_FAILED" }); // PortOne 원문 오류는 서버 로그에만 남기고 사용자에게는 보내지 않습니다
     }
     console.error("[issue-virtual-account] 예외:", e);
     return json(500, { error: "PORTONE_LOOKUP_FAILED" });

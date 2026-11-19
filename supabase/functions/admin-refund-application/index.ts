@@ -91,7 +91,7 @@ Deno.serve(async (req: Request) => {
     return json(500, { error: "PROFILE_LOOKUP_FAILED", message: profileErr.message });
   }
   const normalizedRole = String(profile?.role ?? "").trim().toLowerCase();
-  if (normalizedRole !== "admin") {
+  if (normalizedRole !== "admin" && normalizedRole !== "super_admin") {
     console.error("[admin-refund-application] 관리자 권한 없음 — user_id=" + userData.user.id +
       ", email=" + userData.user.email + ", 조회된 role=" + JSON.stringify(profile?.role ?? null));
     return json(403, {

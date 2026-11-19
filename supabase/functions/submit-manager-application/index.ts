@@ -37,8 +37,9 @@ interface SubmitRequestBody {
   name?: string;
   phone?: string;
   birth_date?: string;
+  gender?: string | null;
   address?: string;
-  id_image_path?: string;
+  id_image_path?: string | null;
   activity_areas?: string[];
   activity_schedule?: string[];
   certifications?: string[];
@@ -112,13 +113,20 @@ function validatePayload(body: SubmitRequestBody): string | null {
   if (!isNonEmptyString(body.phone)) return "연락처를 입력해 주세요.";
   if (!isNonEmptyString(body.birth_date)) return "생년월일을 선택해 주세요.";
   if (!isNonEmptyString(body.address)) return "거주지 주소를 입력해 주세요.";
-  if (!isNonEmptyString(body.id_image_path)) return "신분증 사본을 첨부해 주세요.";
+  // 신분증 사본은 현재 지원 단계에서 받지 않습니다(manager-apply.html ID_UPLOAD_ENABLED = false) — 값이 오면
+  // 문자열이어야 하고, 없으면(null/생략) 그대로 통과합니다.
+  if (body.id_image_path != null && typeof body.id_image_path !== "string") return "신분증 사본 정보가 올바르지 않습니다.";
+  // 성별: 새 지원서는 필수로 보내지만(manager-apply.html), 배포 직후 예전 화면(캐시)에서 온 요청이 막히지 않도록
+  // 서버에서는 생략을 허용하고, 값이 있으면 '남'/'여' 만 받습니다(DB check 제약과 동일).
+  if (body.gender != null && body.gender !== "" && body.gender !== "남" && body.gender !== "여") return "성별을 다시 선택해 주세요.";
   if (!isNonEmptyStringArray(body.activity_areas)) return "활동 가능 지역을 선택해 주세요.";
   if (!isNonEmptyStringArray(body.activity_schedule)) return "활동 가능 요일/시간대를 선택해 주세요.";
   if (!isNonEmptyStringArray(body.certifications)) return "보유 자격증을 선택해 주세요.";
   if (!isNonEmptyString(body.career_experience)) return "관련 경력을 입력해 주세요.";
   if (!isNonEmptyString(body.bank_name)) return "정산 은행명을 입력해 주세요.";
   if (!isNonEmptyString(body.account_number)) return "계좌번호를 입력해 주세요.";
+  // 숫자(와 하이픈·공백)만 허용 — DB 트리거가 숫자만 뽑아 암호화하므로, 그 밖의 문자가 섞인 값은 미리 거절합니다.
+  if (!/^[\d\s-]{6,30}$/.test(body.account_number.trim())) return "계좌번호는 숫자만 입력해 주세요.";
   if (!isNonEmptyString(body.account_holder)) return "예금주명을 입력해 주세요.";
   if (body.agree_safety !== true || body.agree_no_direct_deal !== true || body.agree_privacy !== true) {
     return "모든 서약 및 약관에 동의해야 지원할 수 있습니다.";
@@ -243,8 +251,9 @@ Deno.serve(async (req: Request) => {
     name: body.name!.trim(),
     phone,
     birth_date: body.birth_date,
+    gender: body.gender === "남" || body.gender === "여" ? body.gender : null,
     address: body.address!.trim(),
-    id_image_path: body.id_image_path,
+    id_image_path: isNonEmptyString(body.id_image_path) ? body.id_image_path : null,
     activity_areas: body.activity_areas,
     activity_schedule: body.activity_schedule,
     certifications: body.certifications,

@@ -6,3 +6,5 @@ _backup_sql
 sql
 supabase
 .git
+images-original
+node_modules

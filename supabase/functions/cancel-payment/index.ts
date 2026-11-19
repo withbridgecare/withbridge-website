@@ -96,7 +96,7 @@ Deno.serve(async (req: Request) => {
     return json(500, { error: "PROFILE_LOOKUP_FAILED", message: profileErr.message });
   }
   const normalizedRole = String(profile?.role ?? "").trim().toLowerCase();
-  if (normalizedRole !== "admin") {
+  if (normalizedRole !== "admin" && normalizedRole !== "super_admin") {
     console.error("[cancel-payment] 관리자 권한 없음 — user_id=" + userData.user.id +
       ", email=" + userData.user.email + ", 조회된 role=" + JSON.stringify(profile?.role ?? null));
     return json(403, {
@@ -138,7 +138,7 @@ Deno.serve(async (req: Request) => {
   } catch (e) {
     if (e instanceof PortOneApiError) {
       console.error("[cancel-payment] PortOne 부분 취소 실패:", e.status, e.body);
-      return json(502, { error: "PORTONE_CANCEL_FAILED", detail: e.body });
+      return json(502, { error: "PORTONE_CANCEL_FAILED" }); // PortOne 원문 오류는 서버 로그에만 남기고 사용자에게는 보내지 않습니다
     }
     console.error("[cancel-payment] 예외:", e);
     return json(500, { error: "PORTONE_CANCEL_FAILED" });
