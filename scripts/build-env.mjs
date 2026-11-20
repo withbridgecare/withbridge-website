@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// 브라우저에서 쓰는 설정값을 .env(로컬) 또는 Vercel 환경 변수(배포)에서 읽어 js/env.js 로 만들어 줍니다.
+// 브라우저에서 쓰는 설정값을 .env(로컬) 또는 Vercel 환경 변수(배포)에서 읽어 public/js/env.js 로 만들어 줍니다 (일부러 남겨 둔 옛 HTML — public/about_old.html, public/test/ — 전용. 그 페이지들을 지우면 이 스크립트도 삭제).
 // 이 사이트는 빌드 도구 없는 정적 HTML 이라 브라우저가 .env 를 직접 읽을 수 없어서, 이 스크립트가
-// 그 값을 window.WB_ENV 로 옮겨 적은 작은 JS 파일을 생성합니다. js/env.js 는 생성물이라 커밋하지 않습니다.
+// 그 값을 window.WB_ENV 로 옮겨 적은 작은 JS 파일을 생성합니다. public/js/env.js 는 생성물이라 커밋하지 않습니다.
 //
 //   로컬:  node scripts/build-env.mjs   (.env 를 읽음)
 //   배포:  Vercel 이 빌드할 때 자동 실행 (vercel.json 의 buildCommand, Vercel 환경 변수를 읽음)
@@ -54,5 +54,5 @@ if (missing.length) {
 const body =
   '/* 자동 생성 파일 — 직접 고치지 마세요. scripts/build-env.mjs 가 .env / Vercel 환경 변수로 만듭니다. */\n' +
   'window.WB_ENV = Object.freeze(' + JSON.stringify(env, null, 2) + ');\n';
-writeFileSync(join(root, 'js', 'env.js'), body);
-console.log('[build-env] js/env.js 생성 완료 (환경: ' + env.WB_ENV_NAME + ', Supabase: ' + env.SUPABASE_URL + ')');
+writeFileSync(join(root, 'public', 'js', 'env.js'), body);
+console.log('[build-env] js/env.js → public/js/env.js 생성 완료 (환경: ' + env.WB_ENV_NAME + ', Supabase: ' + env.SUPABASE_URL + ')');

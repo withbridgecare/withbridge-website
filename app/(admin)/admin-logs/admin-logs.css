@@ -1,0 +1,36 @@
+/* admin-logs 페이지 전용 스타일 — public/admin-logs.html 의 <style> 을 그대로 옮김 */
+/* 이 페이지 전용 — 날짜 범위 입력 두 칸을 필터 바 안에서 나란히 묶어 보이게 합니다. */
+.admin-date-range { display: flex; align-items: center; gap: 8px; }
+.admin-date-range input[type="date"] {
+  padding: 10px 12px; border: 1px solid var(--card-border); border-radius: 9999px;
+  background: var(--card); color: var(--ink); font: inherit; font-size: 13px;
+}
+.admin-date-range input[type="date"]:focus { outline: none; border-color: var(--sage-500); box-shadow: 0 0 0 3px rgba(120, 134, 107, .18); }
+.admin-date-range span { color: var(--ink-sub); font-size: 13px; }
+.admin-logs-select {
+  padding: 10px 14px; border: 1px solid var(--card-border); border-radius: 9999px;
+  background: var(--card); color: var(--ink); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.admin-logs-select:focus { outline: none; border-color: var(--sage-500); box-shadow: 0 0 0 3px rgba(120, 134, 107, .18); }
+.admin-logs-detail { font-size: 12px; color: var(--ink-sub); word-break: break-all; }
+.admin-readonly-notice {
+  margin: 0 0 20px; padding: 10px 14px; border-radius: var(--radius-sm);
+  background: var(--sage-50); color: var(--sage-700); font-size: 12.5px; font-weight: 600;
+}
+
+/* 표가 가로로 넘치지 않도록 컬럼 폭을 <colgroup> 비율로 고정하고(table-layout: fixed), 텍스트가
+   많은 칸은 .admin-settlement-table 기본값(오른쪽 정렬·줄바꿈 없음, 숫자 표 기준)을 왼쪽 정렬·
+   줄바꿈 허용으로 바꿉니다. */
+.admin-logs-table { table-layout: fixed; }
+.admin-logs-table th, .admin-logs-table td { text-align: left; white-space: normal; word-break: break-word; vertical-align: top; }
+.admin-logs-target-sub { display: block; margin-top: 2px; font-size: 12px; color: var(--ink-sub); }
+/* 세부 내용 칸 — 한 줄로 말줄임표 처리하고, title 속성으로 호버 시 전체 내용을 보여주며,
+   클릭하면 logDetailModal 에 전체 내용을 펼쳐 보여줍니다. */
+.admin-logs-detail-trunc {
+  display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  cursor: pointer; color: var(--sage-700); text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 2px;
+  background: none; border: none; padding: 0; font: inherit; text-align: left;
+}
+.admin-logs-detail-trunc:hover { color: var(--sage-600); }
+#logDetailGrid dd { white-space: pre-wrap; word-break: break-word; }
+  

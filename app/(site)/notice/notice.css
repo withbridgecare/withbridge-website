@@ -1,0 +1,101 @@
+/* notice 페이지 전용 스타일 — public/notice.html 의 <style> 을 그대로 옮김 */
+:root {
+  --brand: #78866B; --brand-dark: #3B4B3C; --brand-soft: #F1F6F0; --brand-line: #E2ECE0;
+  --accent: #556B2F; --accent-dark: #455822;
+  --ink: #1A1D21; --ink-sub: #555555; --bg: #FAF8F5; --line: #EBE7E0; --danger: #C0392B;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: #ffffff; color: var(--ink);
+  font-family: 'Pretendard Variable', Pretendard, 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+  font-size: 16px; line-height: 1.7; letter-spacing: -0.01em; -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; }
+button { font-family: inherit; }
+[hidden] { display: none !important; }
+.site-chrome, .site-footer { display: contents; } /* 감싸는 상자 없이 그대로 배치 (sticky 머리글 유지) */
+
+/* ---------- 본문 ---------- */
+.nt-main { padding: 48px 0 112px; }
+.nt-wrap { max-width: 880px; margin: 0 auto; padding: 0 28px; }
+
+.nt-head { margin-bottom: 28px; }
+.nt-title { margin: 0 0 10px; font-size: 32px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.35; }
+.nt-sub { margin: 0; font-size: 16px; line-height: 1.7; color: var(--ink-sub); word-break: keep-all; }
+
+/* 검색창 */
+.nt-search { position: relative; margin: 28px 0 18px; }
+.nt-search input {
+  width: 100%; box-sizing: border-box; padding: 14px 18px 14px 46px; border: 1.5px solid #D9DED5;
+  border-radius: 9999px; font-size: 16px; font-family: inherit; color: var(--ink); background: #FBFCFA;
+  transition: border-color .15s, background .15s;
+}
+.nt-search input:focus { outline: none; border-color: var(--accent); background: #ffffff; }
+.nt-search svg { position: absolute; left: 18px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+
+/* 카테고리 탭 */
+.nt-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+.nt-tab {
+  padding: 10px 20px; border: 1.5px solid var(--brand-line); border-radius: 9999px; background: #ffffff;
+  color: #3B4335; font-size: 15px; font-weight: 700; cursor: pointer; transition: background .15s, color .15s, border-color .15s;
+  min-height: 44px;
+}
+.nt-tab:hover { background: var(--brand-soft); }
+.nt-tab.is-active { background: var(--accent); border-color: var(--accent); color: #ffffff; }
+.nt-tab:focus-visible { outline: 3px solid rgba(85,107,47,.5); outline-offset: 2px; }
+
+/* 아코디언 리스트 */
+.nt-list { display: flex; flex-direction: column; gap: 10px; }
+.nt-item {
+  border: 1.5px solid var(--line); border-radius: 16px; background: #ffffff; overflow: hidden;
+  transition: border-color .15s, box-shadow .15s;
+}
+.nt-item.is-pinned { border-color: #F1E2B5; background: #FFFDF5; }
+.nt-item.is-open { border-color: var(--brand-line); box-shadow: 0 4px 16px rgba(0,0,0,.05); }
+
+.nt-item-head {
+  width: 100%; display: flex; align-items: center; gap: 14px; padding: 18px 22px; background: none;
+  border: none; text-align: left; cursor: pointer; font-family: inherit;
+}
+.nt-badges { display: flex; gap: 6px; flex: none; }
+.nt-badge {
+  display: inline-block; padding: 4px 11px; border-radius: 9999px; font-size: 13px; font-weight: 800; white-space: nowrap;
+}
+.nt-badge.must { background: #FDE2E2; color: #B3261E; }
+.nt-badge.important { background: #FFF1CC; color: #7A5600; }
+.nt-badge.category { background: var(--brand-soft); color: var(--accent-dark); }
+
+.nt-item-title-wrap { flex: 1 1 auto; min-width: 0; }
+.nt-item-title { margin: 0; font-size: 17px; font-weight: 700; line-height: 1.5; word-break: keep-all; color: var(--ink); }
+.nt-item-date { display: block; margin-top: 4px; font-size: 14px; color: var(--ink-sub); }
+
+.nt-chevron { flex: none; transition: transform .25s ease; color: #8B95A1; }
+.nt-item.is-open .nt-chevron { transform: rotate(180deg); color: var(--accent); }
+
+.nt-item-body { height: 0; overflow: hidden; transition: height .3s ease; }
+.nt-item-body-inner {
+  padding: 0 22px 22px; font-size: 16px; line-height: 1.75; color: #333d33; word-break: keep-all;
+  border-top: 1px solid var(--line); padding-top: 18px;
+}
+.nt-item-body-inner p { margin: 0 0 12px; }
+.nt-item-body-inner p:last-child { margin-bottom: 0; }
+
+.nt-empty {
+  display: none; padding: 64px 20px; text-align: center; color: var(--ink-sub); font-size: 16px;
+}
+.nt-empty.is-visible { display: block; }
+
+/* index.html 헤더/푸터와 동일하게 렌더링되도록 보정 (index 는 Tailwind preflight 적용) */
+header, footer { letter-spacing: normal; line-height: 1.5; }
+footer h3 { margin-top: 0; }
+
+@media (max-width: 720px) {
+  .nt-main { padding: 28px 0 80px; }
+  .nt-wrap { padding: 0 20px; }
+  .nt-title { font-size: 25px; }
+  .nt-item-head { padding: 16px 16px; gap: 10px; }
+  .nt-item-body-inner { padding: 0 16px 18px; }
+  .nt-item-body-inner { padding-top: 16px; }
+}
+  

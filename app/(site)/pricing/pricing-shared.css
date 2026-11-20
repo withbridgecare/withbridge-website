@@ -1,0 +1,1144 @@
+/* 요금 카드·계산기 공용 스타일 (예전 public/pricing.css). 메인 페이지의 같은 스타일은 (home)/home.css 에 합쳐져 있습니다. */
+/* =========================================================
+   위드브릿지 이용 요금 공용 스타일
+   - index.html '이용 요금 안내'(가격 카드 요약)와 pricing.html(예상 요금 계산 페이지)이 함께 씁니다.
+   - 원래 index.html 안의 <style> 블록이었던 것을 그대로 옮겼습니다(규칙 변경 없음).
+   - 페이지별 추가 규칙은 이 파일 맨 아래 '요약 CTA' / 'pricing.html 전용' 구역에 있습니다.
+========================================================= */
+/* --- 공통 섹션 스타일 (Sinjimoru 스타일 — 플랫 & 미니멀) --- */
+.wb-price-page {
+  background-color: #FFFFFF;
+  padding: 96px 20px;
+  font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  color: #1E293B;
+
+  /* 상단 헤더(110px) 아래에 딱 맞물리도록 스크롤 위치 보정 */
+  scroll-margin-top: 110px;
+}
+
+.wb-price-page:target {
+  scroll-margin-top: 110px;
+}
+
+.wb-price-container {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* --- 메인 헤더 --- */
+.wb-page-header {
+  text-align: center;
+  margin-bottom: 0;
+}
+
+.wb-page-title {
+  font-size: 36px !important;
+  font-weight: 700 !important;
+  line-height: 1.3 !important;
+  color: #111827 !important;
+  margin-bottom: 8px !important;
+  letter-spacing: -0.03em !important;
+}
+
+.wb-page-desc {
+  font-size: 16px !important;
+  font-weight: 400 !important;
+  color: #6B7280 !important;
+  line-height: 1.6 !important;
+  letter-spacing: -0.01em !important;
+  margin-bottom: 24px !important;
+  word-break: keep-all;
+}
+
+/* --- 섹션 공통 블록 — 박스 대신 상단 헤어라인 + 넉넉한 세로 여백으로만 구역을 구분 --- */
+.wb-section-block {
+  background: none;
+  border: none;
+  border-top: 1px solid #F3F4F6;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 40px 0;
+  margin-bottom: 0;
+}
+
+.wb-sec-title {
+  font-size: 21px !important;
+  font-weight: 700 !important;
+  color: #111827;
+  margin-bottom: 20px !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: -0.01em !important;
+}
+
+.wb-sec-sub {
+  font-size: 15px !important;
+  color: #6B7280;
+  margin-bottom: 24px !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* --- 첫 이용 혜택 안내 — 타이틀 바로 아래 가로형 알약 배지 --- */
+.wb-firstuse-banner {
+  display: inline-flex;
+  align-items: center;
+  background: #F2F7F4;
+  border: 1px solid #D1E3D8;
+  border-radius: 9999px;
+  padding: 8px 20px;
+  font-size: 14px !important;
+  color: #1F5C45;
+  margin: 0 0 48px !important;
+}
+
+.wb-firstuse-text strong {
+  font-weight: 700;
+}
+
+.section-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background-color: #1F5C45;
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* --- 3단 SaaS 프라이싱 카드 그리드 — 라이트 케어/병원 동행/생활·복합 동행 3개 플랜을 나란히
+   비교할 수 있는 순백 플랫 카드(토스/신지모루 스타일)입니다. 가운데 '시니어 병원 동행' 카드가
+   메인 추천 플랜으로, 보더 두께·색상과 솔리드 CTA 버튼만으로 위계를 구분합니다. --- */
+.wb-pricing-section {
+  scroll-margin-top: 110px; /* 히어로 하단 배너의 [1시간 요금 보기] 앵커가 고정 헤더에 가려지지 않도록 */
+}
+
+.wb-pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+/* 3개 카드 공통 외형 — 글래스모피즘. mypage-manager.html 의 글래스 버튼 시스템(.glass-button,
+   --background/--foreground 를 oklch(from ...)로 읽어 반투명도·하이라이트를 만드는 공식)을 카드
+   크기로 그대로 확장했습니다 — 톤앤매너 통일을 위해 같은 변수 이름·같은 연산을 씁니다.
+   border 는 실선 대신 ::before 가 만드는 "빙글빙글 도는 빛 반사" 테두리 하나로만 표현합니다
+   (.glass-button 이 실제 border 없이 :after 만으로 테두리를 그리는 것과 동일한 방식). */
+@property --angle-1 { syntax: "<angle>"; inherits: false; initial-value: -75deg; }
+
+.pricing-card {
+  --background: #ffffff;
+  --foreground: #1e293b;
+  position: relative;
+  background: linear-gradient(160deg,
+    oklch(from var(--background) l c h / 55%) 0%,
+    oklch(from var(--background) l c h / 92%) 45%,
+    oklch(from var(--background) l c h / 60%) 100%);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  border: none;
+  border-radius: 22px;
+  padding: 32px 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow:
+    inset 0 1px 1px oklch(from var(--foreground) l c h / 6%),
+    inset 0 -1px 1px oklch(from var(--background) l c h / 60%),
+    0 20px 40px -14px rgba(15, 23, 42, 0.14),
+    0 2px 10px -2px rgba(15, 23, 42, 0.05);
+  overflow: hidden; /* 상단 광원이 카드 모서리를 깎고 예쁘게 안착되도록 설정 */
+  isolation: isolate;
+  transition: all 0.3s cubic-bezier(.25, 1, .5, 1);
+}
+
+.pricing-card:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    inset 0 1px 1px oklch(from var(--foreground) l c h / 6%),
+    inset 0 -1px 1px oklch(from var(--background) l c h / 60%),
+    0 26px 48px -14px rgba(15, 23, 42, 0.18),
+    0 8px 20px -4px rgba(15, 23, 42, 0.07);
+}
+
+/* 유리 테두리 빛 반사 — .glass-button:after 와 같은 conic-gradient + mask-composite:exclude 트릭을
+   카드 모서리(radius 22px)에 맞게 확장. 호버하면 빛이 한 바퀴 더 돌아 입체감을 강조합니다. */
+.pricing-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  padding: 1.25px;
+  box-sizing: border-box;
+  border-radius: inherit;
+  background:
+    conic-gradient(from var(--angle-1) at 50% 50%,
+      oklch(from var(--foreground) l c h / 35%) 0%, transparent 10% 40%,
+      oklch(from var(--foreground) l c h / 35%) 50%, transparent 60% 90%,
+      oklch(from var(--foreground) l c h / 35%) 100%),
+    linear-gradient(180deg, oklch(from var(--background) l c h / 55%), oklch(from var(--background) l c h / 55%));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  transition: --angle-1 .6s ease;
+  pointer-events: none;
+}
+.pricing-card:hover::before { --angle-1: -230deg; }
+
+/* 1. 양쪽 카드(라이트 케어, 생활 편의) - 아주 연하고 부드러운 상단 빛 */
+.pricing-card .card-top-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: radial-gradient(circle at 50% 0%, rgba(31, 92, 69, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 2. 가운데 '시니어 병원 동행' 카드(인기 메인 플랜) - 조금 더 풍성하고 선명한 상단 빛 */
+.pricing-card.popular-card .card-top-glow {
+  height: 130px;
+  background: radial-gradient(circle at 50% 0%, rgba(31, 92, 69, 0.22) 0%, rgba(31, 92, 69, 0.05) 50%, transparent 100%);
+}
+
+/* 카드 내부 텍스트와 버튼이 광원 위로 오도록 설정 */
+.pricing-card > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* 1. 양쪽 카드(라이트 케어, 생활 편의) - 최상단 테두리 중앙 일부분에만 은은한 다크 그레이 하이라이트 선 */
+.pricing-card::after {
+  content: '';
+  position: absolute;
+  top: -1px; /* 카드 상단 테두리 선 위에 정확히 겹침 */
+  left: 20%;
+  right: 20%;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent 0%, rgba(17, 24, 39, 0.25) 50%, transparent 100%);
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* 2. 가운데 '시니어 병원 동행' 카드 - 최상단 테두리 중앙 일부분에만 선명한 위드브릿지 딥 그린 하이라이트 선 */
+.pricing-card.popular-card::after {
+  left: 15%;
+  right: 15%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, #1F5C45 50%, transparent 100%);
+}
+
+.pricing-card-divider {
+  width: 100%;
+  height: 1px;
+  background-color: oklch(from var(--foreground) l c h / 8%); /* 유리 카드 배경과 어울리는 반투명 구분선 */
+  margin: 24px 0;
+}
+
+.wb-plan-badge {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  padding: 4px 10px;
+  border-radius: 6px;
+  display: inline-block;
+  margin-bottom: 16px;
+  white-space: nowrap;
+}
+
+.wb-plan-badge.is-new { color: #1F5C45; background: #E8F1EC; }
+.wb-plan-badge.is-neutral { color: #4B5563; background: #F3F4F6; }
+.wb-plan-badge.is-pro { color: #FFFFFF; background: #1F5C45; padding: 4px 12px; }
+
+.wb-plan-title {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: #111827;
+  margin: 0 0 8px !important;
+  word-break: keep-all;
+}
+
+.wb-plan-desc {
+  font-size: 14px !important;
+  color: #4B5563;
+  line-height: 1.55 !important;
+  margin: 0 0 24px !important;
+  word-break: keep-all;
+}
+
+.wb-plan-price-wrap {
+  margin-bottom: 24px;
+}
+
+.wb-plan-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.wb-plan-price {
+  font-size: 36px !important;
+  font-weight: 800 !important;
+  color: #111827;
+  letter-spacing: -0.02em;
+}
+
+.wb-plan-price-unit {
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  color: #4B5563;
+}
+
+.wb-plan-price-note {
+  margin: 4px 0 0 !important;
+  font-size: 13px !important;
+}
+
+.wb-plan-price-note.is-accent {
+  color: #1F5C45;
+  font-weight: 600 !important;
+}
+
+.wb-plan-price-note.is-muted {
+  color: #4B5563;
+  font-weight: 400 !important;
+}
+
+.wb-plan-btn {
+  display: block;
+  width: 100%;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  padding: 14px;
+  border-radius: 10px;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+/* 유리 카드 위에서도 붕 뜨지 않도록, 아웃라인 버튼도 같은 반투명·이너하이라이트 톤으로 맞춥니다
+   (솔리드 CTA 는 기존의 선명한 그린 그라디언트를 그대로 유지 — 위계 구분은 그대로). */
+.wb-plan-btn.is-outline {
+  background: linear-gradient(180deg, oklch(from var(--background, #fff) l c h / 85%), oklch(from var(--background, #fff) l c h / 97%));
+  /* 흐림 제거(작은 버튼이라 효과는 거의 안 보이고 휴대폰 스크롤만 무거워짐) — 배경을 조금 더 불투명하게 */
+  border: 1px solid oklch(from var(--foreground, #1e293b) l c h / 12%);
+  color: #111827;
+  box-shadow:
+    inset 0 1px 0 oklch(from var(--background, #fff) l c h / 80%),
+    0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.wb-plan-btn.is-outline:hover {
+  background: linear-gradient(180deg, oklch(from var(--background, #fff) l c h / 85%), oklch(from var(--background, #fff) l c h / 100%));
+}
+
+.wb-plan-btn.is-solid {
+  background: linear-gradient(180deg, #276E53 0%, #1B513C 100%);
+  border: none;
+  color: #FFFFFF;
+  box-shadow: 0 4px 10px rgba(31, 92, 69, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.wb-plan-btn.is-solid:hover {
+  background: linear-gradient(180deg, #2C7A5C 0%, #1F5C45 100%);
+}
+
+.wb-plan-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.wb-plan-checklist li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px !important;
+  color: #4B5563;
+  line-height: 1.5 !important;
+  word-break: keep-all;
+}
+
+.wb-plan-checklist svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  color: #9CA3AF;
+}
+
+.pricing-card.popular-card .wb-plan-checklist svg {
+  color: #1F5C45;
+}
+
+.wb-pricing-note {
+  margin-top: 40px !important;
+  margin-bottom: 40px !important;
+  font-size: 14px !important;
+  text-align: center;
+  color: #6B7280 !important;
+}
+
+/* --- 1. 선택 추가 옵션 — 가로 전체 너비의 세이지그린×샌드베이지 강조 배너 카드 --- */
+.wb-addon-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  width: 100%;
+  background: linear-gradient(135deg, #F8F6EE 0%, #EFEBDC 100%);
+  border: 1px solid #E3DCC6;
+  border-radius: 18px;
+  padding: 24px 28px;
+  box-shadow: 0 14px 32px -12px rgba(120, 134, 107, 0.28);
+}
+
+.wb-addon-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.wb-addon-banner-icon {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #78866B;
+  box-shadow: 0 6px 16px -4px rgba(120, 134, 107, 0.55);
+}
+
+.wb-addon-banner-icon svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+
+.wb-addon-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.wb-addon-banner-name {
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  color: #2F3328;
+}
+
+.wb-addon-banner-desc {
+  font-size: 13.5px !important;
+  color: #74715E;
+  line-height: 1.5 !important;
+  word-break: keep-all;
+}
+
+.wb-addon-banner-price {
+  flex: none;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  color: #FFFFFF;
+  background: #78866B;
+  padding: 9px 20px;
+  border-radius: 9999px;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px -2px rgba(120, 134, 107, 0.5);
+}
+
+/* --- 2. 부가 요금 및 정산 기준 — 샌드베이지 톤의 둥근 안내 박스 --- */
+.wb-notice-box {
+  background: #FAF7EF;
+  border: 1px solid #ECE4D1;
+  border-radius: 18px;
+  padding: 6px 26px;
+}
+
+.wb-notice-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.wb-notice-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px 0;
+  border-bottom: 1px solid #ECE4D1;
+  font-size: 15px !important;
+  color: #4B4A3F;
+  line-height: 1.6 !important;
+}
+
+.wb-notice-item:last-child {
+  border-bottom: none;
+}
+
+.wb-notice-item strong {
+  color: #2F3328;
+}
+
+.wb-notice-icon {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #EFE8D6;
+  color: #78866B;
+}
+
+.wb-notice-icon svg {
+  width: 17px;
+  height: 17px;
+  display: block;
+}
+
+/* --- 3. 서비스 예상 요금 계산기 — 둥근 모서리/은은한 테두리와 그림자를 가진 독립된 위젯 박스.
+   내부는 입력 영역(wb-calc-widget-body)과, 하단에 일체감 있게 붙는 다크 그린 총액 바로 구성됩니다. --- */
+.wb-calc-box {
+  background: none;
+  border: none;
+  border-top: 1px solid #F3F4F6;
+  border-radius: 0;
+  padding: 40px 0 0;
+  margin-top: 0;
+}
+
+.wb-calc-widget {
+  background: #FFFFFF;
+  border: 1px solid #E7E1CF;
+  border-radius: 22px;
+  box-shadow: 0 20px 44px -16px rgba(47, 51, 40, 0.14), 0 6px 16px -6px rgba(47, 51, 40, 0.06);
+  overflow: hidden;
+}
+
+.wb-calc-widget-body {
+  padding: 32px 32px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.wb-calc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wb-calc-field label {
+  font-size: 14.5px !important;
+  font-weight: 700;
+  color: #2F3328;
+}
+
+.wb-calc-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+}
+
+/* --- 1. 서비스 유형 선택 — 드롭다운 대신 한눈에 비교하는 선택형 카드 버튼 --- */
+.wb-service-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.wb-service-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 16px 14px;
+  border: 1.5px solid #E5E0CC;
+  border-radius: 14px;
+  background: #FAF8F0;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.wb-service-card:hover {
+  border-color: #78866B;
+  background: #F4F1E2;
+}
+
+.wb-service-card:focus-visible {
+  outline: none;
+  border-color: #78866B;
+  box-shadow: 0 0 0 3px rgba(120, 134, 107, 0.2);
+}
+
+.wb-service-card.is-selected {
+  border-color: #78866B;
+  background: #EDEADA;
+  box-shadow: 0 0 0 3px rgba(120, 134, 107, 0.18);
+}
+
+.wb-service-card-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  color: #5F6E54;
+  background: #E3E6D6;
+  padding: 2px 7px;
+  border-radius: 6px;
+  letter-spacing: 0;
+}
+
+.wb-service-card-name {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: #2F3328;
+  line-height: 1.35 !important;
+  word-break: keep-all;
+}
+
+.wb-service-card-price {
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  color: #5F6E54;
+}
+
+.wb-service-card.is-selected .wb-service-card-price {
+  color: #78866B;
+}
+
+/* --- 2. 추가 이용 시간 — [- 0시간 +] 스테퍼 --- */
+.wb-stepper {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.wb-stepper-btn {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1.5px solid #D9D2BC;
+  background: #FAF8F0;
+  color: #2F3328;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+.wb-stepper-btn:hover:not(:disabled) {
+  border-color: #78866B;
+  color: #78866B;
+  background: #F4F1E2;
+}
+
+.wb-stepper-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.wb-stepper-value-wrap {
+  min-width: 108px;
+  text-align: center;
+}
+
+.wb-stepper-value {
+  display: block;
+  font-size: 15.5px !important;
+  font-weight: 700 !important;
+  color: #2F3328;
+}
+
+.wb-stepper-total {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px !important;
+  color: #918C77;
+}
+
+.wb-stepper-hint {
+  margin: 0 !important;
+  font-size: 12.5px !important;
+  color: #A8773E;
+}
+
+.wb-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wb-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  margin: 0 -10px;
+  border-radius: 8px;
+  font-size: 14.5px !important;
+  color: #334155;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.wb-checkbox-label:hover {
+  background-color: #F4F1E2;
+}
+
+.wb-checkbox-label input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  margin: 0;
+  border: 1.5px solid #D1D5DB;
+  border-radius: 6px;
+  background-color: #FFFFFF;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.wb-checkbox-label input[type="checkbox"]:hover {
+  border-color: #78866B;
+}
+
+.wb-checkbox-label input[type="checkbox"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(120, 134, 107, 0.2);
+}
+
+.wb-checkbox-label input[type="checkbox"]:checked {
+  background-color: #78866B;
+  border-color: #78866B;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='3.5 8.5 6.5 11.5 12.5 4.5'/></svg>");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 12px 12px;
+}
+
+.wb-checkbox-text {
+  line-height: 1.4;
+}
+
+.wb-checkbox-label input[type="checkbox"]:checked ~ .wb-checkbox-text {
+  color: #1E293B;
+  font-weight: 700;
+}
+
+/* --- 총 예상 요금 바 — 위젯 박스 하단에 일체감 있게 결합(둥근 모서리는 위젯 하단 모서리만 공유) --- */
+.wb-calc-total-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  background: linear-gradient(135deg, #5F6E54 0%, #46523D 100%);
+  padding: 24px 32px;
+}
+
+.wb-calc-total-label {
+  display: block;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.wb-calc-total-price {
+  display: inline-block;
+  margin-top: 2px;
+  font-size: 28px;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.wb-calc-total-note {
+  display: block;
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.wb-calc-cta {
+  flex: none;
+  padding: 14px 32px;
+  border-radius: 12px;
+  background: #FFFFFF;
+  color: #46523D;
+  font-size: 16px;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+  text-align: center;
+  transition: background-color 0.15s ease;
+}
+
+.wb-calc-cta:hover {
+  background-color: #F3F4F6;
+}
+
+/* --- 모바일 반응형 --- */
+@media (max-width: 768px) {
+  .wb-price-page {
+    padding: 56px 16px;
+    scroll-margin-top: 115px; /* 모바일 띠배너(38px)+고정 헤더(61px) 스택에 가려지지 않도록 */
+  }
+  .wb-page-title { font-size: 26px !important; }
+  .wb-firstuse-banner { white-space: normal; text-align: center; }
+  .wb-section-block, .wb-calc-box { padding: 28px 0; }
+  .wb-pricing-grid { grid-template-columns: 1fr; gap: 16px; }
+  .pricing-card { padding: 28px 22px; }
+  .wb-addon-banner { flex-direction: column; align-items: flex-start; }
+  .wb-addon-banner-price { align-self: flex-start; }
+  .wb-calc-widget-body { padding: 24px 20px 26px; gap: 22px; }
+  .wb-service-cards { grid-template-columns: repeat(2, 1fr); }
+  .wb-calc-row-2 { grid-template-columns: 1fr; gap: 22px; }
+  .wb-calc-total-bar { padding: 20px 20px; }
+  .wb-calc-cta { width: 100%; }
+}
+
+/* =========================================================
+   요약 CTA — index.html '이용 요금 안내'
+   메인에는 금액 위주의 카드만 남기고, 그 아래 [예약하기] [예상 요금 계산하기] 두 버튼으로
+   예약 또는 pricing.html(추가 옵션·부가 요금·계산기)로 이어 줍니다.
+========================================================= */
+/* 바로 위 '주요 동행 지원 지역'(흰 배경)과 섹션이 구분되도록 메인 요약 영역만 연한 세이지 톤 배경 +
+   상단 헤어라인. 배경과 같은 톤이던 '첫 이용 혜택' 배지는 흰 바탕으로 바꿔 계속 도드라지게 합니다.
+   (pricing.html 상세 페이지는 흰 배경 그대로) */
+.wb-price-page--summary {
+  background: linear-gradient(180deg, #EEF4EF 0%, #F6F9F5 100%);
+  border-top: 1px solid #DDE8DF;
+}
+.wb-price-page--summary .wb-firstuse-banner { background: #FFFFFF; }
+.wb-price-page--summary .wb-plan-price-wrap { margin-bottom: 0; }
+.wb-price-page--summary .wb-plan-desc { margin-bottom: 20px !important; }
+.wb-price-page--summary .wb-pricing-note { margin: 28px 0 0 !important; }
+
+.wb-price-cta {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  max-width: 560px;
+  margin: 28px auto 0;
+}
+.wb-price-cta-btn {
+  flex: 1 1 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 56px;
+  padding: 0 16px;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  box-sizing: border-box;
+  transition: background-color .15s ease, color .15s ease, transform .15s ease;
+}
+.wb-price-cta-btn:active { transform: scale(.98); }
+.wb-price-cta-btn svg { width: 18px; height: 18px; flex: none; }
+.wb-price-cta-btn.is-solid { background: #1F5C45; color: #FFFFFF; box-shadow: 0 8px 18px -8px rgba(31, 92, 69, .55); }
+.wb-price-cta-btn.is-solid:hover { background: #184A38; }
+.wb-price-cta-btn.is-outline { background: #FFFFFF; color: #1F5C45; border: 1.5px solid #1F5C45; }
+.wb-price-cta-btn.is-outline:hover { background: #F2F7F4; }
+.wb-price-cta-note {
+  margin: 14px 0 0;
+  text-align: center;
+  font-size: 13.5px;
+  color: #6B7280;
+  word-break: keep-all;
+}
+.wb-price-cta-note a { color: #1F5C45; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.wb-price-dots { display: none; } /* 카드 스와이프 위치 점 — 모바일에서만 보임(아래 미디어쿼리) */
+
+/* 계산기 서비스 카드: NEW 배지가 긴 서비스명(1시간 라이트 케어)을 가리던 문제 — 배지 자리만큼 비워 둠 */
+.wb-service-card:has(.wb-service-card-badge) .wb-service-card-name { padding-right: 38px; }
+
+/* =========================================================
+   pricing.html 전용 — 예상 요금 페이지
+========================================================= */
+.pp-hero {
+  background: linear-gradient(180deg, #F2F7F4 0%, #FFFFFF 100%);
+  padding: 56px 20px 8px;
+  text-align: center;
+}
+.pp-eyebrow {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  background: #E8F1EC;
+  color: #1F5C45;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.pp-title {
+  margin: 14px 0 8px;
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: -0.03em;
+  color: #111827;
+  word-break: keep-all;
+}
+.pp-sub { margin: 0 auto; max-width: 560px; font-size: 16px; line-height: 1.6; color: #6B7280; word-break: keep-all; }
+.pp-jump {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.pp-jump a {
+  display: inline-flex;
+  align-items: center;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 9999px;
+  border: 1px solid #D1E3D8;
+  background: #FFFFFF;
+  color: #1F5C45;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.pp-jump a:hover { background: #F2F7F4; }
+.pp-jump a.is-primary { background: #1F5C45; border-color: #1F5C45; color: #FFFFFF; }
+
+.wb-price-page--detail { padding-top: 32px; }
+.wb-price-page--detail .wb-section-block,
+.wb-price-page--detail .wb-calc-box { scroll-margin-top: 90px; }
+.wb-price-page--detail .wb-section-block:first-child { border-top: 0; padding-top: 8px; }
+.pp-calc-links { margin: -12px 0 20px; font-size: 13.5px; color: #6B7280; word-break: keep-all; }
+.pp-calc-links a { color: #1F5C45; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+
+.pp-plans { padding-top: 48px; margin-top: 48px; border-top: 1px solid #F3F4F6; scroll-margin-top: 90px; }
+.pp-plans .wb-sec-title { justify-content: flex-start; }
+.pp-plans .wb-pricing-note { margin: 28px 0 0 !important; }
+
+/* 모바일 하단 고정 요약 바 — 계산 결과 바가 화면에 보이면 자동으로 숨깁니다(price-calculator.js) */
+.pp-sticky {
+  display: none;
+}
+
+@media (max-width: 767.98px) {
+  /* ---- 메인 요약 카드: 금액 위주로 압축 ---- */
+  .wb-price-page { padding: 48px 16px; }
+  .wb-page-title { font-size: 22px !important; margin-bottom: 6px !important; }
+  .wb-page-desc { font-size: 13.5px !important; margin-bottom: 14px !important; }
+  .wb-page-desc br { display: none; }
+  .wb-firstuse-banner {
+    padding: 8px 14px;
+    font-size: 12.5px !important;
+    line-height: 1.45;
+    margin: 0 0 20px !important;
+    border-radius: 12px;
+  }
+  .wb-pricing-grid { gap: 10px; }
+  .pricing-card { padding: 18px 18px 20px; border-radius: 16px; }
+  .pricing-card:hover { transform: none; }
+  .wb-plan-badge { margin-bottom: 8px; font-size: 10.5px !important; }
+  .wb-plan-title { font-size: 16.5px !important; margin-bottom: 4px !important; }
+  .wb-plan-desc { font-size: 12.5px !important; margin-bottom: 12px !important; }
+  .wb-price-page--summary .wb-plan-desc { margin-bottom: 10px !important; }
+  .wb-plan-price { font-size: 26px !important; }
+  .wb-plan-price-unit { font-size: 12.5px !important; }
+  .wb-plan-price-note { font-size: 12px !important; }
+  .wb-plan-price-wrap { margin-bottom: 16px; }
+  .wb-price-page--summary .wb-plan-price-wrap { margin-bottom: 0; }
+  .pricing-card-divider { margin: 16px 0; }
+  .wb-plan-btn { padding: 12px; font-size: 14px !important; }
+  .wb-plan-checklist { gap: 8px; }
+  .wb-plan-checklist li { font-size: 13px !important; }
+  .wb-pricing-note { font-size: 11.5px !important; line-height: 1.55; margin: 16px 0 !important; word-break: keep-all; }
+  .wb-price-page--summary .wb-pricing-note { margin: 14px 0 0 !important; }
+
+  /* 메인 요약: 카드 3장을 가로 한 줄 스와이프로 — 다음 카드가 살짝 보여 넘겨 볼 수 있음을 알리고,
+     섹션 전체(제목~버튼)가 휴대폰 한 화면에 들어오게 합니다. pricing.html 상세 카드는 세로 그대로. */
+  .wb-price-page--summary { padding: 36px 16px 40px; }
+  .wb-price-page--summary .wb-page-desc { margin-bottom: 12px !important; }
+  .wb-price-page--summary .wb-firstuse-banner { margin-bottom: 14px !important; }
+  .wb-price-page--summary .wb-pricing-grid {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    margin: 0 -16px;
+    padding: 4px 16px 14px;
+    scroll-padding: 0 16px;
+    scrollbar-width: none;
+  }
+  .wb-price-page--summary .wb-pricing-grid::-webkit-scrollbar { display: none; }
+  .wb-price-page--summary .pricing-card {
+    flex: 0 0 78%;
+    scroll-snap-align: start;
+    padding: 16px 16px 18px;
+  }
+  .wb-price-page--summary .wb-plan-desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 2.9em;
+  }
+  .wb-price-page--summary .wb-plan-price { font-size: 25px !important; }
+  .wb-price-page--summary .wb-plan-price-note { min-height: 1.5em; }
+
+  /* 스와이프 위치 표시 점(index.html 스크립트가 카드 수만큼 만듦) */
+  .wb-price-dots { display: flex; justify-content: center; gap: 6px; margin-top: 2px; }
+  .wb-price-dots button {
+    width: 6px; height: 6px; padding: 0; border: 0; border-radius: 3px;
+    background: #D1D5DB; cursor: pointer; transition: width .2s ease, background-color .2s ease;
+  }
+  .wb-price-dots button.is-active { width: 18px; background: #1F5C45; }
+  .wb-price-page--summary .wb-pricing-note { margin-top: 10px !important; }
+  .wb-price-page--summary .wb-price-cta { margin-top: 14px; }
+  .wb-price-cta { gap: 8px; margin-top: 18px; }
+  .wb-price-cta-btn { height: 50px; font-size: 14.5px; border-radius: 12px; padding: 0 10px; gap: 6px; }
+  .wb-price-cta-btn svg { width: 16px; height: 16px; }
+  .wb-price-cta-note { font-size: 12px; margin-top: 10px; }
+
+  /* ---- 예상 요금 페이지 ---- */
+  .pp-hero { padding: 32px 16px 4px; }
+  .pp-eyebrow { font-size: 11.5px; padding: 4px 10px; }
+  .pp-title { font-size: 23px; margin: 10px 0 6px; }
+  .pp-sub { font-size: 13.5px; }
+  .pp-jump {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    margin: 18px -16px 0;
+    padding: 0 16px 4px;
+    scrollbar-width: none;
+  }
+  .pp-jump::-webkit-scrollbar { display: none; }
+  .pp-jump a { height: 34px; padding: 0 13px; font-size: 13px; }
+  .wb-price-page--detail { padding: 16px 16px 100px; }
+
+  .wb-section-block, .wb-calc-box { padding: 24px 0 !important; }
+  .wb-sec-title { font-size: 17px !important; margin-bottom: 8px !important; flex-wrap: wrap; gap: 6px; }
+  .wb-sec-title > span:not(.section-num) { font-size: 12.5px !important; }
+  .section-num { width: 20px; height: 20px; font-size: 11px; }
+  .wb-sec-sub { font-size: 13px !important; margin-bottom: 14px !important; line-height: 1.55; }
+  .pp-calc-links { margin: -6px 0 14px; font-size: 12.5px; }
+
+  .wb-addon-banner { flex-direction: row !important; align-items: center !important; gap: 12px; padding: 14px !important; }
+  .wb-addon-banner-price { align-self: center !important; font-size: 13px !important; padding: 6px 10px !important; white-space: nowrap; }
+  .wb-addon-banner-left { gap: 10px !important; min-width: 0; }
+  .wb-addon-banner-icon { width: 36px !important; height: 36px !important; flex: none; }
+  .wb-addon-banner-icon svg { width: 18px !important; height: 18px !important; }
+  .wb-addon-banner-name { font-size: 14.5px !important; }
+  .wb-addon-banner-desc { font-size: 12.5px !important; line-height: 1.5 !important; }
+
+  .wb-notice-box { padding: 4px 14px !important; border-radius: 14px !important; }
+  .wb-notice-item { font-size: 13px !important; line-height: 1.6 !important; gap: 10px !important; padding: 12px 0 !important; }
+  .wb-notice-icon { width: 28px !important; height: 28px !important; }
+  .wb-notice-icon svg { width: 15px !important; height: 15px !important; }
+
+  .wb-calc-widget { border-radius: 16px; }
+  .wb-calc-widget-body { padding: 18px 16px 20px !important; gap: 18px !important; }
+  .wb-calc-field { gap: 8px; }
+  .wb-calc-field label { font-size: 13.5px !important; }
+  .wb-service-cards { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px; }
+  .wb-service-card { padding: 12px; gap: 2px; border-radius: 12px; }
+  .wb-service-card-name { font-size: 13px !important; }
+  .wb-service-card-price { font-size: 15px !important; }
+  .wb-service-card-badge { top: 8px; right: 8px; font-size: 9.5px !important; padding: 1px 6px; }
+  .wb-calc-row-2 { gap: 18px !important; }
+  .wb-checkbox-label { font-size: 13px !important; }
+  .wb-calc-total-bar { padding: 16px !important; gap: 12px; }
+  .wb-calc-total-price { font-size: 26px !important; }
+  .wb-calc-total-note { font-size: 11px !important; }
+  .wb-calc-cta { width: 100%; padding: 13px 16px; font-size: 15px; }
+
+  .pp-plans { padding-top: 28px; margin-top: 24px; }
+
+  .pp-sticky {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    background: rgba(255, 255, 255, .98); /* 하단 고정 바: 흐림 제거(거의 불투명이라 차이 없음, 스크롤 성능만 개선) */
+    border-top: 1px solid #E5E7EB;
+    box-shadow: 0 -6px 18px -10px rgba(15, 23, 42, .25);
+    transition: transform .25s ease;
+  }
+  .pp-sticky.is-hidden { transform: translateY(110%); }
+  .pp-sticky-sum {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    background: none;
+    border: 0;
+    padding: 0;
+    text-align: left;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .pp-sticky-label { font-size: 11.5px; color: #6B7280; }
+  .pp-sticky-price { font-size: 20px; font-weight: 800; color: #1F5C45; letter-spacing: -0.02em; line-height: 1.25; }
+  .pp-sticky-btn {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    height: 48px;
+    padding: 0 22px;
+    border-radius: 12px;
+    background: #1F5C45;
+    color: #FFFFFF;
+    font-size: 15px;
+    font-weight: 700;
+    text-decoration: none;
+  }
+}
+
+/* 휴대폰(768px 이하)에서는 스크롤 중 계속 다시 그려야 하는 흐림(backdrop-filter)을 끄고, 대신 배경을 조금 더 진하게 해 가독성을 유지합니다. */
+@media (max-width: 768px) {
+  .pricing-card {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: linear-gradient(160deg,
+      oklch(from var(--background) l c h / 88%) 0%,
+      oklch(from var(--background) l c h / 97%) 45%,
+      oklch(from var(--background) l c h / 90%) 100%);
+  }
+}

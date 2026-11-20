@@ -3,9 +3,15 @@
 !.env.example
 .vercel
 
-# scripts/build-env.mjs 가 .env 로 생성하는 파일
-js/env.js
-
-# Tailwind 빌드 결과물(npm run build:css)과 의존성
-css/tailwind.css
+# 의존성
 node_modules
+
+# ── Next.js ──
+.next
+next-env.d.ts
+*.tsbuildinfo
+# 남아 있는 옛 HTML(about_old, test/)용 생성물 (npm run build:legacy)
+public/js/env.js
+
+# 전환 작업 중 비교용 임시 파일
+public/_compare

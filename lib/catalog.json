@@ -1,0 +1,77 @@
+{
+  "_설명": "서비스·옵션·패키지 가격의 '화면용 원본'입니다. 바꾸는 방법과 주의사항은 lib/services.ts 맨 위 설명을 꼭 읽으세요. 서버 결제 검증 SQL 도 같은 값으로 바꿔야 합니다 (npm run check:prices 로 확인).",
+  "services": [
+    {
+      "key": "light",
+      "name": "1시간 라이트 케어",
+      "shortName": "1시간 라이트 케어",
+      "optionLabel": "[NEW] 1시간 콕집 라이트 케어",
+      "basePrice": 30000,
+      "extraPer30Min": 15000,
+      "baseMinutes": 60,
+      "badge": "NEW",
+      "apply": {
+        "durationLabel": "(기본 1시간)",
+        "destLabel": "목적지 / 방문 장소",
+        "destPlaceholder": "예: 길병원(수면내시경 귀가) 또는 단지 내 산책, 집 앞 마트",
+        "routeHint": "수면내시경/검사 후 귀가하실 병원, 산책하실 장소, 장보실 마트 등을 적어 주세요.",
+        "detailsPlaceholder": "예: 수면내시경 후 보호자 동반 귀가, 단지 내 30분 산책, 장보기 목록(우유 2개, 두부 1모 등)"
+      }
+    },
+    {
+      "key": "hospital",
+      "name": "시니어 병원 동행",
+      "shortName": "시니어 병원 동행",
+      "optionLabel": "시니어 병원 동행",
+      "basePrice": 50000,
+      "extraPer30Min": 12500,
+      "baseMinutes": 120,
+      "apply": {
+        "durationLabel": "(기본 2시간)",
+        "destLabel": "목적지 (병원명)",
+        "destPlaceholder": "예: 길병원",
+        "routeHint": "방문하실 병원의 정확한 이름을 적어 주시면 매칭에 도움이 돼요.",
+        "detailsPlaceholder": "예: 진료과(내과), 진료 예약 시간, 검사·수납·약 수령 등 도움이 필요한 부분"
+      }
+    },
+    {
+      "key": "life",
+      "name": "생활 편의 대행",
+      "shortName": "생활 편의 대행",
+      "optionLabel": "생활 편의 대행",
+      "basePrice": 40000,
+      "extraPer30Min": 10000,
+      "baseMinutes": 120,
+      "apply": {
+        "durationLabel": "(기본 2시간)",
+        "destLabel": "목적지 (방문 장소·업무)",
+        "destPlaceholder": "방문할 병원, 관공서, 은행명을 입력해 주세요",
+        "routeHint": "방문 장소(관공서·은행·마트 등)와 간단한 업무를 적어 주세요. 자세한 내용은 아래 ‘요청 상세 내용’에 적어 주셔도 좋아요.",
+        "detailsPlaceholder": "예: 은행 통장 재발급, 주민센터 서류 발급, 장보기 목록(우유 2개, 두부 1모 등)"
+      }
+    },
+    {
+      "key": "complex",
+      "name": "복합 매칭 서비스 (동행 + 생활편의)",
+      "shortName": "복합 매칭 서비스",
+      "optionLabel": "복합 매칭 서비스 (동행 + 생활편의)",
+      "basePrice": 60000,
+      "extraPer30Min": 15000,
+      "baseMinutes": 120,
+      "apply": {
+        "durationLabel": "(기본 2시간)",
+        "destLabel": "목적지 (병원 → 이후 방문 장소)",
+        "destPlaceholder": "예: 길병원 → 약국 → 우리은행",
+        "routeHint": "병원 진료 후 들르실 곳(약국·은행·마트 등)을 순서대로 적어 주세요.",
+        "detailsPlaceholder": "예: 진료과 + 진료 후 처리할 업무(약국 약 수령, 은행 업무, 장보기 목록 등)"
+      }
+    }
+  ],
+  "addons": {
+    "urgent": { "code": "URGENT_MATCHING", "amount": 10000, "label": "긴급 매칭 서비스" }
+  },
+  "packages": {
+    "10_hours": { "label": "10시간권", "name": "10시간 패키지", "price": 230000, "listPrice": 245000, "hours": 10, "sessions": 5 },
+    "20_hours": { "label": "20시간권", "name": "20시간 패키지", "price": 440000, "listPrice": 490000, "hours": 20, "sessions": 10 }
+  }
+}

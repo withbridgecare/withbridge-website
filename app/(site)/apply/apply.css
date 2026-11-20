@@ -1,0 +1,472 @@
+/* apply 페이지 전용 스타일 — public/apply.html 의 <style> 을 그대로 옮김 */
+:root {
+  --brand: #78866B;
+  --brand-dark: #3B4B3C;
+  --brand-soft: #F1F6F0;
+  --brand-line: #E2ECE0;
+  --ink: #1A1D21;
+  --ink-sub: #555555;              /* 보조 문구(안내·예시): 흰 배경 대비 7:1 — 읽기 편하도록 어둡게 */
+  --accent: #556B2F;               /* 선택된 항목/주요 버튼의 강조색 (흰 글씨 대비 6:1 이상) */
+  --accent-dark: #455822;
+  --control-border: #858E9C;       /* 입력창·선택 버튼의 테두리 (흰 배경과 3.3:1 → 경계가 또렷하게 보임) */
+  --bg: #F2F4F6;                   /* mypage.html 과 완전히 같은 연회색(슬레이트) 배경 */
+  --card: #FFFFFF;                 /* mypage.html '추가 요금 결제 안내'/'내 케어 패키지' 카드와 동일한 흰색 */
+  --card-border: #E5E7EB;          /* mypage.html --card-border 와 동일 */
+  --line: #EBE7E0;
+  --danger: #C0392B;
+  --radius: 16px;                  /* mypage.html --radius 와 동일 */
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: 'Pretendard Variable', Pretendard, 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+  font-size: 15px; line-height: 1.6; letter-spacing: -0.01em; -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; }
+button, input, textarea { font-family: inherit; }
+[hidden] { display: none !important; }
+
+/* ---------- 페이지 ---------- */
+.ap-main { padding: 40px 24px 80px; }
+.ap-wrap { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+/* mypage.html '추가 요금 결제 안내'/'내 케어 패키지' 카드(.card)와 완전히 같은 레시피 —
+   흰 배경 + 연한 회색 테두리(1px #E5E7EB) + 16px 라운드 + 같은 그림자값(0 4px 12px rgba(0,0,0,.05)).
+   연회색 페이지 배경(--bg: #F2F4F6) 위에 이 카드 하나만 떠 있고, 안의 입력 항목들(fee-box/notice 등)은
+   별도 테두리 없이 배경색만 있는 평면 콜아웃으로 단일 레이어를 유지합니다. */
+.card { background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,.05); }
+
+/* 헤더 섹션 */
+.ap-title { margin: 0 0 12px; font-size: 28px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.35; word-break: keep-all; }
+.ap-lead { margin: 0 0 24px; font-size: 16px; color: #475569; word-break: keep-all; }
+
+/* 안내 배너: 테두리 없이 은은한 배경색과 여백만으로 구분되는 콜아웃(서비스 지역 · 소요 시간 · 문의 · 로그인 이메일).
+   예전에는 바깥 테두리 + 좌측 강조선 + 내부 구분선 2개(총 4겹)가 겹쳐 있어 시각적으로 번잡했습니다 —
+   전부 걷어내고 배경색 하나로만 영역을 구분합니다. */
+.notice {
+  display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 14px 26px;
+  margin: 0 0 30px; padding: 20px 24px; background: #F3F7F1;
+  border-radius: 16px; font-size: 13.5px; line-height: 1.55; color: #374151;
+}
+.nt-title { margin: 0 0 2px; font-size: 14.5px; font-weight: 800; color: var(--brand-dark); }
+.nt-sub { margin: 0 0 10px; color: #4B5563; word-break: keep-all; }
+/* 메인 페이지 [주요 동행 지원 지역] 섹션(index.html, .wb-area-tab)과 같은 "캡슐 태그" 톤앤매너 —
+   클릭 인터랙션 없이 지역 목록만 정적으로 보여주는 가장 단순한 형태입니다. */
+.area-chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+.area-chip {
+  display: inline-block; border: 1px solid var(--brand-line); background: #fff; color: var(--brand-dark);
+  border-radius: 9999px; padding: 6px 13px; font-size: 12.5px; font-weight: 700;
+}
+.nt-notes { grid-column: 1 / -1; }
+.nt-note { margin: 0 0 2px; font-size: 12.5px; color: var(--ink-sub); word-break: keep-all; }
+/* 오른쪽 열(안내 사항/문의)은 구분선 없이 여백만으로 왼쪽 열과 떨어뜨립니다 */
+.nt-info { align-self: start; margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.nt-info li { position: relative; padding-left: 14px; word-break: keep-all; }
+.nt-info li::before { content: '•'; position: absolute; left: 1px; color: var(--brand); font-weight: 700; }
+.nt-info b { color: var(--ink); }
+.nt-info a { color: var(--brand-dark); font-weight: 700; text-decoration: none; border-bottom: 1px solid #C9D6C4; white-space: nowrap; }
+.nt-login { grid-column: 1 / -1; margin: 4px 0 0; font-size: 13px; font-weight: 600; color: var(--brand-dark); word-break: break-all; }
+.nt-login::before { content: '✓'; display: inline-block; margin-right: 6px; font-weight: 800; color: var(--accent); }
+/* 로그인이 필요해 접수할 수 없는 상태 — 완료를 뜻하는 기본 '✓' 체크 대신 주의를 끄는 색으로 바꾸고,
+   안내 뒤에 바로 로그인 버튼을 붙여 지금 바로 로그인할 수 있게 합니다. */
+.nt-login.is-warning { color: #9A3412; }
+.nt-login.is-warning::before { content: '!'; color: #C2410C; }
+.nt-login-cta {
+  display: inline-block; margin-left: 8px; padding: 4px 14px; border-radius: 999px;
+  background: var(--brand-dark); color: #fff !important; font-weight: 700; font-size: 12.5px;
+  text-decoration: none; white-space: nowrap;
+}
+.nt-login-cta:hover { background: #184A38; }
+
+/* 48시간 미매칭 자동 취소/환불 안심 문구 박스 — 폼 상단에 한 번만 보여줍니다. 결제 직전(제출
+   버튼 바로 위)에는 같은 박스를 반복하지 않고 .submit-area-note 로 짧게만 한 번 더 상기시킵니다. */
+.refund-policy {
+  display: flex; align-items: flex-start; gap: 10px; margin: 0 0 24px; padding: 16px 20px;
+  border-radius: 14px; background: #EEF3E6;
+  font-size: 13.5px; line-height: 1.6; color: var(--brand-dark); font-weight: 700; word-break: keep-all;
+}
+.refund-policy .rp-icon { flex: none; width: 20px; height: 20px; margin-top: 1px; color: var(--accent-dark); }
+.submit-area-note { margin: 0 0 16px; font-size: 12.5px; color: var(--ink-sub); line-height: 1.5; word-break: keep-all; }
+
+/* 입력 폼 */
+.field { border: none; margin: 0 0 28px; padding: 0; min-width: 0; }
+.field:last-of-type { margin-bottom: 0; }
+.field > label, .field > legend { display: block; margin: 0 0 10px; padding: 0; font-size: 16px; font-weight: 700; letter-spacing: -0.02em; word-break: keep-all; }
+.req { color: var(--danger); margin-left: 2px; }
+.text-input {
+  width: 100%; padding: 14px 16px; border: 1px solid var(--control-border); border-radius: 12px; background: #fff; color: var(--ink);
+  font-size: 15.5px; outline: none; transition: border-color .15s, box-shadow .15s;
+}
+.text-input::placeholder { color: #666666; opacity: 1; }   /* 입력 예시: 이전(#94A3B8)보다 훨씬 진하게 (opacity 1: 브라우저 기본 흐림 방지) */
+.text-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(85,107,47,.22); }
+/* 읽기 전용 입력칸(주소 검색 결과, 로그인 계정에서 자동 채운 신청자 성함/연락처 등) — 수정할 수
+   없다는 것을 배경색으로 바로 알 수 있게 합니다. */
+.text-input[readonly] { background: #F3F4F6; color: var(--ink-sub); cursor: not-allowed; }
+.text-input[readonly]:focus { box-shadow: none; }
+/* 로그인 계정 정보로 자동 채워져 잠긴 입력칸 바로 아래 뜨는 안내 — initApplicantContactFromAccount() 참고 */
+.contact-lock-note { margin: 6px 2px 0; font-size: 12.5px; color: var(--brand-dark); font-weight: 600; word-break: keep-all; }
+.field.has-error .text-input { border-color: var(--danger); }
+.field.has-error .wbdp-trigger { border-color: var(--danger); }
+#seniorProfileSelect:not([hidden]) { margin-bottom: 10px; }
+
+/* 어르신 프로필 원클릭 불러오기 카드 — 폼 맨 위, 등록된 어르신 프로필이 있는 로그인 사용자에게만
+   보입니다(loadSeniorProfiles 참고). 선택하면 성함·거동 상태·출발지 주소가 자동으로 채워져,
+   날짜/시간·방문 병원만 고르면 되도록 합니다. */
+.senior-quickfill-card {
+  margin: 0 0 28px; padding: 18px 20px; background: var(--brand-soft);
+  border-radius: 16px;
+}
+.senior-quickfill-card label { display: block; margin: 0 0 8px; font-size: 15px; font-weight: 800; color: var(--brand-dark); word-break: keep-all; }
+.senior-quickfill-hint { margin: 8px 2px 0; font-size: 13px; color: var(--brand-dark); font-weight: 600; word-break: keep-all; }
+
+/* 어르신 정보 저장 카드 — 성함·연락처·거동 상태·자택 주소·자주 가는 병원·요청 상세 내용까지 다
+   입력한 뒤, 그 입력 묶음의 맨 끝에서 바로 눈에 띄도록 위 '어르신 프로필 원클릭 불러오기' 카드
+   (senior-quickfill-card)와 짝을 이루는 같은 비주얼(테두리 없는 연한 브랜드 배경)을 씁니다 —
+   "이번에 입력한 어르신 정보를 프로필에 저장"과 "저장해 둔 프로필을 불러오기"는 서로 반대 방향의
+   같은 기능이라, 두 카드가 서로 짝처럼 보이는 게 자연스럽습니다. .field 클래스를 함께 써서
+   .field > label.consent-row(이용약관/개인정보 동의와 같은 커스텀 체크박스 스타일)와
+   .consent-help(안내 문구 들여쓰기)를 그대로 재사용합니다. */
+.senior-save-card {
+  margin: 4px 0 28px; padding: 18px 20px; background: var(--brand-soft);
+  border-radius: 16px;
+}
+.senior-save-card .consent-row span { font-weight: 700; color: var(--brand-dark); }
+
+.options { display: flex; flex-wrap: wrap; gap: 10px; }
+.opt { position: relative; cursor: pointer; }
+.opt input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+/* 선택 버튼(알약): 선택되면 진한 강조색 배경 + 흰색 굵은 글씨로 확실히 구분 */
+.opt span {
+  display: inline-flex; align-items: center; gap: 8px; padding: 12px 18px; border: 2px solid var(--control-border); border-radius: 9999px;
+  background: #fff; color: var(--ink); font-size: 15px; font-weight: 500; transition: all .15s; user-select: none;
+}
+.opt span::before { content: ''; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--control-border); background: #fff; flex: 0 0 auto; transition: all .15s; }
+.opt:hover span { border-color: var(--accent); }
+.opt input:checked + span { border-color: var(--accent); background: var(--accent); color: #fff; font-weight: 700; }
+.opt input:checked + span::before { border-color: #fff; background: #fff; box-shadow: inset 0 0 0 3px var(--accent); }
+.opt input:focus-visible + span { outline: 3px solid rgba(85,107,47,.5); outline-offset: 2px; }
+.field.has-error .opt span { border-color: #D98E85; }
+
+/* 결제 수단 버튼(패키지/카드/간편결제/계좌이체): 문구 길이가 달라도 높이·폰트 크기가
+   같아야 한 줄로 깔끔하게 정렬됨 — 잔여 횟수는 별도 뱃지 없이 버튼 문구에 자연스럽게 포함 */
+#f-payment .opt span { height: 46px; padding: 0 18px; font-size: 15px; white-space: nowrap; }
+
+/* 개인정보 동의: 테두리 상자 없이 '커스텀 체크박스 + 문구'를 한 줄로.
+   실제 <input type="checkbox"> 를 그대로 쓰고 모양만 바꿉니다 → 키보드(Space)·스크린리더 동작은 기본 체크박스와 동일 */
+/* ※ 이 label 은 fieldset(.field) 바로 아래라서 '.field > label { display: block; … }' 규칙이 덮어쓰지 못하도록
+     선택자를 더 구체적으로(.field > label.consent-row) 씁니다 */
+.field > label.consent-row { display: flex; align-items: center; gap: 10px; margin: 0; padding: 0; font-size: 15.5px; font-weight: 500; letter-spacing: normal; cursor: pointer; }
+.consent-row input {
+  -webkit-appearance: none; appearance: none;               /* 브라우저 기본 체크박스 모양 제거 */
+  width: 20px; height: 20px; margin: 0; flex: 0 0 auto;
+  border: 1.5px solid #d1d5db; border-radius: 6px; background-color: #ffffff; cursor: pointer;
+  background-repeat: no-repeat; background-position: center; background-size: 14px 14px;
+  transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.consent-row input:checked {                                /* 체크 상태: 브랜드 강조색 배경 + 흰색 체크 아이콘(SVG) */
+  background-color: #556B2F; border-color: #556B2F;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ffffff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3.5 8.6 6.6 11.6 12.5 4.6'/%3E%3C/svg%3E");
+}
+.consent-row:hover input { border-color: #556B2F; box-shadow: 0 0 0 3px rgba(85,107,47,.14); }   /* 마우스를 올리면 테두리 색 + 옅은 그림자 */
+.consent-row:hover input:checked { background-color: #455822; border-color: #455822; }
+.consent-row input:focus-visible { outline: 3px solid rgba(85,107,47,.5); outline-offset: 2px; }  /* 키보드 포커스 */
+.consent-row span { font-size: 15.5px; font-weight: 500; word-break: keep-all; user-select: none; }
+.field.has-error .consent-row input:not(:checked) { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(192,57,43,.14); }
+@media (forced-colors: active) {                            /* 윈도우 '고대비 모드'에서는 배경색이 무시되므로 기본 체크박스로 되돌림 */
+  .consent-row input { -webkit-appearance: checkbox; appearance: auto; }
+}
+.consent-help { margin: 8px 0 0 30px; font-size: 13px; color: var(--ink-sub); word-break: keep-all; }   /* 체크박스(20px) + 간격(10px) 만큼 들여써 문구와 세로줄 맞춤 */
+.consent-help a { color: var(--brand-dark); font-weight: 700; }
+.consent-row a { color: var(--accent-dark); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }   /* '이용약관' 링크 (누르면 약관 팝업) */
+
+.svc-firstuse-text { font-size: 13.5px; color: #334155; }
+.svc-firstuse-text strong { color: var(--accent-dark); font-weight: 800; }
+
+/* 서비스 선택 — 세로형 카드 대신 공간을 차지하지 않는 슬림한 드롭다운 하나. select 자체는
+   공용 .text-input(흰 배경 · 1px 테두리 · rounded-xl 12px)을 그대로 쓰므로 별도 스타일이 필요 없습니다. */
+.svc-select-wrap { display: flex; flex-direction: column; gap: 12px; }
+/* '1시간 콕집 라이트 케어' 선택 시에만 나타나는 세부 목적 드롭다운 — 같은 마이페이지 톤(흰 배경·
+   rounded-2xl)의 옅은 박스로 메인 드롭다운에 종속된 선택임을 보여줍니다. */
+.svc-onehour-purpose { padding: 14px 16px; border: 1px solid #E5E7EB; border-radius: 16px; background: #fff; animation: svc-purpose-in .18s ease; }
+.svc-onehour-purpose .sub-label { margin-bottom: 8px; }
+.svc-onehour-purpose #oneHourCustomInput { margin-top: 10px; }
+@keyframes svc-purpose-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+/* 총 예상 금액 배너: 선택 전에는 안내 문구(점선), 선택하면 굵은 금액이 강조되는 배너 */
+.fee-box { margin-top: 14px; padding: 16px 20px; border-radius: 14px; background: #EEF3E6; }
+.fee-box.is-empty { background: #FBFCFA; border: 1px dashed var(--control-border); color: var(--ink-sub); font-size: 14.5px; }
+.fee-main { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; letter-spacing: -0.02em; }
+.fee-label { font-size: 15px; font-weight: 700; color: var(--ink); }
+.fee-amount { font-size: 26px; font-weight: 800; color: var(--accent-dark); line-height: 1.2; }
+.fee-unit { font-size: 14.5px; font-weight: 700; color: var(--ink); }
+.fee-note { margin: 6px 0 0; font-size: 13px; line-height: 1.5; color: var(--ink-sub); word-break: keep-all; }
+
+/* 적립금 사용 입력란 (f-discount 안) */
+.fee-points-row { display: flex; gap: 8px; }
+.fee-points-input { flex: 1 1 auto; min-width: 0; padding: 10px 14px; font-size: 14.5px; }
+.fee-points-max {
+  flex: none; padding: 0 16px; border: 1px solid var(--accent); border-radius: 10px; background: #fff;
+  color: var(--accent-dark); font-size: 13.5px; font-weight: 700; cursor: pointer; transition: background-color .15s;
+}
+.fee-points-max:hover { background: var(--brand-soft); }
+.fee-points-max:disabled, .fee-points-input:disabled { opacity: .55; cursor: not-allowed; }
+.fee-points-hint { margin: 6px 0 0; font-size: 12.5px; color: var(--ink-sub); word-break: keep-all; }
+
+/* 결제 버튼 위 최종 결제 금액 요약 (쿠폰/적립금 입력과 실시간 연동) */
+.discount-summary { margin-bottom: 20px; padding: 18px 20px; border-radius: 14px; background: var(--brand-soft); }
+.ds-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 14px; color: var(--ink-sub); padding: 3px 0; }
+.ds-row span:last-child { font-weight: 700; color: var(--ink); }
+.ds-final { margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--accent); font-size: 16px; font-weight: 800; color: var(--ink); }
+.ds-final span:last-child { font-size: 21px; font-weight: 800; color: var(--accent-dark); }
+/* 패키지 차감 선택 시 '최종 결제 금액' 바로 아래 — 지금 보이는 숫자가 결제 전액이 아니라 선택
+   옵션 금액뿐이라는 걸 한 번 더 명확히 알립니다(refreshDiscountSummary 참고). */
+.ds-package-note { margin: 8px 0 0; font-size: 12.5px; color: var(--brand-dark); font-weight: 600; word-break: keep-all; }
+
+textarea.text-input { display: block; min-height: 120px; resize: vertical; line-height: 1.6; }
+.hint { margin: 6px 2px 0; font-size: 13px; color: var(--ink-sub); word-break: keep-all; }
+.opt-tag { margin-left: 6px; font-size: 13px; font-weight: 500; color: var(--ink-sub); }
+
+/* 희망 날짜(date picker) + 시간(time picker) 한 줄 배치. 좁은 화면에서는 flex-wrap 으로 자연스럽게 두 줄로 내려감 */
+.dt-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.dt-row .dt-date { flex: 1 1 170px; }
+.dt-row .dt-time { flex: 1 1 150px; }
+select.text-input { appearance: auto; background-color: #fff; }
+
+/* 출발지 / 목적지를 각각 별도 입력칸으로 분리 (한 칸에 '/' 로 직접 구분해 적을 때 생기는 입력 실수 방지) */
+.route-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.sub-field { flex: 1 1 220px; min-width: 0; }
+.sub-label { display: block; margin: 0 0 6px; font-size: 13px; font-weight: 700; color: var(--ink-sub); }
+/* 주소 검색(카카오 우편번호) 행: 읽기 전용 기본 주소 input + [주소 검색] 버튼 */
+.addr-search-row { display: flex; gap: 8px; }
+.addr-search-row .text-input { flex: 1 1 auto; min-width: 0; background: #F7F8F5; cursor: pointer; }
+.addr-search-row .text-input::placeholder { color: var(--ink-sub); }
+.addr-search-btn {
+  flex: none; padding: 0 18px; min-height: 48px; border: 1px solid var(--accent); border-radius: 12px;
+  background: var(--brand-soft); color: var(--brand-dark); font-size: 14px; font-weight: 700;
+  cursor: pointer; white-space: nowrap; transition: background-color .15s;
+}
+.addr-search-btn:hover { background: var(--brand-line); }
+.route-detail { margin-top: 8px; }
+
+/* 출발지 주소 선택 시 서비스 가능 지역 여부를 즉시 알려주는 안내문 (카카오 우편번호 oncomplete 에서 채움) */
+.addr-area-note { margin: 8px 2px 0; font-size: 13.5px; font-weight: 700; word-break: keep-all; }
+.addr-area-note.is-ok { color: #1E7D32; }
+.addr-area-note.is-warn { color: var(--danger); }
+.addr-area-note.is-info { color: var(--brand-dark); }
+
+/* 서비스 준비 중 지역 안내 커스텀 모달 (브라우저 기본 alert() 대체) */
+.area-modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 10000;
+  align-items: center; justify-content: center; padding: 20px;
+  background: rgba(26, 29, 33, 0.6);
+}
+.area-modal-overlay.is-open { display: flex; }
+.area-modal {
+  width: 100%; max-width: 380px; background: #fff; border-radius: var(--radius);
+  padding: 32px 28px 28px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, .35);
+  text-align: center; animation: areaModalIn .18s ease-out;
+}
+@keyframes areaModalIn {
+  from { opacity: 0; transform: translateY(8px) scale(.98); }
+  to { opacity: 1; transform: none; }
+}
+.area-modal-icon {
+  display: flex; align-items: center; justify-content: center; width: 56px; height: 56px;
+  margin: 0 auto 16px; border-radius: 50%; background: #FDF1EF; color: var(--danger); font-size: 26px;
+}
+.area-modal h3 { margin: 0 0 10px; font-size: 18px; font-weight: 800; color: var(--ink); }
+.area-modal p { margin: 0; font-size: 14.5px; line-height: 1.65; color: var(--ink-sub); word-break: keep-all; }
+.area-modal-btn {
+  display: block; width: 100%; margin-top: 24px; padding: 14px 20px; border: none; border-radius: 9999px;
+  background: var(--accent); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; transition: background .2s;
+}
+.area-modal-btn:hover { background: var(--accent-dark); }
+.area-modal-btn:focus-visible { outline: 3px solid rgba(85,107,47,.5); outline-offset: 3px; }
+
+.err { margin: 8px 2px 0; font-size: 13.5px; color: var(--danger); }
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; } /* 스팸 봇 함정 (사람에게는 안 보임) */
+
+/* 이용약관 → 개인정보 동의 → 제출 버튼 순서를 시각적으로도 분명히: 구분선 + 넉넉한 위 여백으로 '동의 구간'과 분리 */
+.submit-area { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line); }
+.form-error { margin: 0 0 16px; padding: 14px 16px; border-radius: 12px; background: #FDF1EF; color: #7a2f26; font-size: 14px; word-break: keep-all; }
+.form-error a { color: inherit; font-weight: 700; }
+/* 사용자가 직접 취소한 결제처럼 '오류'가 아닌 일반 안내는 붉은색 대신 중립적인 색으로 보여줍니다. */
+.form-error.is-notice { background: #F3F7F1; color: #2f4a2a; }
+.submit {
+  display: block; width: 100%; margin-top: 0; padding: 17px 20px; border: none; border-radius: 9999px;
+  background: var(--accent); color: #fff; font-size: 17px; font-weight: 700; cursor: pointer; transition: background .2s, transform .2s;
+}
+.submit:hover { background: var(--accent-dark); transform: translateY(-1px); }
+.submit:focus-visible { outline: 3px solid rgba(85,107,47,.5); outline-offset: 3px; }
+.submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+/* 제출 버튼 아래 여백: 버튼이 카드 가장자리/화면 끝에 붙어 잘려 보이지 않도록 넉넉하게 (60px 이상) */
+#applyCard { padding-bottom: 64px; }
+
+/* 접수 완료 */
+.done { text-align: center; padding: 48px 32px; }
+.done-icon { display: flex; align-items: center; justify-content: center; width: 64px; height: 64px; margin: 0 auto 18px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 30px; font-weight: 700; }
+.done h2 { margin: 0 0 10px; font-size: 24px; font-weight: 800; letter-spacing: -0.03em; }
+.done h2:focus { outline: none; }   /* 접수 후 스크린리더용으로 제목에 포커스를 주는데, 눈에 보이는 테두리는 필요 없음 */
+.done p { margin: 0 0 6px; color: #475569; word-break: keep-all; }
+.done .who { margin: 16px auto 0; padding: 12px 16px; max-width: 420px; border-radius: 12px; background: var(--brand-soft); color: var(--brand-dark); font-weight: 700; word-break: break-all; }
+/* 즉시결제(카드/간편결제/계좌이체) 완료 안내 */
+.done .payment-success { margin: 18px auto 0; padding: 14px 18px; max-width: 420px; border-radius: 12px; background: var(--brand-soft); color: var(--brand-dark); font-weight: 700; }
+/* 비로그인 신청 안내: 나중에 로그인하면 이 신청이 마이페이지에 연결됨 */
+.done .done-login { margin: 18px auto 0; max-width: 420px; font-size: 13.5px; line-height: 1.6; color: #475569; }
+.done .done-login a { color: var(--brand-dark); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.done-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; padding: 13px 26px; border-radius: 9999px; background: var(--accent); color: #fff; font-size: 15px; font-weight: 700; text-decoration: none; }
+.btn:hover { background: var(--accent-dark); }
+.btn-ghost { background: var(--brand-soft); color: var(--brand-dark); }
+.btn-ghost:hover { background: var(--brand-line); }
+
+/* index.html 헤더/푸터와 동일하게 렌더링되도록 보정 (index 는 Tailwind preflight 적용) */
+header, footer { letter-spacing: normal; line-height: 1.5; }
+footer h3 { margin-top: 0; }
+
+@media (max-width: 640px) {
+  .ap-main { padding: 24px 16px 72px; }
+  .card { padding: 24px 20px; }
+  #applyCard { padding-bottom: 64px; }   /* .card 의 모바일 패딩보다 우선해 제출 버튼 아래 여백 유지 */
+  .fee-amount { font-size: 23px; }
+  .consent-help { margin-left: 30px; }
+  .ap-title { font-size: 23px; }
+  .ap-lead { font-size: 15px; }
+  .notice { grid-template-columns: minmax(0, 1fr); padding: 14px 16px; }
+  .nt-info { padding: 10px 0 0; }
+  .opt span { padding: 11px 16px; }
+  .done { padding: 36px 20px; }
+}
+/* ---------- 추가 요금 · 정산 기준 (서비스 선택 바로 아래, 접이식) ---------- */
+.fee-rules { margin-top: 10px; border: 1px solid #E5E0CC; border-radius: 14px; background: #FAF8F0; }
+.fee-rules > summary {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 12px 40px 12px 16px;
+  position: relative; list-style: none; cursor: pointer; user-select: none;
+}
+.fee-rules > summary::-webkit-details-marker { display: none; }
+.fee-rules > summary::after {
+  content: ''; position: absolute; right: 16px; top: 50%; width: 8px; height: 8px; margin-top: -6px;
+  border-right: 2px solid #78866B; border-bottom: 2px solid #78866B; transform: rotate(45deg); transition: transform .2s;
+}
+.fee-rules[open] > summary::after { transform: rotate(-135deg); margin-top: -2px; }
+.fee-rules > summary:focus-visible { outline: 3px solid rgba(85,107,47,.5); outline-offset: 2px; border-radius: 14px; }
+.fee-rules-title { font-size: 14px; font-weight: 800; color: var(--brand-dark); }
+.fee-rules-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.fee-rules-chips span { padding: 2px 8px; border-radius: 9999px; background: #EFEBDC; color: #5F6E54; font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+.fee-rules-list { margin: 0; padding: 0 16px 4px; list-style: none; border-top: 1px solid #ECE4D1; }
+.fee-rules-list li { padding: 10px 0; border-bottom: 1px dashed #ECE4D1; font-size: 13.5px; line-height: 1.55; color: #4B4A3F; word-break: keep-all; }
+.fee-rules-list li:last-child { border-bottom: 0; }
+.fee-rules-list b { display: block; margin-bottom: 1px; font-size: 13px; color: var(--ink); }
+.fee-rules-link { display: block; margin: 0 16px 14px; padding: 10px; border-radius: 10px; background: #fff; border: 1px solid #E5E0CC; text-align: center; font-size: 13px; font-weight: 700; color: var(--brand-dark); text-decoration: none; }
+.fee-rules-link:hover { background: var(--brand-soft); }
+
+/* ---------- 휴대폰(640px 이하) 화면 최적화 ---------- */
+@media (max-width: 640px) {
+  .ap-main { padding: 14px 12px 64px; }
+  .card { padding: 20px 16px; border-radius: 14px; }
+  #applyCard { padding-bottom: 40px; }
+  .ap-title { font-size: 20px; margin-bottom: 6px; }
+  .ap-lead { font-size: 13.5px; margin-bottom: 16px; line-height: 1.6; }
+  .refund-policy { padding: 12px 14px; gap: 8px; font-size: 12.5px; margin-bottom: 14px; border-radius: 12px; }
+  .refund-policy .rp-icon { width: 17px; height: 17px; }
+  .notice { gap: 10px; padding: 14px; margin-bottom: 22px; border-radius: 12px; font-size: 12.5px; }
+  .nt-title { font-size: 13.5px; }
+  .nt-sub { font-size: 12.5px; margin-bottom: 8px; }
+  .area-chip-row { gap: 4px; margin-bottom: 4px; }
+  .area-chip { padding: 4px 9px; font-size: 11.5px; }
+  .nt-info { padding: 4px 0 0; gap: 4px; }
+  .nt-note { font-size: 11.5px; }
+
+  .field { margin-bottom: 22px; }
+  .field > label, .field > legend { font-size: 15px; margin-bottom: 8px; }
+  /* iOS 사파리는 16px 미만 입력칸에 포커스하면 화면을 확대하므로 입력 글자는 16px 유지 */
+  .text-input { padding: 12px 14px; font-size: 16px; border-radius: 10px; }
+  textarea.text-input { min-height: 100px; }
+  .hint { font-size: 12.5px; }
+  .sub-label { font-size: 12.5px; }
+
+  /* 라디오 선택(관계·거동 상태 등): 들쭉날쭉한 알약 → 2열 같은 너비 버튼 */
+  .options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .opt span { width: 100%; padding: 11px 12px; font-size: 14px; gap: 6px; justify-content: flex-start; }
+  .opt span::before { width: 14px; height: 14px; }
+  #f-payment .opt span { height: 44px; padding: 0 12px; font-size: 14px; }
+  /* 여러 줄로 감기는 선택 버튼이 알약(9999px) 모양 그대로면 원형으로 찌그러지므로 모서리만 둥글게 */
+  .opt span { border-radius: 12px; }
+  /* 선택 추가 옵션(긴급 매칭): 설명이 붙은 긴 항목이라 2열 칸 대신 한 줄 전체 너비로 */
+  .opt:has(#addonUrgent) { grid-column: 1 / -1; }
+  .opt:has(#addonUrgent) span { flex-wrap: wrap; row-gap: 2px; }
+  .opt:has(#addonUrgent) small { flex-basis: 100%; padding-left: 20px; font-size: 12px; font-weight: 500; opacity: .85; }
+
+  /* 날짜/시간 선택 버튼(wb-datepicker.js 가 주입하는 스타일보다 구체적인 선택자로 덮어씀) */
+  .dt-row { gap: 8px; }
+  .dt-row .wbdp-trigger { padding: 12px 14px; border-radius: 12px; font-size: 14px; gap: 6px; white-space: nowrap; }
+  .dt-row .wbdp-trigger .wbdp-text { overflow: hidden; text-overflow: ellipsis; }
+
+  .addr-search-btn { padding: 0 12px; min-height: 46px; font-size: 13px; border-radius: 10px; }
+  .route-row { gap: 14px; }
+
+  .fee-box { padding: 14px 16px; }
+  .fee-label { font-size: 14px; }
+  .fee-amount { font-size: 22px; }
+  .fee-note { font-size: 12px; }
+  .svc-firstuse-text { font-size: 12px; }
+  .fee-rules > summary { padding: 11px 36px 11px 14px; }
+  .fee-rules-title { font-size: 13.5px; }
+  .fee-rules-list { padding: 0 14px 2px; }
+  .fee-rules-list li { font-size: 12.5px; }
+  .fee-rules-link { margin: 0 14px 12px; font-size: 12.5px; }
+
+  .senior-quickfill-card, .senior-save-card { padding: 14px; margin-bottom: 22px; }
+  .discount-summary { padding: 14px 16px; }
+  .ds-row { font-size: 13px; }
+  .ds-final span:last-child { font-size: 19px; }
+  .field > label.consent-row, .consent-row span { font-size: 14px; }
+  .consent-help { font-size: 12px; }
+  .submit-area { margin-top: 24px; padding-top: 18px; }
+  .submit { padding: 15px 18px; font-size: 16px; }
+}
+  
+
+/* ---------- 선택 버튼(lib/browser/wbSelect.ts) — 네이티브 <select> 목록 대신 ----------
+   원래 select 는 값·이벤트용으로 숨겨 두고(.wb-sel-native), 버튼(.text-input 모양 그대로)을 보여 줍니다.
+   휴대폰은 화면 아래에서 올라오는 목록, PC 는 버튼 아래 드롭다운. */
+.wb-sel-native { position: absolute !important; width: 1px !important; height: 1px !important; opacity: 0 !important; pointer-events: none !important; overflow: hidden; }
+.wb-sel-trigger { display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left; cursor: pointer; font-family: inherit; }
+.wb-sel-trigger .wb-sel-value { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wb-sel-trigger.is-placeholder .wb-sel-value { color: #666666; }
+.wb-sel-trigger:disabled { background: #F3F4F6; color: var(--ink-sub); cursor: not-allowed; }
+.wb-sel-chev { flex: none; width: 18px; height: 18px; color: #6B7280; transition: transform .15s ease; }
+.wb-sel-trigger[aria-expanded="true"] { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(85,107,47,.22); }
+.wb-sel-trigger[aria-expanded="true"] .wb-sel-chev { transform: rotate(180deg); color: var(--accent); }
+
+.wb-sel-backdrop { position: fixed; inset: 0; z-index: 1500; background: transparent; }
+.wb-sel-panel {
+  position: fixed; z-index: 1501; box-sizing: border-box; max-height: 320px; overflow-y: auto; padding: 6px;
+  background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 12px; box-shadow: 0 14px 34px rgba(15,23,42,.16);
+  font-family: 'Pretendard Variable', Pretendard, 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+.wb-sel-title { display: none; }
+.wb-sel-panel [role="listbox"] { margin: 0; padding: 0; list-style: none; outline: none; }
+.wb-sel-option {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 9px;
+  font-size: 15px; line-height: 1.45; color: var(--ink); cursor: pointer; word-break: keep-all;
+}
+.wb-sel-option.is-active { background: var(--brand-soft); }
+.wb-sel-option[aria-selected="true"] { font-weight: 700; color: var(--accent-dark, #455822); }
+.wb-sel-option[aria-selected="true"]::after { content: '✓'; flex: none; font-weight: 800; color: var(--accent); }
+
+@media (max-width: 767.98px) {
+  html.wb-sel-open, html.wb-sel-open body { overflow: hidden; } /* 목록이 열린 동안 뒤 페이지 스크롤 잠금 */
+  .wb-sel-backdrop { background: rgba(0, 0, 0, .45); }
+  .wb-sel-panel {
+    left: 0; right: 0; bottom: 0; top: auto; width: auto; max-height: 72vh;
+    padding: 6px 12px calc(14px + env(safe-area-inset-bottom)); border: 0; border-radius: 18px 18px 0 0;
+    box-shadow: 0 -10px 30px rgba(0,0,0,.18); animation: wbSelUp .2s ease-out;
+  }
+  .wb-sel-panel::before { content: ''; display: block; width: 40px; height: 4px; margin: 6px auto 4px; border-radius: 4px; background: #D1D5DB; }
+  .wb-sel-title { display: block; margin: 0 0 6px; padding: 10px 6px 12px; border-bottom: 1px solid #EEF0EC; font-size: 16px; font-weight: 800; color: var(--ink); }
+  .wb-sel-option { padding: 15px 12px; font-size: 16px; border-radius: 12px; }
+}
+@keyframes wbSelUp { from { transform: translateY(24px); opacity: .6; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .wb-sel-panel { animation: none; } }

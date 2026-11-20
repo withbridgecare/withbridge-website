@@ -1,0 +1,62 @@
+/**
+ * 사이트 전역 설정값 — 여러 화면이 함께 쓰는 주소·연락처를 한 곳에 모읍니다.
+ * (NEXTJS_MIGRATION_PLAN.md 원칙 7: 앱으로 확장할 때 바뀔 수 있는 값은 여기서만 관리)
+ *
+ * 이 파일에는 next/* 나 브라우저 전용 코드(window, localStorage)를 넣지 않습니다.
+ */
+
+export const SITE = {
+  name: '위드브릿지',
+  nameEn: 'WithBridge',
+  kakaoChannelUrl: 'http://pf.kakao.com/_PKxemX',
+  phone: '010-5530-5760',
+  phoneHours: '평일 08:00 ~ 18:00 (주말/공휴일 휴무)',
+  email: 'withbridge.care@outlook.kr',
+  /**
+   * 카카오 지도 JavaScript 키 (브라우저에 공개되는 키). 카카오 디벨로퍼스 > 플랫폼 > Web 에
+   * 배포 도메인이 등록돼 있어야 지도가 표시됩니다 — Vercel 미리보기 주소에서는 안 보일 수 있습니다.
+   */
+  kakaoMapAppKey: 'd4e5f004fe7750dd67ce15da3863f06c',
+  /** 카카오 로컬 REST 키 (주소→좌표, 장소 검색). 예전부터 브라우저에서 직접 쓰던 키 — 카카오 콘솔에서 도메인 제한 권장 */
+  kakaoRestApiKey: '4e94e702177afc63f2f05c3abfffdf3c',
+  /** 신청 오류 시 안내하는 예비 신청서(구글폼) */
+  fallbackFormUrl: 'https://docs.google.com/forms/d/e/1FAIpQLSfgRiyXruggtZuztlkBsgHGt9akDqo5zZpr0gnf-bUsLGsIGw/viewform',
+} as const;
+
+/**
+ * 운영 사이트 주소 (검색엔진 사이트맵·공유 미리보기 기준). Vercel 환경 변수 SITE_URL(또는 NEXT_PUBLIC_SITE_URL)이 우선이고,
+ * 없으면 아래 기본값을 씁니다. ⚠ 실제 운영 도메인과 같은지 확인하세요 (VERIFICATION_CHECKLIST.md).
+ */
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://www.withbridge.kr').replace(/\/$/, '');
+
+/** 이용약관 버전 — app/(site)/terms 의 '약관 버전'과 같게 유지 (약관을 개정하면 함께 갱신) */
+export const TERMS_VERSION = '2026-10-26';
+
+/** 화면 주소. 아직 레거시 HTML 인 페이지도 같은 주소로 열립니다(next.config.ts rewrites). */
+export const ROUTES = {
+  home: '/',
+  story: '/story',
+  services: '/#services',
+  howItWorks: '/#how-it-works',
+  faq: '/#faq',
+  notice: '/notice',
+  pricing: '/pricing',
+  apply: '/apply',
+  login: '/login',
+  signup: '/signup',
+  mypage: '/mypage',
+  mypageManager: '/mypage-manager',
+  elderProfile: '/mypage?tab=elder',
+  profileEdit: '/profile-edit',
+  admin: '/admin',
+  terms: '/terms',
+  privacy: '/privacy',
+} as const;
+
+/**
+ * 로그인·결제 후 돌아올 주소. 웹은 현재 도메인 기준이고,
+ * 앱(WebView/Expo)으로 확장하면 이 함수만 바꾸면 됩니다.
+ */
+export function authRedirectUrl(origin: string, path: string = '/index.html'): string {
+  return origin + path;
+}

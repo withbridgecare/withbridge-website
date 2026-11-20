@@ -1,0 +1,3500 @@
+/* mypage 페이지 전용 스타일 — public/mypage.html 의 <style> 을 그대로 옮김 */
+:root {
+	/* mypage-manager.html 과 동일한 디자인 토큰(세이지 그린 축 + 토스 스타일 흰 모듈 카드)을 그대로 공유합니다 */
+	--sage-50: #f5f6f1;
+	--sage-100: #e9ebe1;
+	--sage-200: #d2d7c2;
+	--sage-300: #b4bc9e;
+	--sage-400: #97a17f;
+	--sage-500: #78866b; /* 브랜드 메인 컬러 */
+	--sage-600: #626e58;
+	--sage-700: #4e5746;
+	--sage-800: #3b4235;
+	--sage-900: #292e25;
+
+	--brand: var(--sage-500);
+	--brand-dark: var(--sage-700);
+	--brand-hover: var(--sage-600);
+	--brand-soft: var(--sage-100);
+	--brand-line: var(--sage-200);
+	--ink: #191f28; /* 메인 타이틀 */
+	--ink-section: #333d4b; /* 섹션 타이틀 */
+	--ink-body: #4e5968; /* 본문 텍스트 */
+	--ink-sub: #8b95a1; /* 서브 텍스트 · 라벨 (토스 그레이 400) — mypage-manager.html 과 동일한 톤으로 통일 */
+	--ink-muted: #b0b8c1;
+	--bg: #f2f4f6; /* mypage-manager.html 과 동일: 흰 카드와 대비되는 연회색 배경 */
+	--card: #ffffff;
+	--card-border: #e5e7eb; /* 연한 회색 테두리로 카드 경계를 또렷하게 (mypage-manager.html 과 동일) */
+	--line: transparent; /* 카드 내부 구분선은 제거하고 여백만으로 항목을 나눔 */
+	--input-border: #d1d5db;
+	--danger: #d64545;
+	--radius: 16px; /* 부드러운 모서리 둥글기 (카드·컨테이너) */
+	--radius-sm: 10px; /* 버튼·인풋 등 작은 요소 */
+	--shadow-card: 0 4px 12px rgba(0, 0, 0, 0.05);
+	--shadow-card-hover: 0 6px 16px rgba(0, 0, 0, 0.08);
+
+	/* 주요 CTA 버튼(전체 사이트 공통): mypage-manager.html 과 동일한 세이지 그린 브랜드 컬러로 통일 */
+	--cta: var(--sage-500);
+	--cta-hover: var(--sage-600);
+	--cta-shadow: 0 6px 16px rgba(120, 134, 107, 0.28);
+
+	--sec-bg: #f3f4f6; /* gray-100 */
+	--sec-bg-hover: #e5e7eb; /* gray-200 */
+	--sec-fg: #374151; /* gray-700 */
+
+	--chip-brand-bg: var(--sage-100);
+	--chip-brand-fg: var(--sage-700);
+
+	--earth-bg: #f6eedd;
+	--earth-fg: #8b5e34;
+	--earth-line: #e4d2b0;
+
+	/* 뱃지 · 태그 색상 시스템: 대부분의 카테고리/프로필/상태 뱃지는 무채색으로 통일하고,
+     '배정 완료'처럼 지금 진행 중인 상태 하나에만 그린을 남겨 시선을 집중시킵니다. */
+	--neutral-badge-bg: #f1f5f9; /* slate-100 */
+	--neutral-badge-fg: #334155; /* slate-700 */
+	--active-badge-bg: #ecfdf5; /* emerald-50 */
+	--active-badge-fg: #047857; /* emerald-700 */
+	/* 매니저 박스 · 요약 박스 등 보조 박스 배경: 칙칙한 회색 대신 밝은 슬레이트 톤 */
+	--surface-soft: #f8fafc; /* slate-50 */
+}
+* {
+	box-sizing: border-box;
+}
+html {
+	scroll-behavior: smooth;
+}
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--ink);
+	font-family:
+		"Pretendard Variable",
+		Pretendard,
+		"Noto Sans KR",
+		-apple-system,
+		BlinkMacSystemFont,
+		"Malgun Gothic",
+		sans-serif;
+	font-size: 15px;
+	line-height: 1.55;
+	letter-spacing: -0.01em;
+	-webkit-font-smoothing: antialiased;
+}
+a {
+	color: inherit;
+}
+button {
+	font-family: inherit;
+}
+[hidden] {
+	display: none !important;
+}
+
+/* ---------- 레이아웃 (mypage-manager.html 과 동일한 폭 · 패딩 · 배경) ---------- */
+.mp-main {
+	max-width: 1100px;
+	margin: 0 auto;
+	padding: 20px 24px 56px;
+}
+.mp-loading {
+	padding: 120px 0;
+	text-align: center;
+	color: var(--ink-sub);
+}
+/* 1열 컴팩트 레이아웃: 섹션 간 세로 여백을 30px → 14px 로 줄여, '케어 현황/진행 중인 케어' 카드가
+   스크롤 없이 바로 보이도록 합니다(프로필·혜택 박스 다이어트와 함께 적용). */
+.mp-stack {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+.card {
+	background: var(--card);
+	border: 1px solid var(--card-border);
+	border-radius: var(--radius);
+	padding: 18px;
+	box-shadow: var(
+		--shadow-card
+	); /* p-6(24px) → p-5(20px) → 18px 로 한 번 더 다이어트 */
+}
+.card-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 14px;
+}
+.card-title {
+	margin: 0;
+	font-size: 17px;
+	font-weight: 600;
+	letter-spacing: -0.02em;
+	color: var(--ink-section);
+}
+.badge {
+	display: inline-block;
+	padding: 4px 12px;
+	border-radius: 9999px;
+	background: var(--neutral-badge-bg);
+	color: var(--neutral-badge-fg);
+	font-size: 12.5px;
+	font-weight: 500;
+	white-space: nowrap;
+}
+/* '진행 중'(예정된 케어가 실제로 진행 중일 때)만 유일하게 활성 그린 — 나머지 뱃지는 모두 위 무채색 기본값 */
+.badge.is-live {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	padding-left: 10px;
+	background: var(--active-badge-bg);
+	color: var(--active-badge-fg);
+	font-weight: 700;
+}
+.badge.is-live::before {
+	content: "";
+	flex: none;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: currentColor;
+}
+.badge.is-demo {
+	background: var(--earth-bg);
+	color: var(--earth-fg);
+}
+
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	padding: 13px 22px;
+	border: none;
+	border-radius: var(--radius-sm);
+	background: var(--cta);
+	color: #fff;
+	font-size: 14.5px;
+	font-weight: 700;
+	text-decoration: none;
+	cursor: pointer;
+	box-shadow: var(--cta-shadow);
+	transition:
+		background 0.15s,
+		transform 0.15s,
+		box-shadow 0.15s;
+	min-height: 48px;
+}
+.btn:hover {
+	background: var(--cta-hover);
+	transform: translateY(-1px);
+}
+.btn:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+	transform: none;
+	box-shadow: none;
+}
+.btn-ghost {
+	background: var(--sec-bg);
+	color: var(--sec-fg);
+	box-shadow: none;
+}
+.btn-ghost:hover {
+	background: var(--sec-bg-hover);
+}
+.btn-sm {
+	padding: 8px 14px;
+	font-size: 13px;
+	min-height: 40px;
+}
+/* [+ 추가 신청]과 [+ 어르신 추가 등록]: 텍스트 길이가 달라도 두 버튼이 픽셀 단위로 완전히 같은
+   규격이 되도록, .btn/.btn-sm 의 패딩에 기대지 않고 너비·높이·패딩·폰트·줄간격을 이 규칙 하나에서
+   전부 확정합니다(box-sizing: border-box 이므로 height 에는 패딩이 이미 포함됨). */
+.card-head-btn {
+	box-sizing: border-box;
+	width: 150px;
+	height: 40px;
+	padding: 0 16px;
+	min-height: 0;
+	font-size: 13px;
+	line-height: 1;
+	white-space: nowrap;
+}
+/* 케어 완료 카드의 [확인 및 이용 완료]: 다른 카드 안 버튼(리포트 확인 등)과 확실히 구분되는 진한 브랜드 CTA */
+.btn-confirm {
+	background: var(--brand-dark);
+	color: #fff;
+	font-weight: 700;
+	padding: 10px 20px;
+	min-height: 0;
+	border-radius: var(--radius-sm);
+	box-shadow: none;
+}
+.btn-confirm:hover {
+	background: var(--sage-800);
+	box-shadow: 0 6px 16px rgba(59, 66, 53, 0.28);
+}
+
+.empty {
+	padding: 40px 16px;
+	text-align: center;
+	color: var(--ink-sub);
+	background: var(--bg);
+	border: 1px solid var(--card-border);
+	border-radius: var(--radius);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+}
+.empty-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-bottom: 6px;
+	color: var(--ink-muted);
+}
+.empty-icon svg {
+	width: 30px;
+	height: 30px;
+}
+.empty strong {
+	display: block;
+	margin-bottom: 4px;
+	color: var(--ink);
+	font-size: 15.5px;
+}
+.empty .btn {
+	margin-top: 16px;
+}
+.empty small {
+	display: block;
+	margin-top: 14px;
+	font-size: 12.5px;
+	line-height: 1.5;
+	word-break: keep-all;
+}
+.error-box {
+	padding: 16px;
+	border-radius: var(--radius);
+	background: #fdf1ef;
+	color: var(--danger);
+	font-size: 14px;
+}
+
+/* ---------- 통합 헤더 카드: 기존 '프로필'(아바타+이름+상태)과 '내 혜택 정보'(쿠폰+적립금)를
+   하나의 대형 카드로 합쳤습니다 — 좌측 신원 정보, 우측 쿠폰/적립금 요약(flex-row) ---------- */
+@keyframes wb-profile-in {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+.mp-header {
+	position: relative; /* 쿠폰 상세 레이어(.benefit-coupon-list)의 anchor */
+	background: var(--card);
+	color: var(--ink);
+	border: 1px solid var(--card-border);
+	border-radius: var(--radius);
+	box-shadow: var(--shadow-card);
+	padding: 14px 20px; /* p-6 → p-4~5 → 더 슬림하게 */
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px 20px;
+	flex-wrap: wrap;
+	animation: wb-profile-in 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.profile-main {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	min-width: 0;
+}
+.profile-avatar {
+	width: 44px;
+	height: 44px;
+	border-radius: 50%;
+	flex-shrink: 0;
+	overflow: hidden;
+	background: var(--brand-soft);
+	color: var(--brand-dark);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 17px;
+	font-weight: 800;
+	box-shadow: 0 4px 14px rgba(120, 134, 107, 0.28);
+}
+.profile-avatar img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+.profile-role {
+	margin: 0 0 1px;
+	font-size: 12px;
+	color: var(--ink-sub);
+	font-weight: 600;
+}
+.profile-id-row {
+	display: flex;
+	align-items: center;
+	gap: 9px;
+	flex-wrap: wrap;
+}
+.profile-name {
+	margin: 0;
+	font-size: 18px;
+	font-weight: 700;
+	letter-spacing: -0.03em;
+	color: var(--ink);
+	word-break: keep-all;
+}
+.profile-email {
+	margin: 3px 0 0;
+	font-size: 12.5px;
+	color: var(--ink-sub);
+	font-weight: 500;
+	word-break: break-all;
+}
+.profile-email:empty {
+	display: none;
+}
+.status-tag {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 12px 4px 10px;
+	border-radius: 9999px;
+	font-size: 12px;
+	font-weight: 700;
+	white-space: nowrap;
+}
+.status-tag::before {
+	content: "";
+	flex: none;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: currentColor;
+}
+.status-tag.st-assigned {
+	background: var(--sage-100);
+	color: var(--sage-700);
+}
+.status-tag.st-departed {
+	background: var(--sage-200);
+	color: var(--sage-800);
+	font-weight: 800;
+}
+.status-tag.st-arrived {
+	background: #d1fae5;
+	color: #047857;
+	font-weight: 800;
+}
+.status-tag.st-completed {
+	background: #f3f4f6;
+	color: #9ca3af;
+}
+.status-tag.st-pending {
+	background: #ecfdf5;
+	color: #047857;
+}
+
+.head-right {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+}
+
+/* ---------- 내 혜택 정보: 보유 쿠폰 · 적립금 — 하나로 이어붙인 박스가 아니라, 각자 독립된
+   테두리/배경을 가진 카드 2개를 gap 으로 나란히 둡니다. 쿠폰 칸을 누르면 카드 아래로 뜨는
+   드롭다운 레이어에 상세 목록이 펼쳐집니다 ---------- */
+.benefit-stats {
+	display: flex;
+	align-items: stretch;
+	gap: 10px;
+}
+/* 2단(세로형) 복구: 라벨 줄은 위, 강조 숫자는 아래 — flex-col + justify-between 으로 카드 안에서
+   둘이 위아래로 또렷하게 나뉘어 보이게 합니다. 패딩도 넉넉하게(py-3.5 px-5) 되돌렸습니다. */
+.benefit-stat {
+	flex: 1 1 130px;
+	min-width: 110px;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	padding: 14px 20px;
+	background: var(--surface-soft);
+	border: 1px solid rgba(226, 232, 240, 0.8);
+	border-radius: var(--radius);
+	text-align: left;
+	font-family: inherit;
+	color: inherit;
+}
+button.benefit-stat.is-toggle {
+	cursor: pointer;
+	transition:
+		background-color 0.15s,
+		border-color 0.15s;
+}
+button.benefit-stat.is-toggle:hover {
+	background: var(--brand-soft);
+	border-color: var(--brand-line);
+}
+.benefit-stat-top {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+.benefit-stat-label {
+	font-size: 12px;
+	font-weight: 500;
+	color: #64748b;
+	line-height: 1.2;
+	white-space: nowrap;
+}
+.benefit-stat-value {
+	font-size: 18px;
+	font-weight: 700;
+	color: #0f172a;
+	letter-spacing: -0.02em;
+	line-height: 1;
+	margin-top: 6px;
+	white-space: nowrap;
+}
+.benefit-stat-chevron {
+	display: inline-flex;
+	color: var(--ink-sub);
+	transition: transform 0.2s ease;
+}
+.benefit-stat-chevron svg {
+	display: block;
+	width: 16px;
+	height: 16px;
+}
+.benefit-stat.is-toggle[aria-expanded="true"] .benefit-stat-chevron {
+	transform: rotate(180deg);
+}
+/* 쿠폰 상세 레이어: 인라인으로 카드를 밀어내지 않고, 헤더 카드 하단에 겹쳐 떠오르는 드롭다운/팝업 */
+.benefit-coupon-list {
+	position: absolute;
+	top: calc(100% + 8px);
+	right: 0;
+	z-index: 30;
+	width: min(320px, calc(100vw - 48px));
+	margin: 0;
+	padding: 12px 14px;
+	background: #fff;
+	border: 1px solid var(--card-border);
+	border-radius: var(--radius);
+	box-shadow: 0 16px 32px rgba(15, 23, 42, 0.14);
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+.benefit-coupon-item {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 10px;
+	padding: 9px 12px;
+	border-radius: 10px;
+	font-size: 13px;
+	font-weight: 600;
+	word-break: keep-all;
+}
+/* 미사용 쿠폰만 브랜드 색으로 강조하고, 사용 완료/기간 만료 쿠폰은 중립 톤으로 가라앉힙니다 */
+.benefit-coupon-item.is-unused {
+	background: var(--brand-soft);
+	color: var(--brand-dark);
+}
+.benefit-coupon-item.is-used,
+.benefit-coupon-item.is-expired {
+	background: var(--surface-soft);
+	color: var(--ink-sub);
+	font-weight: 500;
+}
+.benefit-coupon-item .bc-status {
+	flex: none;
+	font-size: 12px;
+	font-weight: 500;
+	color: inherit;
+	opacity: 0.8;
+}
+.benefit-coupon-empty {
+	padding: 4px 2px;
+	font-size: 13px;
+	color: var(--ink-sub);
+}
+@media (max-width: 640px) {
+	.benefit-coupon-list {
+		left: 0;
+		right: 0;
+		width: auto;
+	}
+}
+
+/* ---------- 추가 요금 결제 안내 (기본 요금 선결제 + 초과 시 추가 요금 정산) ----------
+   완료 후 며칠 뒤에 관리자가 청구해도 놓치지 않도록, '진행 중인 케어' 카드의 24시간 버퍼링과
+   무관하게 결제 전까지 항상 상단(2번째 위치)에 노출합니다. 결제 전까지 돈이 걸린 미해결 항목이라는
+   시급성을 전달하기 위해, 카드 전체를 옅은 경고(amber) 톤으로 감싸 한눈에 "확인하고 결제해 주세요"가
+   눈에 들어오게 합니다. */
+.extra-charge-card {
+	background: rgba(255, 251, 235, 0.6); /* amber-50/60 */
+	border: 1.5px solid #fcd34d; /* amber-300 */
+}
+.extra-charge-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px 14px;
+	flex-wrap: wrap;
+	padding: 14px 16px;
+	border-radius: var(--radius-sm);
+	background: #fff;
+	border: 1px solid #fde68a; /* amber-200 */
+}
+.extra-charge-item + .extra-charge-item {
+	margin-top: 8px;
+}
+.extra-charge-info strong {
+	display: block;
+	color: var(--ink);
+	font-size: 14px;
+}
+.extra-charge-info span {
+	display: block;
+	margin-top: 2px;
+	color: var(--ink-body);
+	font-size: 12.5px;
+}
+/* 결제 발생 사유(예: '시간 연장 (+1시간)', '주차비/옵션'): 긴 문장 대신 눈에 띄는 작은 뱃지로 — 줄
+   바꿔 들어가도 info 블록 안에서만 차지해 금액·버튼 줄의 레이아웃에 영향을 주지 않습니다. */
+.extra-charge-info .extra-charge-reason {
+	display: inline-block;
+	margin-top: 6px;
+	padding: 3px 10px;
+	border-radius: 9999px;
+	background: #fef3c7;
+	color: #92400e;
+	font-size: 12px;
+	font-weight: 700; /* amber-100 / amber-800 */
+}
+.extra-charge-amount {
+	color: #b45309;
+	font-weight: 800;
+	font-size: 16px;
+	white-space: nowrap;
+} /* amber-700 */
+.extra-charge-pay-btn {
+	flex: none;
+	background: #d97706;
+	color: #fff;
+	font-weight: 800; /* amber-600 */
+	padding: 10px 20px;
+	border-radius: 10px;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+.extra-charge-pay-btn:hover {
+	background: #b45309;
+} /* amber-700 */
+.extra-charge-pay-btn:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+/* 결제 완료 후 버튼을 다른 곳의 '진행 중' 그린 뱃지(.badge.is-live)와 같은 톤으로 바꿔 보여줍니다 */
+.extra-charge-pay-btn.is-paid {
+	background: var(--active-badge-bg);
+	color: var(--active-badge-fg);
+	opacity: 1;
+	cursor: default;
+	box-shadow: none;
+}
+.extra-charge-pay-btn.is-paid:hover {
+	background: var(--active-badge-bg);
+	transform: none;
+}
+.badge.is-warn {
+	background: #d97706;
+	color: #fff;
+	font-weight: 800; /* amber-600, 흰 글자 — 결제 필요 N건을 더 눈에 띄게 */
+}
+
+/* ---------- 내 케어 패키지 (선결제 회차권 5회/10회, sql/user_packages_system.sql) ----------
+   구매·상세 안내는 package.html(전용 랜딩 페이지)로 옮기고, 마이페이지에는 보유 잔여 횟수 요약과
+   그 페이지로 가는 링크만 남겨 간결하게 둡니다. 보호자가 가진 '핵심 자산'인 잔여 시간을 큼직한
+   숫자로 강조하고, 구매 유도 버튼은 브랜드 메인 컬러로 눈에 띄게 둡니다. */
+.package-cta-btn {
+	background: #2e6d53;
+	color: #fff;
+	font-weight: 700;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+.package-cta-btn:hover {
+	background: #245742;
+}
+.package-remaining-line {
+	margin: 0;
+	padding: 18px 20px;
+	border-radius: 14px;
+	background: rgba(236, 253, 245, 0.5);
+	border: 1px solid #d1fae5; /* emerald-50/50, emerald-100 */
+	font-size: 14px;
+	color: var(--ink-body);
+}
+.package-remaining-line b {
+	display: block;
+	margin: 4px 0 0;
+	font-size: 30px;
+	font-weight: 900;
+	line-height: 1.2;
+	color: #2e6d53;
+}
+.package-hint {
+	margin: 10px 0 0;
+	font-size: 12.5px;
+	color: var(--ink-body);
+	word-break: keep-all;
+}
+
+/* ---------- 업무 탭 메뉴 (mypage-manager.html 의 .mgr-tabs 와 동일한 구조·애니메이션) ---------- */
+.mgr-tabs {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+.mgr-tab-list {
+	position: relative;
+	display: flex;
+	gap: 4px;
+	padding: 5px;
+	background: var(--sec-bg);
+	border: 1px solid var(--card-border);
+	border-radius: 12px;
+}
+.mgr-tab-pill {
+	position: absolute;
+	top: 5px;
+	left: 0;
+	height: calc(100% - 10px);
+	width: 0;
+	background: #fff;
+	border: 1px solid var(--card-border);
+	border-radius: 8px;
+	box-shadow:
+		0 1px 3px rgba(25, 31, 40, 0.1),
+		0 1px 2px rgba(25, 31, 40, 0.06);
+	transition:
+		transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+		width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+	pointer-events: none;
+	z-index: 0;
+}
+.mgr-tab {
+	position: relative;
+	z-index: 1;
+	flex: 1 1 0;
+	min-height: 44px;
+	padding: 10px 14px;
+	border: none;
+	border-radius: 8px;
+	background: transparent;
+	color: var(--ink-sub);
+	font-size: 14px;
+	font-weight: 600;
+	white-space: nowrap;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	gap: 8px;
+	cursor: pointer;
+	transition:
+		color 0.2s ease,
+		transform 0.15s ease;
+}
+.mgr-tab:hover:not(.is-active) {
+	color: var(--ink);
+	transform: scale(1.02);
+}
+.mgr-tab.is-active {
+	color: var(--brand-dark);
+	font-weight: 800;
+}
+.mgr-tab:active {
+	transform: scale(0.98);
+}
+.mgr-tab-label {
+	position: relative;
+}
+.mgr-tab-panel {
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+}
+/* 좁은 화면(≈480px 이하)에서는 3개 탭이 flex:1 1 0 로 균등분할되는데, white-space:nowrap 때문에
+   가장 긴 라벨("어르신 프로필 관리")의 min-content 폭을 기준으로 전체 탭 바가 화면 밖으로
+   밀려나 글자가 잘리거나 겹쳐 보였습니다. min-width:0 으로 실제로 줄어들 수 있게 하고,
+   nowrap 을 풀어 긴 라벨은 2줄로 감싸 보이게 합니다. */
+@media (max-width: 480px) {
+	.mgr-tab {
+		min-width: 0;
+		white-space: normal;
+		padding: 8px 6px;
+		font-size: 12.5px;
+		line-height: 1.3;
+		gap: 4px;
+	}
+}
+
+/* 패키지 구매 완료 안내 배너 — package.html 에서 구매를 마치고 돌아왔을 때(?purchased=…&hours=…)
+   가장 먼저 보이도록 보호자 화면 맨 위에 둡니다. 토스트처럼 사라지지 않고, 직접 닫기 전까지 남아
+   있어 "결제가 됐는지 안 됐는지" 헷갈리지 않게 합니다. */
+.package-purchase-banner {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 16px 20px;
+	margin-bottom: 18px;
+	background: var(--brand-soft);
+	border: 1px solid var(--brand-line);
+	border-radius: var(--radius-sm);
+}
+.package-purchase-banner-icon {
+	flex: none;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 26px;
+	height: 26px;
+	border-radius: 50%;
+	background: var(--brand-dark);
+	color: #fff;
+	font-size: 14px;
+	font-weight: 800;
+}
+.package-purchase-banner-text {
+	flex: 1 1 auto;
+	margin: 0;
+	font-size: 14.5px;
+	font-weight: 700;
+	color: var(--ink);
+}
+.package-purchase-banner-close {
+	flex: none;
+	background: none;
+	border: none;
+	padding: 4px;
+	font-size: 14px;
+	color: var(--ink-sub);
+	cursor: pointer;
+}
+@media (max-width: 480px) {
+	.package-purchase-banner {
+		flex-wrap: wrap;
+	}
+}
+
+/* 자주 묻는 질문 & 1:1 고객센터 문의 안내 — 보호자 업무 탭 콘텐츠가 모두 끝난 마이페이지 최하단,
+   푸터 바로 위에 둡니다. 예전엔 이 자리에 '케어 매니저 지원하기(구직용)' 배너가 있었지만, 보호자
+   마이페이지 맥락과 맞지 않아(구직 희망자가 아니라 이미 서비스를 쓰는 보호자가 보는 화면) 보호자가
+   바로 쓸 수 있는 FAQ·상담 연결로 바꿨습니다. .mp-main 의 max-width 제한 밖으로 빼내 화면 전체
+   너비를 채우는 풀블리드 섹션(.guardian-support-banner-full, <main> 뒤·<footer> 앞에 별도 형제로
+   배치 — 구조는 아래 HTML 참고)이고, 안쪽 .guardian-support-banner-inner 가 위 케어 매니저 모집
+   배너의 .mgr-recruit-inner 와 동일한 max-width/좌우 패딩으로 너비를 맞춥니다. 카드 박스(배경/보더/
+   둥근모서리)는 두지 않고, 섹션 배경을 페이지 본문과 같은 톤(var(--bg))으로 깔아 위 사진 배너
+   바로 아래로 경계 없이 자연스럽게 이어지게 합니다. */
+/* py-24 — 위 케어 매니저 모집 배너(.mgr-recruit-full)와 같은 96px 수직 패딩으로 맞춰, 두 섹션의
+   시각적 체급(세로 볼륨)을 동등하게 유지합니다. 반응형 단계도 배너와 동일하게 72px/56px 로 내립니다. */
+.guardian-support-banner-full {
+	width: 100%;
+	background: var(--bg);
+	padding: 96px 0;
+}
+/* 위 케어 매니저 모집 배너(.mgr-recruit-inner)와 너비·좌우 여백을 정확히 맞추는 래퍼 */
+.guardian-support-banner-inner {
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 0 24px;
+}
+.guardian-support-banner {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 28px;
+	align-items: center;
+}
+@media (min-width: 769px) {
+	.guardian-support-banner {
+		grid-template-columns: 3fr 2fr;
+		gap: 40px;
+	}
+}
+.guardian-support-banner-title {
+	margin: 0 0 14px;
+	font-size: 30px;
+	font-weight: 700;
+	letter-spacing: -0.02em;
+	color: #0f172a;
+	word-break: keep-all;
+}
+.guardian-support-banner-text {
+	margin: 0 0 24px;
+	font-size: 16px;
+	font-weight: 500;
+	color: #475569;
+	line-height: 1.65;
+	word-break: keep-all;
+}
+.guardian-support-banner-ctas {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+}
+.guardian-support-banner-cta {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 14px 24px;
+	border-radius: 14px;
+	background: #047857;
+	color: #fff;
+	font-size: 16px;
+	font-weight: 600;
+	text-decoration: none;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+	transition:
+		background-color 0.15s ease,
+		transform 0.15s ease;
+}
+.guardian-support-banner-cta:hover {
+	background: #065f46;
+	transform: translateY(-1px);
+}
+.guardian-support-banner-cta svg {
+	flex: none;
+	transition: transform 0.15s ease;
+}
+.guardian-support-banner-cta:hover svg {
+	transform: translateX(2px);
+}
+/* 카카오톡 상담은 FAQ 보기보다 한 단계 낮은 보조 액션 — 테두리만 있는 '고스트' 버튼으로 구분 */
+.guardian-support-banner-cta-ghost {
+	background: transparent;
+	color: #047857;
+	border: 1.5px solid #a7f3d0;
+}
+.guardian-support-banner-cta-ghost:hover {
+	background: #ecfdf5;
+	color: #065f46;
+}
+.guardian-support-banner-checks {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+.guardian-support-banner-checks li {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	font-size: 16px;
+	font-weight: 600;
+	color: #1e293b;
+	line-height: 1.5;
+}
+.guardian-support-check-icon {
+	flex: none;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	margin-top: 1px;
+	border-radius: 50%;
+	background: #ecfdf5;
+	color: #059669;
+}
+.guardian-support-check-icon svg {
+	width: 13px;
+	height: 13px;
+}
+
+/* 케어 매니저 지원 배너 — index.html 의 'B2B 제휴 전환 배너'(.wb-b2b-*)와 1:1로 같은 구조.
+   사진+오버레이는 안쪽의 작은 카드가 아니라 풀블리드 섹션(.mgr-recruit-full) 자체의 배경이라,
+   사진이 섹션 전체(위아래 패딩까지 포함한 전 영역)를 bg-cover/bg-center 로 꽉 채웁니다 — 이전엔
+   사진을 안쪽 둥근 카드에만 깔아서 그 바깥(풀블리드 섹션의 단색 배경) 부분이 사진과 분리된
+   여백처럼 보였던 문제를 없앴습니다(wb-b2b 도 둥근 카드 없이 섹션 자체가 사진입니다).
+   .mgr-recruit-inner 는 그 사진 위에서 콘텐츠만 max-width 로 중앙 정렬하는 투명한 래퍼입니다. */
+.mgr-recruit-full {
+	position: relative;
+	overflow: hidden;
+	width: 100%;
+	padding: 96px 0;
+	background-image:
+		linear-gradient(rgba(16, 20, 27, 0.84), rgba(16, 20, 27, 0.84)),
+		url("/images/getty-images-258_Fcxevy8-unsplash.webp");
+	/* bottom 5%(= 95%, 위에서부터) — 손목·맞잡은 손 아랫부분까지 전부 들어오도록 거의 최하단에 초점.
+     주의: bottom 뒤 숫자가 '사진 아래쪽을 얼마나 잘라낼지'가 아니라 '바닥에서 얼마나 띄울지'라
+     숫자가 작을수록(0%에 가까울수록) 사진 하단이 더 많이 보입니다 — bottom 30%(=70%)는 오히려
+     상반신 쪽으로 올라가 손목이 잘립니다. bottom 0%(=100%)는 반대로 위쪽 손가락 여유가 빠듯해져
+     중간값인 5%가 위아래 여백 모두 안정적입니다. 1024~1920px 실측 렌더링으로 확정. */
+	background-size: cover;
+	background-position: center bottom 5%;
+	background-repeat: no-repeat;
+}
+.mgr-recruit-inner {
+	position: relative;
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 0 24px;
+}
+.mgr-recruit-card {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 32px;
+	align-items: center;
+}
+@media (min-width: 769px) {
+	.mgr-recruit-card {
+		grid-template-columns: 1.3fr auto;
+		gap: 48px;
+	}
+}
+.mgr-recruit-copy {
+	min-width: 0;
+}
+.mgr-recruit-eyebrow {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	height: 28px;
+	padding: 0 12px;
+	border-radius: 999px;
+	background: rgba(120, 134, 107, 0.2);
+	color: #c9d2bf;
+	font-size: 13px;
+	font-weight: 600;
+}
+.mgr-recruit-eyebrow i {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: #78866b;
+}
+.mgr-recruit-title {
+	margin: 22px 0 0;
+	font-size: clamp(24px, 2.8vw, 32px);
+	line-height: 1.35;
+	letter-spacing: -0.02em;
+	font-weight: 700;
+	color: #fff;
+	word-break: keep-all;
+}
+.mgr-recruit-desc {
+	margin: 16px 0 0;
+	font-size: 16px;
+	line-height: 1.65;
+	color: #b0b8c1;
+	max-width: 480px;
+	word-break: keep-all;
+}
+.mgr-recruit-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin: 32px 0 0;
+	padding: 0;
+	list-style: none;
+}
+.mgr-recruit-chips li {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	height: 36px;
+	padding: 0 14px;
+	border-radius: 999px;
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	background: rgba(255, 255, 255, 0.04);
+	font-size: 13.5px;
+	font-weight: 600;
+	color: #d1d6db;
+	white-space: nowrap;
+}
+.mgr-recruit-chips svg {
+	flex: none;
+	width: 14px;
+	height: 14px;
+}
+.mgr-recruit-actions {
+	display: flex;
+}
+.mgr-recruit-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	height: 56px;
+	padding: 0 28px;
+	border-radius: 12px;
+	background: #78866b;
+	color: #fff;
+	font-size: 16px;
+	font-weight: 600;
+	text-decoration: none;
+	white-space: nowrap;
+	transition:
+		background-color 0.15s ease,
+		transform 0.15s ease;
+}
+.mgr-recruit-btn:hover {
+	background: #5f6b55;
+}
+.mgr-recruit-btn:active {
+	transform: scale(0.98);
+}
+.mgr-recruit-btn svg {
+	flex: none;
+	transition: transform 0.15s ease;
+}
+.mgr-recruit-btn:hover svg {
+	transform: translateX(3px);
+}
+@media (max-width: 768px) {
+	.mgr-recruit-full {
+		padding: 72px 0;
+	}
+	.mgr-recruit-actions {
+		justify-content: stretch;
+	}
+	.mgr-recruit-btn {
+		width: 100%;
+	}
+}
+@media (max-width: 480px) {
+	.mgr-recruit-full {
+		padding: 56px 0;
+	}
+	.mgr-recruit-inner {
+		padding: 0 16px;
+	}
+	.mgr-recruit-desc {
+		font-size: 14px;
+	}
+}
+@media (max-width: 768px) {
+	.guardian-support-banner-full {
+		padding: 72px 0;
+	}
+	.guardian-support-banner-title {
+		font-size: 26px;
+	}
+}
+@media (max-width: 480px) {
+	.guardian-support-banner-full {
+		padding: 56px 0;
+	}
+	.guardian-support-banner-inner {
+		padding: 0 16px;
+	}
+	.guardian-support-banner-title {
+		font-size: 24px;
+	}
+	.guardian-support-banner-text {
+		font-size: 15px;
+	}
+}
+
+/* ---------- 케어 현황: 신청 내역 카드 (모듈형 카드로 통일, 색은 상태 뱃지에만) ---------- */
+.list.app-list {
+	gap: 16px;
+} /* 뒤에 나오는 일반 .list { gap: 12px } 보다 우선하도록 두 클래스를 함께 지정 */
+.app-label {
+	margin: 0 0 14px;
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--ink-sub);
+}
+.app-label:not(:first-child) {
+	margin-top: 26px;
+}
+/* 케어 현황: 최근 1~2건만 기본 노출하고, 나머지는 '더보기'를 눌러야 펼쳐지는 아코디언.
+   배경·테두리 없는 투명한 컨테이너로, 안에는 실제 .app-card 들만 보이게 둡니다. */
+.app-collapse {
+	max-height: 0;
+	overflow: hidden;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	transition: max-height 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.app-collapse .list.app-list {
+	padding-top: 16px;
+} /* 펼쳤을 때 위 카드와 같은 16px 간격 유지 (별도 <ul> 이라 gap 이 이어지지 않으므로 padding 으로 보정) */
+/* [더보기/접기]: 배경·테두리·그림자 없는 순수 텍스트 + 화살표 아이콘 버튼 — 박스처럼 보이지 않게
+   (mypage-manager.html 의 .schedule-more-btn 과 같은 언어) */
+.app-more-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	width: 100%;
+	margin-top: 24px; /* mt-6: 위 카드(총 예상 금액)와 확실히 분리 */
+	padding: 12px 0;
+	border: none;
+	background: transparent;
+	box-shadow: none; /* py-3 */
+	color: var(--ink-sub);
+	font-size: 14px;
+	font-weight: 500;
+	cursor: pointer;
+	transition: color 0.15s ease;
+}
+.app-more-btn:hover,
+.app-more-btn:active {
+	color: var(--ink);
+} /* hover 시 텍스트/아이콘 색만 진하게 */
+.app-more-btn:focus-visible {
+	outline: 2px solid var(--brand);
+	outline-offset: 2px;
+	border-radius: var(--radius-sm);
+}
+/* 모던 웹 아이콘 스타일: 텍스트 'v' 대신 SVG chevron-down. 닫힘=기본(아래) → 열림(.is-open)=180도 회전(위) */
+.app-more-btn .chevron {
+	display: inline-flex;
+	flex-shrink: 0;
+	color: inherit;
+	transition:
+		transform 0.2s ease-in-out,
+		color 0.15s ease;
+}
+.app-more-btn.is-open .chevron {
+	transform: rotate(180deg);
+}
+/* 이전엔 그림자 한 겹만 있어 입체감이 희미했습니다 — 테두리를 살짝 또렷하게 하고, 가장자리를 잡아주는
+   얇은 1px 그림자와 은은하게 퍼지는 넓은 그림자를 겹쳐 카드가 배경 위에 확실히 떠 보이게 합니다. */
+.app-card {
+	padding: 26px;
+	background: #fff;
+	border: 1px solid var(--card-border);
+	border-radius: var(--radius);
+	box-shadow: var(--shadow-card);
+	transition:
+		box-shadow 0.15s ease,
+		opacity 0.22s ease,
+		transform 0.22s ease;
+}
+.app-card:hover {
+	box-shadow: var(--shadow-card-hover);
+}
+/* 신청 취소 성공 직후 renderCare() 가 목록을 다시 그리기 전, 이 카드만 짚어 잠깐 부드럽게
+   사라지도록 거는 전환(cancelMyApplication/fadeOutApplicationCard 참고) — 전체 목록이 통째로
+   훅 비워지는 대신, 취소한 카드 하나만 자연스럽게 내려가는 것처럼 보이게 합니다. */
+.app-card.is-leaving {
+	opacity: 0;
+	transform: scale(0.98);
+	pointer-events: none;
+}
+.app-top {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 14px;
+}
+.app-title {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-width: 0;
+	font-size: 18px;
+	font-weight: 700;
+	letter-spacing: -0.02em;
+	word-break: keep-all;
+	color: var(--ink);
+} /* 서비스명이 카드에서 가장 먼저 눈에 띄도록 한 단계 더 크고 진하게 */
+/* 서비스 카테고리 뱃지: 대괄호 텍스트('[병원]') 대신 SVG 아이콘 + 라벨을 담은 독립된 pill 뱃지로 분리합니다.
+   예전엔 서비스 종류마다 다른 색(블루/오렌지/보라)을 입혔지만, 뱃지 색이 너무 많아 산만해 보여
+   카테고리는 모두 같은 무채색(슬레이트)으로 통일하고, 색은 아래 '진행 중' 상태 하나에만 남깁니다. */
+.app-icon {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	padding: 4px 10px;
+	border-radius: 9999px;
+	background: var(--neutral-badge-bg);
+	color: var(--neutral-badge-fg);
+	font-size: 12px;
+	font-weight: 500;
+	letter-spacing: -0.01em;
+	white-space: nowrap;
+}
+.app-icon svg {
+	flex: 0 0 auto;
+}
+.app-tag {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 5px 13px 5px 11px;
+	border-radius: 9999px;
+	font-size: 12.5px;
+	font-weight: 500;
+	white-space: nowrap;
+}
+/* 상태 도트: 뱃지 텍스트와 같은 색(currentColor)을 그대로 써서 톤별로 따로 지정할 필요가 없습니다 */
+.app-tag::before {
+	content: "";
+	flex: none;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: currentColor;
+}
+/* 접수 대기 · 상담 완료 · 케어 완료 · 최종 확인 · 취소 — 지금 당장 진행 중은 아닌 상태는 모두 같은 무채색 뱃지로 */
+.app-tag.tone-wait,
+.app-tag.tone-info,
+.app-tag.tone-done,
+.app-tag.tone-confirmed,
+.app-tag.tone-cancel {
+	background: var(--neutral-badge-bg);
+	color: var(--neutral-badge-fg);
+}
+/* '매니저 배정 / 이동 중 / 병원 도착' — 지금 실제로 진행 중인 단계만 유일하게 그린으로 시선을 집중시킵니다 */
+.app-tag.tone-live {
+	background: var(--active-badge-bg);
+	color: var(--active-badge-fg);
+	font-weight: 700;
+}
+/* 보호자의 확인·결정이 필요한 제안 상태만 예외적으로 경고색(earth) 유지 — 아래 .propose-box 와 짝을 이루는
+   의도적 알림 색상이라, 무채색으로 묻히면 놓치기 쉬워 그대로 둡니다. */
+.app-tag.tone-propose {
+	background: var(--earth-bg);
+	color: var(--earth-fg);
+}
+/* 라벨 칸 너비는 가장 긴 라벨인 '어르신과의 관계'(아이콘 포함)가 줄바꿈 없이 한 줄에 들어가는 기준(136px)으로 잡습니다.
+   회색 박스(bg-gray-50 rounded-xl p-4)로 감싸 카드 바탕과 분리된 '표' 영역으로 보이게 합니다. */
+.app-kv {
+	display: grid;
+	grid-template-columns: 136px minmax(0, 1fr);
+	gap: 9px 14px;
+	margin: 0 0 16px;
+	font-size: 14.5px;
+	background: #f9fafb;
+	border-radius: 14px;
+	padding: 16px;
+}
+/* 라벨(dt)은 또렷한 회색(gray-600) + medium, 아이콘은 그보다 한 톤 연한 gray-500 — 값(dd)은 gray-900 +
+   semibold 로 확실히 대비를 줘서 실제 데이터가 먼저 눈에 들어오게 합니다 */
+.app-kv dt {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	color: #4b5563;
+	font-weight: 500;
+	white-space: nowrap;
+}
+.app-kv dt svg {
+	flex: 0 0 auto;
+	color: #6b7280;
+}
+.app-kv dd {
+	margin: 0;
+	color: #111827;
+	font-weight: 600;
+	word-break: keep-all;
+	overflow-wrap: anywhere;
+}
+.app-kv dd.note {
+	display: -webkit-box;
+	-webkit-line-clamp: 3;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+	white-space: pre-line;
+	color: #4b5563;
+	font-weight: 500;
+}
+.app-foot {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 8px 16px;
+	flex-wrap: wrap;
+	padding-top: 14px;
+	border-top: 1px solid var(--card-border);
+}
+.app-price {
+	font-size: 14px;
+	color: var(--ink-body);
+}
+.app-price b {
+	margin: 0 4px 0 6px;
+	font-size: 20px;
+	font-weight: 800;
+	color: var(--brand-dark);
+}
+.app-price small {
+	color: #6b7280;
+	font-size: 12.5px;
+} /* '(기본 2시간)' — 기존 --ink-sub(회색 4단계)보다 한 톤 진하게 */
+/* 카드 우측 상단: 총 예상 금액을 굵고 큼직하게 배치(핵심 정보를 첫눈에) */
+.app-price-top {
+	flex: none;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	text-align: right;
+	gap: 2px;
+}
+.app-price-top .app-price-label {
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--ink-sub);
+}
+.app-price-top b {
+	margin: 0;
+	font-size: 24px;
+	font-weight: 800;
+	color: var(--ink);
+	letter-spacing: -0.02em;
+}
+.app-price-top small {
+	color: var(--ink-sub);
+	font-size: 12px;
+}
+/* ?debug 테스트 모드 안내 · 내 계정에 연결되지 않은 신청 표시 */
+.app-debug {
+	margin: 0 0 14px;
+	padding: 9px 12px;
+	border-radius: var(--radius-sm);
+	background: #f3f0ff;
+	color: #4b3f8f;
+	font-size: 13px;
+	line-height: 1.5;
+	word-break: keep-all;
+}
+.app-debug-chip {
+	display: inline-block;
+	margin: -4px 0 12px;
+	padding: 3px 10px;
+	border-radius: 9999px;
+	background: #fdecea;
+	color: #a32b1e;
+	font-size: 12px;
+	font-weight: 700;
+	word-break: break-all;
+}
+.app-date {
+	font-size: 12.5px;
+	color: #6b7280;
+} /* '9월 24일 신청 ·' — 한 톤 진하게 */
+.app-date .app-rel {
+	font-weight: 700;
+	color: #374151;
+} /* '13시간 전' — 더 또렷하게 */
+/* 신청일 아래: 경과 시간 · 매칭(표시) 남은 시간. 6시간 이하로 남으면 어스톤으로 알림 */
+.app-meta {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 6px;
+	margin-left: auto;
+}
+.app-timer {
+	display: inline-block;
+	padding: 3px 10px;
+	border-radius: 9999px;
+	background: var(--neutral-badge-bg);
+	color: var(--neutral-badge-fg);
+	font-size: 12px;
+	font-weight: 600;
+	white-space: nowrap;
+}
+.app-timer.is-soon {
+	background: var(--earth-bg);
+	color: var(--earth-fg);
+} /* 마감 임박 — 의도적 경고색 예외 */
+.app-hint {
+	margin: 12px 0 0;
+	padding: 9px 12px;
+	border-radius: var(--radius-sm);
+	background: var(--bg);
+	font-size: 13px;
+	color: #374151;
+	word-break: keep-all;
+} /* 하단 안내문구 — 기존 --ink-body보다 한 톤 진하게 */
+/* 케어 완료 카드 하단: 안내문/리포트 버튼 + [확인 및 이용 완료] 버튼을 세로로 쌓아서 보여줌 */
+.app-done-actions {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin-top: 12px;
+}
+.app-done-actions .app-hint {
+	margin-top: 0;
+}
+.app-done-actions .btn {
+	width: 100%;
+}
+/* [신청 취소하기]: 결제/확정 같은 주요 액션과 헷갈리지 않도록 버튼이 아니라 작은 밑줄 텍스트
+   링크로 두고, 왼쪽에 작게 배치합니다. */
+.app-cancel-link {
+	align-self: flex-start;
+	border: none;
+	background: none;
+	padding: 2px 0;
+	margin: 0;
+	font: inherit;
+	font-size: 12.5px;
+	color: #9ca3af;
+	text-decoration: underline;
+	text-underline-offset: 3px;
+	cursor: pointer;
+}
+.app-cancel-link:hover {
+	color: #4b5563;
+}
+/* [케어 리포트 보기]·[케어 이용 완료 확정] 두 버튼을 한 줄에 50%씩 — 모바일 좁은 화면에서도
+   두 라벨이 한 줄로 들어오도록 이 안에서만 패딩/폰트를 살짝 줄입니다(.btn-sm/.btn-confirm 각각의
+   기본 패딩에 기대면 둘 중 어느 쪽이 이기는지가 스타일시트 선언 순서에 좌우돼 예측하기 어려워,
+   이 줄 안에서는 명시적으로 고정합니다). */
+.app-done-btn-row {
+	display: flex;
+	gap: 10px;
+}
+.app-done-btn-row .btn {
+	flex: 1;
+	width: auto;
+	padding: 10px 12px;
+	font-size: 13.5px;
+	min-height: 44px;
+	white-space: nowrap;
+}
+
+/* ---------- 일정 변경 제안 (매니저가 mypage-manager.html 에서 보낸 제안을 보호자가 확인·수락/거절) ---------- */
+.propose-box {
+	margin: 0 0 16px;
+	padding: 16px;
+	background: var(--earth-bg);
+	border: 1px solid var(--earth-line);
+	border-radius: var(--radius);
+}
+.propose-label {
+	font-size: 12px;
+	font-weight: 700;
+	color: var(--earth-fg);
+	margin-bottom: 4px;
+}
+.propose-value {
+	font-size: 16px;
+	font-weight: 800;
+	color: var(--ink);
+	letter-spacing: -0.01em;
+	word-break: keep-all;
+}
+.propose-hint {
+	margin: 8px 0 0;
+	font-size: 12.5px;
+	color: var(--ink-body);
+	line-height: 1.5;
+	word-break: keep-all;
+}
+.propose-actions {
+	display: flex;
+	gap: 10px;
+	margin-top: 12px;
+}
+.propose-actions .btn,
+.propose-actions .btn-ghost {
+	flex: 1;
+}
+
+/* ---------- 매니저의 GPS/사진 인증 내역 보기 링크 (담당 매니저 카드 안, 이름 아래에 작게) ----------
+   예전엔 '동행 진행 현황'이라는 별도 박스에 출발/도착 상태를 텍스트로도 나열했지만, 그 상태는 위
+   스테퍼(app-stepper)와 완전히 중복되는 정보라 삭제했습니다. 스테퍼에는 없는, 매니저가 실제로 남긴
+   GPS/사진 '증빙'만 보고 싶을 때 누르는 최소한의 텍스트 링크만 남겼습니다. */
+.manager-verify-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 14px;
+	margin-top: 6px;
+}
+.manager-verify-btn {
+	border: none;
+	background: none;
+	padding: 0;
+	margin: 0;
+	font: inherit;
+	font-size: 12.5px;
+	font-weight: 700;
+	color: var(--brand-dark);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+	cursor: pointer;
+}
+.manager-verify-btn:hover {
+	color: var(--brand);
+}
+
+/* ---------- 케어 진행 단계 프로그레스 바 (실제 신청 카드: 접수 완료 → 배정 완료 → 이동 중 → 현장/병원 도착 → 케어 완료) ---------- */
+/* 카드 안에 들어가는 축소판이라 바깥 여백만 좁힙니다 — 색·타이포는 아래 기본 .stepper 와 완전히 같습니다. */
+.app-stepper {
+	margin: 2px 0 18px;
+}
+.app-stepper .step {
+	font-size: 12px;
+	padding: 9px 4px 8px;
+}
+
+/* ---------- 케어 진행 단계: 번호 원형 아이콘 대신 라벨 텍스트로 채운 상태 바 ----------
+   각 단계를 하나의 텍스트 세그먼트로 두고, 아래쪽 굵은 선으로 '지나온 길'을 표시합니다.
+   - 완료된 단계: 체크 표시 + 회색조(눈에 띄되 현재 단계보다는 차분하게)
+   - 현재 단계: 브랜드 테마 컬러 + 굵은 글자 + 연한 배경으로 강조 */
+.stepper {
+	display: flex;
+	flex-wrap: wrap;
+	list-style: none;
+	margin: 0 0 28px;
+	padding: 0;
+	gap: 4px;
+}
+.step {
+	flex: 1 1 auto;
+	min-width: 84px;
+	text-align: center;
+	padding: 12px 6px 11px;
+	border-bottom: 4px solid #d1d5db;
+	color: var(--ink-sub);
+	font-size: 13.5px;
+	font-weight: 600; /* 아직 지나지 않은 단계: 카드 테두리(다크)와 구분되는 옅은 트랙 색 유지 */
+	transition:
+		color 0.15s ease,
+		border-color 0.15s ease,
+		background-color 0.15s ease;
+}
+.step-label {
+	word-break: keep-all;
+}
+.step-check {
+	margin-right: 3px;
+	font-weight: 800;
+}
+/* 완료된 단계: --brand(sage-500) 대신 --brand-dark(sage-700)로 체크 표시 — sage-500 은 흰 배경 위에서
+   명도비가 약 3.5:1 로 낮아(WCAG AA 미달) 흐릿하게 보였습니다. sage-700 은 약 5.2:1 로 또렷합니다. */
+.step.is-done {
+	color: var(--ink-body);
+	border-color: var(--brand-line);
+}
+.step.is-done .step-check {
+	color: var(--brand-dark);
+}
+.step.is-current {
+	color: var(--brand-dark);
+	font-weight: 800;
+	border-color: var(--brand-dark);
+	background: var(--brand-soft);
+	border-radius: var(--radius-sm);
+	animation: wb-step-pulse 1.8s ease-in-out infinite; /* 지금 진행 중인 단계만 숨쉬듯 깜박여 시선을 끔 */
+}
+@keyframes wb-step-pulse {
+	0%,
+	100% {
+		box-shadow: 0 0 0 0 rgba(120, 134, 107, 0.35);
+	}
+	50% {
+		box-shadow: 0 0 0 5px rgba(120, 134, 107, 0);
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.step.is-current {
+		animation: none;
+	}
+}
+
+.manager {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	padding: 16px 18px;
+	background: var(--surface-soft);
+	border: 1px solid var(--card-border);
+	border-radius: var(--radius);
+}
+.manager-avatar {
+	width: 52px;
+	height: 52px;
+	border-radius: 50%;
+	flex-shrink: 0;
+	background: var(--brand);
+	color: #fff;
+	font-size: 20px;
+	font-weight: 700;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.manager-info {
+	flex: 1;
+	min-width: 0;
+}
+.manager-role {
+	font-size: 12.5px;
+	color: var(--brand-dark);
+	font-weight: 700;
+}
+.manager-name {
+	font-size: 17px;
+	font-weight: 700;
+	color: var(--ink);
+}
+.manager-meta {
+	font-size: 13px;
+	color: #6b7280;
+} /* 연락처 등 보조 텍스트 — 한 톤 진하게 */
+.manager-meta-fallback {
+	flex: 1 1 auto;
+	margin: 0;
+	min-width: 0;
+}
+.manager-actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+	flex: none;
+}
+/* 신청 카드 안의 '담당 매니저' 영역 (배정 완료된 신청에만 표시): 부드러운 회색 배경으로 카드에 녹아들게 하고,
+   아바타·이름을 카드 메인 타이틀(18px/700)보다 확실히 작게 잡아 시선이 제목보다 튀지 않게 합니다. */
+.manager.app-manager {
+	flex-wrap: wrap;
+	gap: 12px;
+	margin: 0 0 16px;
+	padding: 16px;
+	background: var(--surface-soft);
+	border: 1px solid var(--card-border);
+}
+.app-manager .manager-avatar {
+	width: 38px;
+	height: 38px;
+	font-size: 15px;
+}
+.app-manager .manager-name {
+	font-size: 15px;
+}
+.app-manager .manager-meta a {
+	color: var(--brand-dark);
+	font-weight: 700;
+}
+/* 단 하나의 핵심 행동 버튼을 카드 최하단에 눈에 띄게: 프로필 줄 아래로 줄바꿈해 전체 폭을 차지시킴 */
+.app-manager .manager-actions {
+	flex: 1 1 100%;
+	width: 100%;
+}
+.app-manager .manager-actions .manager-info-btn {
+	width: 100%;
+	justify-content: center;
+}
+
+/* ---------- 어르신 / 리포트 리스트 ---------- */
+.list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+/* 좌측 '케어 현황'의 .app-card 와 여백·모서리 곡률·그림자를 그대로 맞춰 사이드바도 같은 무게의 카드로 보이게 함 */
+.list-item {
+	padding: 26px;
+	background: #fff;
+	border: 1px solid var(--card-border);
+	border-radius: var(--radius);
+	box-shadow: var(--shadow-card);
+	transition: box-shadow 0.15s ease;
+}
+.list-item:hover {
+	box-shadow: var(--shadow-card-hover);
+}
+/* 어르신 카드 헤더: 이름(굵게) + "만 나이 · 성별"을 한 뱃지로 묶어 한눈에 파악되게 하고, 수정/삭제는
+   원형 아이콘 버튼 대신 아이콘+텍스트가 함께 보이는 버튼으로 우측 상단에 명확히 둡니다. 헤더 아래
+   구분선으로 바디([기본 정보]/[케어 정보] 섹션)와 시각적으로 분리합니다. */
+.senior-top {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 14px;
+	margin-bottom: 20px;
+	padding-bottom: 18px;
+	border-bottom: 1px solid var(--card-border);
+}
+.senior-top-id {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+	min-width: 0;
+}
+.senior-name {
+	font-size: 19px;
+	font-weight: 800;
+	letter-spacing: -0.02em;
+	color: var(--ink);
+} /* 카드에서 가장 먼저 눈에 띄도록 app-title 과 같은 무게로 */
+.senior-meta-badge {
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--brand-dark);
+	background: var(--brand-soft);
+	padding: 4px 13px;
+	border-radius: 9999px;
+	white-space: nowrap;
+}
+.senior-actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex: none;
+}
+.senior-action-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 8px 14px;
+	border: 1px solid var(--card-border);
+	border-radius: 9999px;
+	background: #fff;
+	color: var(--ink-sub);
+	font-size: 13px;
+	font-weight: 700;
+	cursor: pointer;
+	white-space: nowrap;
+	transition:
+		background-color 0.15s ease,
+		color 0.15s ease,
+		border-color 0.15s ease,
+		transform 0.15s ease;
+}
+.senior-action-btn svg {
+	display: block;
+	flex: none;
+}
+.senior-action-btn:hover {
+	background: var(--sec-bg-hover);
+	color: var(--ink);
+	transform: translateY(-1px);
+}
+.senior-action-btn.is-danger:hover {
+	background: #fdf1ef;
+	color: var(--danger);
+	border-color: #f5d5ce;
+}
+.senior-action-btn:active {
+	transform: translateY(0) scale(0.96);
+}
+/* 여러 어르신을 등록했을 때 사이드바가 한없이 길어지지 않도록, 이름 탭으로 전환하며 한 명씩 보여줍니다
+   (한 명뿐이면 탭 없이 카드만 보여줌 — renderSeniorTabsAndCard 참고) */
+.senior-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-bottom: 12px;
+}
+.senior-tab {
+	padding: 8px 14px;
+	border: 1px solid var(--card-border);
+	border-radius: var(--radius-sm);
+	background: #fff;
+	color: var(--ink-sub);
+	font-size: 13px;
+	font-weight: 700;
+	cursor: pointer;
+	transition:
+		background-color 0.15s ease,
+		color 0.15s ease,
+		border-color 0.15s ease;
+}
+.senior-tab:hover {
+	background: var(--sec-bg);
+}
+.senior-tab.is-active {
+	background: var(--brand-soft);
+	border-color: var(--brand-line);
+	color: var(--brand-dark);
+}
+
+/* 어르신 프로필 정보: [기본 정보](연락처·주소) / [케어 정보](거동 상태·자주 가는 병원) 를 좌우 두
+   섹션으로 나눠 성격이 다른 정보를 한눈에 구분하고, 특이사항은 그 아래 별도 박스로 분리합니다. */
+.list-item.senior-card {
+	padding: 30px;
+}
+.senior-section-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 16px;
+	margin-bottom: 16px;
+}
+.senior-section {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	min-width: 0;
+	padding: 18px 18px 20px;
+	background: var(--surface-soft);
+	border: 1px solid var(--card-border);
+	border-radius: var(--radius-sm);
+}
+.senior-section-title {
+	margin: 0;
+	font-size: 12px;
+	font-weight: 800;
+	color: var(--brand-dark);
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+.senior-info-item {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	min-width: 0;
+}
+.senior-info-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: none;
+	margin-top: 1px;
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	background: #fff;
+	color: var(--ink-sub);
+	border: 1px solid var(--card-border);
+}
+.senior-info-icon svg {
+	display: block;
+}
+.senior-info-body {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+	min-width: 0;
+}
+.senior-info-label {
+	font-size: 12.5px;
+	color: var(--ink-sub);
+	font-weight: 600;
+}
+.senior-info-value {
+	font-size: 14.5px;
+	color: var(--ink);
+	font-weight: 600;
+	word-break: break-all;
+}
+/* 주소의 상세주소(동/호수)처럼 기본값에 딸린 보조 줄 — 본문보다 한 톤 옅게 */
+.senior-info-value-sub {
+	font-size: 13px;
+	color: var(--ink-sub);
+	font-weight: 500;
+	word-break: break-all;
+}
+/* 도로명 주소 + 상세주소처럼 값 한 칸에 두 줄을 쌓아야 할 때 (senior-info-value/-sub 를 세로로 배치) */
+.senior-info-stack {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+.senior-info-empty {
+	font-size: 13.5px;
+	color: var(--ink-sub);
+}
+/* 거동 상태: 세이지 그린 톤의 옅은 뱃지로 강조 */
+.senior-mobility-badge {
+	display: inline-flex;
+	align-self: flex-start;
+	align-items: center;
+	padding: 4px 13px;
+	border-radius: 9999px;
+	font-size: 13px;
+	font-weight: 700;
+	background: var(--sage-100);
+	color: var(--sage-700);
+}
+/* 자주 가는 병원: 둥근 태그로 묶어 값이 길어도 가독성을 유지 */
+.senior-chip-group {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 7px;
+}
+.senior-chip {
+	display: inline-flex;
+	max-width: 100%;
+	align-items: center;
+	padding: 6px 13px;
+	border-radius: 9999px;
+	background: #fff;
+	border: 1px solid var(--card-border);
+	font-size: 13.5px;
+	font-weight: 600;
+	color: var(--ink-body);
+	word-break: keep-all;
+}
+/* 특이사항: 두 섹션과는 다른 옅은 회색 박스로 분리해 '참고 메모'라는 성격을 시각적으로 드러냄 */
+.senior-note-box {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	padding: 16px 18px;
+	background: var(--sec-bg);
+	border: 1px solid var(--card-border);
+	border-radius: var(--radius-sm);
+}
+.senior-note-box .senior-info-icon {
+	background: #fff;
+}
+/* 주소: 라벨은 또렷한 회색(gray-600), 값은 gray-900 + semibold 로 대비를 줌(app-kv 와 같은 규칙) */
+.kv {
+	display: grid;
+	grid-template-columns: 72px 1fr;
+	gap: 7px 12px;
+	margin: 0;
+	font-size: 14px;
+}
+.receipt-kv {
+	grid-template-columns: 96px 1fr;
+} /* '담당 매니저' 등 긴 라벨이 있어 기본 kv 보다 라벨 칸을 넓힘 */
+.kv dt {
+	color: #4b5563;
+	font-weight: 500;
+}
+.kv dd {
+	margin: 0;
+	color: #111827;
+	font-weight: 600;
+	word-break: break-all;
+}
+
+.error-box small {
+	display: block;
+	margin: 6px 0 10px;
+	color: #7a2f26;
+}
+
+/* ---------- 모달 / 토스트 ---------- */
+.modal-backdrop {
+	position: fixed;
+	inset: 0;
+	z-index: 200;
+	padding: 16px;
+	background: rgba(15, 23, 42, 0.5);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overscroll-behavior: contain; /* 팝업 바깥(어두운 배경)을 끌어도 뒤 페이지로 스크롤이 넘어가지 않게 */
+}
+/* 팝업이 열려 있는 동안(아래 lockScrollWhileModalOpen 스크립트가 html 에 붙임) 뒤 페이지 스크롤 잠금 */
+html.wb-modal-open,
+html.wb-modal-open body {
+	overflow: hidden;
+}
+/* 팝업 안 스크롤 영역: 끝까지 내려도 뒤 페이지로 스크롤이 이어지지(scroll chaining) 않게 */
+.modal,
+.modal-senior-body {
+	overscroll-behavior: contain;
+	-webkit-overflow-scrolling: touch;
+}
+.modal {
+	width: 100%;
+	max-width: 440px;
+	max-height: calc(100vh - 32px);
+	overflow-y: auto;
+	background: #fff;
+	border: 1px solid var(--card-border);
+	border-radius: var(--radius);
+	padding: 28px;
+	box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+}
+.modal.modal-sm {
+	max-width: 380px;
+} /* 확인/취소만 있는 짧은 확인 모달(네이티브 confirm() 대체용) */
+.modal h3 {
+	margin: 0 0 4px;
+	font-size: 20px;
+	color: var(--ink);
+}
+.modal .modal-sub {
+	margin: 0 0 20px;
+	font-size: 13.5px;
+	color: var(--ink-sub);
+}
+.field {
+	margin-bottom: 14px;
+}
+.field label {
+	display: block;
+	margin-bottom: 4px;
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--ink);
+}
+.field input,
+.field textarea {
+	width: 100%;
+	min-width: 0;
+	box-sizing: border-box;
+	padding: 12px 14px;
+	border: 1px solid var(--input-border);
+	border-radius: var(--radius-sm);
+	font: inherit;
+	color: var(--ink);
+	background: #fff;
+	outline: none;
+	transition:
+		border-color 0.15s ease,
+		box-shadow 0.15s ease;
+}
+.field input:focus,
+.field textarea:focus {
+	border-color: #9ca3af;
+	box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.15);
+}
+.field textarea {
+	height: 84px;
+	resize: vertical;
+}
+/* 성별 / 거동 상태 상세 라디오 그룹 — 어르신 등록 모달 */
+.field-options {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 16px;
+	margin-top: 2px;
+}
+.field-options label {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 13.5px;
+	font-weight: 600;
+	color: var(--ink);
+	margin: 0;
+	cursor: pointer;
+}
+.field-options input[type="radio"] {
+	margin: 0;
+	width: 16px;
+	height: 16px;
+	accent-color: var(--brand);
+	cursor: pointer;
+}
+.field-checkbox-row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin-top: 8px;
+	font-size: 12.5px;
+	color: var(--ink-sub);
+}
+.field-checkbox-row input[type="checkbox"] {
+	margin: 0;
+	width: 15px;
+	height: 15px;
+	accent-color: var(--brand);
+	cursor: pointer;
+}
+.field-checkbox-row label {
+	margin: 0;
+	cursor: pointer;
+}
+.form-hint {
+	margin: 0 0 10px;
+	font-size: 12.5px;
+	color: var(--ink-sub);
+	line-height: 1.5;
+}
+.modal-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-top: 20px;
+}
+.modal-actions .btn {
+	flex: 1 1 140px;
+	padding: 14px;
+}
+.form-error {
+	margin: 0 0 12px;
+	color: var(--danger);
+	font-size: 13.5px;
+}
+/* 입력 오류 표시(어르신 등록/수정 모달) — 저장 시 필수값이 비었거나 형식이 틀린 칸을 빨간 테두리·옅은
+   빨간 배경·빨간 라벨로 표시하고, 칸 바로 아래에 이유를 적습니다. 값을 고치면 그 칸 표시만 바로 사라집니다
+   (setSeniorFieldError / clearSeniorFieldError). 날짜 칸은 wb-datepicker.js 의 버튼(.wbdp-trigger)에 표시합니다. */
+.field.has-error > label {
+	color: var(--danger);
+}
+.field.has-error > input,
+.field.has-error > textarea,
+.field.has-error .field-search-row input,
+.field.has-error .wbdp-trigger {
+	border-color: var(--danger) !important;
+	background-color: #fff5f5 !important;
+	box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12) !important;
+}
+.field-error {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	margin: 6px 2px 0;
+	font-size: 12.5px;
+	font-weight: 600;
+	line-height: 1.45;
+	color: var(--danger);
+	word-break: keep-all;
+}
+.field-error::before {
+	content: "!";
+	flex: none;
+	display: inline-grid;
+	place-items: center;
+	width: 15px;
+	height: 15px;
+	border-radius: 50%;
+	background: var(--danger);
+	color: #fff;
+	font-size: 10.5px;
+	font-weight: 800;
+	line-height: 1;
+}
+
+/* ---------- 어르신 등록/수정 모달 ----------
+   헤더(제목 + 닫기 버튼) / 본문(스크롤 영역) / 하단 버튼을 각각 독립된 flex 영역으로 나눠, 본문만
+   스크롤되고 헤더·푸터는 항상 고정되어 보이게 합니다. 예전에는 .modal 자체가 스크롤 컨테이너였는데,
+   overflow-y:auto 만 주고 overflow-x 를 안 정해 두면 브라우저가 overflow-x 를 자동으로 auto 로
+   취급합니다(CSS 스펙) — 거기에 하단 버튼 영역의 음수 마진(가로로 꽉 채우려는 트릭)이 겹쳐 모달
+   폭을 살짝 넘기면서 불필요한 가로 스크롤바가 생겼던 것이 원인입니다. 지금은 바깥 .modal-senior
+   자체는 overflow: hidden 으로 완전히 막고, 안쪽 .modal-senior-body 하나만 overflow-y:auto +
+   overflow-x:hidden 으로 명확히 분리해 가로 스크롤이 생길 여지를 구조적으로 없앱니다. */
+.modal.modal-senior {
+	max-width: 680px;
+	width: 100%;
+	max-height: calc(100vh - 56px);
+	padding: 0;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+}
+.modal-senior-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+	flex: none;
+	padding: 26px 28px 20px;
+	border-bottom: 1px solid var(--card-border);
+}
+.modal-senior-header h3 {
+	margin: 0 0 4px;
+}
+.modal-senior-header .modal-sub {
+	margin: 0;
+}
+.modal-senior-close {
+	flex: none;
+	width: 34px;
+	height: 34px;
+	border: none;
+	border-radius: 50%;
+	background: transparent;
+	padding: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--ink-sub);
+	cursor: pointer;
+	transition:
+		background-color 0.15s ease,
+		color 0.15s ease;
+}
+.modal-senior-close svg {
+	display: block;
+}
+.modal-senior-close:hover {
+	background: var(--sec-bg-hover);
+	color: var(--ink);
+}
+.modal-senior-body {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	overflow-x: hidden;
+	padding: 24px 28px;
+}
+/* [기본 정보] / [건강·동행 정보] 두 섹션을 옅은 구분선으로 나눔 */
+.form-section {
+	padding-bottom: 22px;
+	margin-bottom: 22px;
+	border-bottom: 1px solid var(--card-border);
+}
+.form-section:last-of-type {
+	border-bottom: none;
+	margin-bottom: 0;
+	padding-bottom: 0;
+}
+.form-section-title {
+	margin: 0 0 16px;
+	font-size: 12.5px;
+	font-weight: 800;
+	color: var(--brand-dark);
+	letter-spacing: 0.03em;
+	text-transform: uppercase;
+}
+/* 성별 / 생년월일처럼 짝을 이루는 소형 필드는 2열로 나란히 배치해 수직 길이를 줄임.
+   grid-template-columns 를 minmax(0, 1fr) 로 둬야 날짜 입력칸(type=date)의 기본 폭 때문에
+   칸이 모달 밖으로 밀려나며 가로 스크롤이 생기는 것을 막을 수 있습니다. */
+.field-row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	gap: 16px;
+	margin-bottom: 14px;
+}
+.field-row .field {
+	margin-bottom: 0;
+	min-width: 0;
+}
+/* 거주지 주소 + 상세 주소, 자주 가는 병원 + 상세 위치처럼 '기본 입력 + 상세 입력' 묶음은 옅은 배경의
+   박스로 감싸 한 쌍이라는 것이 시각적으로 또렷하게 구분되게 합니다 */
+.field-pair {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	margin-bottom: 14px;
+	padding: 14px 16px;
+	background: var(--surface-soft);
+	border: 1px solid var(--card-border);
+	border-radius: var(--radius-sm);
+}
+.field-pair .field {
+	margin-bottom: 0;
+}
+/* 거주지 주소 / 자주 가는 병원: 읽기 전용 기본 입력(검색으로만 채워짐) + [검색] 버튼 (apply.html
+   출발지·목적지 검색 행과 같은 패턴 — wb-place-search.js / 카카오 우편번호 팝업으로 채움) */
+.field-search-row {
+	display: flex;
+	gap: 8px;
+}
+.field-search-row input {
+	flex: 1 1 auto;
+	min-width: 0;
+	background: var(--surface-soft);
+	cursor: pointer;
+}
+.field-search-btn {
+	flex: none;
+	padding: 0 16px;
+	min-height: 44px;
+	border: 1px solid var(--brand-line);
+	border-radius: var(--radius-sm);
+	background: var(--brand-soft);
+	color: var(--brand-dark);
+	font-size: 13.5px;
+	font-weight: 700;
+	cursor: pointer;
+	white-space: nowrap;
+	transition: background-color 0.15s;
+}
+.field-search-btn:hover {
+	background: var(--brand-line);
+}
+.field-addr-note {
+	margin: 6px 2px 0;
+	font-size: 12.5px;
+	font-weight: 600;
+	color: var(--brand-dark);
+	word-break: keep-all;
+}
+/* 성별 / 거동 상태 상세: 라디오 버튼 대신 버튼 칩(세그먼트 컨트롤)으로. 라디오는 그대로 유지하되
+   화면에서는 숨기고, 감싸는 label 전체를 칩으로 스타일링해 선택 상태를 :has() 로 반영합니다. */
+.chip-group {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 2px;
+}
+.chip-option {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 9px 16px;
+	border: 1px solid var(--input-border);
+	border-radius: 9999px;
+	font-size: 13.5px;
+	font-weight: 600;
+	color: var(--ink-body);
+	background: #fff;
+	cursor: pointer;
+	transition:
+		background-color 0.15s ease,
+		color 0.15s ease,
+		border-color 0.15s ease;
+}
+.chip-option input {
+	position: absolute;
+	width: 0;
+	height: 0;
+	opacity: 0;
+	pointer-events: none;
+}
+.chip-option:hover {
+	border-color: var(--sage-400);
+}
+.chip-option:has(input:checked) {
+	background: #4a5d4e;
+	border-color: #4a5d4e;
+	color: #fff;
+	font-weight: 700;
+}
+.chip-option:has(input:focus-visible) {
+	outline: 2px solid var(--sage-400);
+	outline-offset: 2px;
+}
+/* 하단 취소/저장 버튼: 헤더와 마찬가지로 flex 레이아웃의 고정 영역이라, 본문을 아무리 스크롤해도
+   항상 모달 하단에 붙어 보입니다(sticky 트릭이 아니라 구조적으로 항상 보이는 영역) */
+.modal-senior-footer {
+	flex: none;
+	margin: 0;
+	padding: 16px 28px;
+	background: #fff;
+	border-top: 1px solid var(--card-border);
+}
+.target {
+	margin-bottom: 18px;
+	padding: 12px 14px;
+	border-radius: var(--radius);
+	background: var(--brand-soft);
+	font-size: 14px;
+	font-weight: 700;
+}
+
+/* ---------- 이용 내역 & 케어 리포트: 월간 캘린더 (mypage-manager.html 의 달력 모듈을 보호자용으로 이식) ---------- */
+/* 데스크톱 기준 캘린더:요약 = 8:4(2:1) 비율 */
+.cal-split {
+	display: grid;
+	grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+	gap: 28px;
+	align-items: stretch;
+}
+.cal-left,
+.cal-right {
+	min-width: 0;
+}
+/* h-full flex flex-col justify-start gap-4 p-6: 캘린더(왼쪽) 전체 높이와 항상 같아지도록
+   grid stretch + height:100% 를 함께 주되, 제목·요약을 양끝으로 밀어내지 않고 위에서부터
+   한 그룹으로 차곡차곡 쌓아 중간이 비어 보이지 않게 합니다. */
+.cal-right {
+	height: 100%;
+	padding: 24px;
+	background: #fff;
+	border: 1px solid var(--card-border);
+	border-radius: var(--radius-sm);
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-start;
+	gap: 16px;
+}
+/* border-b border-slate-200 pb-3 font-bold text-slate-800 */
+.cal-right-title {
+	margin: 0;
+	padding-bottom: 4px;
+	font-size: 14px;
+	font-weight: 800;
+	color: var(--ink);
+}
+.cal-right-hint {
+	margin: 0;
+	padding-bottom: 12px;
+	border-bottom: 1px solid var(--line);
+	font-size: 11.5px;
+	color: var(--ink-sub);
+}
+/* bg-slate-50 p-4 rounded-xl: 캘린더 흰 셀과 대비되는 연한 회색 톤 박스로 3개 항목을 묶어 균형을 맞춤 */
+.cal-summary-v {
+	display: flex;
+	flex-direction: column;
+	background: var(--surface-soft);
+	padding: 16px;
+	border-radius: var(--radius);
+}
+.cal-summary-v .cal-stat {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	background: transparent;
+	border: none;
+	border-radius: var(--radius);
+	padding: 8px 2px; /* py-2 */
+}
+.cal-summary-v .cal-stat:not(:last-child) {
+	border-bottom: 1px solid var(--card-border);
+}
+/* '210,000원' 등 핵심 숫자의 가독성을 높이기 위해 더 크고 진하게 */
+.cal-summary-v .cal-stat b {
+	font-size: 18px;
+	font-weight: 800;
+}
+/* '지난 이용 내역' 카드 상단 소형 필터([전체]/[이용 완료]/[취소/환불]) — 캘린더가 보여줄 항목을 좁힙니다 */
+.cal-filter-bar {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 18px;
+	flex-wrap: wrap;
+}
+.cal-filter-chip {
+	padding: 7px 16px;
+	border-radius: 9999px;
+	border: 1px solid var(--card-border);
+	background: #fff;
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--ink-sub);
+	cursor: pointer;
+	transition:
+		background-color 0.15s,
+		border-color 0.15s,
+		color 0.15s;
+}
+.cal-filter-chip:hover {
+	border-color: var(--brand-line);
+}
+.cal-filter-chip.is-active {
+	background: var(--brand-dark);
+	border-color: var(--brand-dark);
+	color: #fff;
+}
+.cal-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 14px;
+	flex-wrap: wrap;
+	margin-bottom: 18px;
+}
+.cal-nav {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+}
+.cal-nav-btn {
+	width: 34px;
+	height: 34px;
+	border-radius: 50%;
+	border: 1px solid var(--card-border);
+	background: #fff;
+	color: var(--ink);
+	font-size: 16px;
+	font-weight: 700;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	transition:
+		background 0.15s,
+		border-color 0.15s;
+}
+.cal-nav-btn:hover {
+	background: var(--brand-soft);
+	border-color: var(--brand-line);
+}
+.cal-month {
+	min-width: 108px;
+	text-align: center;
+	font-size: 18px;
+	font-weight: 800;
+	letter-spacing: -0.02em;
+}
+.cal-stat {
+	padding: 8px 14px;
+	border-radius: var(--radius-sm);
+	background: var(--bg);
+	border: 1px solid var(--card-border);
+	font-size: 13px;
+	color: var(--ink-sub);
+	white-space: nowrap;
+}
+.cal-stat b {
+	margin-left: 4px;
+	font-size: 15px;
+	color: var(--ink);
+	font-variant-numeric: tabular-nums;
+}
+
+.cal-grid {
+	display: grid;
+	grid-template-columns: repeat(7, minmax(0, 1fr));
+	gap: 6px;
+}
+.cal-dow {
+	padding-bottom: 8px;
+	text-align: center;
+	font-size: 12px;
+	font-weight: 700;
+	color: var(--ink-sub);
+}
+.cal-dow.is-sun {
+	color: var(--danger);
+}
+.cal-dow.is-sat {
+	color: var(--brand-dark);
+}
+.cal-cell {
+	min-height: 58px;
+	padding: 6px 4px;
+	border-radius: var(--radius-sm);
+	border: 1px solid transparent;
+	background: var(--bg); /* rounded-2xl */
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+.cal-cell.is-pad {
+	background: transparent;
+}
+.cal-cell:not(.is-pad) {
+	cursor: pointer;
+	border-color: var(--card-border);
+	background: #fff;
+}
+.cal-cell:not(.is-pad):hover {
+	border-color: var(--brand);
+}
+/* 선택한 날짜(active): 굵은 테두리 대신 은은한 슬레이트 배경 + 얇은 테두리로 부드럽고 차분하게 */
+.cal-cell.is-selected {
+	border-color: #e2e8f0;
+	background: #f1f5f9;
+	box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+.cal-daynum {
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--ink);
+}
+.cal-cell.is-sun .cal-daynum {
+	color: var(--danger);
+}
+.cal-cell.is-sat .cal-daynum {
+	color: var(--brand-dark);
+}
+.cal-cell.is-today .cal-daynum {
+	background: var(--brand);
+	color: #fff;
+}
+.cal-count {
+	margin-top: 4px;
+	padding: 2px 7px;
+	border-radius: 9999px;
+	background: var(--brand);
+	color: #fff;
+	font-size: 11px;
+	font-weight: 700;
+	white-space: nowrap;
+}
+
+.cal-detail {
+	margin-top: 26px;
+	padding-top: 22px;
+	border-top: 1px solid var(--line);
+}
+.cal-detail-title {
+	margin: 0 0 12px;
+	font-size: 14px;
+	font-weight: 700;
+	color: var(--ink-sub);
+}
+.cal-detail-empty {
+	padding: 28px 16px;
+	text-align: center;
+	color: var(--ink-sub);
+	background: var(--bg);
+	border: 1px solid var(--card-border);
+	border-radius: var(--radius);
+	font-size: 14px;
+}
+.cal-case {
+	padding: 16px 18px;
+	background: var(--bg);
+	border: 1px solid var(--card-border);
+	border-radius: var(--radius);
+}
+.cal-case + .cal-case {
+	margin-top: 10px;
+}
+.cal-case-top {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	margin-bottom: 12px;
+}
+.cal-case-badges {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex: none;
+}
+/* 취소/환불된 건의 금액 뱃지: 실제로 청구되지 않았다는 걸 한눈에 알 수 있게 취소선 + 흐린 색 처리 */
+.badge.is-strike {
+	text-decoration: line-through;
+	color: var(--ink-sub);
+	background: var(--neutral-badge-bg);
+}
+.cal-case-time {
+	font-size: 16px;
+	font-weight: 800;
+}
+.cal-case-time-label {
+	display: block;
+	margin-bottom: 2px;
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--ink-sub);
+}
+.cal-case-time small {
+	margin-left: 6px;
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--ink-sub);
+}
+.cal-case .sched-foot {
+	margin-top: 14px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	flex-wrap: wrap;
+	font-size: 14px;
+	color: var(--ink-sub);
+}
+.receipt-link {
+	flex: none;
+	padding: 0;
+	border: none;
+	background: transparent;
+	color: var(--brand-dark);
+	font-size: 13.5px;
+	font-weight: 700;
+	text-decoration: underline;
+	text-underline-offset: 3px;
+	cursor: pointer;
+}
+.receipt-link:hover {
+	color: var(--ink);
+}
+.btn-outline-emerald {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	border: 1px solid var(--brand-line);
+	color: var(--brand-dark);
+	background: #fff;
+	padding: 6px 12px;
+	border-radius: var(--radius-sm);
+	font-size: 13.5px;
+	font-weight: 500;
+	cursor: pointer;
+	transition: background-color 0.15s;
+}
+.btn-outline-emerald:hover {
+	background: var(--brand-soft);
+}
+@media (max-width: 860px) {
+	.cal-split {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.toast {
+	position: fixed;
+	left: 50%;
+	bottom: 28px;
+	transform: translateX(-50%);
+	z-index: 300;
+	max-width: calc(100vw - 32px);
+	padding: 12px 22px;
+	border-radius: 9999px;
+	background: var(--ink);
+	color: #fff;
+	font-size: 14px;
+	font-weight: 500;
+	box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+}
+/* 추가 요금 결제 완료 알림: 자동으로 사라지는 토스트가 아니라, 사용자가 '확인'을 눌러야 닫히는
+   모달입니다. 색을 새로 만들지 않고 사이트의 다른 확인 모달과 같은 공통 컴포넌트
+   (.modal-backdrop/.modal/.btn-confirm — '케어 이용 완료 확정' 모달 등에서 이미 쓰는 것과 동일)를
+   그대로 재사용해 톤앤매너를 통일하고, 가운데 정렬 레이아웃만 이 모달에서 추가합니다. */
+.extra-charge-paid-overlay {
+	z-index: 9999;
+} /* 다른 모달 위에서도 항상 최상단에 뜨도록 */
+.extra-charge-paid-modal {
+	text-align: center;
+}
+.extra-charge-paid-icon {
+	width: 48px;
+	height: 48px;
+	margin: 0 auto 14px;
+	border-radius: 50%;
+	background: var(--brand-dark);
+	color: #fff;
+	font-size: 22px;
+	font-weight: 800;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.extra-charge-paid-confirm {
+	display: block;
+	width: 100%;
+}
+
+/* 추가 요금 미납 예약 제한(Lock) 안내: '예약하기'/'+추가 신청' 클릭 시 결제 대기 중인 추가 요금이
+   있으면 띄우는 모달 — 위 결제 완료 알림과 같은 .modal-backdrop/.modal/.btn-confirm 공용 컴포넌트를
+   재사용하고, 경고 톤만 다르게 줍니다(이 사이트의 다른 경고 문구와 같은 --danger 계열, line 167 참고). */
+.extra-charge-lock-overlay {
+	z-index: 9999;
+}
+.extra-charge-lock-modal {
+	text-align: center;
+}
+.extra-charge-lock-icon {
+	width: 48px;
+	height: 48px;
+	margin: 0 auto 14px;
+	border-radius: 50%;
+	background: #fdf1ef;
+	color: var(--danger);
+	font-size: 22px;
+	font-weight: 800;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.extra-charge-lock-confirm {
+	display: block;
+	width: 100%;
+}
+
+/* ---------- 케어 리포트 상세 모달: 헤더 정보 카드 · 동행 타임라인 · 진료/약제 · 컨디션 태그 · 증빙 사진 · 만족도 평가 ---------- */
+.rv-modal {
+	max-width: 560px;
+}
+.rv-meta-card {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-bottom: 18px;
+	padding: 16px 18px;
+	background: var(--brand-soft);
+	border: 1px solid var(--brand-line);
+	border-radius: var(--radius);
+}
+.rv-meta-row {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 12px;
+	font-size: 13.5px;
+}
+.rv-meta-label {
+	flex: none;
+	color: var(--brand-dark);
+	font-weight: 600;
+}
+.rv-meta-value {
+	text-align: right;
+	color: var(--ink);
+	font-weight: 700;
+	word-break: keep-all;
+}
+
+.rv-section {
+	margin: 0 0 20px;
+}
+.rv-section-title {
+	margin: 0 0 10px;
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--ink-sub);
+}
+.rv-text-box {
+	padding: 14px 16px;
+	background: var(--bg);
+	border: 1px solid var(--card-border);
+	border-radius: var(--radius-sm);
+	font-size: 14px;
+	line-height: 1.6;
+	color: var(--ink-body);
+	white-space: pre-line;
+	word-break: break-all;
+}
+.rv-memo {
+	margin: 0 0 10px;
+	font-size: 13px;
+	color: var(--ink-sub);
+	white-space: pre-line;
+}
+
+/* 동행 타임라인: 출발/미팅 → 병원 도착 → 진료 완료 → 귀가 이동 → 귀가 및 케어 완료(5단계).
+   한 단계 안에 시각·GPS 텍스트·인증 사진 썸네일까지 들어가야 해서, 가로 스테퍼(.stepper) 대신
+   세로 타임라인 전용 컴포넌트로 새로 만듭니다(왼쪽 번호+연결선, 오른쪽 콘텐츠). */
+.rv-timeline {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+}
+.rv-tl-step {
+	display: flex;
+	gap: 14px;
+	padding-bottom: 20px;
+}
+.rv-tl-step:last-child {
+	padding-bottom: 0;
+}
+.rv-tl-rail {
+	position: relative;
+	flex: none;
+	display: flex;
+	justify-content: center;
+}
+.rv-tl-rail::before {
+	/* 다음 단계로 이어지는 세로 연결선 */
+	content: "";
+	position: absolute;
+	top: 28px;
+	bottom: -20px;
+	left: 50%;
+	width: 2px;
+	background: var(--card-border);
+	transform: translateX(-50%);
+}
+.rv-tl-step:last-child .rv-tl-rail::before {
+	display: none;
+}
+.rv-tl-step.is-done .rv-tl-rail::before {
+	background: var(--brand-dark);
+}
+.rv-tl-dot {
+	position: relative;
+	z-index: 1;
+	flex: none;
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 13px;
+	font-weight: 700;
+	background: #fff;
+	border: 2px solid var(--card-border);
+	color: var(--ink-sub);
+}
+.rv-tl-step.is-done .rv-tl-dot {
+	background: var(--brand-dark);
+	border-color: var(--brand-dark);
+	color: #fff;
+} /* 에메랄드 체크 뱃지 */
+.rv-tl-content {
+	flex: 1;
+	min-width: 0;
+}
+.rv-tl-head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 10px;
+}
+.rv-tl-label {
+	font-size: 14px;
+	font-weight: 700;
+	color: var(--ink);
+}
+.rv-tl-time {
+	flex: none;
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--ink);
+	font-variant-numeric: tabular-nums;
+}
+.rv-tl-gps {
+	margin: 4px 0 0;
+	font-size: 12.5px;
+	color: var(--ink-sub);
+	word-break: break-all;
+	line-height: 1.5;
+}
+.rv-tl-gps-badge {
+	font-weight: 700;
+	color: var(--brand-dark);
+} /* GPS 인증 완료 — 에메랄드 톤으로 강조 */
+.rv-tl-photo {
+	margin-top: 8px;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 5px 12px 5px 5px;
+	border: 1px solid var(--card-border);
+	border-radius: var(--radius-sm);
+	background: #fff;
+	cursor: pointer;
+	transition: background-color 0.15s ease;
+}
+.rv-tl-photo:hover {
+	background: var(--brand-soft);
+}
+.rv-tl-photo img {
+	width: 36px;
+	height: 36px;
+	border-radius: var(--radius-sm);
+	object-fit: cover;
+	display: block;
+	flex: none;
+}
+.rv-tl-photo span {
+	font-size: 12.5px;
+	font-weight: 700;
+	color: var(--brand-dark);
+}
+/* is-none(슬레이트 톤): 실제 시각 기록이 없는 단계 — 번호·연결선·라벨·시간을 눈에 띄게 비활성화 처리 */
+.rv-tl-step.is-none .rv-tl-dot {
+	background: #f1f5f9;
+	border-color: #e2e8f0;
+	color: #94a3b8;
+}
+.rv-tl-step.is-none .rv-tl-rail::before {
+	background: #e2e8f0;
+}
+.rv-tl-step.is-none .rv-tl-label {
+	color: #94a3b8;
+}
+.rv-tl-step.is-none .rv-tl-time {
+	color: #cbd5e1;
+}
+
+/* 다음 병원 방문 예정일: 강조 뱃지 — 나머지 섹션과 같은 브랜드 톤이되, 눈에 띄도록 진하게 */
+.rv-next-visit {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin: -8px 0 20px;
+	padding: 12px 16px;
+	background: var(--brand-soft);
+	border: 1px solid var(--brand-line);
+	border-radius: var(--radius);
+}
+.rv-next-visit-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+.rv-next-visit-label {
+	font-size: 12.5px;
+	font-weight: 700;
+	color: var(--brand-dark);
+}
+.rv-next-visit-badge {
+	font-size: 15px;
+	font-weight: 800;
+	color: var(--ink);
+	font-variant-numeric: tabular-nums;
+}
+/* [다음 진료 동행 간편 예약하기] — 브랜드 메인 컬러(--sage-500 = #78866B)를 그대로 써서 한눈에 눈에 띄게 */
+.rv-rebook-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	width: 100%;
+	padding: 11px 16px;
+	border: none;
+	border-radius: var(--radius);
+	background: var(--brand);
+	color: #fff;
+	font-size: 14px;
+	font-weight: 800;
+	cursor: pointer;
+	transition:
+		background 0.15s,
+		transform 0.1s;
+}
+.rv-rebook-btn:hover {
+	background: var(--brand-dark);
+}
+.rv-rebook-btn:active {
+	transform: translateY(1px);
+}
+
+/* 어르신 컨디션 태그 */
+.rv-tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 0 0 10px;
+}
+.rv-tag {
+	padding: 4px 11px;
+	border-radius: 9999px;
+	background: var(--brand-soft);
+	color: var(--brand-dark);
+	font-size: 12.5px;
+	font-weight: 700;
+	white-space: nowrap;
+}
+
+/* 증빙 사진 썸네일 그리드 + 라이트박스 */
+.rv-photo-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 8px;
+}
+.rv-photo-thumb {
+	position: relative;
+	aspect-ratio: 1 / 1;
+	border-radius: var(--radius-sm);
+	overflow: hidden;
+	border: 1px solid var(--card-border);
+	background: var(--bg);
+	cursor: pointer;
+	padding: 0;
+}
+.rv-photo-thumb img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+	transition: transform 0.15s ease;
+}
+.rv-photo-thumb:hover img {
+	transform: scale(1.05);
+}
+.rv-photo-thumb-label {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	padding: 5px 7px;
+	font-size: 11px;
+	font-weight: 700;
+	color: #fff;
+	background: linear-gradient(0deg, rgba(0, 0, 0, 0.6), transparent);
+	text-align: left;
+}
+.rv-lightbox-backdrop {
+	z-index: 400;
+	background: rgba(15, 23, 42, 0.85);
+}
+.rv-lightbox {
+	position: relative;
+	width: 100%;
+	max-width: min(640px, 92vw);
+}
+.rv-lightbox img {
+	width: 100%;
+	border-radius: var(--radius-sm);
+	display: block;
+	box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+}
+.rv-lightbox-caption {
+	margin: 12px 0 0;
+	text-align: center;
+	color: #fff;
+	font-size: 13.5px;
+	font-weight: 600;
+}
+.rv-lightbox-close {
+	position: absolute;
+	top: -42px;
+	right: 0;
+	width: 34px;
+	height: 34px;
+	border-radius: 50%;
+	border: none;
+	background: rgba(255, 255, 255, 0.15);
+	color: #fff;
+	font-size: 16px;
+	cursor: pointer;
+	transition: background-color 0.15s;
+}
+.rv-lightbox-close:hover {
+	background: rgba(255, 255, 255, 0.28);
+}
+
+/* 만족도 평가 패널: [닫기] 옆 버튼을 누르면 액션 줄 위에 펼쳐짐 */
+.rv-rate-btn.is-open {
+	color: var(--brand-dark);
+	border-color: var(--brand-line);
+	background: var(--brand-soft);
+}
+.rv-rate-panel {
+	margin: 0 0 14px;
+	padding: 14px 16px;
+	background: var(--bg);
+	border: 1px solid var(--card-border);
+	border-radius: var(--radius);
+	text-align: center;
+}
+.rv-rate-question {
+	margin: 0 0 10px;
+	font-size: 13.5px;
+	font-weight: 700;
+	color: var(--ink);
+}
+.rv-rate-stars {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	margin-bottom: 12px;
+}
+.rv-star {
+	border: none;
+	background: none;
+	padding: 2px;
+	font-size: 26px;
+	line-height: 1;
+	color: var(--card-border);
+	cursor: pointer;
+	transition:
+		color 0.1s ease,
+		transform 0.1s ease;
+}
+.rv-star.is-active {
+	color: #f5b942;
+	transform: scale(1.08);
+}
+.rv-rate-score {
+	margin: 0 0 10px;
+	font-size: 13.5px;
+	font-weight: 700;
+	color: var(--brand-dark);
+}
+.rv-rate-textarea {
+	display: block;
+	width: 100%;
+	margin: 0 0 10px;
+	padding: 10px 12px;
+	border: 1px solid var(--card-border);
+	border-radius: var(--radius-sm);
+	background: #fff;
+	color: var(--ink);
+	font: inherit;
+	font-size: 13.5px;
+	line-height: 1.5;
+	resize: vertical;
+	box-sizing: border-box;
+	transition:
+		border-color 0.15s ease,
+		box-shadow 0.15s ease;
+}
+.rv-rate-textarea:focus {
+	outline: none;
+	border-color: #9ca3af;
+	box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.15);
+}
+.rv-rate-error {
+	margin: 0 0 8px;
+	font-size: 12.5px;
+	font-weight: 600;
+	color: var(--danger, #c0392b);
+}
+.rv-rate-done {
+	margin: 0;
+	font-size: 13.5px;
+	font-weight: 700;
+	color: var(--brand-dark);
+}
+.rv-rate-done-text {
+	display: block;
+	margin-top: 6px;
+	font-size: 13px;
+	font-weight: 400;
+	color: var(--ink-body);
+	word-break: keep-all;
+}
+
+/* ---------- 반응형 ---------- */
+@media (max-width: 960px) {
+	.mp-main {
+		padding: 20px 16px 56px;
+	}
+}
+@media (max-width: 760px) {
+	/* 좁은 화면: 헤더 카드 우측 쿠폰·적립금 박스를 전체 폭으로 내려서 쌓음 */
+	.benefit-stats {
+		width: 100%;
+	}
+}
+@media (max-width: 640px) {
+	/* 모바일: 카드 내부 여백을 좀 더 컴팩트하게 */
+	.card {
+		padding: 16px 14px;
+	}
+	.card-head {
+		margin-bottom: 12px;
+	}
+	.mp-header {
+		padding: 14px 16px;
+	}
+	.profile-name {
+		font-size: 19px;
+	}
+	.app-card {
+		padding: 18px 16px;
+	}
+	/* 라벨 텍스트 상태 바: 좁은 화면에서는 두 줄로 자연스럽게 접히도록 글자만 살짝 줄입니다
+     (레이아웃 자체는 기본 .stepper 의 flex-wrap 이 그대로 처리) */
+	.step {
+		font-size: 12.5px;
+		padding: 10px 4px 9px;
+		min-width: 72px;
+	}
+	.manager {
+		flex-wrap: wrap;
+	}
+	.manager-actions {
+		width: 100%;
+	}
+	.manager-actions .btn {
+		flex: 1 1 0;
+	}
+	/* 어르신 프로필 카드: 좁은 화면에서는 [기본 정보]/[케어 정보] 2열이 비좁아지므로 1열로 쌓음 */
+	.list-item.senior-card {
+		padding: 22px 18px;
+	}
+	.senior-section-grid {
+		grid-template-columns: 1fr;
+	}
+	/* 어르신 등록/수정 모달: 좁은 화면에서는 성별/생년월일도 1열로 쌓고, 좌우 패딩을 줄임 */
+	.modal-senior-header {
+		padding: 20px 18px 16px;
+	}
+	.modal-senior-body {
+		padding: 18px;
+	}
+	.modal-senior-footer {
+		padding: 14px 18px;
+	}
+	.field-row {
+		grid-template-columns: 1fr;
+		gap: 10px;
+	}
+}
+/* ---------- 휴대폰(767px 이하) 화면 최적화 ----------
+   카드 안의 카드(섹션 카드 → 신청 카드 → 정보 박스)로 여백이 세 겹 쌓여 내용 폭이 좁아지던 것을
+   줄이고, 신청 카드 머리(서비스명 + 금액)·정보 표(라벨 열 136px → 84px)를 휴대폰 폭에 맞춥니다.
+   하단 케어 매니저 모집·고객센터 안내도 한 화면 안에 들어오게 압축합니다. PC(768px 이상)는 영향 없음. */
+@media (max-width: 767.98px) {
+	.mp-main {
+		padding: 12px 12px 40px;
+	}
+	.mp-header {
+		padding: 12px 14px;
+	}
+	.profile-avatar {
+		width: 40px;
+		height: 40px;
+		font-size: 16px;
+	}
+	.profile-role {
+		font-size: 11.5px;
+	}
+	.profile-name {
+		font-size: 18px;
+	}
+	.profile-email {
+		font-size: 12px;
+	}
+	.mgr-tab {
+		font-size: 12px;
+	}
+
+	.card {
+		padding: 14px 12px;
+	}
+	.card-head {
+		margin-bottom: 10px;
+	}
+	.card-title {
+		font-size: 16px;
+	}
+
+	.app-card {
+		padding: 14px 12px;
+	}
+	.app-top {
+		align-items: center;
+		gap: 10px;
+		margin-bottom: 10px;
+	}
+	.app-title {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 4px;
+		font-size: 16px;
+	}
+	.app-title .app-icon {
+		font-size: 11px;
+		padding: 2px 8px;
+	}
+	.app-price-top .app-price-label {
+		font-size: 11px;
+	}
+	.app-price-top b {
+		font-size: 20px;
+	}
+	.app-price-top small {
+		font-size: 11px;
+	}
+	.app-stepper {
+		margin-bottom: 12px;
+	}
+	.app-stepper .step {
+		font-size: 11.5px;
+		padding: 7px 2px 6px;
+		min-width: 0;
+	}
+	.app-kv {
+		grid-template-columns: 84px minmax(0, 1fr);
+		gap: 10px 20px;
+		padding: 12px;
+		margin-bottom: 12px;
+		font-size: 13px;
+		border-radius: 12px;
+	}
+	.app-kv dt {
+		gap: 4px;
+		font-size: 12.5px;
+	}
+	.app-kv dt svg {
+		width: 14px;
+		height: 14px;
+	}
+	.app-foot {
+		padding-top: 10px;
+	}
+	.app-date {
+		font-size: 11.5px;
+	}
+	.app-timer {
+		font-size: 11px;
+	}
+	.app-hint {
+		font-size: 12px;
+		padding: 8px 10px;
+	}
+
+	.mgr-recruit-full {
+		padding: 40px 0;
+	}
+	.mgr-recruit-inner {
+		padding: 0 16px;
+	}
+	.mgr-recruit-card {
+		gap: 18px;
+	}
+	.mgr-recruit-eyebrow {
+		font-size: 11.5px;
+	}
+	.mgr-recruit-title {
+		font-size: 20px;
+		margin-top: 10px;
+	}
+	.mgr-recruit-desc {
+		margin-top: 8px;
+		font-size: 13px;
+	}
+	.mgr-recruit-chips {
+		gap: 6px;
+		margin-top: 14px;
+	}
+	.mgr-recruit-chips li {
+		font-size: 12px;
+		padding: 5px 10px;
+	}
+	.mgr-recruit-btn {
+		height: 48px;
+		font-size: 14.5px;
+	}
+
+	.guardian-support-banner-full {
+		padding: 40px 0;
+	}
+	.guardian-support-banner-inner {
+		padding: 0 16px;
+	}
+	.guardian-support-banner {
+		gap: 18px;
+	}
+	.guardian-support-banner-title {
+		font-size: 19px;
+		margin-bottom: 8px;
+	}
+	.guardian-support-banner-text {
+		font-size: 13px;
+		margin-bottom: 14px;
+	}
+	.guardian-support-banner-ctas {
+		flex-wrap: nowrap;
+		gap: 8px;
+	}
+	.guardian-support-banner-ctas > * {
+		flex: 1 1 0;
+		justify-content: center;
+		min-height: 46px;
+		padding: 0 10px;
+		font-size: 13.5px;
+		white-space: nowrap;
+	}
+	.guardian-support-banner-checks {
+		gap: 8px;
+	}
+	.guardian-support-banner-checks li {
+		font-size: 13px;
+		gap: 8px;
+	}
+}
+
+/* index.html 헤더/푸터와 동일하게 렌더링되도록 보정 (index 는 Tailwind preflight 적용) */
+header,
+footer {
+	letter-spacing: normal;
+	line-height: 1.5;
+}
+footer h3 {
+	margin-top: 0;
+}

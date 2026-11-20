@@ -1,0 +1,1206 @@
+/* mypage-manager 페이지 전용 스타일 — public/mypage-manager.html 의 <style> 을 그대로 옮김 */
+:root {
+  /* 위드브릿지 브랜드 컬러(#78866B, 세이지/올리브 그린) 단일 축을 중심으로 한 디자인 토큰.
+     명도(50~900) 단계만으로 위계를 표현하고, 그 외 색상(파랑/노랑/보라 등)은 쓰지 않습니다. */
+  --sage-50:  #F5F6F1;
+  --sage-100: #E9EBE1;
+  --sage-200: #D2D7C2;
+  --sage-300: #B4BC9E;
+  --sage-400: #97A17F;
+  --sage-500: #78866B; /* 브랜드 메인 컬러 */
+  --sage-600: #626E58;
+  --sage-700: #4E5746;
+  --sage-800: #3B4235;
+  --sage-900: #292E25;
+
+  --brand: var(--sage-500);
+  --brand-dark: var(--sage-700);
+  --brand-hover: var(--sage-600);
+  --brand-soft: var(--sage-100);
+  --brand-line: var(--sage-200);
+  --ink: #191F28;       /* 메인 타이틀 */
+  --ink-section: #333D4B; /* 섹션 타이틀 */
+  --ink-body: #4E5968;  /* 본문 텍스트 */
+  --ink-sub: #8B95A1;   /* 서브 텍스트 · 라벨 (토스 그레이 400) — mypage.html 과 동일한 톤으로 통일 */
+  --ink-muted: #B0B8C1;
+  --bg: #F2F4F6;       /* 테두리를 없앤 대신, 페이지 배경을 흰 카드와 확실히 대비시켜 배경색만으로 경계가 보이게 함 */
+  --card: #FFFFFF;
+  --card-border: #E5E7EB; /* 연한 회색 테두리로 카드 경계를 또렷하게 — 배경만으로는 개별 카드가 어디까지인지 구분이 안 돼서 되살림 */
+  --line: transparent; /* 카드 내부 구분선도 제거 — 여백(gap/padding)만으로 항목을 나눔 */
+  --input-border: #D1D5DB; /* 입력창 등 실제 클릭 가능한 경계가 필요한 곳 전용(카드 테두리와는 별개로 유지) */
+  --danger: #D64545;
+  --radius: 16px;      /* 부드러운 모서리 둥글기 (카드·컨테이너) */
+  --radius-sm: 10px;   /* 버튼·인풋 등 작은 요소 */
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, .05); /* 테두리와 함께 카드 경계를 또렷하게 표현하는 소프트 섀도우 */
+  --shadow-card-hover: 0 6px 16px rgba(0, 0, 0, .08);
+
+  /* 메인 CTA(수락하기 · 출발하기 · 병원 도착 · 케어 완료): 브랜드 컬러 단일 톤으로 통일 */
+  --cta: var(--sage-500);
+  --cta-hover: var(--sage-600);
+  --cta-shadow: 0 6px 16px rgba(120, 134, 107, .28);
+  --action-primary: var(--cta);
+  --action-primary-hover: var(--cta-hover);
+  --action-accent: var(--cta);       /* 케어 완료 버튼도 동일한 주 CTA 컬러로 통일 */
+  --action-accent-hover: var(--cta-hover);
+
+  /* 보조 버튼(숨기기 · 새로고침 등): 톤다운된 뉴트럴 그레이로 주/부 버튼 계층을 분리 */
+  --sec-bg: #F3F4F6;     /* gray-100 */
+  --sec-bg-hover: #E5E7EB; /* gray-200 */
+  --sec-fg: #374151;     /* gray-700 */
+
+  /* 파스텔 배지: 정보성 뱃지는 브랜드 톤 한 가지만 사용 */
+  --chip-brand-bg: var(--sage-100);
+  --chip-brand-fg: var(--sage-700);
+
+  /* 어스톤(경고 · 마감 임박 등 예외 상황 전용, 최소한으로만 사용) */
+  --earth-bg: #F6EEDD;
+  --earth-fg: #8B5E34;
+  --earth-line: #E4D2B0;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: 'Pretendard Variable', Pretendard, 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+  font-size: 15px; line-height: 1.55; letter-spacing: -0.01em; -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; }
+button { font-family: inherit; }
+[hidden] { display: none !important; }
+
+/* ---------- 매니저 전용 헤더: 알림 아이콘 ---------- */
+.mgr-notif-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 48px; height: 48px; padding: 0; border: none; border-radius: 50%;
+  background: transparent; color: #1A1D21; cursor: pointer; transition: background-color .15s ease;
+}
+.mgr-notif-btn:hover { background: #F3F4F6; }
+
+/* ---------- 우측 하단 고정 비상 상황 보고 버튼 (캡슐형 + 레이어드 그림자로 다른 인터랙션 요소와 톤을 맞춤) ---------- */
+.mgr-emergency-btn {
+  position: fixed; right: 20px; bottom: 20px; z-index: 120;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 50px; padding: 0 22px;
+  border: none; border-radius: 12px; background: #C0392B; color: #fff; font-size: 14px; font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .14); /* 과도한 컬러 글로우 대신 은은한 그림자로 톤 다운 */
+  cursor: pointer; transition: background-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+.mgr-emergency-btn svg { flex: none; width: 18px; height: 18px; }
+.mgr-emergency-btn:hover { background: #A5321F; box-shadow: 0 4px 12px rgba(0, 0, 0, .18); }
+.mgr-emergency-btn:active { transform: scale(.97); box-shadow: 0 2px 6px rgba(0, 0, 0, .14); }
+@media (max-width: 640px) {
+  .mgr-emergency-btn { right: 16px; bottom: 16px; }
+}
+
+/* ---------- 비상 상황 보고 확인 모달 — window.confirm() 대신 화면 정중앙에 뜨는 전용 경고 모달 ----------
+   .modal-backdrop(공용) 를 기반으로 하되, 다른 모달보다 항상 위(z-index)에 뜨고 더 어두운 오버레이를
+   쓰도록 .emergency-modal-backdrop 를 함께 줘서 두 클래스 모두 거는 선택자로 우선순위를 확보합니다
+   (각 클래스 CSS 가 파일 안에서 어떤 순서로 나오든 항상 이 규칙이 이깁니다). */
+.modal-backdrop.emergency-modal-backdrop { z-index: 9999; background: rgba(0, 0, 0, .6); }
+.emergency-modal {
+  width: 100%; min-width: 340px; max-width: 384px; /* max-w-sm */
+  background: #fff; border: 1px solid #FECACA; border-radius: 16px; /* border-red-200, rounded-2xl */
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, .35), 0 10px 20px -8px rgba(0, 0, 0, .15); /* shadow-2xl */
+  padding: 24px; /* p-6 */
+}
+.emergency-modal-icon {
+  width: 48px; height: 48px; border-radius: 50%; background: #FEE2E2; color: #DC2626; /* w-12 h-12 rounded-full bg-red-100 text-red-600 */
+  display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; /* mx-auto mb-3 */
+}
+.emergency-modal-icon svg { width: 24px; height: 24px; }
+.emergency-modal-title { margin: 0 0 8px; font-size: 20px; font-weight: 700; color: #DC2626; } /* text-xl font-bold text-red-600 mb-2 */
+.emergency-modal-body { margin: 0; font-size: 14px; font-weight: 500; color: #1F2937; line-height: 1.625; word-break: keep-all; } /* text-sm text-gray-800 font-medium leading-relaxed break-keep */
+.emergency-modal-phone { font-weight: 700; color: #111827; text-decoration: underline; } /* font-bold text-gray-900 underline */
+.emergency-modal-hint { margin: 8px 0 0; font-size: 12px; color: #6B7280; } /* text-xs text-gray-500 mt-2 */
+.emergency-modal-actions { display: flex; gap: 12px; margin-top: 24px; } /* flex gap-3 mt-6 */
+.emergency-modal-actions button {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; /* flex-1 inline-flex items-center justify-center gap-1 whitespace-nowrap */
+  padding: 12px 16px; border-radius: 12px; border: none; font-size: 14px; cursor: pointer; /* py-3 px-4 rounded-xl */
+  transition: background-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+.emergency-modal-cancel { background: #F3F4F6; color: #374151; font-weight: 600; } /* bg-gray-100 text-gray-700 font-semibold */
+.emergency-modal-cancel:hover { background: #E5E7EB; } /* hover:bg-gray-200 */
+.emergency-modal-call { background: #DC2626; color: #fff; font-weight: 700; box-shadow: 0 4px 6px -1px rgba(254, 202, 202, .6), 0 2px 4px -2px rgba(254, 202, 202, .5); } /* bg-red-600 font-bold shadow-md shadow-red-200 */
+.emergency-modal-call:hover { background: #B91C1C; } /* hover:bg-red-700 */
+.emergency-modal-call svg { width: 16px; height: 16px; flex: none; }
+
+/* ---------- 레이아웃 / 공통 ---------- */
+.mp-main { max-width: 1100px; margin: 0 auto; padding: 24px 24px 56px; }
+.mp-loading { padding: 120px 0; text-align: center; color: var(--ink-sub); }
+.mp-stack { display: flex; flex-direction: column; gap: 30px; } /* 프로필 카드 ↔ 탭 메뉴 간 여백: 60px → 30px (절반) */
+/* MVP 후순위 항목(수익·활동 요약)을 화면에서만 숨깁니다 — 데이터 로딩 로직은 그대로 둡니다 */
+.is-hidden-mvp { display: none !important; }
+
+/* ---------- 케어 업무 탭: 오늘의 케어 / 배정 신청 대기 / 지난 케어 기록 ---------- */
+/* 한 손 터치를 기준으로 언제나 1열(single-column)로 쌓입니다 — PC 폭에서도 2·3열로 넓히지 않습니다. */
+.mgr-tabs { display: flex; flex-direction: column; gap: 20px; } /* 탭 메뉴 ↔ '오늘의 배정 케어 일정' 등 패널 간 여백: 40px → 20px (절반) */
+/* 21st.dev BadgeTabs 원본과 동일한 형태: 은은한 회색 '바구니'(TabsList) 안에서, 개별 탭은 완전히
+   투명하다가 활성 탭 뒤로만 흰 배경 필(pill)이 부드럽게 슬라이드합니다(JS moveTabPill() 이 활성
+   버튼의 offsetLeft/offsetWidth 를 측정해 transform/width 로 이동 — framer-motion layoutId 와 같은 효과). */
+/* 가로 스크롤 세그먼트 대신, 4개 탭을 grid-cols-4 로 고정해 390px 모바일 화면에서도 스크롤 없이
+   한 번에 다 보이게 합니다 — 그래서 라벨도 '오늘 (0)'/'신청대기'/'리포트'/'지난기록'처럼 짧게
+   줄였습니다(아래 HTML · renderRequests()/renderPendingReportsTab()/renderToday() 참고). */
+.mgr-tab-list {
+  position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 4px;
+  background: var(--sec-bg); border: 1px solid var(--card-border); border-radius: 12px; /* rounded-xl: 전체가 하나의 바구니로 보이게 */
+}
+.mgr-tab-pill {
+  position: absolute; top: 4px; left: 0; height: calc(100% - 8px); width: 0;
+  background: #fff; border: 1px solid var(--card-border); border-radius: 8px; /* rounded-lg */
+  box-shadow: 0 1px 3px rgba(25, 31, 40, .1), 0 1px 2px rgba(25, 31, 40, .06); /* shadow-sm */
+  transition: transform .35s cubic-bezier(.4, 0, .2, 1), width .35s cubic-bezier(.4, 0, .2, 1);
+  pointer-events: none; z-index: 0;
+}
+.mgr-tab {
+  /* grid 4열 각각을 균등한 1fr 칸으로 차지(이전의 flex:1 1 0 균등분할과 달리, 라벨 자체가
+     짧아져서 min-content 폭이 칸보다 커질 일이 없어 줄바꿈/잘림 없이 들어갑니다). */
+  position: relative; z-index: 1; min-width: 0; min-height: 44px; padding: 10px 4px;
+  border: none; border-radius: 8px; /* rounded-lg, pill과 동일 곡률 */
+  background: transparent; color: var(--ink-sub); font-size: 13px; font-weight: 600; white-space: nowrap;
+  display: flex; align-items: center; justify-content: center; text-align: center; cursor: pointer;
+  transition: color .2s ease, transform .15s ease;
+}
+/* 비활성 탭 호버: 배경/테두리 없이 텍스트만 살짝 진해지고 아주 미세하게 커지는(scale) 반응만 — 원본의 whileHover={{scale:1.02}} */
+.mgr-tab:hover:not(.is-active) { color: var(--ink); transform: scale(1.02); }
+.mgr-tab.is-active { color: var(--brand-dark); font-weight: 800; }
+.mgr-tab:active { transform: scale(.98); }
+.mgr-tab-label { position: relative; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.mgr-tab-panel { display: flex; flex-direction: column; }
+@media (max-width: 480px) {
+  .mgr-tab { padding: 10px 2px; font-size: 12px; }
+}
+.card {
+  background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 24px;
+  box-shadow: var(--shadow-card);
+}
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.card-title { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.02em; color: var(--ink-section); }
+.card-note { margin: 14px 0 0; font-size: 12.5px; color: var(--ink-sub); }
+.card-lead { margin: -8px 0 18px; font-size: 14px; color: var(--ink-sub); }
+.card-lead strong { color: var(--brand-dark); }
+.title-group { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.badge { display: inline-block; padding: 4px 12px; border-radius: 9999px; background: var(--brand-soft); color: var(--brand-dark); font-size: 12.5px; font-weight: 700; white-space: nowrap; transition: background-color .2s ease, color .2s ease; }
+.badge.is-live, .badge.is-warn { display: inline-flex; align-items: center; gap: 5px; padding-left: 10px; }
+.badge.is-live::before, .badge.is-warn::before { content: ''; flex: none; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.badge.is-live { background: var(--chip-brand-bg); color: var(--chip-brand-fg); }
+.badge.is-warn { background: var(--brand); color: #fff; } /* 행동이 필요한 상태: 색상 대신 명도(솔리드 브랜드톤)로 강조 */
+.badge.is-demo { background: var(--earth-bg); color: var(--earth-fg); } /* 샘플 데이터 안내는 예외적으로 어스톤 사용 */
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 13px 22px; border: none; border-radius: var(--radius-sm);
+  background: var(--cta); color: #fff; font-size: 14.5px; font-weight: 700; text-decoration: none; cursor: pointer;
+  box-shadow: var(--cta-shadow); transition: background .15s, transform .15s, box-shadow .15s;
+  min-height: 48px; /* 현장에서 장갑을 끼거나 한 손으로도 정확히 누를 수 있게 최소 터치 영역 확보 */
+}
+.btn:hover { background: var(--cta-hover); transform: translateY(-1px); }
+.btn:disabled { opacity: .6; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-ghost { background: var(--sec-bg); color: var(--sec-fg); box-shadow: none; }
+.btn-ghost:hover { background: var(--sec-bg-hover); }
+.btn-sm { padding: 8px 14px; font-size: 13.5px; min-height: 48px; }
+
+.empty {
+  padding: 40px 16px; text-align: center; color: var(--ink-sub); background: var(--bg); border: 1px solid var(--card-border);
+  border-radius: var(--radius); display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.empty strong { display: block; margin-bottom: 4px; color: var(--ink); font-size: 15.5px; }
+.error-box { padding: 16px; border-radius: var(--radius); background: #FDF1EF; color: var(--danger); font-size: 14px; }
+.error-box small { display: block; margin: 6px 0 10px; color: #7a2f26; }
+
+/* ---------- 프로필 (mypage.html 환영 영역 카드와 같은 라운딩·배경·그림자 사용) ---------- */
+/* 21st.dev 스타일 가로형 프로필 카드: 등장 시 살짝 아래에서 떠오르며 페이드인 (framer-motion 의
+   initial={{opacity:0,y:8}} → animate={{opacity:1,y:0}} 과 같은 효과를 순수 CSS 애니메이션으로 구현) */
+@keyframes wb-profile-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.profile {
+  background: var(--card); color: var(--ink); border: 1px solid var(--card-border);
+  border-radius: var(--radius); box-shadow: var(--shadow-card); padding: 18px 32px; /* 상하 패딩 32px → 18px 로 얇게 */
+  display: flex; align-items: center; justify-content: space-between; gap: 20px 32px; flex-wrap: wrap;
+  animation: wb-profile-in .45s cubic-bezier(.4, 0, .2, 1);
+}
+.profile-main { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.profile-avatar {
+  width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0; overflow: hidden;
+  background: var(--brand-soft); color: var(--brand-dark); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800;
+  box-shadow: 0 4px 14px rgba(120, 134, 107, .28); /* 아바타가 카드 위에 살짝 떠 보이도록 */
+}
+.profile-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.profile-role { margin: 0 0 2px; font-size: 12.5px; color: var(--ink-sub); font-weight: 600; }
+.profile-name { margin: 0 0 6px; font-size: 22px; font-weight: 700; letter-spacing: -0.03em; color: var(--ink); word-break: keep-all; }
+.profile-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { padding: 3px 10px; border-radius: 9999px; background: var(--brand-soft); color: var(--brand-dark); font-size: 12px; font-weight: 700; }
+.tag.is-verified { background: var(--brand); color: #fff; } /* 완료 상태: 솔리드 브랜드톤으로 강조 */
+.tag.is-pending { background: var(--earth-bg); color: var(--earth-fg); } /* 확인 대기: 예외적 어스톤 */
+/* 평균 평점 배지("★ 3.0 (리뷰 2개)") — 다른 상태 배지와 헷갈리지 않도록 별점 전용 색(금색,
+   mypage.html 만족도 평가 패널의 #F5B942 와 동일)으로 구분합니다. */
+.tag.is-rating { background: #FFF7E0; color: #92661B; }
+.tag.is-rating .tag-star { color: #F5B942; }
+
+/* 자동 상태 배지: 구분선 없이 여백으로만 프로필과 떨어뜨리고, 카드 우측 끝에 깔끔하게 정렬합니다.
+   사람이 조작하는 토글이 아니라 renderActivity() 가 오늘 일정을 보고 자동으로 채우는 표시 전용 칩입니다. */
+.status-box { flex: 0 0 auto; margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.status-hint { margin: 0; font-size: 12.5px; color: var(--ink-sub); max-width: 240px; text-align: right; }
+
+/* 출근/휴식 수동 토글 — 켜짐(근무 가능)은 브랜드 그린, 꺼짐(휴식 중)은 중립 그레이 */
+.duty-toggle { display: flex; align-items: center; gap: 8px; }
+.duty-switch-label { font-size: 13px; font-weight: 700; color: var(--ink); }
+.duty-switch { appearance: none; border: none; background: transparent; padding: 0; margin: 0; cursor: pointer; flex: none; line-height: 0; }
+.duty-switch:disabled { cursor: default; opacity: .6; }
+.duty-switch-track {
+  display: block; width: 44px; height: 26px; border-radius: 9999px; background: #D1D5DB;
+  position: relative; transition: background-color .18s ease;
+}
+.duty-switch-thumb {
+  position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .25); transition: transform .18s ease;
+}
+.duty-switch.is-on .duty-switch-track { background: var(--brand); }
+.duty-switch.is-on .duty-switch-thumb { transform: translateX(18px); }
+.duty-switch:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 9999px; }
+
+/* ---------- 휴식 전환 차단 안내 모달 — window.alert() 대신, 배경 어둡게 처리 + 페이드인/스케일업
+     애니메이션이 적용된 전용 모달 (handleDutyToggleClick 참고) ---------- */
+@keyframes wb-modal-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes wb-modal-scale-in { from { opacity: 0; transform: scale(.92) translateY(6px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+.duty-blocked-backdrop { z-index: 9999; background: rgba(25, 31, 40, .55); animation: wb-modal-backdrop-in .2s ease; }
+.duty-blocked-modal {
+  width: 100%; min-width: 300px; max-width: 360px;
+  background: #fff; border: 1px solid var(--card-border); border-radius: 18px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, .35), 0 10px 20px -8px rgba(0, 0, 0, .15);
+  padding: 28px 24px; text-align: center;
+  animation: wb-modal-scale-in .25s cubic-bezier(.34, 1.56, .64, 1);
+}
+.duty-blocked-icon {
+  width: 52px; height: 52px; border-radius: 50%; background: var(--earth-bg); color: var(--earth-fg);
+  display: flex; align-items: center; justify-content: center; margin: 0 auto 14px;
+}
+.duty-blocked-icon svg { width: 26px; height: 26px; }
+.duty-blocked-title { margin: 0 0 8px; font-size: 18px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; }
+.duty-blocked-body { margin: 0; font-size: 14px; color: var(--ink-sub); line-height: 1.6; word-break: keep-all; }
+.duty-blocked-actions { margin-top: 22px; }
+.duty-blocked-confirm-btn {
+  width: 100%; min-height: 48px; padding: 0 20px; border: none; border-radius: 12px;
+  background: var(--brand); color: #fff; font-size: 14.5px; font-weight: 700; cursor: pointer;
+  box-shadow: 0 2px 8px rgba(120, 134, 107, .25);
+  transition: background-color .15s ease, transform .15s ease, box-shadow .15s ease;
+}
+.duty-blocked-confirm-btn:hover { background: var(--brand-dark); transform: translateY(-1px); }
+.duty-blocked-confirm-btn:active { transform: scale(.98); }
+.duty-blocked-confirm-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* ---------- 요약 (KPI 카드) ---------- */
+/* 아이콘 대신 위쪽 색 띠 + 오른쪽 위 작은 글자 배지, 오른쪽 아래 셰브런(›)으로 '더보기' 느낌만 살림 */
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.tile {
+  /* 완료 케어: 소프트 그린 (완료를 나타내는 안정적인 톤) */
+  --accent: #86EFAC; --chip-bg: #ECFDF5; --chip-fg: #059669;
+  position: relative; overflow: hidden; padding: 20px; background: var(--bg); border: 1px solid var(--card-border); border-radius: var(--radius);
+  transition: box-shadow .15s ease;
+}
+.tile:hover { box-shadow: var(--shadow-card-hover); }
+.tile::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--accent); }
+/* 버튼 등 주요 액션은 브랜드 컬러(#78866B)를 유지하되, 이 3개 카드만 정보 구분을 위해 은은한 파스텔 톤으로 구분합니다 */
+.tile.tone-indigo { --accent: #A5B4FC; --chip-bg: #EEF2FF; --chip-fg: #4F46E5; }   /* 예상 정산 금액: 소프트 블루/보라 (정산) */
+.tile.tone-amber { --accent: #FCD34D; --chip-bg: #FFFBEB; --chip-fg: #B45309; }    /* 리포트 작성 대기: 소프트 앰버/오렌지 (행동 필요) */
+.tile-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.tile-label { font-size: 12.5px; color: var(--ink-sub); font-weight: 600; } /* mypage.html .stat-label 과 같은 크기·굵기 */
+.tile-chip { flex: none; padding: 2px 9px; border-radius: 9999px; background: var(--chip-bg); color: var(--chip-fg); font-size: 11.5px; font-weight: 700; line-height: 1.6; white-space: nowrap; }
+.tile-num { margin-top: 10px; font-size: 22px; font-weight: 800; line-height: 1.2; letter-spacing: -0.03em; word-break: keep-all; font-variant-numeric: tabular-nums; color: var(--ink); } /* mypage.html .stat-num(20px) 과 같은 눈금 — 3칸 카드라 살짝만 크게 */
+.tile-num small { font-size: 13px; font-weight: 600; margin-left: 3px; color: var(--ink-sub); }
+.tile-sub { margin-top: 6px; font-size: 12.5px; color: var(--ink-sub); }
+.tile-chevron { position: absolute; right: 18px; bottom: 16px; font-size: 18px; color: var(--ink-muted); font-weight: 700; }
+
+/* ---------- 오늘 일정 ---------- */
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+/* 오늘의 배정 케어 일정: 4건 이상일 때 4번째부터 이 안에 모아 두고 [더보기]로만 펼칩니다. 내부엔 카드들을
+   담은 <ul class="list"> 가 그대로 들어가므로 컨테이너 자체는 block/none 전환만 맡고, 펼친 직후 opacity
+   를 얹어 살짝 페이드인되게 합니다(레이아웃은 안쪽 .list 의 flex-column + gap 이 그대로 담당). */
+.schedule-more-container { display: none; margin-top: 16px; opacity: 0; transition: opacity .25s ease; }
+.schedule-more-container.is-visible { opacity: 1; }
+/* [더보기/접기]: 테두리·배경·그림자 없는 순수 텍스트 + 화살표 버튼 — mypage.html 의 .app-more-btn 과 같은 언어 */
+.schedule-more-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 16px;
+  padding: 8px; border: none; background: transparent; box-shadow: none;
+  color: var(--ink-sub); font-size: 13.5px; font-weight: 600; cursor: pointer;
+  transition: color .15s ease;
+}
+.schedule-more-btn:hover, .schedule-more-btn:active { color: var(--brand-dark); }
+.schedule-more-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: var(--radius-sm); }
+/* mypage.html .app-more-btn 과 같은 SVG chevron-down: 닫힘=기본(아래) → 열림(.is-open)=180도 회전(위) */
+.schedule-more-btn .chevron { display: inline-flex; flex-shrink: 0; color: inherit; transition: transform 0.2s ease-in-out; }
+.schedule-more-btn.is-open .chevron { transform: rotate(180deg); }
+/* 미인증 케어(지난 일정) 아코디언 토글 — 오늘 일정보다 눈에 덜 띄면서도 방치하면 안 된다는 느낌을
+   주기 위해 회색 대신 어스톤(주의)으로 구분합니다. */
+.schedule-more-btn.is-warn { color: var(--earth-fg); }
+.schedule-more-btn.is-warn:hover, .schedule-more-btn.is-warn:active { color: #6E4826; }
+/* 배정 일정 카드: 흰 배경 · 둥근 모서리 · 소프트 섀도우의 플로팅 카드. 상태 칩은 헤더 우측에,
+   액션 버튼들은 항상 카드 맨 아래(.sched-action-bar)에 가로로 나란히 옵니다. */
+.sched-compact {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 18px; background: #fff; border: 1px solid var(--card-border); border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  transition: opacity .2s ease, box-shadow .15s ease;
+}
+.sched-compact:hover { box-shadow: var(--shadow-card-hover); }
+.sched-compact.is-completed { opacity: .6; }
+/* 레퍼런스 카드처럼: 아바타 + [시간 · 대상자] 정보 블록 + 우측 상태 칩을 한 줄에 배치.
+   align-items 는 아래 .sched-senior 가 줄바꿈될 수 있어 flex-start 로 둡니다 — center 로 두면
+   이름이 2줄이 될 때 아바타·상태 칩이 애매하게 중간에 떠 보입니다. */
+.sched-head { display: flex; align-items: flex-start; gap: 14px; min-width: 0; }
+.sched-avatar {
+  flex: none; width: 44px; height: 44px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--brand-soft); color: var(--brand-dark); font-size: 16px; font-weight: 800;
+}
+.sched-head-info { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+/* 핵심 시간: Bold 20px 짙은 검정 — 카드에서 가장 먼저 눈에 들어오는 숫자 */
+.sched-time-lg { font-size: 20px; font-weight: 700; letter-spacing: -0.03em; color: #111827; }
+/* 대상자/신청 유형: Regular 15~16px 중간 회색. 어르신 성함이 상태 칩·경과 배지(둘 다 flex:none)에
+   밀려 한 줄 말줄임(...)으로 일찍 잘리는 문제가 있어 — 이름 전체가 항상 보이도록 nowrap/ellipsis
+   를 풀고 필요하면 2줄까지 자연스럽게 줄바꿈되게 둡니다. */
+.sched-senior { min-width: 0; white-space: normal; overflow-wrap: anywhere; font-size: 15px; font-weight: 400; color: #6B7280; }
+.sched-senior b { color: var(--ink); font-weight: 700; }
+.sched-head .status-tag { flex: none; }
+/* 상태 칩 + 'N일 경과' 배지(미인증 카드 전용)를 한 줄로 묶는 우측 그룹 */
+.sched-head-badges { flex: none; display: flex; align-items: center; gap: 6px; }
+.overdue-badge {
+  display: inline-flex; align-items: center; flex: none;
+  padding: 3px 9px; border-radius: 9999px;
+  font-size: 11.5px; font-weight: 800; white-space: nowrap;
+  background: var(--earth-bg); color: var(--earth-fg);
+}
+.overdue-badge.is-danger { background: #FDF1EF; color: var(--danger); } /* 3일 이상 경과 — 빨간색 강조 */
+/* 출발지·목적지 + 서비스/희망 일시/거동 상태/요청 사항: 1열 세로 나열 대신 2단 그리드로 가로 공간을
+   활용해, 카드 한 장의 세로 길이를 절반 가까이 줄입니다. 라벨은 값 위에 작게, 값은 라벨 아래에
+   진하게 — 폭이 좁아져도 읽기 편한 '미니 카드형' 셀 구조입니다. */
+.sched-route-box {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px;
+}
+.sched-route-row {
+  display: flex; flex-direction: column; gap: 2px; min-width: 0;
+}
+.sched-route-label { font-size: 13px; font-weight: 400; color: #6B7280; }
+.sched-route-value-line { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.sched-route-value { min-width: 0; font-size: 14px; font-weight: 500; color: #111827; overflow-wrap: anywhere; }
+.sched-nav-btn {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; min-height: 22px; padding: 2px 10px;
+  border: none; border-radius: 9999px; background: var(--brand-soft); color: var(--brand-dark);
+  font-size: 11.5px; font-weight: 700; text-decoration: none; cursor: pointer; white-space: nowrap;
+  transition: background-color .15s ease, transform .1s ease;
+}
+.sched-nav-btn:hover { background: var(--brand-line); }
+.sched-nav-btn:active { transform: scale(.96); }
+/* 💬 요청 내용: [서비스/희망 일시/거동 상태/요청 사항] — 위 출발/도착과 같은 2단 그리드. 길게 늘어질
+   수 있는 '요청 사항'만 마지막 항목이므로 grid-column:1/-1 로 전체 폭을 차지하게 둡니다. */
+.sched-detail {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; min-width: 0; margin: 2px 0;
+}
+.sched-detail-row {
+  display: flex; flex-direction: column; gap: 2px; min-width: 0;
+}
+.sched-detail-row:last-child { grid-column: 1 / -1; }
+.sched-detail-label { font-size: 13px; font-weight: 400; color: #6B7280; }
+.sched-detail-value { min-width: 0; font-size: 14px; font-weight: 500; color: #111827; white-space: normal; word-break: keep-all; overflow-wrap: anywhere; }
+/* 레퍼런스 카드 하단처럼: 좌측 '가벼운' 보조 버튼(보호자 연락처) + 우측 '강조된' 메인 버튼을
+   한 줄에 나란히 배치합니다 — 보조 버튼은 좁게(flex:1), 메인 버튼은 넓게(flex:2) 잡아 위계를 줍니다. */
+.sched-action-bar { display: flex; align-items: stretch; gap: 10px; padding-top: 4px; }
+.sched-tel-btn {
+  flex: 1 1 0; display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 10px 16px;
+  border: none; border-radius: var(--radius-sm); background: var(--brand-soft); color: var(--brand-dark);
+  font-size: 13.5px; font-weight: 700; text-decoration: none; cursor: pointer; white-space: nowrap;
+  transition: background-color .15s ease, transform .1s ease;
+}
+.sched-tel-btn:hover { background: var(--brand-line); }
+.sched-tel-btn:active { transform: scale(.98); }
+.sched-tel-btn.is-disabled { background: #F3F4F6; color: #9CA3AF; cursor: default; }
+/* 가벼운 보조 액션(예: 숨기기) — 통화 버튼과 같은 규격이지만 브랜드 컬러 대신 중립 그레이 톤 */
+.sched-tel-btn.is-neutral { background: var(--sec-bg); color: var(--sec-fg); }
+.sched-tel-btn.is-neutral:hover { background: var(--sec-bg-hover); }
+.status-tag {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px 4px 9px; border-radius: 9999px;
+  font-size: 12px; font-weight: 700; white-space: nowrap;
+}
+/* 상태 도트: 뱃지 텍스트와 같은 색(currentColor)을 그대로 써서 톤별로 따로 지정할 필요가 없습니다 */
+.status-tag::before { content: ''; flex: none; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+/* 진행 상태 6단계를 다른 색상이 아니라, 같은 브랜드 톤의 명도 단계로만 표현합니다: 배정됨(옅음) → 이동 중
+   → 병원 도착 → 진료/대행 완료 → 귀가 이동(점점 진하게 강조) → 완료(중립 회색으로 톤다운) */
+/* 병원 도착 등 '진행 중' 상태도 투박한 솔리드 컬러바 대신, 다른 상태와 같은 옅은 배경 + 진한 텍스트의
+   부드러운 칩으로 통일합니다 — 굵기(font-weight)만 살짝 올려 지금 단계임을 구분합니다. */
+.status-tag.st-assigned  { background: var(--sage-100); color: var(--sage-700); }
+.status-tag.st-departed  { background: var(--sage-200); color: var(--sage-800); font-weight: 800; }
+.status-tag.st-arrived   { background: #D1FAE5; color: #047857; font-weight: 800; }
+.status-tag.st-treatment_done { background: #A7F3D0; color: #065F46; font-weight: 800; }
+.status-tag.st-returning      { background: #6EE7B7; color: #064E3B; font-weight: 800; }
+.status-tag.st-completed { background: #F3F4F6; color: #9CA3AF; }
+/* 신청 대기 카드 전용: 레퍼런스의 'Accepter' 칩처럼 연한 에메랄드 배경 + 진한 에메랄드 텍스트 */
+.status-tag.st-pending   { background: #ECFDF5; color: #047857; }
+.status-tag.st-settlement { background: #FFFBEB; color: #B45309; }
+/* ============================================================================
+   글래스모피즘 버튼 — 프로필 카드의 [텔레그램 알림 연결] 버튼 전용입니다(자격/평점/오늘 일정
+   배지는 일반 .tag/.status-tag 로 되돌렸습니다 — 유리 효과는 클릭 가능한 이 버튼 하나에만).
+   구조: .glass-button-wrap(위치 기준 + 클릭 시 3D 기울임) > .glass-button-shadow(바닥 그림자)
+         + .glass-button(유리 질감 셸, ::after 로 빙글빙글 도는 테두리 반사) > .glass-button-text(글자+아이콘).
+   --background/--foreground 는 위드브릿지 배경(흰색)/잉크(짙은 남색)에 맞춰 고정합니다 — oklch(from ...)
+   구문이 이 두 변수의 명도·채도·색상(l c h)만 가져와 투명도만 바꾸는 식이라, 변수가 없으면(선언 누락)
+   배경/테두리가 완전히 투명해져 유리 느낌 자체가 사라집니다.
+   ============================================================================ */
+@property --angle-1 { syntax: "<angle>"; inherits: false; initial-value: -75deg; }
+@property --angle-2 { syntax: "<angle>"; inherits: false; initial-value: -45deg; }
+
+.glass-button-wrap {
+  --background: #ffffff;
+  --foreground: #1e293b;
+  --anim-time: .4s;
+  --anim-ease: cubic-bezier(.25, 1, .5, 1);
+  --border-width: clamp(1px, .0625em, 4px);
+  z-index: 2;
+  transform-style: preserve-3d;
+  transition: transform var(--anim-time) var(--anim-ease);
+  position: relative;
+  display: inline-block;
+  cursor: default;
+}
+.glass-button-wrap.is-interactive { cursor: pointer; }
+.glass-button-wrap.is-interactive:has(.glass-button:active) { transform: rotateX(25deg); }
+
+.glass-button-shadow {
+  --shadow-cutoff-fix: 2em;
+  width: calc(100% + var(--shadow-cutoff-fix));
+  height: calc(100% + var(--shadow-cutoff-fix));
+  top: calc(0% - var(--shadow-cutoff-fix) / 2);
+  left: calc(0% - var(--shadow-cutoff-fix) / 2);
+  filter: blur(clamp(2px, .125em, 12px));
+  transition: filter var(--anim-time) var(--anim-ease);
+  pointer-events: none;
+  position: absolute;
+}
+.glass-button-shadow::after {
+  content: "";
+  background: linear-gradient(180deg, oklch(from var(--foreground) l c h / 20%), oklch(from var(--foreground) l c h / 10%));
+  width: calc(100% - var(--shadow-cutoff-fix) - .25em);
+  height: calc(100% - var(--shadow-cutoff-fix) - .25em);
+  top: calc(var(--shadow-cutoff-fix) - .5em);
+  left: calc(var(--shadow-cutoff-fix) - .875em);
+  box-sizing: border-box;
+  transition: all var(--anim-time) var(--anim-ease);
+  opacity: 1;
+  border-radius: 9999px;
+  padding: .125em;
+  position: absolute;
+  -webkit-mask-image: linear-gradient(#000 0 0), linear-gradient(#000 0 0);
+  mask-image: linear-gradient(#000 0, #000 0), linear-gradient(#000 0, #000 0);
+  -webkit-mask-position: 0 0, 0 0; mask-position: 0 0, 0 0;
+  -webkit-mask-size: auto, auto; mask-size: auto, auto;
+  -webkit-mask-repeat: repeat, repeat; mask-repeat: repeat, repeat;
+  -webkit-mask-clip: content-box, border-box; mask-clip: content-box, border-box;
+  -webkit-mask-origin: content-box, border-box; mask-origin: content-box, border-box;
+  -webkit-mask-composite: xor; mask-composite: exclude; mask-mode: match-source, match-source;
+}
+@media (max-width: 768px) {
+  .glass-button { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; } /* 휴대폰: 흐림 끄기 */
+}
+.glass-button {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-backdrop-filter: blur(clamp(1px, .125em, 4px));
+  backdrop-filter: blur(clamp(1px, .125em, 4px));
+  transition: all var(--anim-time) var(--anim-ease);
+  background: linear-gradient(-75deg, oklch(from var(--background) l c h / 5%), oklch(from var(--background) l c h / 20%), oklch(from var(--background) l c h / 5%));
+  box-shadow:
+    inset 0 .125em .125em oklch(from var(--foreground) l c h / 5%),
+    inset 0 -.125em .125em oklch(from var(--background) l c h / 50%),
+    0 .25em .125em -.125em oklch(from var(--foreground) l c h / 20%),
+    0 0 .1em .25em inset oklch(from var(--background) l c h / 20%),
+    0 0 oklch(from var(--background) l c h);
+  border-radius: 9999px;
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  margin: 0;
+  font-family: inherit;
+  padding: 6px 16px; /* sm 사이즈 — 프로필 카드 비율에 맞춘 콤팩트 패딩 */
+}
+.is-interactive .glass-button:hover {
+  box-shadow:
+    inset 0 .125em .125em oklch(from var(--foreground) l c h / 5%),
+    inset 0 -.125em .125em oklch(from var(--background) l c h / 50%),
+    0 .15em .05em -.1em oklch(from var(--foreground) l c h / 25%),
+    0 0 .05em .1em inset oklch(from var(--background) l c h / 50%),
+    0 0 oklch(from var(--background) l c h);
+  transform: scale(.975);
+}
+.glass-button:disabled { opacity: .6; cursor: default; }
+.glass-button-text {
+  color: oklch(from var(--foreground) l c h / 90%);
+  text-shadow: 0 .25em .05em oklch(from var(--foreground) l c h / 10%);
+  transition: all var(--anim-time) var(--anim-ease);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: .375em;
+  user-select: none;
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.glass-button-text svg { width: 13px; height: 13px; flex: none; }
+.glass-button:after {
+  content: "";
+  z-index: 1;
+  width: calc(100% + var(--border-width));
+  height: calc(100% + var(--border-width));
+  top: calc(0% - var(--border-width) / 2);
+  left: calc(0% - var(--border-width) / 2);
+  padding: var(--border-width);
+  box-sizing: border-box;
+  background:
+    conic-gradient(from var(--angle-1) at 50% 50%,
+      oklch(from var(--foreground) l c h / 50%) 0%, transparent 5% 40%,
+      oklch(from var(--foreground) l c h / 50%) 50%, transparent 60% 95%,
+      oklch(from var(--foreground) l c h / 50%) 100%),
+    linear-gradient(180deg, oklch(from var(--background) l c h / 50%), oklch(from var(--background) l c h / 50%));
+  transition: all var(--anim-time) var(--anim-ease), --angle-1 .5s ease;
+  box-shadow: inset 0 0 0 calc(var(--border-width) / 2) oklch(from var(--background) l c h / 50%);
+  border-radius: 9999px;
+  position: absolute;
+  -webkit-mask-image: linear-gradient(#000 0 0), linear-gradient(#000 0 0);
+  mask-image: linear-gradient(#000 0, #000 0), linear-gradient(#000 0, #000 0);
+  -webkit-mask-position: 0 0, 0 0; mask-position: 0 0, 0 0;
+  -webkit-mask-size: auto, auto; mask-size: auto, auto;
+  -webkit-mask-repeat: repeat, repeat; mask-repeat: repeat, repeat;
+  -webkit-mask-clip: content-box, border-box; mask-clip: content-box, border-box;
+  -webkit-mask-origin: content-box, border-box; mask-origin: content-box, border-box;
+  -webkit-mask-composite: xor; mask-composite: exclude; mask-mode: match-source, match-source;
+  pointer-events: none;
+}
+.is-interactive .glass-button:hover:after { --angle-1: -125deg; }
+
+/* 글래스 버튼은 이제 텔레그램 연결 버튼 전용입니다 — 연결됨 상태만 글자색을 브랜드톤으로 강조합니다. */
+.glass-button-text.is-linked { color: var(--brand-dark); font-weight: 800; }
+.action-btn {
+  flex: 2 1 0; display: flex; align-items: center; justify-content: center; text-align: center;
+  padding: 10px 16px; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 700; line-height: 1.3;
+  cursor: pointer; color: #fff; background: var(--action-primary); box-shadow: 0 2px 8px rgba(120, 134, 107, .2);
+  transition: background-color .15s ease, box-shadow .15s ease, transform .1s ease;
+  min-height: 44px; box-sizing: border-box;
+}
+.action-btn:hover:not(:disabled) { background: var(--action-primary-hover); }
+.action-btn:active:not(:disabled) { transform: scale(.98); }
+.action-btn.is-accent { background: var(--action-accent); }
+.action-btn.is-accent:hover:not(:disabled) { background: var(--action-accent-hover); }
+.action-btn:disabled { background: #F3F4F6; color: #9CA3AF; cursor: not-allowed; box-shadow: none; }
+/* [보호자 연락처] · [이슈 보고] · 메인 인증 버튼까지 3개가 한 줄에 들어가는 액션 바는, 2개짜리
+   줄(.sched-tel-btn 1 : .action-btn 2)과 같은 비율로는 메인 버튼 몫이 좁아져 '진료/대행 완료 인증'
+   같이 긴 문구가 3줄로 꺾이며 잘려 보였습니다. 메인 버튼에 더 많은 폭을 주고 gap·패딩·글자 크기를
+   줄여 어떤 단계 문구든 1~2줄 안에 들어오게 합니다. */
+.sched-action-bar:has(.sched-issue-btn) { gap: 6px; }
+.sched-action-bar:has(.sched-issue-btn) .sched-tel-btn { flex: 1 1 0; padding: 10px 6px; font-size: 12.5px; }
+.sched-action-bar:has(.sched-issue-btn) .action-btn { flex: 2.4 1 0; padding: 10px 8px; font-size: 13px; }
+.action-btn.is-done { background: #F3F4F6; color: #9CA3AF; box-shadow: none; cursor: default; display: inline-flex; align-items: center; justify-content: center; }
+/* 출발 인증 지오펜싱(fallback ②) — 자동 감지가 어려운 상태로 넘어가면 기존 메인 버튼만 이 톤으로
+   바뀝니다(어스톤 = 이 화면의 다른 '확인/주의 필요' 표시와 같은 색, .badge.is-pending 등 참고). */
+.action-btn.is-warn { background: var(--earth-fg); }
+.action-btn.is-warn:hover:not(:disabled) { filter: brightness(1.08); }
+/* 출발 인증 지오펜싱 배너/힌트 슬롯 — 카드 레이아웃(.sched-compact)의 다른 섹션과 같은 여백 리듬을
+   따르면서도, 평소(hidden)에는 자리를 전혀 차지하지 않습니다. */
+.geofence-slot:not([hidden]) { margin: 10px 0; }
+.geofence-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px 14px; border-radius: var(--radius-sm); background: var(--brand-soft); border: 1px solid var(--brand-line);
+}
+.geofence-banner-text { margin: 0; font-size: 13.5px; font-weight: 700; color: var(--brand-dark); }
+.geofence-banner-btn {
+  flex-shrink: 0; padding: 9px 16px; border: none; border-radius: 9999px; background: var(--brand);
+  color: #fff; font-size: 13.5px; font-weight: 700; cursor: pointer; white-space: nowrap;
+  transition: background-color .15s ease;
+}
+.geofence-banner-btn:hover:not(:disabled) { background: var(--brand-dark); }
+.geofence-banner-btn:disabled { opacity: .6; cursor: not-allowed; }
+.geofence-hint { margin: 0 0 8px; font-size: 12.5px; font-weight: 600; color: var(--earth-fg); }
+.kv { display: grid; grid-template-columns: 76px 1fr; gap: 6px 12px; margin: 0 0 18px; font-size: 14.5px; }
+.kv dt { color: var(--ink-body); font-weight: 600; }
+.kv dd { margin: 0; word-break: keep-all; }
+.kv .arrow { color: var(--brand); font-weight: 700; margin: 0 4px; }
+.kv a.tel { font-weight: 700; color: var(--brand-dark); text-decoration: none; border-bottom: 1px solid var(--brand-line); }
+.kv .cal-case-stars { display: block; color: #F5B942; letter-spacing: 1px; }
+.kv .cal-case-review-text { display: block; margin-top: 2px; font-size: 13px; color: var(--ink-body); }
+
+.card-note.is-warn { padding: 10px 12px; border-radius: var(--radius); background: var(--earth-bg); color: var(--earth-fg); }
+
+/* ---------- 신청 대기 목록: 숨고 '받은 요청'처럼 카드 1장씩 좌우로 넘어가는 캐러셀 ---------- */
+.req-carousel { position: relative; overflow: hidden; }
+.req-carousel-track { display: flex; transition: transform .4s cubic-bezier(.4,0,.2,1); }
+.req-carousel-slide { flex: 0 0 100%; min-width: 0; }
+/* 흰 카드 박스 바깥, 카드 하단과 확실히 떨어뜨려 중앙 정렬 (카드 자체 테두리·그림자와 안 붙게) */
+.req-carousel-dots { display: flex; align-items: center; justify-content: center; gap: 2px; margin-top: 20px; }
+.req-carousel-dot {
+  /* 보이는 점은 8px 그대로 두고, padding + background-clip:content-box 로 실제 탭 영역만 넓힙니다
+     (터치 목표 ~44px 권장 기준에는 못 미치지만, 점 사이를 과도하게 벌리지 않는 선에서 절충) */
+  width: 8px; height: 8px; padding: 8px; box-sizing: content-box;
+  border: none; border-radius: 50%; background-color: #D1D5DB; background-clip: content-box;
+  cursor: pointer; transition: background-color .2s ease, width .2s ease;
+}
+.req-carousel-dot:hover { background-color: #9CA3AF; }
+/* 활성 점: 눈에 띄는 진한 슬레이트 톤 + 캡슐형으로 늘어나 현재 위치를 명확히 보여줌
+   (background-color 로만 바꿔야 위 background-clip:content-box 가 유지됩니다 — background 축약 속성을
+   쓰면 지정하지 않은 하위 속성이 초기값(border-box)으로 되돌아가, 패딩 영역까지 색이 번져 보입니다) */
+.req-carousel-dot.is-active, .req-carousel-dot.is-active:hover { width: 20px; background-color: #4B5563; }
+
+/* ---------- 신청 대기 카드 (mypage.html .app-card 와 같은 흰 배경·라운딩·레이어드 그림자·24px 패딩) ---------- */
+.req-card {
+  display: flex; flex-direction: column; gap: 14px; padding: 22px; background: #fff; border: 1px solid var(--card-border);
+  border-radius: var(--radius); box-shadow: var(--shadow-card);
+  transition: box-shadow .15s ease;
+}
+.req-card:hover { box-shadow: var(--shadow-card-hover); }
+.req-card h3 { margin: 0; } /* 브라우저 기본 h3 여백을 지워야 카드 padding 만큼만 제목 위 여백이 생김 */
+@media (max-width: 640px) {
+  .req-card { padding: 16px; gap: 12px; }
+}
+.req-card button { border: none; cursor: pointer; font-family: inherit; transition: background-color .15s ease, transform .1s ease; }
+.req-card button:disabled { opacity: .55; cursor: not-allowed; }
+.req-card button:active:not(:disabled) { transform: scale(.98); }
+
+/* 카드 안에서만 쓰는 Tailwind 방식 유틸리티 클래스 (사이트 전체에 영향 없이 이 스코프에만 적용).
+   헤더 배지 줄 · 지정요청/마감임박 칩 · 본문 텍스트 강조 등 남은 곳에서만 씁니다 —
+   상세 데이터는 '오늘의 배정 케어' 카드와 같은 .sched-detail 그리드를 그대로 재사용합니다. */
+.req-card .flex { display: flex; }
+.req-card .flex-wrap { flex-wrap: wrap; }
+.req-card .flex-shrink-0 { flex-shrink: 0; }
+.req-card .items-center { align-items: center; }
+.req-card .gap-2 { gap: 8px; }
+.req-card .w-4 { width: 16px; }
+.req-card .h-4 { height: 16px; }
+.req-card .font-bold { font-weight: 700; }
+.req-card .font-semibold { font-weight: 600; }
+.req-card .font-normal { font-weight: 400; }
+.req-card .text-xs { font-size: 12px; line-height: 1.4; }
+.req-card .text-white { color: #fff; }
+.req-card .text-gray-900 { color: #111827; }
+.req-card .text-gray-500 { color: #6B7280; }
+.req-card .text-gray-400 { color: #9CA3AF; }
+.req-card .text-red-700 { color: var(--earth-fg); }
+.req-card .bg-amber-500 { background: var(--brand); } /* 지정요청: 별도 색 대신 솔리드 브랜드톤 */
+.req-card .bg-red-50 { background: var(--earth-bg); } /* 마감 임박 등 예외 상황: 최소한의 어스톤 */
+.req-card .border { border: 1px solid var(--card-border); }
+.req-card .border-red-200 { border-color: var(--earth-line); }
+.req-card .rounded { border-radius: var(--radius-sm); }
+.req-card .rounded-full { border-radius: 9999px; }
+.req-card .px-2 { padding-left: 8px; padding-right: 8px; }
+.req-card .px-2\.5 { padding-left: 10px; padding-right: 10px; }
+.req-card .py-1 { padding-top: 4px; padding-bottom: 4px; }
+/* 보호자가 원문으로 적은 희망 일시(파싱이 틀릴 수 있어 원문도 함께 보여 줌) */
+.req-card .sched-raw { color: #9CA3AF; font-weight: 400; }
+
+/* ---------- 신청 대기 카드: 모바일 컴팩트 레이아웃 ----------
+   1) 서비스명을 h3 큰 제목 대신 .badge 뱃지로 바꿔 — 뱃지는 white-space:nowrap 이 이미 걸려
+      있어, 좁은 폭에서 긴 한글 서비스명이 한 글자씩 세로로 끊어져 보이던 문제가 생기지 않습니다.
+   2) '선택 옵션(긴급 매칭 등)'도 별도 줄 대신 상태 뱃지 옆에 같은 줄 뱃지로 붙여, 옵션 유무에
+      따라 카드 세로 줄 수가 달라지지 않게 합니다.
+   3) 일시/장소/거동/보수 핵심 정보는 항상 4줄 고정 + 한 줄 말줄임(ellipsis)으로만 보여줘(주소가
+      길어도 줄바꿈 대신 ...으로 잘림 — 전체 내용은 title 속성 호버 또는 아래 '상세 정보' 토글로
+      확인), 신청 건마다 달랐던 카드 높이를 데이터 내용과 무관하게 동일하게 맞춥니다.
+   4) 연락처·관계·요청사항 등 당장 필요 없는 상세 정보는 기본적으로 숨겨 두고, [상세 정보 보기]를
+      누르면 그때만 펼쳐지도록 합니다(접힌 기본 상태의 카드 높이를 모두 같게 유지). */
+.req-top { display: flex; align-items: flex-start; gap: 12px; }
+.req-badges { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; row-gap: 6px; }
+.req-service-badge { flex: none; }
+/* 선택 옵션 뱃지: 기존 .bg-purple-50/.text-purple-700/.border-purple-200 조합이 이 문서에 정의돼
+   있지 않아(Tailwind 미사용) 무색으로 보이던 걸 고쳐, 다른 뱃지들과 같은 파스텔 칩 톤으로 통일합니다. */
+.req-addon-badge {
+  flex: none; display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 9999px;
+  background: #F3EEFC; color: #6D28D9; font-size: 11.5px; font-weight: 700; white-space: nowrap;
+}
+.req-compact-rows {
+  display: flex; flex-direction: column; gap: 7px; margin: 0;
+  padding: 12px 14px; background: var(--bg); border: 1px solid var(--card-border); border-radius: var(--radius-sm);
+}
+.req-compact-row { display: flex; align-items: baseline; gap: 10px; min-width: 0; min-height: 19px; }
+.req-compact-label { flex: none; width: 34px; font-size: 12.5px; font-weight: 700; color: var(--ink-sub); }
+.req-compact-value {
+  flex: 1 1 auto; min-width: 0; font-size: 13.5px; font-weight: 600; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default;
+}
+.req-compact-value strong { font-weight: 800; }
+/* [상세 정보 보기] 토글 — '더보기'(.schedule-more-btn)와 같은 텍스트+셰브런 언어, 카드 안에서는
+   위쪽 여백만 좁게 재정의합니다. */
+.req-detail-toggle { margin-top: 0; }
+.req-card .sched-detail[hidden] { display: none; }
+.group-label { margin: 22px 0 12px; font-size: 13px; font-weight: 700; color: var(--ink-sub); }
+.group-label:first-child { margin-top: 0; }
+.group-label.is-warn { color: var(--earth-fg); }
+
+/* ---------- 미인증 케어 경고 안내 바 (상단 고정이 아니라 프로필 카드 바로 위, 페이지 맨 앞) ---------- */
+.verify-alert-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 18px;
+  border: 1px solid var(--earth-line);
+  border-radius: var(--radius);
+  background: var(--earth-bg);
+  color: var(--earth-fg);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color .15s ease;
+}
+.verify-alert-bar:hover { background: #F0E4CC; }
+.verify-alert-cta { flex: none; font-size: 12.5px; text-decoration: underline; }
+
+.sched-foot { margin-top: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 14px; }
+.btn-outline-emerald {
+  display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--brand-line); color: var(--brand-dark); background: #fff;
+  padding: 6px 12px; border-radius: var(--radius-sm); font-size: 13.5px; font-weight: 500; cursor: pointer; transition: background-color .15s;
+}
+.btn-outline-emerald:hover { background: var(--brand-soft); }
+
+/* ---------- 리포트 ---------- */
+.report-detail { margin: 14px 0 0; padding-top: 14px; border-top: 1px dashed var(--brand-line); font-size: 14px; color: var(--ink-body); }
+.report-detail h4 { margin: 0 0 2px; font-size: 12.5px; color: var(--brand-dark); }
+.report-detail p { margin: 0 0 12px; white-space: pre-line; word-break: break-all; }
+.report-detail p:last-child { margin-bottom: 0; }
+
+/* 동행/수행 타임라인 (제출한 케어 리포트 보기 모달 전용) — mypage.html 의 .rv-timeline 과 같은 구조/스타일로
+   맞춰서 보호자 화면에서 본 것과 매니저 화면에서 본 것이 완전히 같아 보이게 합니다. */
+.rv-section { margin: 0 0 20px; }
+.rv-section-title { margin: 0 0 10px; font-size: 13px; font-weight: 700; color: var(--ink-sub); }
+.rv-timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.rv-tl-step { display: flex; gap: 14px; padding-bottom: 20px; }
+.rv-tl-step:last-child { padding-bottom: 0; }
+.rv-tl-rail { position: relative; flex: none; display: flex; justify-content: center; }
+.rv-tl-rail::before {
+  content: ''; position: absolute; top: 28px; bottom: -20px; left: 50%; width: 2px;
+  background: var(--card-border); transform: translateX(-50%);
+}
+.rv-tl-step:last-child .rv-tl-rail::before { display: none; }
+.rv-tl-step.is-done .rv-tl-rail::before { background: var(--brand-dark); }
+.rv-tl-dot {
+  position: relative; z-index: 1; flex: none; width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
+  background: #fff; border: 2px solid var(--card-border); color: var(--ink-sub);
+}
+.rv-tl-step.is-done .rv-tl-dot { background: var(--brand-dark); border-color: var(--brand-dark); color: #fff; }
+.rv-tl-content { flex: 1; min-width: 0; }
+.rv-tl-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.rv-tl-label { font-size: 14px; font-weight: 700; color: var(--ink); }
+.rv-tl-time { flex: none; font-size: 13px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.rv-tl-step.is-none .rv-tl-dot { background: #F1F5F9; border-color: #E2E8F0; color: #94A3B8; }
+.rv-tl-step.is-none .rv-tl-rail::before { background: #E2E8F0; }
+.rv-tl-step.is-none .rv-tl-label { color: #94A3B8; }
+.rv-tl-step.is-none .rv-tl-time { color: #CBD5E1; }
+.rv-tl-gps { margin: 4px 0 0; font-size: 12.5px; color: var(--ink-sub); word-break: break-all; line-height: 1.5; }
+.rv-tl-gps-badge { font-weight: 700; color: var(--brand-dark); }
+.rv-tl-photo {
+  margin-top: 8px; display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px 5px 5px;
+  border: 1px solid var(--card-border); border-radius: var(--radius-sm); background: #fff; cursor: pointer; transition: background-color .15s ease;
+}
+.rv-tl-photo:hover { background: var(--brand-soft); }
+.rv-tl-photo img { width: 36px; height: 36px; border-radius: var(--radius-sm); object-fit: cover; display: block; flex: none; }
+.rv-tl-photo span { font-size: 12.5px; font-weight: 700; color: var(--brand-dark); }
+
+/* 다음 병원 방문 예정일 / 어르신 컨디션 태그 / 증빙 사진 그리드 — mypage.html 의 .rv-next-visit* · .rv-tags ·
+   .rv-photo-grid* 와 같은 구조/스타일로 맞춰서, 매니저가 자기가 제출한 리포트를 볼 때도 보호자가 보는
+   화면과 똑같이 보이게 합니다(제출한 케어 리포트 보기 모달 전용). */
+.rv-next-visit { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 16px; padding: 12px 16px; background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: var(--radius); }
+.rv-next-visit-label { font-size: 12.5px; font-weight: 700; color: var(--brand-dark); }
+.rv-next-visit-badge { font-size: 15px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+.rv-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+.rv-tag { padding: 4px 11px; border-radius: 9999px; background: var(--brand-soft); color: var(--brand-dark); font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+.rv-photo-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.rv-photo-thumb { position: relative; aspect-ratio: 1 / 1; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--card-border); background: var(--bg); cursor: pointer; padding: 0; }
+.rv-photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .15s ease; }
+.rv-photo-thumb:hover img { transform: scale(1.05); }
+.rv-photo-thumb-label { position: absolute; left: 0; right: 0; bottom: 0; padding: 5px 7px; font-size: 11px; font-weight: 700; color: #fff; background: linear-gradient(0deg, rgba(0,0,0,.6), transparent); text-align: left; }
+
+/* ---------- 원클릭 선택 칩(어르신 컨디션 · 보행 상태 — 단일 선택 라디오 그룹) ---------- */
+.chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+/* 신청 대기 목록 위 정렬 탭(네이버 지도 스타일) — 지역 필터와 같은 .chip-btn 모양을 그대로 써서
+   한 카드 안에서 톤을 통일하되, 위치만 필터보다 먼저(정렬이 더 먼저 보게) 둡니다. */
+.req-sort-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+#requestSortBar .chip-btn { padding: 7px 14px; font-size: 13px; }
+/* 신청 대기 목록 위 지역별 퀵 필터 — 대분류(전체/인천/경기) 3개 필만 가로로 두고, 구/시 단위
+   세부 지역은 대분류를 고른 뒤에만 나타나는 작은 드롭다운 하나로 접어 둡니다. 구/시를 전부
+   필(pill)로 늘어놓으면 지역이 늘어날수록 한 줄에 다 안 들어와 줄바꿈되거나 화면이 복잡해지는
+   문제가 있어, 2단 구조(대분류 필 + 세부 지역 드롭다운)로 간소화했습니다. */
+.req-region-filter { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+#requestRegionFilterBar { margin-bottom: 0; }
+#requestRegionFilterBar .chip-btn { padding: 7px 14px; font-size: 13px; }
+.req-region-district-select {
+  padding: 6px 12px; border: 1.5px solid var(--brand-line); border-radius: 9999px;
+  font: inherit; font-size: 13px; font-weight: 700; color: var(--brand-dark); background: var(--brand-soft);
+  cursor: pointer;
+}
+.chip-btn {
+  padding: 10px 16px; border-radius: 9999px; border: 1.5px solid var(--input-border); background: #fff;
+  color: var(--ink-body); font-size: 13.5px; font-weight: 700; cursor: pointer;
+  transition: border-color .15s ease, background-color .15s ease, color .15s ease;
+}
+.chip-btn:hover { border-color: var(--brand); }
+.chip-btn.is-selected { border-color: var(--brand); background: var(--brand-soft); color: var(--brand-dark); }
+.field textarea.compact { height: 64px; }
+
+/* ---------- AI 케어 리포트: 핵심 메모 → AI 초안 생성 → 보호자에게 전송 ---------- */
+.ai-draft-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+.ai-draft-head label { margin-bottom: 0; }
+.ai-draft-head .btn-sm { white-space: nowrap; }
+#reportAiMessage { min-height: 140px; }
+.rv-text-box { white-space: pre-line; word-break: break-word; font-size: 14px; color: var(--ink-body); }
+.rv-memo { margin: 0 0 10px; font-size: 13px; color: var(--ink-sub); white-space: pre-line; }
+/* 상세 기록(진료 소견 등)은 선택 사항이라 기본은 접어 두고, 필요한 경우에만 펼쳐 봅니다 */
+.report-detail-fields { margin: 4px 0 14px; padding-top: 10px; border-top: 1px dashed var(--card-border); }
+.report-detail-fields summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--ink-sub); padding: 2px 0 10px; }
+.report-detail-fields[open] summary { color: var(--brand-dark); }
+.report-detail-fields .field:first-of-type { margin-top: 4px; }
+
+/* ---------- 케어 리포트 첨부: 서류 · 현장 사진 — 가로 스크롤 갤러리 ----------
+   인스타그램/카카오톡 사진 첨부처럼 "추가" 슬롯 + 76px 정사각 썸네일이 한 줄로 나란히 스크롤되는
+   구조입니다. createPhotoUploader() 가 .photo-strip(#photoGrid 등) 맨 앞에 .photo-add-slot 을
+   한 번만 만들어 고정하고, 그 뒤에 .report-photo-thumb 들을 매 렌더마다 다시 그립니다. */
+.photo-strip-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+.photo-strip-head label { margin-bottom: 0; } /* .field label 기본 margin-bottom 을 이 줄에서만 취소 — 개수 텍스트와 한 줄에 나란히 */
+.photo-count { font-size: 12px; font-weight: 600; color: var(--ink-sub); }
+.photo-strip { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 2px; -webkit-overflow-scrolling: touch; }
+.photo-add-slot {
+  flex: 0 0 auto; width: 76px; height: 76px; border-radius: 12px; border: 1.5px dashed #CBD5E1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  color: var(--ink-sub); cursor: pointer; background: #fff;
+  transition: border-color .15s ease, background-color .15s ease, color .15s ease;
+}
+.photo-add-slot span { font-size: 11px; font-weight: 700; }
+.photo-add-slot:hover { border-color: var(--brand); color: var(--brand-dark); background: var(--brand-soft); }
+.photo-add-slot.is-full { opacity: .4; pointer-events: none; } /* REPORT_PHOTO_MAX 도달 시 더 추가할 수 없음을 알림 */
+.report-photo-thumb { flex: 0 0 auto; position: relative; width: 76px; height: 76px; border-radius: 12px; overflow: hidden; border: 1px solid var(--card-border); background: var(--bg); }
+.report-photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.report-photo-thumb-remove {
+  position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%; border: none; z-index: 1;
+  background: rgba(0,0,0,.6); color: #fff; font-size: 11px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background-color .15s ease;
+}
+.report-photo-thumb-remove:hover { background: rgba(0,0,0,.8); }
+
+/* 인증 사진 라이트박스 — mypage.html 의 .rv-lightbox-* 와 같은 구조 */
+.rv-lightbox-backdrop { z-index: 400; background: rgba(15, 23, 42, .85); }
+.rv-lightbox { position: relative; width: 100%; max-width: min(640px, 92vw); }
+.rv-lightbox img { width: 100%; border-radius: var(--radius-sm); display: block; box-shadow: 0 25px 60px rgba(0,0,0,.4); }
+.rv-lightbox-caption { margin: 12px 0 0; text-align: center; color: #fff; font-size: 13.5px; font-weight: 600; }
+.rv-lightbox-close {
+  position: absolute; top: -42px; right: 0; width: 34px; height: 34px; border-radius: 50%; border: none;
+  background: rgba(255,255,255,.15); color: #fff; font-size: 16px; cursor: pointer; transition: background-color .15s;
+}
+.rv-lightbox-close:hover { background: rgba(255,255,255,.28); }
+
+/* ---------- 제출한 케어 리포트: 월간 캘린더 (토스 스타일, 좌우 스플릿) ---------- */
+/* 좌: 달력 / 우: 이번 달 요약. 선택한 날짜의 내역 리스트는 두 컬럼 아래에 전체 너비로 펼칩니다.
+   비율은 mypage.html 쪽 캘린더와 완전히 동일하게 8:4(2:1)로 맞춥니다 — '월 요약' 박스 크기가
+   두 페이지에서 정확히 같아야 하므로 이 비율이 달라지면 안 됩니다. */
+.cal-split { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 28px; align-items: stretch; }
+.cal-left, .cal-right { min-width: 0; }
+/* mypage.html '이용 내역 & 케어 리포트' 캘린더의 요약 카드와 동일한 구조: 제목 아래 구분선 + 옅은 회색
+   박스로 묶은 요약 항목, 달력(왼쪽) 전체 높이와 같아지도록 grid stretch + height:100% */
+.cal-right {
+  height: 100%; padding: 24px; background: #fff; border: 1px solid var(--card-border); border-radius: var(--radius-sm);
+  display: flex; flex-direction: column; justify-content: flex-start; gap: 16px;
+}
+.cal-right-title { margin: 0; padding-bottom: 12px; border-bottom: 1px solid var(--line); font-size: 14px; font-weight: 800; color: var(--ink); }
+.cal-summary-v { display: flex; flex-direction: column; background: #F8FAFC; padding: 16px; border-radius: var(--radius); } /* slate-50 */
+.cal-summary-v .cal-stat {
+  display: flex; align-items: center; justify-content: space-between; width: 100%;
+  background: transparent; border: none; border-radius: var(--radius); padding: 8px 2px;
+}
+.cal-summary-v .cal-stat:not(:last-child) { border-bottom: 1px solid var(--card-border); }
+.cal-summary-v .cal-stat b { font-size: 18px; font-weight: 800; }
+.cal-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+.cal-nav { display: flex; align-items: center; gap: 14px; }
+.cal-nav-btn {
+  width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--card-border); background: #fff; color: var(--ink);
+  font-size: 16px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  transition: background .15s, border-color .15s;
+}
+.cal-nav-btn:hover { background: var(--brand-soft); border-color: var(--brand-line); }
+.cal-month { min-width: 108px; text-align: center; font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
+.cal-stat { padding: 8px 14px; border-radius: var(--radius-sm); background: var(--bg); border: 1px solid var(--card-border); font-size: 13px; color: var(--ink-sub); white-space: nowrap; }
+.cal-stat b { margin-left: 4px; font-size: 15px; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.cal-dow { padding-bottom: 8px; text-align: center; font-size: 12px; font-weight: 700; color: var(--ink-sub); }
+.cal-dow.is-sun { color: var(--danger); }
+.cal-dow.is-sat { color: var(--brand-dark); }
+.cal-cell {
+  min-height: 58px; padding: 6px 4px; border-radius: var(--radius-sm); border: 1px solid transparent; background: var(--bg); /* rounded-2xl */
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.cal-cell.is-pad { background: transparent; }
+.cal-cell:not(.is-pad) { cursor: pointer; border-color: var(--card-border); background: #fff; }
+.cal-cell:not(.is-pad):hover { border-color: var(--brand); }
+/* 선택한 날짜(active): 굵은 테두리 대신 은은한 슬레이트 배경 + 얇은 테두리로 부드럽고 차분하게 — mypage.html과 동일 */
+.cal-cell.is-selected { border-color: #E2E8F0; background: #F1F5F9; box-shadow: 0 1px 3px rgba(15, 23, 42, .06); }
+.cal-daynum { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--ink); }
+.cal-cell.is-sun .cal-daynum { color: var(--danger); }
+.cal-cell.is-sat .cal-daynum { color: var(--brand-dark); }
+.cal-cell.is-today .cal-daynum { background: var(--brand); color: #fff; }
+.cal-count { padding: 2px 7px; border-radius: 9999px; background: var(--brand); color: #fff; font-size: 11px; font-weight: 700; white-space: nowrap; }
+
+.cal-detail { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--line); }
+.cal-detail-title { margin: 0 0 12px; font-size: 14px; font-weight: 700; color: var(--ink-sub); }
+.cal-detail-empty { padding: 28px 16px; text-align: center; color: var(--ink-sub); background: var(--bg); border: 1px solid var(--card-border); border-radius: var(--radius); font-size: 14px; }
+.cal-case { padding: 16px 18px; background: var(--bg); border: 1px solid var(--card-border); border-radius: var(--radius); }
+.cal-case + .cal-case { margin-top: 10px; }
+.cal-case-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.cal-case-badges { display: flex; align-items: center; gap: 6px; flex: none; }
+.cal-case-time { font-size: 16px; font-weight: 800; }
+.cal-case-time small { margin-left: 6px; font-size: 13px; font-weight: 500; color: var(--ink-sub); }
+.cal-case-date { margin-right: 2px; font-size: 13px; font-weight: 700; color: var(--ink-sub); }
+
+/* '리포트' 탭에 지금 쓸 리포트가 있을 때(count > 0) — summaryBody 의 .tile.tone-amber 와 같은 amber
+   톤으로 탭 글자 자체를 물들여, 다른 탭(중립 회색/브랜드 그린)보다 눈에 띄게 합니다. 탭 콘텐츠
+   자체는 기존 .card/.card-lead, 목록 카드는 calCaseCard() 가 만드는 .cal-case 를 그대로 재사용해
+   따로 스타일을 추가하지 않았습니다. */
+.mgr-tab.is-warn { color: #B45309; }
+.mgr-tab.is-warn:hover:not(.is-active) { color: #92400E; }
+.mgr-tab.is-warn.is-active { color: #92400E; }
+@media (max-width: 860px) {
+  .cal-split { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------- 모달 / 토스트 ---------- */
+.modal-backdrop { position: fixed; inset: 0; z-index: 200; padding: 16px; background: rgba(30,35,32,.6); display: flex; align-items: center; justify-content: center; }
+.modal { width: 100%; max-width: 480px; max-height: calc(100vh - 32px); overflow-y: auto; background: #fff; border: 1px solid var(--card-border); border-radius: var(--radius); padding: 28px; box-shadow: 0 25px 50px -12px rgba(0,0,0,.35); }
+.modal h3 { margin: 0 0 4px; font-size: 20px; }
+.modal .modal-sub { margin: 0 0 18px; font-size: 13.5px; color: var(--ink-sub); }
+.target { margin-bottom: 18px; padding: 12px 14px; border-radius: var(--radius); background: var(--brand-soft); font-size: 14px; font-weight: 700; }
+/* ---------- 현장 이슈 발생 / 긴급 문의 모달 ---------- */
+.issue-type-options { display: flex; flex-direction: column; gap: 8px; }
+.issue-type-option {
+  display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm); font-size: 14px; color: var(--ink); cursor: pointer;
+}
+.issue-type-option input { accent-color: var(--brand); flex: none; }
+.issue-type-option:has(input:checked) { border-color: var(--brand); background: var(--brand-soft); font-weight: 700; }
+.sched-issue-btn { background: #FFFBEB; color: #B45309; }
+.sched-issue-btn:hover { background: #FEF3C7; }
+
+.field { margin-bottom: 14px; }
+.field label { display: block; margin-bottom: 4px; font-size: 13px; font-weight: 700; }
+.field label.field-sub-label { margin-top: 12px; } /* 한 .field 안에 칩 그룹 두 줄(컨디션/보행 상태)을 같이 둘 때 사이 간격 */
+.field textarea {
+  width: 100%; height: 110px; resize: none; padding: 14px 16px; border: 1px solid var(--input-border); border-radius: var(--radius);
+  font: inherit; line-height: 1.55; color: var(--ink); background: #fff; outline: none;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.field textarea:focus { border-color: #9ca3af; box-shadow: 0 0 0 3px rgba(107,114,128,.15); }
+.field input[type="text"], .field select {
+  width: 100%; padding: 12px 14px; border: 1px solid var(--input-border); border-radius: var(--radius-sm); font: inherit; color: var(--ink); background: #fff; outline: none;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.field input[type="text"]:focus, .field select:focus { border-color: #9ca3af; box-shadow: 0 0 0 3px rgba(107,114,128,.15); }
+.form-hint { margin: -6px 0 14px; font-size: 12.5px; color: var(--ink-sub); white-space: pre-line; }
+.modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+.modal-actions .btn { flex: 1; padding: 14px; }
+.form-error { margin: 0 0 12px; color: var(--danger); font-size: 13.5px; }
+
+/* ---------- 케어 완료 모달: 여백의 미 — p-9 + space-y-6 기준으로 전체를 넉넉하게 풀어줌 ---------- */
+.modal.complete-modal { padding: 36px; } /* p-9 */
+.modal.complete-modal .modal-sub { margin: 0 0 24px; } /* mb-6: 타이틀·설명 아래로 본문 카드와 확실히 분리 */
+.modal.complete-modal .target { margin-bottom: 24px; } /* space-y-6 */
+.modal.complete-modal .field { margin-bottom: 24px; } /* space-y-6 */
+.modal.complete-modal .field label { margin-bottom: 8px; font-size: 13.5px; } /* gap-2, 라벨 크기도 한 톤 또렷하게 */
+.modal.complete-modal .modal-actions { margin-top: 16px; } /* mt-4: 안내문과 버튼 사이 */
+
+/* ---------- 예정/실제 종료 시각 카드 ---------- */
+.complete-time-row { display: flex; gap: 12px; align-items: stretch; margin-bottom: 24px; } /* space-y-6 */
+.modal.complete-modal .complete-time-row .field { flex: 1; margin-bottom: 0; }
+.complete-time-box { flex: 1; padding: 14px; border-radius: var(--radius); background: var(--bg); border: 1px solid var(--card-border); display: flex; flex-direction: column; justify-content: center; } /* py-3.5 */
+.complete-time-label { font-size: 12px; font-weight: 700; color: var(--ink-sub); margin-bottom: 4px; }
+.complete-time-value { font-size: 17px; font-weight: 800; color: var(--ink); letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+
+/* ---------- 커스텀 플로팅 드롭다운(cdrop): 실제 종료 시각 · 초과 사유 select 를 대체하는 button + ul/li ---------- */
+/* 실제 상태는 숨겨진 <select> 가 그대로 들고 있고(값·disabled·change 이벤트 유지), 이 컴포넌트는 그 위에
+   얹히는 시각적 레이어일 뿐입니다 — sr-only 패턴과 동일하게 화면에서만 보이지 않게 감춥니다. */
+.cdrop-native-select {
+  position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important;
+  overflow: hidden !important; clip: rect(0,0,0,0) !important; white-space: nowrap !important; border: 0 !important;
+}
+.cdrop { position: relative; }
+.cdrop-trigger {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 14px; border-radius: var(--radius-sm); /* rounded-2xl, py-3.5 상하 패딩은 .complete-time-box 와 통일 */
+  background: #fff; /* 흐림 제거 */
+  border: 1px solid var(--input-border);
+  font: inherit; color: var(--ink); cursor: pointer; text-align: left;
+  transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
+}
+.cdrop-trigger:hover { border-color: var(--brand); }
+.cdrop-trigger:focus-visible, .cdrop-trigger.is-open {
+  outline: none; border-color: #9ca3af; box-shadow: 0 0 0 3px rgba(107,114,128,.15);
+}
+.cdrop-trigger:disabled { cursor: not-allowed; opacity: .55; background: var(--bg); }
+.cdrop-trigger-main { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.cdrop-trigger-text { font-size: 14px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cdrop-chevron { flex: none; color: #94A3B8; transition: transform .2s ease; }
+.cdrop-trigger.is-open .cdrop-chevron { transform: rotate(180deg); }
+
+/* 상태별 알약 뱃지: 정시 완료(에메랄드) · 초과 시간(연한 오렌지/앰버) · 조기 종료(슬레이트) */
+.cdrop-pill { flex: none; padding: 3px 10px; border-radius: 9999px; font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+.cdrop-pill.tone-ontime { background: #D1FAE5; color: #047857; } /* emerald-100 / emerald-700 */
+.cdrop-pill.tone-over   { background: #FFFBEB; color: #D97706; } /* amber-50 / amber-600 */
+.cdrop-pill.tone-early  { background: #F1F5F9; color: #475569; } /* slate-100 / slate-600 */
+
+/* 플로팅 메뉴: 살짝 축소된 상태(scale-95)에서 원래 크기(scale-100)로 부드럽게 펼쳐짐 */
+.cdrop-menu {
+  position: absolute; left: 0; right: 0; top: calc(100% + 8px); z-index: 60;
+  margin: 0; padding: 6px; list-style: none;
+  background: #fff; /* 흐림 제거 */
+  border: 1px solid var(--card-border); border-radius: var(--radius-sm); box-shadow: 0 25px 50px -12px rgba(0,0,0,.35), 0 10px 20px -8px rgba(0,0,0,.15); /* shadow-2xl */
+  max-height: 280px; overflow-y: auto;
+  transform-origin: top center; transform: scale(.95) translateY(-2px); opacity: 0; pointer-events: none;
+  transition: transform .2s cubic-bezier(.16,1,.3,1), opacity .16s ease;
+}
+.cdrop-menu.is-open { transform: scale(1) translateY(0); opacity: 1; pointer-events: auto; }
+.cdrop-option {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 12px; border-radius: var(--radius-sm); font-size: 13.5px; font-weight: 600; color: var(--ink-body);
+  cursor: pointer; transition: background-color .12s ease, color .12s ease;
+}
+.cdrop-option + .cdrop-option { margin-top: 2px; }
+.cdrop-option:hover, .cdrop-option:focus-visible { background: var(--brand-soft); color: var(--ink); outline: none; }
+.cdrop-option.is-selected { color: var(--ink); font-weight: 800; background: var(--bg); }
+.cdrop-option.is-selected:hover, .cdrop-option.is-selected:focus-visible { background: var(--brand-soft); }
+.cdrop-option .cdrop-pill { pointer-events: none; }
+
+/* 조기 종료(예정보다 일찍 끝남) 선택 시 초과 사유·증빙 사진 영역 대신 뜨는 안내 박스 */
+.complete-early-info { margin: 0 0 24px; padding: 16px; border-radius: var(--radius-sm); background: var(--brand-soft); border: 1px solid var(--brand-line); color: var(--brand-dark); font-size: 13px; font-weight: 600; line-height: 1.5; } /* space-y-6 */
+/* 30분 이상 초과 선택 전에는 옅은 점선 테두리, 초과 선택 시 브랜드 컬러 테두리 + 소프트 배경으로 강조 */
+.complete-proof { margin: 0 0 24px; padding: 24px 16px; border: 1px dashed var(--card-border); border-radius: var(--radius-sm); background: var(--bg); transition: border-color .15s ease, background-color .15s ease, box-shadow .15s ease; } /* py-6, space-y-6 */
+.complete-proof.is-required { border: 1px solid var(--brand); background: var(--brand-soft); box-shadow: 0 0 0 3px var(--brand-line); }
+.complete-proof-drop {
+  display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 12px; border-radius: var(--radius-sm);
+  background: #fff; border: 1px solid var(--card-border); color: var(--brand-dark); font-size: 13.5px; font-weight: 700; cursor: pointer;
+  transition: background-color .15s ease;
+}
+.complete-proof-drop:hover { background: var(--brand-soft); }
+.complete-proof-hint { margin: 10px 2px 0; font-size: 12px; color: var(--ink-sub); }
+
+/* 보호자 전달 케어 리포트: 증빙 자료 영역과 구분되도록 점선으로 구획을 나눔 */
+.complete-report-section { margin: 0 0 24px; padding-top: 24px; border-top: 1px dashed var(--card-border); }
+.complete-report-section .field:last-child { margin-bottom: 0; }
+.complete-report-title { margin: 0 0 4px; font-size: 14px; font-weight: 800; color: var(--ink); }
+.complete-report-sub { margin: 0 0 20px; font-size: 12.5px; color: var(--ink-sub); }
+.complete-footnote { margin: 24px 0 0; font-size: 12px; color: var(--ink-sub); line-height: 1.5; } /* mt-6: 증빙 첨부 영역과 분리 (버튼과의 mt-4 는 .modal-actions 쪽에서) */
+
+/* ---------- 신청 수락 모달: 보호자 신청 일시 카드 + 수락/일정 변경 제안 액션 분리 ---------- */
+.accept-modal-head { display: flex; align-items: center; justify-content: space-between; }
+.accept-when-card { margin: 14px 0 18px; padding: 16px; background: var(--bg); border: 1px solid var(--card-border); border-radius: var(--radius); }
+.accept-when-label { font-size: 12px; font-weight: 700; color: var(--ink-sub); margin-bottom: 4px; }
+.accept-when-value { font-size: 17px; font-weight: 800; color: var(--ink); letter-spacing: -0.01em; }
+.accept-actions { display: flex; gap: 10px; margin-top: 4px; }
+.accept-actions .btn { flex: 2 1 0; }
+.accept-actions .btn-ghost { flex: 1 1 0; }
+.accept-footnote { margin: 10px 0 0; font-size: 12px; color: var(--ink-sub); }
+.accept-propose-panel { margin: 4px 0 18px; padding: 16px; background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: var(--radius); }
+.accept-propose-panel .field { margin-bottom: 10px; }
+.accept-propose-actions { display: flex; gap: 10px; margin-top: 12px; }
+.accept-propose-actions .btn, .accept-propose-actions .btn-ghost { flex: 1; }
+.toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 300; max-width: calc(100vw - 32px); padding: 12px 22px; border-radius: 9999px; background: var(--ink); color: #fff; font-size: 14px; box-shadow: 0 10px 25px rgba(0,0,0,.25); }
+
+/* 이 페이지는 Tailwind CDN 을 쓰지 않으므로, .hidden 유틸리티를 직접 정의합니다 (아래 출발·병원 도착 인증 모달 전용) */
+.hidden { display: none !important; }
+
+/* ---------- 출발 · 병원 도착 인증 모달 ---------- */
+.dep-backdrop { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(15,23,42,.5); backdrop-filter: blur(2px); }
+.dep-modal { width: 100%; max-width: 420px; max-height: calc(100vh - 32px); overflow-y: auto; background: #fff; border-radius: var(--radius); padding: 24px; box-shadow: 0 25px 50px -12px rgba(0,0,0,.35); }
+.dep-head { display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid var(--card-border); }
+.dep-title { margin: 0; font-size: 20px; font-weight: 800; color: var(--ink); }
+.dep-close { background: none; border: none; padding: 4px; color: var(--ink-sub); cursor: pointer; line-height: 0; transition: color .15s; }
+.dep-close:hover { color: var(--ink-body); }
+.dep-body { margin-top: 16px; display: flex; flex-direction: column; gap: 20px; }
+
+.dep-target { border-radius: var(--radius); background: var(--bg); border: 1px solid var(--card-border); padding: 16px; }
+.dep-target-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--ink-sub); font-weight: 600; margin-bottom: 4px; }
+.dep-target-time { color: var(--brand-dark); font-weight: 700; }
+.dep-target-name { margin: 0; font-size: 15.5px; font-weight: 800; color: var(--ink); }
+.dep-target-name small { font-weight: 500; color: var(--ink-sub); font-size: 13px; margin-left: 2px; }
+.dep-target-addr { margin: 6px 0 0; font-size: 13.5px; color: var(--ink-body); display: flex; align-items: flex-start; gap: 4px; line-height: 1.5; }
+.dep-target-addr svg { flex: none; margin-top: 2px; }
+.dep-addr-label { color: var(--ink); font-weight: 700; margin-right: 4px; }
+
+.dep-hint { margin: 0; font-size: 13.5px; color: var(--ink-body); line-height: 1.6; }
+.dep-hint strong { color: var(--ink); font-weight: 700; }
+
+.dep-section { display: flex; flex-direction: column; gap: 8px; }
+.dep-label { font-size: 11.5px; font-weight: 700; color: var(--ink-sub); text-transform: uppercase; letter-spacing: .04em; }
+
+.dep-gps-btn {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 14px; border-radius: var(--radius-sm);
+  background: var(--brand-soft); color: var(--brand-dark); font-weight: 700; font-size: 14.5px; border: 1px solid var(--brand-line);
+  cursor: pointer; transition: background .15s, transform .1s;
+}
+.dep-gps-btn:hover:not(:disabled) { background: var(--brand-line); }
+.dep-gps-btn:active:not(:disabled) { transform: scale(.99); }
+.dep-gps-btn:disabled { opacity: .75; cursor: not-allowed; }
+.dep-gps-btn .spin { animation: dep-spin .8s linear infinite; }
+@keyframes dep-spin { to { transform: rotate(360deg); } }
+
+.dep-success {
+  display: flex; align-items: flex-start; gap: 8px; padding: 12px; border-radius: var(--radius); font-size: 12.5px; font-weight: 600; line-height: 1.5;
+  background: var(--brand-soft); color: var(--brand-dark); border: 1px solid var(--brand-line);
+}
+.dep-status-icon { flex: none; margin-top: 1px; }
+/* 출발지/목적지와 500m 이상 떨어진 경우: 초록 성공 배지 대신 예외적으로 어스톤 경고 배지로 전환 */
+.dep-success.is-warn { background: var(--earth-bg); color: var(--earth-fg); border-color: var(--earth-line); }
+.dep-error { margin: 0; font-size: 12px; color: var(--danger); }
+.dep-photo-guide { margin: 6px 2px 0; font-size: 12px; color: var(--ink-soft, var(--ink-body)); line-height: 1.5; }
+
+.dep-divider { position: relative; margin: 4px 0; text-align: center; }
+.dep-divider::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; border-top: 1px solid var(--card-border); }
+.dep-divider span { position: relative; background: #fff; padding: 0 10px; font-size: 11.5px; color: var(--ink-muted); }
+
+.dep-photo-drop {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; min-height: 96px;
+  border: 2px dashed var(--card-border); border-radius: var(--radius-sm); cursor: pointer; background: var(--bg); transition: background .15s;
+  text-align: center; gap: 4px; padding: 12px;
+}
+.dep-photo-drop:hover { background: var(--brand-soft); }
+.dep-photo-drop svg { color: var(--ink-muted); }
+.dep-photo-drop p { margin: 0; font-size: 12px; color: var(--ink-sub); }
+.dep-photo-drop p strong { color: var(--ink-body); font-weight: 700; }
+/* GPS 인증 실패 시 '방법 2. 현장 사진'으로 자연스럽게 눈길이 가도록 잠깐 강조합니다 (dep-photo-drop 에 붙임) */
+.dep-photo-drop.is-suggested { border-color: var(--brand); border-style: solid; background: var(--brand-soft); animation: dep-suggest-pulse 1.4s ease-in-out 2; }
+@keyframes dep-suggest-pulse { 0%, 100% { box-shadow: 0 0 0 0 var(--brand-line); } 50% { box-shadow: 0 0 0 6px transparent; } }
+
+.dep-foot { margin-top: 32px; display: flex; gap: 10px; } /* mt-8: 사진 박스와 버튼 그룹 사이 여백 확대 */
+.dep-btn-cancel {
+  flex: 0 0 33%; padding: 14px; border-radius: var(--radius-sm); background: var(--sec-bg); color: var(--sec-fg); font-weight: 700; font-size: 14px;
+  border: none; cursor: pointer; transition: background .15s, transform .1s;
+}
+.dep-btn-cancel:hover { background: var(--sec-bg-hover); }
+.dep-btn-cancel:active { transform: scale(.98); }
+.dep-btn-submit {
+  flex: 1 1 auto; padding: 14px; border-radius: var(--radius-sm); background: var(--cta); color: #fff; font-weight: 700; font-size: 14px;
+  border: none; cursor: pointer; box-shadow: var(--cta-shadow); transition: background .15s, transform .1s, box-shadow .15s;
+}
+.dep-btn-submit:hover:not(:disabled) { background: var(--cta-hover); }
+.dep-btn-submit:active:not(:disabled) { transform: scale(.98); }
+.dep-btn-submit:disabled { background: #F3F4F6; color: #9CA3AF; box-shadow: none; cursor: not-allowed; }
+
+/* ---------- 반응형 ---------- */
+@media (max-width: 960px) {
+  .mp-main { padding: 20px 16px 56px; }
+}
+@media (max-width: 760px) {
+  /* 프로필 아래로 내려온 활동 상태: 왼쪽 정렬, 위 간격은 .profile 의 gap */
+  .status-box { width: 100%; margin-left: 0; align-items: flex-start; }
+  .status-hint { text-align: left; }
+  .tiles { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  .card { padding: 16px 16px; }
+  .profile { padding: 14px 18px; }
+  .profile-name { font-size: 22px; }
+  .kv { grid-template-columns: 64px 1fr; }
+}
+/* index.html 헤더/푸터와 동일하게 렌더링되도록 보정 (index 는 Tailwind preflight 적용) */
+header, footer { letter-spacing: normal; line-height: 1.5; }
+footer h3 { margin-top: 0; }
+  
