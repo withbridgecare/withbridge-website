@@ -73,3 +73,15 @@ verify_jwt = false
 # token 도 같은 이유로 게이트웨이 검증은 통과하며, 함수 내부에서 profiles.role='admin' 을 다시 확인한
 # 뒤에만 수동 실행(cron 미동작 환경에서의 테스트용) 경로를 허용합니다.
 verify_jwt = true
+
+[functions.notify-partner-inquiry]
+# 제휴 문의 DB 트리거(sql/partner_inquiry_notify_webhook.sql, pg_net)가 로그인 토큰 없이 직접 호출하므로
+# 꺼야 합니다. 켜져 있으면 Supabase 입구에서 401(Missing authorization header)로 막혀 함수 로그에도
+# 남지 않고 메일이 나가지 않습니다. 대신 함수 내부에서 x-webhook-secret 헤더를
+# PARTNER_INQUIRY_WEBHOOK_SECRET 과 비교해 검증합니다.
+verify_jwt = false
+
+[functions.send-status-alimtalk]
+# 케어 상태 변경 DB 트리거(sql/care_status_alimtalk_webhook.sql, pg_net)가 로그인 토큰 없이 직접 호출하므로
+# 꺼야 합니다. 대신 함수 내부에서 x-webhook-secret 헤더를 ALIMTALK_WEBHOOK_SECRET 과 비교해 검증합니다.
+verify_jwt = false
