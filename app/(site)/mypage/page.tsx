@@ -350,8 +350,7 @@ export default function MypagePage() {
               {' '}
               <input type="text" id="seniorName" placeholder="예: 홍길동" autoComplete="off" maxLength={30} />
             </div>
-            <div className="field-row">
-              <div className="field">
+            <div className="field">
                 <label>
                   성별 (선택)
                 </label>
@@ -370,14 +369,13 @@ export default function MypagePage() {
                     </span>
                   </label>
                 </div>
-              </div>
-              <div className="field">
+            </div>
+            <div className="field">
                 <label htmlFor="seniorBirth">
                   생년월일
                 </label>
                 {' '}
-                <input type="date" id="seniorBirth" />
-              </div>
+                <input type="text" id="seniorBirth" inputMode="numeric" autoComplete="bday" maxLength={10} placeholder="예: 1900.01.01" />
             </div>
             <div className="field-pair">
               <div className="field">

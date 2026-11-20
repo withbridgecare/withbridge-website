@@ -9,6 +9,8 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '0x4AAAAAAFikvWaQUCBnw-hV';
+
 /** 케어 매니저 지원하기 — public/manager-apply.html 에서 옮김 */
 export default function ManagerApplyPage() {
   return (
@@ -101,7 +103,7 @@ export default function ManagerApplyPage() {
                   </span>
                 </label>
                 {' '}
-                <input className="text-input" type="date" id="mgrBirth" name="mgrBirth" autoComplete="bday" />
+                <input className="text-input" type="text" id="mgrBirth" name="mgrBirth" inputMode="numeric" autoComplete="bday" maxLength={10} placeholder="예: 1900.01.01" />
                 <p className="err" id="e-birth" hidden></p>
               </div>
               {/* 성별 — 어르신·보호자가 동성 매니저를 원하는 경우가 많아 매칭에 쓰는 필수 항목입니다 (manager_applications.gender, sql/manager_applications_gender.sql). */}
@@ -547,9 +549,17 @@ export default function ManagerApplyPage() {
                 </p>
               </div>
               <p className="err" id="e-agree" hidden></p>
-              {/* 자동 입력 방지(Cloudflare Turnstile) — data-sitekey는 Cloudflare 대시보드 > Turnstile 에서 발급받은 "Site Key"(공개값)로 교체해야 실제로 동작합니다. 시크릿 키는 여기 넣지 않습니다 (Supabase Edge Function Secrets, TURNSTILE_SECRET_KEY — supabase/functions/submit-manager-application 참고). */}
+              {/* 공개 Site Key는 NEXT_PUBLIC_TURNSTILE_SITE_KEY 환경변수에서 가져옵니다. Secret Key는 브라우저에 넣지 않습니다. */}
               <div className="field" id="f-turnstile">
-                <div className="cf-turnstile" data-sitekey="0x4AAAAAAFikvWaQUCBnw-hV" data-theme="light" data-language="ko"></div>
+                <div
+                  className="cf-turnstile"
+                  data-sitekey={TURNSTILE_SITE_KEY}
+                  data-theme="light"
+                  data-language="ko"
+                  data-callback="wbManagerTurnstileSuccess"
+                  data-expired-callback="wbManagerTurnstileExpired"
+                  data-error-callback="wbManagerTurnstileError"
+                ></div>
                 <p className="err" id="e-turnstile" hidden></p>
               </div>
               <div className="form-error" id="formError" role="alert" hidden></div>

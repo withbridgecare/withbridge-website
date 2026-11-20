@@ -2358,11 +2358,17 @@ function run({ WBAuth, WBEdgeFn, PortOne, WBPrivacy }: ReturnType<typeof createL
   const form = $id('seniorForm');
   const formError = $id('seniorFormError');
   const saveBtn = $id('seniorSaveBtn');
-  $id('seniorBirth').max = new Date().toLocaleDateString('sv-SE'); // 'sv-SE' 로케일 = YYYY-MM-DD
-  // 날짜 선택기 스크립트가 다 받아진 뒤에 붙입니다 (위 initGuardianMypage 에서 이미 불러오는 중인 같은 요청을 기다림)
-  loadScript(SCRIPTS.datepicker)
-    .then(() => { if (window.WBDatePicker) window.WBDatePicker.attach($id('seniorBirth')); })
-    .catch(() => { /* 못 불러와도 브라우저 기본 날짜 입력으로 동작 */ });
+  function formatSeniorBirth(value?: any) {
+    const digits = String(value || '').replace(/\D/g, '').slice(0, 8);
+    if (digits.length <= 4) return digits;
+    if (digits.length <= 6) return digits.slice(0, 4) + '.' + digits.slice(4);
+    return digits.slice(0, 4) + '.' + digits.slice(4, 6) + '.' + digits.slice(6);
+  }
+  function seniorBirthToIso(value?: any) {
+    const digits = String(value || '').replace(/\D/g, '');
+    if (digits.length !== 8) return '';
+    return digits.slice(0, 4) + '-' + digits.slice(4, 6) + '-' + digits.slice(6);
+  }
   const SENIOR_PK = 'senior_id';
   let editingSeniorId: any = null; // null 이면 신규 등록, 값이 있으면 그 senior_id 를 수정
   function setRadioValue(name?: any, value?: any) {
@@ -2419,6 +2425,10 @@ function run({ WBAuth, WBEdgeFn, PortOne, WBPrivacy }: ReturnType<typeof createL
   $id('seniorName').addEventListener('input', (e: any) => {
     if (e.target.value.trim()) clearSeniorFieldError('seniorName');
   });
+  $id('seniorBirth').addEventListener('input', (e: any) => {
+    e.target.value = formatSeniorBirth(e.target.value);
+    if (e.target.value) clearSeniorFieldError('seniorBirth');
+  });
   $id('seniorBirth').addEventListener('change', () => clearSeniorFieldError('seniorBirth'));
   function openSeniorModal(senior?: any) {
     form.reset();
@@ -2431,7 +2441,7 @@ function run({ WBAuth, WBEdgeFn, PortOne, WBPrivacy }: ReturnType<typeof createL
     saveBtn.textContent = senior ? '수정하기' : '저장하기';
     if (senior) {
       $id('seniorName').value = senior.senior_name || '';
-      $id('seniorBirth').value = senior.senior_birth || '';
+      $id('seniorBirth').value = senior.senior_birth ? String(senior.senior_birth).slice(0, 10).replace(/-/g, '.') : '';
       $id('seniorAddress').value = senior.address || '';
       $id('seniorAddressDetail').value = senior.address_detail || '';
       $id('seniorPhone').value = senior.senior_phone || '';
@@ -2509,7 +2519,8 @@ function run({ WBAuth, WBEdgeFn, PortOne, WBPrivacy }: ReturnType<typeof createL
   form.addEventListener('submit', async (e: any) => {
     e.preventDefault();
     const name = $id('seniorName').value.trim();
-    const birth = $id('seniorBirth').value;
+    const birthInput = $id('seniorBirth').value.trim();
+    const birth = birthInput ? seniorBirthToIso(birthInput) : '';
     const address = $id('seniorAddress').value.trim();
     const addressDetail = $id('seniorAddressDetail').value.trim() || null;
     const note = $id('healthNote').value.trim();
@@ -2521,7 +2532,12 @@ function run({ WBAuth, WBEdgeFn, PortOne, WBPrivacy }: ReturnType<typeof createL
     clearAllSeniorFieldErrors();
     const invalid: any[] = [];
     if (!name) invalid.push(['seniorName', '어르신 성함을 입력해 주세요.']);
-    if (birth && calcAge(birth) === null) invalid.push(['seniorBirth', '생년월일을 올바르게 입력해 주세요. (미래 날짜이거나 형식이 올바르지 않습니다)']);
+    const [birthYear, birthMonth, birthDay] = birth ? birth.split('-').map(Number) : [];
+    const parsedBirth = birth ? new Date(Date.UTC(birthYear, birthMonth - 1, birthDay)) : null;
+    const today = new Date();
+    const todayIso = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
+    const validBirthDate = !!parsedBirth && !Number.isNaN(parsedBirth.getTime()) && parsedBirth.toISOString().slice(0, 10) === birth && birth <= todayIso;
+    if (birthInput && (!birth || !validBirthDate || calcAge(birth) === null)) invalid.push(['seniorBirth', '생년월일을 올바르게 입력해 주세요. (미래 날짜이거나 형식이 올바르지 않습니다)']);
     if (!address) invalid.push(['seniorAddress', '[주소 검색]을 눌러 거주지 주소를 선택해 주세요.']);
     if (invalid.length) {
       invalid.forEach(([id, message]: any) => setSeniorFieldError(id, message));

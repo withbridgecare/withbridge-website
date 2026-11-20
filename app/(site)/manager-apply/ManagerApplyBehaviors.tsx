@@ -20,15 +20,23 @@ const TOTAL_STEPS = 4;
 const STEP_NAMES: Record<number, string> = { 1: '기본 정보', 2: '활동 조건 및 경력', 3: '정산 계좌 정보', 4: '서약 및 약관 동의' };
 /** 신분증 첨부는 지금 꺼져 있습니다 (켜려면 true + 화면의 첨부 칸 노출) */
 const ID_UPLOAD_ENABLED = false;
-const SUBMIT_COOLDOWN_KEY = 'wb_manager_apply_last_submit_at';
-const SUBMIT_COOLDOWN_MS = 30 * 1000;
 const PHONE_DUPLICATE_ERRORS = ['PHONE_ALREADY_APPLIED', 'PHONE_ALREADY_MANAGER'];
 
 type Errors = Record<string, string>;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- 외부 SDK(daum, turnstile, WBDatePicker)는 타입 정의가 없습니다
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- 외부 SDK(daum, turnstile)는 타입 정의가 없습니다
 type AnyWindow = Window & Record<string, any>;
 
 const digitsOnly = (s: string) => (s || '').replace(/\D/g, '');
+function formatBirthDate(value: string) {
+  const digits = digitsOnly(value).slice(0, 8);
+  if (digits.length <= 4) return digits;
+  if (digits.length <= 6) return digits.slice(0, 4) + '.' + digits.slice(4);
+  return digits.slice(0, 4) + '.' + digits.slice(4, 6) + '.' + digits.slice(6);
+}
+function birthDateToIso(value: string) {
+  const digits = digitsOnly(value);
+  return digits.length === 8 ? digits.slice(0, 4) + '-' + digits.slice(4, 6) + '-' + digits.slice(6) : '';
+}
 function formatPhoneDigits(digits: string) {
   if (digits.length < 4) return digits;
   if (digits.length < 8) return digits.slice(0, 3) + '-' + digits.slice(3);
@@ -54,6 +62,9 @@ export function ManagerApplyBehaviors() {
     };
 
     let currentUser: { id: string } | null = null;
+    let turnstileLoadError = '';
+    let turnstileCallbackError = '';
+    let submitInFlight = false;
     const idUpload: { path: string | null; uploading: boolean; fileName: string | null } = { path: null, uploading: false, fileName: null };
 
     const showOnly = (id: string) =>
@@ -107,6 +118,10 @@ export function ManagerApplyBehaviors() {
         }
       }
       input.setSelectionRange(cursor, cursor);
+    });
+    on($('mgrBirth'), 'input', (ev) => {
+      const input = ev.target as HTMLInputElement;
+      input.value = formatBirthDate(input.value);
     });
     const applyPhoneLockState = (hasPhone: boolean) => {
       $('mgrPhone').readOnly = hasPhone;
@@ -231,12 +246,29 @@ export function ManagerApplyBehaviors() {
     const resetTurnstile = () => {
       if (typeof w.turnstile?.reset === 'function') w.turnstile.reset();
     };
+    w.wbManagerTurnstileSuccess = () => {
+      turnstileCallbackError = '';
+      $('e-turnstile').hidden = true;
+      $('e-turnstile').textContent = '';
+    };
+    w.wbManagerTurnstileExpired = () => {
+      turnstileCallbackError = '인증 시간이 만료되었습니다. 다시 인증해 주세요.';
+    };
+    w.wbManagerTurnstileError = () => {
+      turnstileCallbackError = '자동 입력 방지 인증에 실패했습니다. 새로고침 후 다시 시도해 주세요.';
+    };
 
     const validateStep1 = () => {
       const e: Errors = {};
       if (!$('mgrName').value.trim()) e.name = '이름을 입력해 주세요.';
       if (!$('mgrPhone').value.trim() || digitsOnly($('mgrPhone').value).length < 9) e.phone = '연락처를 정확히 입력해 주세요. (예: 010-1234-5678)';
-      if (!$('mgrBirth').value) e.birth = '생년월일을 선택해 주세요.';
+      const birth = birthDateToIso($('mgrBirth').value);
+      const [year, month, day] = birth ? birth.split('-').map(Number) : [];
+      const parsedBirth = birth ? new Date(Date.UTC(year, month - 1, day)) : null;
+      const today = new Date();
+      const todayIso = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
+      const validBirth = !!parsedBirth && !Number.isNaN(parsedBirth.getTime()) && parsedBirth.toISOString().slice(0, 10) === birth && birth <= todayIso;
+      if (!validBirth) e.birth = '생년월일을 올바르게 입력해 주세요. (예: 1900.01.01)';
       if (!selectedGender()) e.gender = '성별을 선택해 주세요.';
       if (!$('mgrAddressBase').value.trim()) e.address = '주소 검색을 통해 거주지 주소를 입력해 주세요.';
       if (ID_UPLOAD_ENABLED) {
@@ -265,7 +297,7 @@ export function ManagerApplyBehaviors() {
     const validateStep4 = () => {
       const e: Errors = {};
       if (!($('agreeSafety').checked && $('agreeNoDirectDeal').checked && $('agreePrivacy').checked)) e.agree = '모든 서약 및 약관에 동의해야 지원할 수 있습니다.';
-      if (!getTurnstileToken()) e.turnstile = '자동 입력 방지 인증을 완료해 주세요.';
+      if (!getTurnstileToken()) e.turnstile = turnstileLoadError || turnstileCallbackError || '자동 입력 방지 인증을 완료해 주세요.';
       return e;
     };
     const applyStep4Error = (e: Errors) => {
@@ -302,17 +334,7 @@ export function ManagerApplyBehaviors() {
       ev.preventDefault();
       const formError = $('formError');
       formError.hidden = true;
-      let last = 0;
-      try {
-        last = Number(localStorage.getItem(SUBMIT_COOLDOWN_KEY) || 0);
-      } catch {
-        /* 무시 */
-      }
-      if (Date.now() - last < SUBMIT_COOLDOWN_MS) {
-        formError.textContent = '잠시 후 다시 시도해 주세요.';
-        formError.hidden = false;
-        return showStep(4);
-      }
+      if (submitInFlight) return;
       const e1 = validateStep1();
       const e2 = validateStep2();
       const e3 = validateStep3();
@@ -324,18 +346,14 @@ export function ManagerApplyBehaviors() {
       if (Object.keys(e4).length) return showStep(4);
 
       const submitBtn = $<HTMLButtonElement>('submitBtn');
+      submitInFlight = true;
       submitBtn.disabled = true;
       submitBtn.textContent = '제출 중…';
-      try {
-        localStorage.setItem(SUBMIT_COOLDOWN_KEY, String(Date.now()));
-      } catch {
-        /* 무시 */
-      }
 
       const result = await submitManagerApplication(client, {
         name: $('mgrName').value.trim(),
         phone: $('mgrPhone').value.trim(),
-        birth_date: $('mgrBirth').value,
+        birth_date: birthDateToIso($('mgrBirth').value),
         gender: selectedGender(),
         address: combineAddress($('mgrAddressBase').value, $('mgrAddressDetail').value),
         id_image_path: ID_UPLOAD_ENABLED ? idUpload.path : null,
@@ -353,10 +371,20 @@ export function ManagerApplyBehaviors() {
       });
 
       if (!result.ok) {
+        submitInFlight = false;
         console.error('[매니저 지원] 제출 실패:', result.body || result.raw);
         submitBtn.disabled = false;
         submitBtn.textContent = '제출하기';
         resetTurnstile(); // Turnstile 토큰은 1회용 — 재시도 전에 새로 받아야 함
+        if (result.body?.error === 'BOT_VERIFICATION_FAILED') {
+          const codes = (result.body as any).turnstile_error_codes as string[] | undefined;
+          const keyError = codes?.some((code) => code === 'invalid-input-secret' || code === 'missing-input-secret');
+          formError.textContent = keyError
+            ? '자동 입력 방지 서버 키 설정을 확인해 주세요. 지원팀에 문의해 주세요.'
+            : result.body.message || '자동 입력 방지 인증에 실패했습니다. 다시 인증해 주세요.';
+          formError.hidden = false;
+          return showStep(4);
+        }
         if (result.body?.error && PHONE_DUPLICATE_ERRORS.includes(result.body.error)) {
           applyFieldErrors(['phone'], { phone: result.body.message || '' });
           return showStep(1);
@@ -365,6 +393,7 @@ export function ManagerApplyBehaviors() {
         formError.hidden = false;
         return showStep(4);
       }
+      submitInFlight = false;
       showOnly('doneCard');
       $('doneTitle').focus();
     });
@@ -372,17 +401,19 @@ export function ManagerApplyBehaviors() {
     // ---------- 시작: 로그인 확인 → 화면 분기 ----------
     let cancelled = false;
     (async () => {
-      // 주소 검색 · 봇 방지 · 생년월일 선택기 스크립트 (실패해도 나머지는 동작)
+      // 주소 검색 · 봇 방지 스크립트 (실패해도 나머지는 동작)
       loadScript(SCRIPTS.postcode).catch((e) => console.warn(e));
-      loadScript(SCRIPTS.turnstile, { async: true }).catch((e) => console.warn(e));
-      loadScript(SCRIPTS.datepicker)
-        .then(() => {
-          if (cancelled || !w.WBDatePicker) return;
-          $('mgrBirth').max = new Date().toISOString().slice(0, 10);
-          w.WBDatePicker.attach($('mgrBirth'));
-        })
-        .catch((e) => console.warn(e));
-
+      const turnstileWidget = document.querySelector<HTMLElement>('.cf-turnstile');
+      if (!turnstileWidget?.dataset.sitekey) {
+        turnstileLoadError = '자동 입력 방지 Site Key가 설정되지 않았습니다. NEXT_PUBLIC_TURNSTILE_SITE_KEY를 확인해 주세요.';
+      } else {
+        loadScript(SCRIPTS.turnstile, { async: true }).then(() => {
+          if (!cancelled && !w.turnstile) turnstileLoadError = 'Cloudflare 인증 스크립트가 정상적으로 시작되지 않았습니다. 새로고침 후 다시 시도해 주세요.';
+        }).catch((e) => {
+          turnstileLoadError = 'Cloudflare 인증을 불러오지 못했습니다. 네트워크 또는 CSP 설정을 확인해 주세요.';
+          console.warn('[매니저 지원] Turnstile 로드 실패:', e);
+        });
+      }
       const { data } = await client.auth.getSession();
       if (cancelled) return;
       const session = data.session;
