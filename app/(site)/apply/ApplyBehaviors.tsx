@@ -12,6 +12,10 @@ import { getSupabase } from '@/lib/supabase/client';
 import { hasUnpaidExtraCharge } from '@/lib/api/auth';
 import { maybeLoggedIn } from '@/lib/browser/storage';
 import { initApplyForm } from './applyForm';
+import { enhanceSelects } from '@/lib/browser/wbSelect';
+
+/** 네이티브 목록 대신 사이트 디자인 선택 버튼(휴대폰: 아래에서 올라오는 목록)으로 보여 줄 select */
+const ENHANCED_SELECTS = ['serviceType', 'oneHourPurpose', 'couponSelect', 'seniorProfileSelect'];
 
 const EXTRA_CHARGE_PAGE = '/mypage#extraChargeSection';
 
@@ -62,7 +66,13 @@ export function ApplyBehaviors() {
         else denyAccess();
       });
 
-    return initApplyForm();
+    // 선택 버튼을 먼저 붙여 두면, 이후 신청서 스크립트가 값·옵션을 바꿀 때 버튼 표시가 그대로 따라갑니다
+    const cleanupSelects = enhanceSelects(ENHANCED_SELECTS);
+    const cleanupForm = initApplyForm();
+    return () => {
+      if (typeof cleanupForm === 'function') cleanupForm();
+      cleanupSelects();
+    };
   }, [showLoginModal]);
 
   return null;
