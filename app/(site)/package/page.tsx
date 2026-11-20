@@ -37,9 +37,10 @@ export default function PackagePage() {
               WITHBRIDGE CARE PACKAGE
             </span>
             <h1 className="pkg-hero-title fade-in-up" style={{ animationDelay: ".15s" }}>
-              매번 결제하는 번거로움 없이,
+              {/* 줄바꿈 앞 공백: 휴대폰에서 <br> 을 숨겨도 단어가 붙지 않게 (package.css) */}
+              매번 결제하는 번거로움 없이,{' '}
               <br />
-              어르신의 병원 동행을 더 꾸준하고
+              어르신의 병원 동행을 더 꾸준하고{' '}
               <br />
               편안하게
             </h1>
