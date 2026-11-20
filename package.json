@@ -1,31 +1,31 @@
 {
-  "name": "withbridge-website",
-  "private": true,
-  "scripts": {
-    "dev": "npm run build:legacy && next dev -p 5500",
-    "build": "npm run build:legacy && next build",
-    "start": "next start -p 5500",
-    "typecheck": "tsc --noEmit",
-    "build:legacy": "node scripts/build-env.mjs",
-    "lint": "eslint .",
-    "check:prices": "node scripts/check-prices.mjs"
-  },
-  "dependencies": {
-    "@portone/browser-sdk": "^0.1.13",
-    "@supabase/supabase-js": "^2.119.0",
-    "next": "^16.4.6",
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1"
-  },
-  "devDependencies": {
-    "@types/node": "^26.6.6",
-    "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0",
-    "autoprefixer": "^10.6.2",
-    "eslint": "^9.39.5",
-    "eslint-config-next": "^16.4.6",
-    "postcss": "^8.5.33",
-    "tailwindcss": "3.4.17",
-    "typescript": "^5.9.3"
-  }
+	"name": "withbridge-website",
+	"private": true,
+	"scripts": {
+		"dev": "npm run build:legacy && next dev -p 5500",
+		"build": "npm run build:legacy && next build",
+		"start": "next start -p 5500",
+		"typecheck": "tsc --noEmit",
+		"build:legacy": "node scripts/build-env.mjs",
+		"lint": "eslint .",
+		"check:prices": "node scripts/check-prices.mjs"
+	},
+	"dependencies": {
+		"@portone/browser-sdk": "^0.1.13",
+		"@supabase/supabase-js": "^2.119.0",
+		"next": "^16.4.6",
+		"react": "^19.3.1",
+		"react-dom": "^19.3.1"
+	},
+	"devDependencies": {
+		"@types/node": "^26.6.6",
+		"@types/react": "^19.3.0",
+		"@types/react-dom": "^19.3.0",
+		"autoprefixer": "^10.6.2",
+		"eslint": "^9.39.5",
+		"eslint-config-next": "^16.4.6",
+		"postcss": "^8.5.33",
+		"tailwindcss": "3.4.17",
+		"typescript": "^5.9.3"
+	}
 }
