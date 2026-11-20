@@ -23,9 +23,11 @@ export function initGuardianMypage(shimOpts: Parameters<typeof createLegacyShims
   const root = document.querySelector<HTMLElement>('main.mp-main');
   if (!root || root.dataset.wbInit === '1') return;
   root.dataset.wbInit = '1';
-  Promise.allSettled([loadScript(SCRIPTS.datepicker), loadScript(SCRIPTS.placeSearch), loadScript(SCRIPTS.postcode)]).then(() =>
-    run(createLegacyShims(shimOpts)),
-  );
+  // 공용 위젯 스크립트(날짜 선택·장소 검색·카카오 우편번호)는 모달을 열 때만 필요하므로 기다리지 않고
+  // 화면 동작(로그인 확인·데이터 조회)을 바로 시작합니다. 예전엔 셋 다 받을 때까지 화면 전체가 멈춰 있어
+  // 휴대폰에서 카카오 CDN 이 느리면 그만큼 첫 화면이 늦게 떴습니다. 각 사용처가 스크립트 유무를 직접 확인합니다.
+  void Promise.allSettled([loadScript(SCRIPTS.datepicker), loadScript(SCRIPTS.placeSearch), loadScript(SCRIPTS.postcode)]);
+  run(createLegacyShims(shimOpts));
 }
 
 function run({ WBAuth, WBEdgeFn, PortOne, WBPrivacy }: ReturnType<typeof createLegacyShims>): void {
@@ -983,8 +985,8 @@ function run({ WBAuth, WBEdgeFn, PortOne, WBPrivacy }: ReturnType<typeof createL
                 unlinked.map((a: any) => ({ id: a.id, user_id: a.user_id, status: a.status })), '→ DB 에서 user_id 를 내 계정으로 고쳐야 정상적으로 보입니다 (supabase-fix-guardian-visibility.sql 의 D).');
       }
       const list = (DEBUG_ALL ? (apps || []) : (apps || []).filter(withinCareWindow)).sort(byCreatedAtDesc);
-      await attachManagers(list);
-      await attachSchedules(list);
+      // 담당 매니저(_manager)와 진행 일정(_schedule)은 서로 다른 칸을 채우는 독립 조회라 동시에 보냅니다 (서버 왕복 1번 절약)
+      await Promise.all([attachManagers(list), attachSchedules(list)]);
       list.forEach((a: any) => {
         const raw = (a._schedule && a._schedule.schedule_status) || a.status;
         console.log('[Guardian] Fetched status:', raw, '| application:', a.id,
@@ -2357,7 +2359,10 @@ function run({ WBAuth, WBEdgeFn, PortOne, WBPrivacy }: ReturnType<typeof createL
   const formError = $id('seniorFormError');
   const saveBtn = $id('seniorSaveBtn');
   $id('seniorBirth').max = new Date().toLocaleDateString('sv-SE'); // 'sv-SE' 로케일 = YYYY-MM-DD
-  if (window.WBDatePicker) window.WBDatePicker.attach($id('seniorBirth'));
+  // 날짜 선택기 스크립트가 다 받아진 뒤에 붙입니다 (위 initGuardianMypage 에서 이미 불러오는 중인 같은 요청을 기다림)
+  loadScript(SCRIPTS.datepicker)
+    .then(() => { if (window.WBDatePicker) window.WBDatePicker.attach($id('seniorBirth')); })
+    .catch(() => { /* 못 불러와도 브라우저 기본 날짜 입력으로 동작 */ });
   const SENIOR_PK = 'senior_id';
   let editingSeniorId: any = null; // null 이면 신규 등록, 값이 있으면 그 senior_id 를 수정
   function setRadioValue(name?: any, value?: any) {
@@ -2716,15 +2721,28 @@ function run({ WBAuth, WBEdgeFn, PortOne, WBPrivacy }: ReturnType<typeof createL
       loading.textContent = '로그인 모듈을 불러오지 못했습니다. 네트워크 상태를 확인하고 새로고침해 주세요.';
       return;
     }
-    const { data: { user }, error } = await supabaseClient.auth.getUser();
-    if (!user) {
+    // 1) 이 기기에 저장된 로그인(세션)으로 바로 시작합니다 — 인증 서버를 한 번 더 다녀오지 않아 첫 화면이 빨라집니다.
+    //    (만료됐으면 supabase-js 가 여기서 자동 갱신합니다. 데이터 보호는 화면이 아니라 DB 권한(RLS)이 합니다.)
+    // 2) 동시에 인증 서버에도 확인(getUser)해서, 탈퇴·강제 로그아웃 등으로 더는 유효하지 않으면 예전처럼 로그인 페이지로 보냅니다.
+    const toLoginOrNetworkNotice = (error: any) => {
       if (error && error.name === 'AuthRetryableFetchError') { // 네트워크 문제: 로그인 화면으로 보내지 않고 안내
         loading.textContent = '사용자 정보를 확인하지 못했습니다. 네트워크 상태를 확인하고 새로고침해 주세요.';
         return;
       }
       window.location.replace('login.html'); // 비로그인 → 로그인 페이지
+    };
+    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+    const user = session && session.user;
+    if (!user) {
+      toLoginOrNetworkNotice(sessionError);
       return;
     }
+    supabaseClient.auth.getUser().then(({ data, error }: any) => {
+      if (!data || !data.user) {
+        if (error && error.name === 'AuthRetryableFetchError') return; // 일시적 네트워크 문제면 이미 보여 준 화면 유지
+        window.location.replace('login.html');
+      }
+    });
     const isManager = await WBAuth.checkIsManager(user.id);
     if (isManager && !DEMO && WBAuth.getUserMode() === 'manager') {
       window.location.replace('mypage-manager.html');
