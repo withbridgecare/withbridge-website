@@ -40,3 +40,7 @@ body {
 #signupResendBtn:disabled { opacity: .6; cursor: default; }
 #signupCheckConfirmBtn:disabled { opacity: .6; cursor: default; }
   
+/* 동의하지 않고 [인증 링크 전송]을 누르면: 체크박스에 빨간 테두리 (체크하면 사라짐) */
+.signup-checkbox.is-invalid { border-color: #DC2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15); }
+/* 잘못된 칸으로 커서가 옮겨질 때, 고정된 상단 메뉴에 가리지 않도록 위쪽 여유를 둡니다 */
+.signup-input, .signup-checkbox { scroll-margin-top: 140px; }

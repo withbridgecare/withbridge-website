@@ -27,8 +27,20 @@ import { TermsLink } from '@/components/site/TermsLink';
 
 const RESEND_SECONDS = 60;
 const inputStyle: React.CSSProperties = { width: '100%', height: '48px', padding: '0 14px', border: '1px solid #E0E0E0', borderRadius: '0px', fontSize: '14px', outline: 'none', backgroundColor: '#ffffff', color: '#1A1D21' };
+// 잘못 입력된 칸: 빨간 테두리 + 옅은 빨간 그림자 (해당 칸을 고치면 사라짐)
+const invalidInputStyle: React.CSSProperties = { ...inputStyle, border: '1px solid #DC2626', boxShadow: '0 0 0 3px rgba(220, 38, 38, 0.15)' };
 
 type Pending = { email: string; password: string; phone: string };
+type Field = 'email' | 'password' | 'passwordConfirm' | 'name' | 'phone' | 'terms';
+// 잘못된 칸으로 커서를 옮길 때 쓰는 각 입력란의 name 속성
+const FIELD_NAMES: Record<Field, string> = {
+  email: 'signupEmail',
+  password: 'signupPassword',
+  passwordConfirm: 'signupPasswordConfirm',
+  name: 'signupName',
+  phone: 'signupPhone',
+  terms: 'signupTerms',
+};
 
 export function SignupForm() {
   const [form, setForm] = useState({ email: '', password: '', passwordConfirm: '', name: '', phone: '' });
@@ -40,6 +52,7 @@ export function SignupForm() {
   const [resendLeft, setResendLeft] = useState(0);
   const [resending, setResending] = useState(false);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [invalidField, setInvalidField] = useState<Field | null>(null);
 
   useEffect(() => {
     const redirect = new URLSearchParams(window.location.search).get('redirect');
@@ -49,7 +62,10 @@ export function SignupForm() {
     };
   }, []);
 
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm((f) => ({ ...f, [k]: e.target.value }));
+    if (invalidField === k) setInvalidField(null);
+  };
 
   const startCountdown = () => {
     setResendLeft(RESEND_SECONDS);
@@ -62,15 +78,16 @@ export function SignupForm() {
     }, 1000);
   };
 
-  const validate = () => {
+  // 위에서부터 첫 번째로 잘못된 칸과 안내 문구를 돌려줍니다
+  const validate = (): { field: Field; message: string } | null => {
     const email = form.email.trim();
-    if (!email || !EMAIL_PATTERN.test(email)) return '올바른 이메일 주소를 입력해 주세요.';
-    if (!form.password || form.password.length < PASSWORD_MIN_LENGTH) return '비밀번호는 ' + PASSWORD_MIN_LENGTH + '자 이상이어야 합니다.';
-    if (form.password !== form.passwordConfirm) return '비밀번호가 일치하지 않습니다.';
-    if (!form.name.trim()) return '이름을 입력해 주세요.';
+    if (!email || !EMAIL_PATTERN.test(email)) return { field: 'email', message: '올바른 이메일 주소를 입력해 주세요.' };
+    if (!form.password || form.password.length < PASSWORD_MIN_LENGTH) return { field: 'password', message: '비밀번호는 ' + PASSWORD_MIN_LENGTH + '자 이상이어야 합니다.' };
+    if (form.password !== form.passwordConfirm) return { field: 'passwordConfirm', message: '비밀번호가 일치하지 않습니다.' };
+    if (!form.name.trim()) return { field: 'name', message: '이름을 입력해 주세요.' };
     const digits = form.phone.trim().replace(/\D/g, '');
-    if (digits.length < PHONE_DIGITS_MIN || digits.length > PHONE_DIGITS_MAX) return '올바른 휴대폰 번호를 입력해 주세요.';
-    if (!terms) return '이용약관 및 개인정보 처리방침에 동의해 주세요.';
+    if (digits.length < PHONE_DIGITS_MIN || digits.length > PHONE_DIGITS_MAX) return { field: 'phone', message: '올바른 휴대폰 번호를 입력해 주세요.' };
+    if (!terms) return { field: 'terms', message: '이용약관 및 개인정보 처리방침에 동의해 주세요.' };
     return null;
   };
 
@@ -78,7 +95,11 @@ export function SignupForm() {
   const signUp = async () => {
     setError('');
     const v = validate();
-    if (v) return setError(v);
+    setInvalidField(v ? v.field : null);
+    if (v) {
+      document.querySelector<HTMLInputElement>(`input[name="${FIELD_NAMES[v.field]}"]`)?.focus(); // 잘못된 칸으로 커서 이동
+      return setError(v.message);
+    }
     const client = getSupabase();
     const input = { email: form.email.trim(), password: form.password, name: form.name.trim(), phone: form.phone.trim() };
     setSubmitting(true);
@@ -170,17 +191,17 @@ export function SignupForm() {
         이메일, 비밀번호, 이름, 휴대폰 번호를 입력하고 위드브릿지 회원이 되어 보세요.
       </p>
       <form onSubmit={(e) => e.preventDefault()} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '14px', textAlign: 'left' }}>
-        <input type="email" name="signupEmail" className="signup-input" placeholder="이메일" autoComplete="email" value={form.email} onChange={set('email')} disabled={locked} style={inputStyle} />{' '}
-        <input type="password" name="signupPassword" className="signup-input" placeholder="비밀번호 (8자 이상)" autoComplete="new-password" value={form.password} onChange={set('password')} disabled={locked} style={inputStyle} />{' '}
-        <input type="password" name="signupPasswordConfirm" className="signup-input" placeholder="비밀번호 확인" autoComplete="new-password" value={form.passwordConfirm} onChange={set('passwordConfirm')} disabled={locked} style={inputStyle} />{' '}
-        <input type="text" name="signupName" className="signup-input" placeholder="이름" autoComplete="name" value={form.name} onChange={set('name')} disabled={locked} style={inputStyle} />{' '}
-        <input type="tel" name="signupPhone" className="signup-input" placeholder="휴대폰 번호 (예: 01012345678)" autoComplete="tel" value={form.phone} onChange={set('phone')} disabled={locked} style={inputStyle} />
+        <input type="email" name="signupEmail" aria-invalid={invalidField === 'email'} className="signup-input" placeholder="이메일" autoComplete="email" value={form.email} onChange={set('email')} disabled={locked} style={invalidField === 'email' ? invalidInputStyle : inputStyle} />{' '}
+        <input type="password" name="signupPassword" aria-invalid={invalidField === 'password'} className="signup-input" placeholder="비밀번호 (8자 이상)" autoComplete="new-password" value={form.password} onChange={set('password')} disabled={locked} style={invalidField === 'password' ? invalidInputStyle : inputStyle} />{' '}
+        <input type="password" name="signupPasswordConfirm" aria-invalid={invalidField === 'passwordConfirm'} className="signup-input" placeholder="비밀번호 확인" autoComplete="new-password" value={form.passwordConfirm} onChange={set('passwordConfirm')} disabled={locked} style={invalidField === 'passwordConfirm' ? invalidInputStyle : inputStyle} />{' '}
+        <input type="text" name="signupName" aria-invalid={invalidField === 'name'} className="signup-input" placeholder="이름" autoComplete="name" value={form.name} onChange={set('name')} disabled={locked} style={invalidField === 'name' ? invalidInputStyle : inputStyle} />{' '}
+        <input type="tel" name="signupPhone" aria-invalid={invalidField === 'phone'} className="signup-input" placeholder="휴대폰 번호 (예: 01012345678)" autoComplete="tel" value={form.phone} onChange={set('phone')} disabled={locked} style={invalidField === 'phone' ? invalidInputStyle : inputStyle} />
       </form>
       <label className="signup-check-row" style={{ fontSize: '13px', lineHeight: '1.6', color: '#374151', textAlign: 'left', cursor: 'pointer' }}>
-        <input type="checkbox" id="signupTerms" name="signupTerms" className="signup-checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} disabled={locked} />{' '}
+        <input type="checkbox" id="signupTerms" name="signupTerms" aria-invalid={invalidField === 'terms'} className={'signup-checkbox' + (invalidField === 'terms' ? ' is-invalid' : '')} checked={terms} onChange={(e) => { setTerms(e.target.checked); if (invalidField === 'terms') setInvalidField(null); }} disabled={locked} />{' '}
         <span className="signup-terms">
           {/* 약관 팝업의 [동의하고 닫기] 를 누르면 이 체크박스가 체크됩니다 */}
-          <TermsLink onAgree={() => setTerms(true)}>이용약관</TermsLink> 및 <a href={ROUTES.privacy}>개인정보 처리방침</a>에 동의합니다. (필수)
+          <TermsLink onAgree={() => { setTerms(true); if (invalidField === 'terms') setInvalidField(null); }}>이용약관</TermsLink> 및 <a href={ROUTES.privacy}>개인정보 처리방침</a>에 동의합니다. (필수)
         </span>
       </label>
       <p role="alert" style={{ display: error ? 'block' : 'none', margin: '0 0 14px', fontSize: '12.5px', color: '#DC2626', textAlign: 'left', lineHeight: '1.5' }}>
