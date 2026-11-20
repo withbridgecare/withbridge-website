@@ -5,7 +5,6 @@
 import { getSupabase } from '@/lib/supabase/client';
 import * as api from '@/lib/api/admin-console';
 import { createLegacyShims } from '@/lib/browser/legacy-shims';
-import { showDoneNotice } from '../doneNotice';
 
 let started = false;
 /** 화면에 동작을 붙입니다 (개발 모드의 이중 실행은 무시). */
@@ -739,8 +738,7 @@ export function initAdminConsole(): void {
       btn.disabled = false;
       return false;
     }
-    if (!els.idCardModal.hidden) closeIdCardModal(); // 신분증 보기 팝업에서 처리한 경우 팝업을 먼저 닫고 안내
-    await showDoneNotice('매니저를 승인했습니다.');
+    showToast('매니저를 승인했습니다.');
     loadPendingManagers();
     return true;
   }
@@ -756,8 +754,7 @@ export function initAdminConsole(): void {
       btn.disabled = false;
       return false;
     }
-    if (!els.idCardModal.hidden) closeIdCardModal(); // 신분증 보기 팝업에서 처리한 경우 팝업을 먼저 닫고 안내
-    await showDoneNotice('지원서를 반려했습니다.');
+    showToast('지원서를 반려했습니다.');
     loadPendingManagers();
     return true;
   }
@@ -1295,7 +1292,7 @@ export function initAdminConsole(): void {
       btn.disabled = false;
       return;
     }
-    await showDoneNotice('패키지 1회를 복구했습니다.');
+    showToast('패키지 1회를 복구했습니다.');
     loadCancelledApplications();
   }
   async function markRefundCompleted(a?: any, btn?: any) {
@@ -1310,7 +1307,7 @@ export function initAdminConsole(): void {
       btn.disabled = false;
       return;
     }
-    await showDoneNotice('환불 완료로 표시했습니다.');
+    showToast('환불 완료로 표시했습니다.');
     loadCancelledApplications();
   }
   let adminRefundState: any = null; // { application, total, already, remaining }
@@ -1422,8 +1419,8 @@ export function initAdminConsole(): void {
     try {
       let res = await api.invokeAdminRefundApplication(supabaseClient, adminRefundState, isPartial, amount, reason);
       if (res.error) throw res.error;
+      showToast('환불 처리가 완료되었습니다.');
       closeAdminRefundModal();
-      await showDoneNotice('환불 처리가 완료되었습니다.');
       loadCancelledApplications();
     } catch (e: any) {
       let detail = (e && e.context && typeof e.context.json === 'function') ? await e.context.json().catch(function () { return null; }) : null;
@@ -1461,7 +1458,7 @@ export function initAdminConsole(): void {
       let data = res.data || {};
       let okCount = (data.results || []).filter(function (r: any) { return r.ok; }).length;
       let failCount = (data.results || []).length - okCount;
-      await showDoneNotice('만료 배치 실행 완료: 대상 ' + (data.checked || 0) + '건 중 처리 성공 ' + okCount + '건' +
+      showToast('만료 배치 실행 완료: 대상 ' + (data.checked || 0) + '건 중 처리 성공 ' + okCount + '건' +
         (failCount ? ', 실패 ' + failCount + '건(콘솔 로그 확인)' : '') + '.');
       if (failCount) console.warn('[Admin] 만료 배치 중 일부 실패:', data.results);
       loadApplications();
@@ -1494,7 +1491,7 @@ export function initAdminConsole(): void {
       let data = res.data || {};
       let result = (data.results || [])[0];
       if (result && result.ok) {
-        await showDoneNotice('만료/환불 처리가 완료되었습니다.');
+        showToast('만료/환불 처리가 완료되었습니다.');
       } else {
         showToast('만료/환불 처리에 실패했습니다: ' + (result && result.detail ? JSON.stringify(result.detail) : '알 수 없는 오류(콘솔 로그 확인)'));
       }
@@ -1525,7 +1522,7 @@ export function initAdminConsole(): void {
       btn.disabled = false;
       return;
     }
-    await showDoneNotice('입금을 확인 처리했습니다.');
+    showToast('입금을 확인 처리했습니다.');
     loadApplications();
     loadSummaryStats();
   }
@@ -1541,7 +1538,7 @@ export function initAdminConsole(): void {
       btn.disabled = false;
       return;
     }
-    await showDoneNotice('신청을 취소 처리했습니다.');
+    showToast('신청을 취소 처리했습니다.');
     loadApplications();
     loadSummaryStats();
   }
@@ -1602,8 +1599,8 @@ export function initAdminConsole(): void {
       els.assignConfirmBtn.disabled = false;
       return;
     }
+    showToast('매니저를 배정했습니다.');
     closeAssignModal();
-    await showDoneNotice('매니저를 배정했습니다.');
     loadApplications();
     loadSummaryStats();
     if (currentStatusFilter !== 'completed') reloadCareView(); // 새로 생긴 care_schedules 행을 realtime 을 기다리지 않고 바로 반영
@@ -1986,8 +1983,8 @@ export function initAdminConsole(): void {
         els.reassignConfirmBtn.disabled = false;
         return;
       }
+      showToast('담당 매니저를 교체했습니다.');
       closeReassignModal();
-      await showDoneNotice('담당 매니저를 교체했습니다.');
       reloadCareView();
     });
   }
@@ -2003,7 +2000,7 @@ export function initAdminConsole(): void {
       btn.disabled = false;
       return;
     }
-    await showDoneNotice('케어를 완료 처리했습니다.');
+    showToast('케어를 완료 처리했습니다.');
     reloadCareView();
     loadSummaryStats();
   }
@@ -2083,8 +2080,8 @@ export function initAdminConsole(): void {
         els.extraChargeConfirmBtn.disabled = false;
         return;
       }
+      showToast('추가 요금을 청구했습니다. 보호자가 마이페이지에서 결제할 수 있어요.');
       closeExtraChargeModal();
-      await showDoneNotice('추가 요금을 청구했습니다. 보호자가 마이페이지에서 결제할 수 있어요.');
       reloadCareView();
     });
   }
@@ -2099,7 +2096,7 @@ export function initAdminConsole(): void {
       btn.disabled = false;
       return;
     }
-    await showDoneNotice('추가 요금 청구를 취소했습니다.');
+    showToast('추가 요금 청구를 취소했습니다.');
     reloadCareView();
   }
   let careInterruptState: any = null; // { schedule, isPackage, applicationId }
@@ -2182,8 +2179,8 @@ export function initAdminConsole(): void {
     try {
       let res = await api.invokeCancelPayment(supabaseClient, s, refund, memo);
       if (res.error) throw res.error;
+      showToast('부분 취소/환불 처리가 완료되었습니다.');
       closeCareInterruptModal();
-      await showDoneNotice('부분 취소/환불 처리가 완료되었습니다.');
       reloadCareView();
     } catch (e: any) {
       let detail = (e && e.context && typeof e.context.json === 'function') ? await e.context.json().catch(function () { return null; }) : null;
@@ -2229,8 +2226,8 @@ export function initAdminConsole(): void {
       els.careInterruptError.hidden = false;
       return;
     }
+    showToast(label + ' 완료 — 잔여 ' + res.data.remaining_count + '회');
     closeCareInterruptModal();
-    await showDoneNotice(label + ' 완료 — 잔여 ' + res.data.remaining_count + '회');
     reloadCareView();
   }
   els.careInterruptRestoreFullBtn.addEventListener('click', function () { submitPackageAdjust(1, els.careInterruptRestoreFullBtn); });
@@ -2306,7 +2303,7 @@ export function initAdminConsole(): void {
         resolveBtn.disabled = false;
         return;
       }
-      await showDoneNotice('확인 완료로 표시했습니다.');
+      showToast('확인 완료로 표시했습니다.');
       loadCareIssues();
     });
     actions.appendChild(resolveBtn);
@@ -2726,7 +2723,7 @@ export function initAdminConsole(): void {
         btn.disabled = false;
         return;
       }
-      await showDoneNotice('근무 상태를 \'' + targetLabel + '\'(으)로 변경했습니다.');
+      showToast('근무 상태를 \'' + targetLabel + '\'(으)로 변경했습니다.');
       await loadActiveManagers();
     } catch (e: any) {
       console.error('[Admin] 매니저 근무 상태 변경 중 오류:', e);
@@ -2765,7 +2762,7 @@ export function initAdminConsole(): void {
         btn.disabled = false;
         return;
       }
-      await showDoneNotice('매니저 권한을 해제했습니다.');
+      showToast('매니저 권한을 해제했습니다.');
       if (rowEl && rowEl.parentNode) rowEl.parentNode.removeChild(rowEl);
       await loadActiveManagers();
     } catch (e: any) {
@@ -3203,7 +3200,7 @@ export function initAdminConsole(): void {
         return;
       }
       closePackageAdjustModal();
-      await showDoneNotice('회차를 조정했습니다.');
+      showToast('회차를 조정했습니다.');
       loadUserPackages();
     });
   }
@@ -3517,7 +3514,7 @@ export function initAdminConsole(): void {
         return;
       }
       showEditSuccess('✅ 회원 정보가 저장되었습니다.');
-      await showDoneNotice('회원 정보를 수정했습니다.');
+      showToast('회원 정보를 수정했습니다.');
       await loadMembers(); // 목록 재조회 — 성공 후 renderMembersList() 가 모달 상단 정보도 함께 갱신
     } finally {
       if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = originalLabel; }
@@ -3753,7 +3750,7 @@ export function initAdminConsole(): void {
         closeAllBenefitForms();
         if (els.memberGrantCouponAmount) els.memberGrantCouponAmount.value = '';
         if (els.memberGrantCouponMemo) els.memberGrantCouponMemo.value = '';
-        await showDoneNotice(won(amount) + ' 쿠폰을 지급했습니다.');
+        showToast(won(amount) + ' 쿠폰을 지급했습니다.');
         await loadMemberDetailBenefits(memberDetailTarget.id);
       } finally {
         btn.disabled = false;
@@ -3780,7 +3777,7 @@ export function initAdminConsole(): void {
         closeAllBenefitForms();
         if (els.memberGrantPackageMemo) els.memberGrantPackageMemo.value = '';
         let granted = res.data; // admin_grant_member_package() 가 반환한 실제 user_packages 행 — 서버가 정한 회차가 그대로 담겨 있음
-        await showDoneNotice((MEMBER_PACKAGE_TYPE_LABEL[packageType] || packageType) + ' ' + formatPkgCount(granted && granted.total_count) + '회차를 지급했습니다.');
+        showToast((MEMBER_PACKAGE_TYPE_LABEL[packageType] || packageType) + ' ' + formatPkgCount(granted && granted.total_count) + '회차를 지급했습니다.');
         await loadMemberDetailBenefits(memberDetailTarget.id);
       } finally {
         btn.disabled = false;
@@ -3810,7 +3807,7 @@ export function initAdminConsole(): void {
         closeAllBenefitForms();
         if (els.memberDeductPackageCount) els.memberDeductPackageCount.value = '';
         if (els.memberDeductPackageMemo) els.memberDeductPackageMemo.value = '';
-        await showDoneNotice(formatPkgCount(count) + '회차를 차감했습니다.');
+        showToast(formatPkgCount(count) + '회차를 차감했습니다.');
         await loadMemberDetailBenefits(memberDetailTarget.id);
       } finally {
         btn.disabled = false;
@@ -3834,7 +3831,7 @@ export function initAdminConsole(): void {
       showToast('쿠폰 삭제에 실패했습니다: ' + res.error.message);
       return;
     }
-    await showDoneNotice('쿠폰을 삭제했습니다.');
+    showToast('쿠폰을 삭제했습니다.');
     await loadMemberDetailBenefits(memberDetailTarget.id);
   }
   async function loadMemberDetailBookings(userId?: any) {
@@ -3933,7 +3930,7 @@ export function initAdminConsole(): void {
         showMemberActionError('처리에 실패했습니다: ' + (res.error.message || 'UNKNOWN_ERROR'));
         return;
       }
-      await showDoneNotice(action === 'suspend' ? '계정을 정지했습니다.' : '계정을 활성화했습니다.');
+      showToast(action === 'suspend' ? '계정을 정지했습니다.' : '계정을 활성화했습니다.');
       await loadMembers();
     } finally {
       if (btn) btn.disabled = false;
@@ -4018,7 +4015,7 @@ export function initAdminConsole(): void {
       return;
     }
     row.status = newStatus;
-    await showDoneNotice('처리 상태를 \'' + PARTNER_INQUIRY_STATUS_LABEL[newStatus] + '\'(으)로 변경했습니다.');
+    showToast('처리 상태를 \'' + PARTNER_INQUIRY_STATUS_LABEL[newStatus] + '\'(으)로 변경했습니다.');
     renderPartnerInquiriesList(); // 필터가 걸려 있으면 바뀐 상태가 더 이상 맞지 않는 행은 여기서 바로 빠집니다.
   }
   function renderPartnerInquiriesList() {

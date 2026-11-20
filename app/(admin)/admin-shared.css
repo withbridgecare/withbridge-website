@@ -1368,30 +1368,3 @@ textarea.admin-select { cursor: text; resize: vertical; min-height: 72px; }
   font-size: 14px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, .25);
 }
-
-/* ---------- 처리 완료 알림창 (app/(admin)/doneNotice.ts) ----------
-   팝업·확인창으로 실행한 작업이 성공하면 띄우고, [확인]을 누르면 목록을 새로 불러옵니다.
-   열려 있는 다른 팝업(z-index 300~400)보다 위에 뜹니다. */
-.admin-done-overlay {
-  position: fixed; inset: 0; z-index: 1000;
-  display: flex; align-items: center; justify-content: center; padding: 20px;
-  background: rgba(15, 23, 42, .45);
-  animation: adminDoneFade .15s ease-out;
-}
-.admin-done-card {
-  width: 100%; max-width: 360px; box-sizing: border-box; padding: 28px 24px 22px;
-  background: #fff; border-radius: var(--radius); text-align: center;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, .3);
-  animation: adminDoneUp .18s ease-out;
-}
-.admin-done-icon {
-  display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; margin: 0 auto 14px;
-  border-radius: 50%; background: var(--sage-100); color: var(--sage-600);
-}
-.admin-done-icon svg { width: 24px; height: 24px; }
-.admin-done-title { margin: 0 0 8px; font-size: 17px; font-weight: 800; color: var(--ink); line-height: 1.4; }
-.admin-done-body { margin: 0 0 20px; font-size: 14px; color: var(--ink-body); line-height: 1.6; word-break: keep-all; white-space: pre-line; }
-.admin-done-btn { width: 100%; justify-content: center; padding: 12px 16px; font-size: 15px; }
-@keyframes adminDoneFade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes adminDoneUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .admin-done-overlay, .admin-done-card { animation: none; } }

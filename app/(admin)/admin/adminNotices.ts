@@ -5,7 +5,6 @@
 import { getSupabase } from '@/lib/supabase/client';
 import * as api from '@/lib/api/admin-notices';
 import { createLegacyShims } from '@/lib/browser/legacy-shims';
-import { showDoneNotice } from '../doneNotice';
 
 let started = false;
 /** 화면에 동작을 붙입니다 (개발 모드의 이중 실행은 무시). */
@@ -174,7 +173,7 @@ export function initAdminNotices(): void {
       return;
     }
     closeForm();
-    await showDoneNotice(id ? '공지를 수정했습니다.' : '공지를 등록했습니다.');
+    showToast(id ? '공지를 수정했습니다.' : '공지를 등록했습니다.');
     loadNotices();
   }
   async function deleteNotice(id?: any) {
@@ -184,7 +183,7 @@ export function initAdminNotices(): void {
       showToast('삭제에 실패했습니다: ' + res.error.message);
       return;
     }
-    await showDoneNotice('공지를 삭제했습니다.');
+    showToast('공지를 삭제했습니다.');
     loadNotices();
   }
   if (els.createBtn) els.createBtn.addEventListener('click', function () { openForm(null); });
