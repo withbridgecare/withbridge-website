@@ -6,7 +6,9 @@
 // DB 호출은 lib/api/manager-mypage.ts, 예전 전역 도우미(WBAuth 등)는 lib/browser/legacy-shims.ts 를 거칩니다.
 /* eslint-disable @typescript-eslint/no-explicit-any, prefer-const, no-var, @typescript-eslint/no-unused-vars */
 import { getSupabase } from '@/lib/supabase/client';
-import * as api from '@/lib/api/manager-mypage';
+// DB 호출 모듈 — 이름을 'api' 로 두면 아래 initManagerMypage 안의 데이터 계층 변수(let api = demoApi()/supabaseApi())
+// 에 가려져 'managerApi.listMySchedules is not a function' 오류가 났습니다. 그래서 managerApi 로 부릅니다.
+import * as managerApi from '@/lib/api/manager-mypage';
 import { createLegacyShims } from '@/lib/browser/legacy-shims';
 import { loadScript, SCRIPTS } from '@/lib/browser/load-script';
 
@@ -108,7 +110,7 @@ function run({ WBAuth, WBEdgeFn, PortOne, WBPrivacy }: ReturnType<typeof createL
     btn.textContent = '접수 중…';
     errorEl.hidden = true;
     try {
-      const { error } = await api.insertCareIssueReport(supabaseClient, s, currentUser, typeEl, detail);
+      const { error } = await managerApi.insertCareIssueReport(supabaseClient, s, currentUser, typeEl, detail);
       if (error) throw error;
       showToast('현장 이슈가 접수되었습니다. 운영진이 곧 확인합니다.');
       closeCareIssueModal();
@@ -458,19 +460,19 @@ function run({ WBAuth, WBEdgeFn, PortOne, WBPrivacy }: ReturnType<typeof createL
     const startOfDay = () => kstMidnight(0);
     return {
       async loadManager() {
-        return must(await api.getMyManagerProfile(supabaseClient, user));
+        return must(await managerApi.getMyManagerProfile(supabaseClient, user));
       },
       async loadReviewStats() {
-        const rows = must(await api.getMyReviewStats(supabaseClient));
+        const rows = must(await managerApi.getMyReviewStats(supabaseClient));
         return (rows && rows[0]) || { avg_rating: null, review_count: 0 };
       },
       async setActivity(status) {
-        const row = must(await api.updateMyActivityStatus(supabaseClient, status, user));
+        const row = must(await managerApi.updateMyActivityStatus(supabaseClient, status, user));
         if (!row) throw new Error('변경할 수 없습니다. 매니저 정보가 등록되어 있는지 확인해 주세요.');
         return row;
       },
       async hasActiveSchedule() {
-        const rows = must(await api.findMyActiveSchedule(supabaseClient, user));
+        const rows = must(await managerApi.findMyActiveSchedule(supabaseClient, user));
         return rows.length > 0;
       },
       async loadRequests() {
@@ -478,7 +480,7 @@ function run({ WBAuth, WBEdgeFn, PortOne, WBPrivacy }: ReturnType<typeof createL
         const acceptCutoffIso = new Date(Date.now() - ACCEPT_WINDOW_HOURS * 3600e3).toISOString();
         let dbSetupPending = false;
         try {
-          const certCheck = await api.getMyManagerVerification(supabaseClient, user);
+          const certCheck = await managerApi.getMyManagerVerification(supabaseClient, user);
           if (certCheck.error) {
             console.warn('[신청 대기][디버그] 내 managers 행 조회 실패:', certCheck.error.code, certCheck.error.message);
           } else if (!certCheck.data) {
@@ -496,16 +498,16 @@ function run({ WBAuth, WBEdgeFn, PortOne, WBPrivacy }: ReturnType<typeof createL
           console.warn('[신청 대기][디버그] managers 자가조회 중 예외:', e);
         }
         const fetchApps = async () => {
-          const res = await api.listOpenApplicationsWithManagerColumn(supabaseClient, APP_COLS, acceptCutoffIso);
+          const res = await managerApi.listOpenApplicationsWithManagerColumn(supabaseClient, APP_COLS, acceptCutoffIso);
           if (res.error && res.error.code === '42703') {
             dbSetupPending = true;
-            return api.listOpenApplications(supabaseClient, APP_COLS, acceptCutoffIso);
+            return managerApi.listOpenApplications(supabaseClient, APP_COLS, acceptCutoffIso);
           }
           return res;
         };
         const [apps, sched] = await Promise.all([
           fetchApps(),
-          api.listOpenCareRequests(supabaseClient, startOfDay, acceptCutoffIso)
+          managerApi.listOpenCareRequests(supabaseClient, startOfDay, acceptCutoffIso)
         ]);
         const list: any[] = [];
         let sourceError: any = null;
@@ -556,35 +558,35 @@ function run({ WBAuth, WBEdgeFn, PortOne, WBPrivacy }: ReturnType<typeof createL
         return list;
       },
       async acceptApplication(applicationId, scheduledAtIso) {
-        return must(await api.acceptServiceApplication(supabaseClient, applicationId, scheduledAtIso));
+        return must(await managerApi.acceptServiceApplication(supabaseClient, applicationId, scheduledAtIso));
       },
       async loadAssigned() {
-        return must(await api.listMySchedules(supabaseClient, user, startOfDay));
+        return must(await managerApi.listMySchedules(supabaseClient, user, startOfDay));
       },
       async acceptRequest(scheduleId) {
-        return must(await api.acceptCareRequest(supabaseClient, scheduleId));
+        return must(await managerApi.acceptCareRequest(supabaseClient, scheduleId));
       },
       async loadCompleted() { // 전체 완료 건 (정산 집계 · 리포트 대기 목록 + 월간 캘린더에 사용)
-        return must(await api.listMyCompletedSchedules(supabaseClient, user));
+        return must(await managerApi.listMyCompletedSchedules(supabaseClient, user));
       },
       async loadReports() {
-        return must(await api.listMyCareReports(supabaseClient, user));
+        return must(await managerApi.listMyCareReports(supabaseClient, user));
       },
       async advance(scheduleId, status) {
         try {
-          return must(await api.advanceCareStatus(supabaseClient, scheduleId, status));
+          return must(await managerApi.advanceCareStatus(supabaseClient, scheduleId, status));
         } catch (err: any) {
           const msg = String((err && err.message) || err);
           const isMissingFn = (err && (err.code === 'PGRST202' || err.code === '42883')) || /advance_care_status/i.test(msg);
           if (!isMissingFn) throw err;
           console.warn('[상태 변경] advance_care_status RPC 를 찾을 수 없어(코드: ' + (err && err.code) + ') care_schedules.status 만 직접 업데이트합니다(신청서 status 미러링 안 됨). ' +
                        'supabase-fix-status-sync.sql 을 Supabase SQL Editor 에서 실행하세요.', err);
-          return must(await api.updateScheduleStatusDirect(supabaseClient, status, scheduleId, user));
+          return must(await managerApi.updateScheduleStatusDirect(supabaseClient, status, scheduleId, user));
         }
       },
       async verifyAdvance(scheduleId, status, location, photo, authMethod, authReason) {
         try {
-          return must(await api.recordCareVerification(supabaseClient, scheduleId, status, location, photo, authMethod, authReason));
+          return must(await managerApi.recordCareVerification(supabaseClient, scheduleId, status, location, photo, authMethod, authReason));
         } catch (err: any) {
           const msg = String((err && err.message) || err);
           const isMissingFn = (err && (err.code === 'PGRST202' || err.code === '42883')) || /record_care_verification/i.test(msg);
@@ -597,7 +599,7 @@ function run({ WBAuth, WBEdgeFn, PortOne, WBPrivacy }: ReturnType<typeof createL
         }
       },
       async submitReport(scheduleId, physicianNotes, seniorCondition, extra = {}) {
-        must(await api.insertCareReport(supabaseClient, scheduleId, user, physicianNotes, seniorCondition, extra));
+        must(await managerApi.insertCareReport(supabaseClient, scheduleId, user, physicianNotes, seniorCondition, extra));
       },
       async generateAiDraft({ careType, tags, memo, hasPhoto, seniorName }) {
         const { data, error } = await WBEdgeFn.invoke(supabaseClient, 'generate-care-report', { careType, tags, memo, hasPhoto, seniorName });
@@ -605,17 +607,17 @@ function run({ WBAuth, WBEdgeFn, PortOne, WBPrivacy }: ReturnType<typeof createL
         return data && data.draft;
       },
       async logArrivalVerification({ scheduleId, verificationType, status, lat, lng, accuracy, distance, watermarkedPhoto, rawPhoto }) {
-        must(await api.insertArrivalVerificationLog(supabaseClient, scheduleId, user, verificationType, status, lat, lng, accuracy, distance, watermarkedPhoto, rawPhoto));
+        must(await managerApi.insertArrivalVerificationLog(supabaseClient, scheduleId, user, verificationType, status, lat, lng, accuracy, distance, watermarkedPhoto, rawPhoto));
       },
       async saveCheckpoint(scheduleId, step, location, photo) {
-        return must(await api.insertCareCheckpoint(supabaseClient, scheduleId, user, step, location, photo));
+        return must(await managerApi.insertCareCheckpoint(supabaseClient, scheduleId, user, step, location, photo));
       },
       async loadCheckpoints(scheduleIds) {
         if (!scheduleIds || !scheduleIds.length) return [];
-        return must(await api.listCareCheckpointsFor(supabaseClient, scheduleIds));
+        return must(await managerApi.listCareCheckpointsFor(supabaseClient, scheduleIds));
       },
       async reportDuration(scheduleId, actualDurationMinutes) {
-        return must(await api.reportCareDurationAndBillExtra(supabaseClient, scheduleId, actualDurationMinutes));
+        return must(await managerApi.reportCareDurationAndBillExtra(supabaseClient, scheduleId, actualDurationMinutes));
       }
     };
   }
@@ -838,7 +840,7 @@ function run({ WBAuth, WBEdgeFn, PortOne, WBPrivacy }: ReturnType<typeof createL
     if (DEMO || !supabaseClient || !currentUser) { wrap.hidden = true; return; }
     setTelegramLinkBtnUI('checking');
     try {
-      const { data: row, error } = await api.getMyTelegramLink(supabaseClient, currentUser);
+      const { data: row, error } = await managerApi.getMyTelegramLink(supabaseClient, currentUser);
       if (error) throw error;
       setTelegramLinkBtnUI(row ? 'linked' : 'unlinked');
     } catch (err: any) {
@@ -854,7 +856,7 @@ function run({ WBAuth, WBEdgeFn, PortOne, WBPrivacy }: ReturnType<typeof createL
       if (!confirm('텔레그램 알림 연결을 끊을까요? 이후 신규 신청 알림이 더 이상 오지 않습니다.')) return;
       setTelegramLinkBtnUI('busy');
       try {
-        const { error } = await api.deleteMyTelegramLink(supabaseClient, currentUser);
+        const { error } = await managerApi.deleteMyTelegramLink(supabaseClient, currentUser);
         if (error) throw error;
         setTelegramLinkBtnUI('unlinked');
         showToast('텔레그램 연결을 끊었습니다.');
@@ -866,7 +868,7 @@ function run({ WBAuth, WBEdgeFn, PortOne, WBPrivacy }: ReturnType<typeof createL
     }
     setTelegramLinkBtnUI('busy');
     try {
-      const { data: token, error } = await api.requestTelegramLinkToken(supabaseClient);
+      const { data: token, error } = await managerApi.requestTelegramLinkToken(supabaseClient);
       if (error) throw error;
       window.open('https://t.me/' + TELEGRAM_BOT_USERNAME + '?start=' + token, '_blank');
       showToast('열린 텔레그램 창에서 [시작] 버튼을 눌러 연결을 완료해 주세요.');
@@ -1116,7 +1118,7 @@ function run({ WBAuth, WBEdgeFn, PortOne, WBPrivacy }: ReturnType<typeof createL
     managerSortProfilePromise = (async () => {
       if (DEMO || !supabaseClient || !currentUser) { managerSortProfile = { address: '', activity_areas: [] }; return; }
       try {
-        const { data, error } = await api.getMyApprovedApplicationArea(supabaseClient, currentUser);
+        const { data, error } = await managerApi.getMyApprovedApplicationArea(supabaseClient, currentUser);
         if (error) throw error;
         managerSortProfile = data || { address: '', activity_areas: [] };
       } catch (e: any) {
@@ -2209,9 +2211,9 @@ function run({ WBAuth, WBEdgeFn, PortOne, WBPrivacy }: ReturnType<typeof createL
   async function uploadDeparturePhoto(scheduleId?: any, dataUrl?: any) {
     const blob = await (await fetch(dataUrl)).blob();
     const path = scheduleId + '/' + Date.now() + '-' + Math.random().toString(16).slice(2) + '.jpg';
-    const { error } = await api.uploadDeparturePhoto(supabaseClient, DEPARTURE_PHOTO_BUCKET, path, blob);
+    const { error } = await managerApi.uploadDeparturePhoto(supabaseClient, DEPARTURE_PHOTO_BUCKET, path, blob);
     if (error) throw error;
-    const { data } = api.getDeparturePhotoPublicUrl(supabaseClient, DEPARTURE_PHOTO_BUCKET, path);
+    const { data } = managerApi.getDeparturePhotoPublicUrl(supabaseClient, DEPARTURE_PHOTO_BUCKET, path);
     if (!data || !data.publicUrl) throw new Error('PUBLIC_URL_UNAVAILABLE');
     return data.publicUrl;
   }
