@@ -20,21 +20,22 @@ import type { NextConfig } from 'next';
  * 지금은 '보고만'(Report-Only) 합니다: 목록에 없는 주소를 불러와도 막지 않고 브라우저 개발자 도구 콘솔에
  * "[Report Only] Refused to …" 경고만 남깁니다.
  * 7단계 점검(2026-11-19): 로컬에서 열리는 모든 페이지가 불러오는 외부 주소는 전부 이 목록 안에 있었습니다.
- * 로컬에서 확인할 수 없었던 것: PortOne 결제창, Cloudflare Turnstile, 카카오 지도 타일, 카카오 로그인 후 화면.
+ * 로컬에서 확인할 수 없었던 것: PortOne 결제창, 카카오 지도 타일, 카카오 로그인 후 화면.
  *
- * ▶ 실제 적용으로 바꾸는 방법: Vercel 미리보기 주소에서 결제·지도·매니저 지원(Turnstile)·카카오 로그인을 해 보고
+ * ▶ 실제 적용으로 바꾸는 방법: Vercel 미리보기 주소에서 결제·지도·매니저 지원·카카오 로그인을 해 보고
  *   콘솔에 "[Report Only]" 경고가 하나도 없으면 아래 ENFORCE_CSP 를 true 로 바꾸세요. (경고가 있으면 그 주소를 목록에 추가)
  */
 const ENFORCE_CSP = false;
+const isProduction = process.env.NODE_ENV === 'production';
 
 const CSP_POLICY = [
   "default-src 'self'",
   // 'unsafe-inline': Next.js 와 남은 옛 HTML 의 인라인 스크립트 / 'unsafe-eval': 결제·지도 SDK 호환용(필요 없으면 빼 보세요)
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdn.portone.io https://challenges.cloudflare.com https://dapi.kakao.com https://*.kakao.com https://*.kakaocdn.net https://*.daumcdn.net",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdn.portone.io https://dapi.kakao.com https://*.kakao.com https://*.kakaocdn.net https://*.daumcdn.net",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
   "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net",
   "img-src 'self' data: blob: https:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://dapi.kakao.com https://*.kakao.com https://*.portone.io https://challenges.cloudflare.com",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://dapi.kakao.com https://*.kakao.com https://*.portone.io",
   "frame-src 'self' https:",
   "worker-src 'self' blob:",
 ].join('; ');
@@ -43,14 +44,16 @@ const securityHeaders = [
   { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-  { key: 'Strict-Transport-Security', value: 'max-age=63072000' },
+  ...(isProduction ? [{ key: 'Strict-Transport-Security', value: 'max-age=63072000' }] : []),
   // interest-cohort(구글 FLoC 차단)는 FLoC 가 폐기되어 브라우저가 인식하지 못해 콘솔 오류만 내므로 뺐습니다.
   { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=(self)' },
   {
     // 항상 적용: 다른 사이트가 이 사이트를 iframe 으로 감싸지 못하게(클릭재킹 방지) 등 기본 규칙
     key: 'Content-Security-Policy',
     value:
-      "frame-ancestors 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests" + (ENFORCE_CSP ? '; ' + CSP_POLICY : ''),
+      "frame-ancestors 'self'; base-uri 'self'; object-src 'none'" +
+      (isProduction ? '; upgrade-insecure-requests' : '') +
+      (ENFORCE_CSP ? '; ' + CSP_POLICY : ''),
   },
   ...(ENFORCE_CSP ? [] : [{ key: 'Content-Security-Policy-Report-Only', value: CSP_POLICY }]),
 ];

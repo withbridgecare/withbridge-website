@@ -5,7 +5,7 @@
  * 화면 마크업은 page.tsx, 이 컴포넌트는 화면이 뜬 뒤 그 마크업(id)을 찾아 동작을 붙입니다.
  *  - 로그인 확인 → 이미 매니저 / 심사 중 / 반려 후 재지원 / 새 지원 화면 분기
  *  - 4단계 마법사(기본 정보 → 활동 조건 → 정산 계좌 → 서약) + 단계별 입력 검사
- *  - Turnstile(봇 방지) 토큰과 함께 submit-manager-application Edge Function 으로 제출
+ *  - 서버 레이트 리밋과 허니팟 검사를 거쳐 submit-manager-application Edge Function 으로 제출
  * DB·스토리지 호출은 lib/api/managers.ts 를 통합니다 (원칙 2).
  */
 import { useEffect } from 'react';
@@ -23,7 +23,7 @@ const ID_UPLOAD_ENABLED = false;
 const PHONE_DUPLICATE_ERRORS = ['PHONE_ALREADY_APPLIED', 'PHONE_ALREADY_MANAGER'];
 
 type Errors = Record<string, string>;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- 외부 SDK(daum, turnstile)는 타입 정의가 없습니다
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- 외부 주소 검색 SDK 타입 정의가 없습니다
 type AnyWindow = Window & Record<string, any>;
 
 const digitsOnly = (s: string) => (s || '').replace(/\D/g, '');
@@ -62,8 +62,6 @@ export function ManagerApplyBehaviors() {
     };
 
     let currentUser: { id: string } | null = null;
-    let turnstileLoadError = '';
-    let turnstileCallbackError = '';
     let submitInFlight = false;
     const idUpload: { path: string | null; uploading: boolean; fileName: string | null } = { path: null, uploading: false, fileName: null };
 
@@ -242,21 +240,6 @@ export function ManagerApplyBehaviors() {
       const v = $<HTMLSelectElement>('mgrBank').value;
       return v === '기타' ? $('mgrBankOther').value.trim() : v;
     };
-    const getTurnstileToken = (): string => (typeof w.turnstile?.getResponse === 'function' ? w.turnstile.getResponse() || '' : '');
-    const resetTurnstile = () => {
-      if (typeof w.turnstile?.reset === 'function') w.turnstile.reset();
-    };
-    w.wbManagerTurnstileSuccess = () => {
-      turnstileCallbackError = '';
-      $('e-turnstile').hidden = true;
-      $('e-turnstile').textContent = '';
-    };
-    w.wbManagerTurnstileExpired = () => {
-      turnstileCallbackError = '인증 시간이 만료되었습니다. 다시 인증해 주세요.';
-    };
-    w.wbManagerTurnstileError = () => {
-      turnstileCallbackError = '자동 입력 방지 인증에 실패했습니다. 새로고침 후 다시 시도해 주세요.';
-    };
 
     const validateStep1 = () => {
       const e: Errors = {};
@@ -297,14 +280,11 @@ export function ManagerApplyBehaviors() {
     const validateStep4 = () => {
       const e: Errors = {};
       if (!($('agreeSafety').checked && $('agreeNoDirectDeal').checked && $('agreePrivacy').checked)) e.agree = '모든 서약 및 약관에 동의해야 지원할 수 있습니다.';
-      if (!getTurnstileToken()) e.turnstile = turnstileLoadError || turnstileCallbackError || '자동 입력 방지 인증을 완료해 주세요.';
       return e;
     };
     const applyStep4Error = (e: Errors) => {
       $('e-agree').textContent = e.agree || '';
       $('e-agree').hidden = !e.agree;
-      $('e-turnstile').textContent = e.turnstile || '';
-      $('e-turnstile').hidden = !e.turnstile;
     };
 
     const STEP1_KEYS = ['name', 'phone', 'birth', 'gender', 'address', 'idfile'];
@@ -367,7 +347,7 @@ export function ManagerApplyBehaviors() {
         agree_safety: true,
         agree_no_direct_deal: true,
         agree_privacy: true,
-        turnstile_token: getTurnstileToken(),
+        website: $('websiteTrap').value.trim(),
       });
 
       if (!result.ok) {
@@ -375,16 +355,6 @@ export function ManagerApplyBehaviors() {
         console.error('[매니저 지원] 제출 실패:', result.body || result.raw);
         submitBtn.disabled = false;
         submitBtn.textContent = '제출하기';
-        resetTurnstile(); // Turnstile 토큰은 1회용 — 재시도 전에 새로 받아야 함
-        if (result.body?.error === 'BOT_VERIFICATION_FAILED') {
-          const codes = (result.body as any).turnstile_error_codes as string[] | undefined;
-          const keyError = codes?.some((code) => code === 'invalid-input-secret' || code === 'missing-input-secret');
-          formError.textContent = keyError
-            ? '자동 입력 방지 서버 키 설정을 확인해 주세요. 지원팀에 문의해 주세요.'
-            : result.body.message || '자동 입력 방지 인증에 실패했습니다. 다시 인증해 주세요.';
-          formError.hidden = false;
-          return showStep(4);
-        }
         if (result.body?.error && PHONE_DUPLICATE_ERRORS.includes(result.body.error)) {
           applyFieldErrors(['phone'], { phone: result.body.message || '' });
           return showStep(1);
@@ -401,19 +371,8 @@ export function ManagerApplyBehaviors() {
     // ---------- 시작: 로그인 확인 → 화면 분기 ----------
     let cancelled = false;
     (async () => {
-      // 주소 검색 · 봇 방지 스크립트 (실패해도 나머지는 동작)
+      // 주소 검색 스크립트 (실패해도 나머지는 동작)
       loadScript(SCRIPTS.postcode).catch((e) => console.warn(e));
-      const turnstileWidget = document.querySelector<HTMLElement>('.cf-turnstile');
-      if (!turnstileWidget?.dataset.sitekey) {
-        turnstileLoadError = '자동 입력 방지 Site Key가 설정되지 않았습니다. NEXT_PUBLIC_TURNSTILE_SITE_KEY를 확인해 주세요.';
-      } else {
-        loadScript(SCRIPTS.turnstile, { async: true }).then(() => {
-          if (!cancelled && !w.turnstile) turnstileLoadError = 'Cloudflare 인증 스크립트가 정상적으로 시작되지 않았습니다. 새로고침 후 다시 시도해 주세요.';
-        }).catch((e) => {
-          turnstileLoadError = 'Cloudflare 인증을 불러오지 못했습니다. 네트워크 또는 CSP 설정을 확인해 주세요.';
-          console.warn('[매니저 지원] Turnstile 로드 실패:', e);
-        });
-      }
       const { data } = await client.auth.getSession();
       if (cancelled) return;
       const session = data.session;

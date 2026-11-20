@@ -1,5 +1,5 @@
 /**
- * 외부 스크립트(카카오 우편번호, Turnstile, 아직 React 로 옮기지 않은 공용 위젯 등)를 한 번만 불러옵니다.
+ * 외부 스크립트(카카오 우편번호, 아직 React 로 옮기지 않은 공용 위젯 등)를 한 번만 불러옵니다.
  * 이미 불러왔거나 불러오는 중이면 같은 Promise 를 돌려줍니다.
  */
 const pending = new Map<string, Promise<void>>();
@@ -32,8 +32,6 @@ export function loadScript(src: string, opts: { async?: boolean } = {}): Promise
 export const SCRIPTS = {
   /** 카카오(다음) 우편번호 */
   postcode: 'https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js',
-  /** Cloudflare Turnstile (봇 방지) — 페이지의 .cf-turnstile 칸을 자동으로 그립니다 */
-  turnstile: 'https://challenges.cloudflare.com/turnstile/v0/api.js',
   /** 공용 날짜/시간 선택기 (레거시 마이페이지와 함께 쓰는 중 — 마이페이지 전환 후 React 컴포넌트로) */
   datepicker: '/js/wb-datepicker.js?v=1.6',
   /** 공용 장소 검색 (카카오 로컬) */

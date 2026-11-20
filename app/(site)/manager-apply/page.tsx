@@ -9,7 +9,6 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '0x4AAAAAAFikvWaQUCBnw-hV';
 
 /** 케어 매니저 지원하기 — public/manager-apply.html 에서 옮김 */
 export default function ManagerApplyPage() {
@@ -63,6 +62,10 @@ export default function ManagerApplyPage() {
             </div>
           </div>
           <form id="applyForm" noValidate aria-label="케어 매니저 지원서">
+            <div aria-hidden="true" style={{ position: 'absolute', left: '-10000px', width: 1, height: 1, overflow: 'hidden' }}>
+              <label htmlFor="websiteTrap">웹사이트</label>
+              <input id="websiteTrap" name="website" type="text" tabIndex={-1} autoComplete="off" />
+            </div>
             {/* ============== STEP 1. 기본 정보 ============== */}
             <section className="wizard-step" id="step1">
               <h2 className="step-title">
@@ -549,19 +552,6 @@ export default function ManagerApplyPage() {
                 </p>
               </div>
               <p className="err" id="e-agree" hidden></p>
-              {/* 공개 Site Key는 NEXT_PUBLIC_TURNSTILE_SITE_KEY 환경변수에서 가져옵니다. Secret Key는 브라우저에 넣지 않습니다. */}
-              <div className="field" id="f-turnstile">
-                <div
-                  className="cf-turnstile"
-                  data-sitekey={TURNSTILE_SITE_KEY}
-                  data-theme="light"
-                  data-language="ko"
-                  data-callback="wbManagerTurnstileSuccess"
-                  data-expired-callback="wbManagerTurnstileExpired"
-                  data-error-callback="wbManagerTurnstileError"
-                ></div>
-                <p className="err" id="e-turnstile" hidden></p>
-              </div>
               <div className="form-error" id="formError" role="alert" hidden></div>
               <div className="step-nav">
                 <button type="button" className="nav-btn nav-prev" id="toStep3FromStep4">

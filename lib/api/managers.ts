@@ -1,6 +1,6 @@
 /**
  * 케어 매니저 지원 (예전 manager-apply.html).
- * 지원서 제출은 submit-manager-application Edge Function 이 Turnstile 검증·중복 확인·저장·텔레그램 알림까지 처리합니다 (원칙 1).
+ * 지원서 제출은 submit-manager-application Edge Function 이 허니팟·레이트리밋·중복 확인·저장·텔레그램 알림을 처리합니다 (원칙 1).
  */
 import type { WBSupabaseClient } from '@/lib/supabase/client';
 
@@ -37,7 +37,7 @@ export type ManagerApplicationInput = {
   agree_safety: true;
   agree_no_direct_deal: true;
   agree_privacy: true;
-  turnstile_token: string;
+  website: string;
 };
 
 /** 제출. 실패하면 서버가 보낸 { error, message } 본문(있으면)을 돌려줍니다. */

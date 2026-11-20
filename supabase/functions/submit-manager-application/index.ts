@@ -10,12 +10,12 @@
 //        모두 RLS가 "본인 행만 조회"라 브라우저에서는 이 대조를 할 수 없고, service_role 인 이 함수에서만
 //        가능합니다.
 //   2) IP 기준 요청 횟수 제한 — 같은 IP가 짧은 시간에 과도하게 두드리면 차단 (요구사항 3)
-//   3) Cloudflare Turnstile 사람 확인 — 토큰을 Cloudflare에 서버에서 재검증 (요구사항 4)
+//   3) 허니팟 필드와 IP 기준 요청 횟수 제한으로 자동 제출을 억제
 //
 // 프런트엔드의 제출 버튼 즉시 비활성화는 중복 클릭을 막는 보조 장치이며,
-// 이 함수는 서버 쪽에서 IP 제한과 Turnstile 검증을 다시 수행합니다.
+// 이 함수는 서버 쪽에서 허니팟, IP 제한, 입력 검증을 수행합니다.
 //
-// 요청 바디: 기존 manager_applications insert 행과 동일한 필드 + turnstile_token.
+// 요청 바디: 기존 manager_applications insert 행과 동일한 필드 + website 허니팟.
 // 인증: Authorization 헤더 필수(verify_jwt = true) — 로그인한 지원자 본인 세션 토큰.
 import { createAdminClient, createUserClient } from "../_shared/supabaseClients.ts";
 import { buildNewManagerApplicationMessage, sendManagerApplicationTelegramMessage } from "../_shared/telegram.ts";
@@ -50,7 +50,7 @@ interface SubmitRequestBody {
   agree_safety?: boolean;
   agree_no_direct_deal?: boolean;
   agree_privacy?: boolean;
-  turnstile_token?: string;
+  website?: string;
 }
 
 // Supabase Edge Functions는 Deno Deploy 위에서 Cloudflare 를 거쳐 들어오므로 cf-connecting-ip 가 가장
@@ -67,40 +67,6 @@ const IPV4_RE = /^(\d{1,3}\.){3}\d{1,3}$/;
 const IPV6_RE = /^[0-9a-fA-F:]+:[0-9a-fA-F:]*$/;
 function isValidIp(ip: string): boolean {
   return IPV4_RE.test(ip) || IPV6_RE.test(ip);
-}
-
-type TurnstileCheck = { ok: boolean; errorCodes: string[]; configurationError?: boolean; serviceError?: boolean };
-
-async function verifyTurnstile(token: string, remoteIp: string | null): Promise<TurnstileCheck> {
-  const secret = Deno.env.get("TURNSTILE_SECRET_KEY");
-  if (!secret) {
-    console.error("[submit-manager-application] TURNSTILE_SECRET_KEY 환경변수가 없습니다. supabase secrets set TURNSTILE_SECRET_KEY=... 로 설정하세요.");
-    return { ok: false, errorCodes: ["missing-input-secret"], configurationError: true };
-  }
-  try {
-    const form = new URLSearchParams();
-    form.set("secret", secret);
-    form.set("response", token);
-    if (remoteIp) form.set("remoteip", remoteIp);
-
-    const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: form,
-    });
-    const result = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      console.error("[submit-manager-application] Turnstile siteverify HTTP 오류:", res.status, result["error-codes"]);
-      return { ok: false, errorCodes: Array.isArray(result["error-codes"]) ? result["error-codes"] : [], serviceError: true };
-    }
-    if (!result.success) {
-      console.warn("[submit-manager-application] Turnstile 검증 실패:", result["error-codes"]);
-    }
-    return { ok: !!result.success, errorCodes: Array.isArray(result["error-codes"]) ? result["error-codes"] : [] };
-  } catch (e) {
-    console.error("[submit-manager-application] Turnstile siteverify 호출 중 예외:", e);
-    return { ok: false, errorCodes: [], serviceError: true };
-  }
 }
 
 function isNonEmptyString(v: unknown): v is string {
@@ -155,7 +121,12 @@ Deno.serve(async (req: Request) => {
     return json(400, { error: "INVALID_JSON" });
   }
 
-  // ---- 3) IP 레이트리밋 — Turnstile/DB 조회보다 먼저 확인해, 과도한 요청이 뒤쪽(외부 API 호출 등)
+  // 일반 사용자는 이 화면 밖에 있는 허니팟 입력란을 볼 수 없습니다.
+  if (typeof body.website === "string" && body.website.trim()) {
+    return json(400, { error: "INVALID_INPUT" });
+  }
+
+  // ---- 3) IP 레이트리밋 — DB 조회보다 먼저 확인해 과도한 요청을 제한 ----
   // 까지 가지 않게 가장 앞에서 막습니다. ----
   const clientIp = extractClientIp(req);
   const admin = createAdminClient();
@@ -172,25 +143,6 @@ Deno.serve(async (req: Request) => {
     }
   } else {
     console.warn("[submit-manager-application] 클라이언트 IP를 확인하지 못해 레이트리밋을 건너뜁니다.");
-  }
-
-  // ---- 4) 봇 탐지(Cloudflare Turnstile) ----
-  if (!isNonEmptyString(body.turnstile_token)) {
-    return json(400, { error: "BOT_VERIFICATION_REQUIRED", message: "자동 입력 방지 인증을 완료해 주세요." });
-  }
-  const turnstileCheck = await verifyTurnstile(body.turnstile_token, clientIp);
-  if (!turnstileCheck.ok) {
-    if (turnstileCheck.configurationError) {
-      return json(500, { error: "BOT_VERIFICATION_NOT_CONFIGURED", message: "자동 입력 방지 서버 설정이 완료되지 않았습니다. 지원팀에 문의해 주세요." });
-    }
-    if (turnstileCheck.serviceError) {
-      return json(502, { error: "BOT_VERIFICATION_UNAVAILABLE", message: "자동 입력 방지 서비스 연결에 실패했습니다. 잠시 후 다시 시도해 주세요." });
-    }
-    return json(400, {
-      error: "BOT_VERIFICATION_FAILED",
-      message: "자동 입력 방지 인증이 만료되었거나 유효하지 않습니다. 다시 인증해 주세요.",
-      turnstile_error_codes: turnstileCheck.errorCodes,
-    });
   }
 
   // ---- 입력값 검증(방어적 — manager-apply.html 이 이미 4단계에 걸쳐 검증하지만 서버에서도 한 번 더) ----

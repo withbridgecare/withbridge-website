@@ -38,10 +38,6 @@
 - [ ] 사이트 도메인에 운영 도메인 + Vercel 미리보기 도메인 등록 — 메인 **'서비스 지역' 지도**(JS 키 `d4e5f004…`)가 이 등록이 없으면 안 뜸
 - [ ] REST API 키(`4e94e702…`, 신청서 주소→좌표·장소 검색)도 같은 앱이면 도메인 제한 확인 — 이 키는 브라우저에 노출되므로 **도메인 제한 권장**
 
-**Cloudflare Turnstile** (매니저 지원서 봇 방지, site key `0x4AAAAAAFikvWaQUCBnw-hV`)
-- [ ] Turnstile 위젯의 허용 도메인(Hostname)에 운영 도메인 + 미리보기 도메인 등록
-- [ ] Supabase Edge Function Secret `TURNSTILE_SECRET_KEY` 설정
-
 **PortOne (포트원) V2** — store `store-d049e114…`, channel `channel-key-9b483b99…` (**운영·실결제 채널**)
 - [ ] 콘솔의 웹훅 주소가 `https://<Supabase 프로젝트>.supabase.co/functions/v1/portone-webhook` 인지 (Next.js 전환과 무관하지만 결제 확정에 필수)
 - [ ] Edge Function Secrets: `PORTONE_STORE_ID`, `PORTONE_API_SECRET`, `PORTONE_WEBHOOK_SECRET`, `PORTONE_VIRTUAL_ACCOUNT_CHANNEL_KEY`
@@ -170,7 +166,7 @@ select id, public from storage.buckets where id in ('care-departure-photos','man
 - [ ] 정산 내역 · 텔레그램 연결/해제
 
 **매니저 지원**
-- [ ] 4단계 지원서 작성 → Turnstile 인증 → 제출 → 관리자 화면에 지원서, 텔레그램 알림
+- [ ] 4단계 지원서 작성 → 허니팟/서버 레이트리밋 확인 → 제출 → 관리자 화면에 지원서, 텔레그램 알림
 
 **관리자 (`/admin`)**
 - [ ] 관리자 계정으로만 열림 (일반 계정은 메인으로)
