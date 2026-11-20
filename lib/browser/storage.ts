@@ -128,6 +128,26 @@ let loggingOut = false;
 export function markLoggingOut(v: boolean) {
   loggingOut = v;
 }
+
+/** 로그아웃 직후 다른 페이지로 이동하는 경우(예: 마이페이지 → 메인) 도착한 페이지에서 '로그아웃되었습니다'
+ *  안내 모달을 한 번 띄우기 위한 표시. 이 탭에서만 유효합니다(sessionStorage). */
+const LOGOUT_NOTICE_KEY = 'wb_logout_notice';
+export function rememberLogoutNotice() {
+  try {
+    sessionStorage.setItem(LOGOUT_NOTICE_KEY, '1');
+  } catch {
+    /* 저장소를 쓸 수 없으면 안내만 생략 */
+  }
+}
+export function consumeLogoutNotice(): boolean {
+  try {
+    const v = sessionStorage.getItem(LOGOUT_NOTICE_KEY);
+    if (v) sessionStorage.removeItem(LOGOUT_NOTICE_KEY);
+    return v === '1';
+  } catch {
+    return false;
+  }
+}
 export function isLoggingOut() {
   return loggingOut;
 }

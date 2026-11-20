@@ -23,7 +23,10 @@ import {
 } from '@/lib/browser/storage';
 import { ROUTES, SITE } from '@/lib/config';
 import { attachPhotoResolver, scrubLegacyCheckpoints } from '@/lib/browser/privacy';
-import { markLoggingOut } from '@/lib/browser/storage';
+import { consumeLogoutNotice, markLoggingOut, rememberLogoutNotice } from '@/lib/browser/storage';
+
+/** 로그아웃 안내 — 로그인 안내 모달과 같은 디자인(wb-login-modal-*)으로 띄웁니다(브라우저 기본 alert 대체) */
+const LOGOUT_NOTICE = { title: '로그아웃되었습니다', body: '언제든 다시 로그인해 이용하실 수 있어요.' };
 
 type AuthContextValue = {
   /** 세션 확인이 끝났는지 (끝나기 전엔 헤더 로그인 영역을 숨겨 깜빡임 방지) */
@@ -86,6 +89,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loginModal, setLoginModal] = useState<{ target: string | null; required: boolean } | null>(null);
   const [callModal, setCallModal] = useState(false);
+  /** 안내 전용 모달(확인 버튼 하나) — 로그아웃 완료/실패 안내에 씁니다 */
+  const [notice, setNotice] = useState<{ title: string; body: string } | null>(null);
+
+  // 로그아웃 후 다른 페이지로 이동해 온 경우(마이페이지 → 메인), 도착한 페이지에서 안내를 한 번 띄웁니다
+  // (첫 렌더는 서버 렌더와 같게 두고, 화면이 붙은 뒤 콜백에서 띄웁니다)
+  // (표시를 꺼내는 일도 콜백 안에서 — 개발 모드처럼 effect 가 두 번 실행돼도 안내가 사라지지 않게)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (consumeLogoutNotice()) setNotice(LOGOUT_NOTICE);
+    }, 0);
+    return () => clearTimeout(t);
+  }, []);
   const claiming = useRef(false);
 
   const client = useMemo(() => getSupabase(), []);
@@ -153,18 +168,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await client.auth.signOut();
       if (error) {
         markLoggingOut(false);
-        alert('로그아웃 중 오류가 발생했습니다: ' + error.message);
+        setNotice({ title: '로그아웃하지 못했어요', body: '잠시 후 다시 시도해 주세요.\n(' + error.message + ')' });
         return;
       }
       clearUserMode();
       clearLocalCareData();
       setUser(null);
       if (opts?.redirectTo) {
+        rememberLogoutNotice(); // 이동한 페이지에서 안내 모달을 띄움
         window.location.href = opts.redirectTo;
         return;
       }
       markLoggingOut(false);
-      alert('로그아웃 되었습니다.');
+      setNotice(LOGOUT_NOTICE);
     },
     [client],
   );
@@ -199,15 +215,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // ESC 로 모달 닫기 (필수 로그인 모달은 제외)
   useEffect(() => {
-    if (!callModal && !(loginModal && !loginModal.required)) return;
+    if (!callModal && !notice && !(loginModal && !loginModal.required)) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
       setCallModal(false);
+      setNotice(null);
       setLoginModal((m) => (m && !m.required ? null : m));
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [callModal, loginModal]);
+  }, [callModal, loginModal, notice]);
 
   const confirmLogin = () => {
     const target = loginModal?.target;
@@ -250,6 +267,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 </button>
               )}
               <button type="button" className="wb-login-modal-btn wb-login-modal-confirm" onClick={confirmLogin} autoFocus>
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {notice && (
+        <div
+          className="wb-login-modal-overlay"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="wbNoticeTitle"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setNotice(null);
+          }}
+        >
+          <div className="wb-login-modal-card">
+            <p className="wb-login-modal-title" id="wbNoticeTitle">{notice.title}</p>
+            <p className="wb-login-modal-body">{notice.body}</p>
+            <div className="wb-login-modal-actions is-single">
+              <button type="button" className="wb-login-modal-btn wb-login-modal-confirm" onClick={() => setNotice(null)} autoFocus>
                 확인
               </button>
             </div>
