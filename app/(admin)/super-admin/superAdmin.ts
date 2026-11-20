@@ -5,6 +5,7 @@
 import { getSupabase } from '@/lib/supabase/client';
 import * as api from '@/lib/api/super-admin';
 import { createLegacyShims } from '@/lib/browser/legacy-shims';
+import { showDoneNotice } from '../doneNotice';
 
 let started = false;
 /** 화면에 동작을 붙입니다 (개발 모드의 이중 실행은 무시). */
@@ -130,8 +131,8 @@ export function initSuperAdmin(): void {
       if (els.grantError) { els.grantError.textContent = describeRpcError(res.error); els.grantError.hidden = false; }
       return;
     }
-    showToast(email + ' 계정에 관리자 권한을 부여했습니다.');
     if (els.grantEmailInput) els.grantEmailInput.value = '';
+    await showDoneNotice(email + ' 계정에 관리자 권한을 부여했습니다.');
     await Promise.all([loadAdminList(), loadRoleChangeTimeline()]);
   }
   if (els.grantAdminBtn) els.grantAdminBtn.addEventListener('click', handleGrantAdmin);
@@ -173,7 +174,7 @@ export function initSuperAdmin(): void {
       btn.disabled = false;
       return;
     }
-    showToast((row.name || row.email) + ' 계정의 관리자 권한을 회수했습니다.');
+    await showDoneNotice((row.name || row.email) + ' 계정의 관리자 권한을 회수했습니다.');
     await loadAdminList();
     await loadRoleChangeTimeline();
   }
