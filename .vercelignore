@@ -2,12 +2,13 @@
 .env.*
 !.env.example
 .claude
-_backup_sql
-sql
-supabase
+/_backup_sql
+/sql
+/supabase
 .git
 images-original
 node_modules
+.next
 mockups
 env.txt
 main-fullpage.png
