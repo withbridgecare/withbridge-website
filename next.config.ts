@@ -44,7 +44,8 @@ const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Strict-Transport-Security', value: 'max-age=63072000' },
-  { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=(self), interest-cohort=()' },
+  // interest-cohort(구글 FLoC 차단)는 FLoC 가 폐기되어 브라우저가 인식하지 못해 콘솔 오류만 내므로 뺐습니다.
+  { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=(self)' },
   {
     // 항상 적용: 다른 사이트가 이 사이트를 iframe 으로 감싸지 못하게(클릭재킹 방지) 등 기본 규칙
     key: 'Content-Security-Policy',
