@@ -7,16 +7,39 @@
  * - 요청 형식은 예전 페이지가 보내던 것과 똑같이 유지합니다(예: currency: 'CURRENCY_KRW').
  */
 import * as PortOne from '@portone/browser-sdk/v2';
+import { invokeEdgeFunction } from '@/lib/api/edge-functions';
+import { getSupabase } from '@/lib/supabase/client';
 
-export const PORTONE_STORE_ID = 'store-d049e114-625d-4a7d-9202-b38f9072f3bc';
-/** ⚠ 운영(실결제) 채널입니다. 테스트 결제는 PortOne 콘솔에서 테스트 채널 키를 받아 바꿔 끼우세요. */
-export const PORTONE_CHANNEL_KEY = 'channel-key-9b483b99-d68d-4f49-99cf-76cdc0264dbb';
+type PortOnePaymentConfig = { storeId: string; channelKey: string };
+let paymentConfigPromise: Promise<PortOnePaymentConfig> | null = null;
+
+/** 결제창에 필요한 공개 식별자는 Supabase Edge Function이 Secrets에서 읽어 전달합니다. */
+async function getPaymentConfig(): Promise<PortOnePaymentConfig> {
+  if (!paymentConfigPromise) {
+    paymentConfigPromise = (async () => {
+      const { data, error } = await invokeEdgeFunction<PortOnePaymentConfig>(
+        getSupabase(),
+        'get-portone-payment-config',
+      );
+      if (error) throw new Error(`PortOne 결제 설정을 불러오지 못했습니다: ${error.message}`);
+      if (!data?.storeId || !data?.channelKey) {
+        throw new Error('PortOne 결제 설정에 Store ID 또는 Channel Key가 없습니다.');
+      }
+      return data;
+    })().catch((error) => {
+      paymentConfigPromise = null; // 설정을 보완한 뒤 다시 시도할 수 있게 실패 결과는 캐시하지 않습니다.
+      throw error;
+    });
+  }
+  return paymentConfigPromise;
+}
 
 /** 결제창 응답. code 가 있으면 실패/취소, 없으면 결제창 단계 성공(최종 확정은 서버 확인 후) */
 export type PaymentResult = { code?: string; message?: string; paymentId?: string; txId?: string; [key: string]: unknown } | null | undefined;
 
 export async function requestPayment(request: Record<string, unknown>): Promise<PaymentResult> {
-  return (await PortOne.requestPayment({ storeId: PORTONE_STORE_ID, channelKey: PORTONE_CHANNEL_KEY, ...request } as unknown as Parameters<
+  const config = await getPaymentConfig();
+  return (await PortOne.requestPayment({ ...request, storeId: config.storeId, channelKey: config.channelKey } as unknown as Parameters<
     typeof PortOne.requestPayment
   >[0])) as PaymentResult;
 }

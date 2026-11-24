@@ -15,22 +15,21 @@
 --   "Postgres 트리거 + pg_net.http_post() + Vault" 패턴을 그대로 따릅니다(대시보드 클릭 없이 SQL
 --   하나로 전체 등록이 끝납니다).
 --
---   최초 1회, Supabase 대시보드 → SQL Editor 에서 **이 블록만 먼저** 실행해 Vault에 호출 URL과
---   공유 비밀값을 등록하세요(비밀값은 이미 Edge Function 쪽에 설정된 DB_WEBHOOK_SECRET 과 정확히
---   같은 값입니다 — 아래 그대로 쓰면 됩니다):
+--   최초 1회, Supabase 대시보드 → Database → Vault 에서 호출 URL과 공유 비밀값을 등록하세요.
+--   아래 URL의 <PROJECT_REF>는 현재 프로젝트 ref로 바꾸고, 공유 비밀값은 직접 생성한 뒤
+--   Edge Function Secret DB_WEBHOOK_SECRET 과 Vault care_request_notify_secret 양쪽에 같은 값으로 등록합니다.
 --
 --     select vault.create_secret(
---       'https://layvjisfeivkzowopkco.supabase.co/functions/v1/notify-care-request',
+--       'https://<PROJECT_REF>.supabase.co/functions/v1/notify-care-request',
 --       'care_request_notify_url'
 --     );
 --     select vault.create_secret(
---       '1981953cc364aed6347c7383004aaa0a4e5dd2dc14a70d2eebbd16bfeb5f6ea7',
+--       '<SAME_VALUE_AS_DB_WEBHOOK_SECRET>',
 --       'care_request_notify_secret'
 --     );
 --
---   ⚠ 위 비밀값은 이 트리거 전용으로 새로 발급한 DB_WEBHOOK_SECRET 입니다 — 이미 Supabase Edge
---   Function Secrets 에도 등록되어 있습니다(supabase secrets set DB_WEBHOOK_SECRET=...). 나중에
---   이 값을 교체하려면 Edge Function 시크릿과 이 Vault 시크릿을 반드시 같이 바꿔야 합니다.
+--   위 자리표시자를 실제 값으로 바꾼 뒤 실행하세요. 비밀값을 교체하면 Edge Function Secret과 Vault 값을
+--   같은 값으로 함께 변경해야 합니다. 비밀값을 소스 코드/Git에 커밋하지 마세요.
 --
 --   그 다음 이 파일 나머지(트리거 생성)를 실행하세요. create or replace / drop trigger if exists
 --   기반이라 여러 번 실행해도 안전합니다.

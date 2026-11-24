@@ -10,7 +10,7 @@ import type { User } from '@supabase/supabase-js';
 import { useAuth } from '@/components/site/AuthProvider';
 import { getSupabase } from '@/lib/supabase/client';
 import { setInitialPhoneIfMissing } from '@/lib/api/auth';
-import { confirmPackageOrderPayment, createPackageOrder, getMyPhone, PACKAGE_CATALOG, type PackageType } from '@/lib/api/packages';
+import { confirmPackageOrderPayment, createPackageOrder, getMyPackageBuyer, getMyPhone, PACKAGE_CATALOG, type PackageType } from '@/lib/api/packages';
 import { isPaymentCanceled, requestPayment, type PaymentResult } from '@/lib/payments/portone';
 import { ROUTES, SITE } from '@/lib/config';
 
@@ -157,6 +157,7 @@ export function PackageBehaviors() {
       window.scrollTo(0, 0);
       let payment: PaymentResult;
       try {
+        const buyer = await getMyPackageBuyer(client, user.id);
         payment = await requestPayment({
           paymentId: order.id, // 서버가 이 값으로 package_orders.id 를 찾습니다
           orderName: '위드브릿지 ' + catalog.label,
@@ -164,7 +165,7 @@ export function PackageBehaviors() {
           currency: 'CURRENCY_KRW',
           payMethod: 'CARD',
           windowType: { pc: 'IFRAME', mobile: 'IFRAME' },
-          customer: { email: user.email || undefined },
+          customer: { ...buyer, email: user.email || undefined },
           customData: { package_order_id: order.id },
         });
       } catch (e) {

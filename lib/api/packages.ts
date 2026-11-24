@@ -34,3 +34,16 @@ export async function getMyPhone(client: WBSupabaseClient, userId: string): Prom
   }
   return data?.phone ?? null;
 }
+
+/** PortOne 결제창에 전달할 구매자 정보. */
+export async function getMyPackageBuyer(client: WBSupabaseClient, userId: string) {
+  const { data, error } = await client.from('profiles').select('name, phone').eq('id', userId).maybeSingle();
+  if (error) {
+    console.warn('[profiles.name/phone] 결제창 구매자 정보 조회 실패:', error.code, error.message);
+    return { fullName: undefined, phoneNumber: undefined };
+  }
+  return {
+    fullName: data?.name || undefined,
+    phoneNumber: data?.phone?.replace(/\D/g, '') || undefined,
+  };
+}

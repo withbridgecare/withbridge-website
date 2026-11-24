@@ -50,7 +50,7 @@ DB 호출은 `lib/api/applications.ts` · `seniors.ts` · `packages.ts` · `mana
 화면 요소를 id 로 직접 다루는 방식이라 타입이 느슨합니다 — 상태 기반 React 컴포넌트로 정리하는 건 후속 과제.
 날짜 선택기·장소 검색은 마이페이지(레거시)와 함께 쓰는 공용 스크립트(`public/js/wb-datepicker.js`, `wb-place-search.js`)를 그대로 불러옵니다.
 
-**결제 테스트 (배포 전 필수)** — `lib/payments/portone.ts` 의 `PORTONE_CHANNEL_KEY` 는 **운영(실결제) 채널**입니다.
+**결제 테스트 (배포 전 필수)** — 결제창은 `get-portone-payment-config` Edge Function이 Supabase Secrets의 `PORTONE_CHANNEL_KEY`를 전달받아 엽니다. 채널 키가 테스트/실연동 중 어느 것인지에 따라 실제 결제 모드가 정해집니다.
 1. PortOne 콘솔에서 테스트 채널 키를 받아 Vercel Preview 에서만 쓰도록 바꾸거나, 소액 실결제 후 즉시 취소로 확인
 2. 확인할 흐름: 카드 결제 · 계좌이체 · 쿠폰/적립금 적용 · 긴급 옵션 · 패키지 차감 예약 · 결제창 닫기(취소) · 패키지 구매
 3. 각 흐름 뒤 관리자 화면에서 신청서·결제 상태, 알림톡/텔레그램 알림이 정상인지 확인

@@ -567,6 +567,11 @@ export default function ApplyPage() {
                   </span>
                 </label>
               </div>
+              <div id="transferEmailWrap" className="sub-field" hidden>
+                <label className="sub-label" htmlFor="transferEmail">계좌이체 결제 이메일 <span className="req">(필수)</span></label>
+                <input id="transferEmail" className="text-input" type="email" inputMode="email" autoComplete="email" placeholder="결제 영수증을 받을 이메일" />
+                <p className="hint">KG이니시스 PC 계좌이체에 필요한 정보입니다. 로그인 계정 이메일이 있으면 자동으로 사용합니다.</p>
+              </div>
               <p className="hint" id="packageHint" hidden>
                 패키지로 예약하면 결제 없이 바로 접수되고, 보유 회차에서 1회가 차감됩니다. 쿠폰·적립금은 이 예약에는 적용되지 않습니다. 선택 추가 옵션을 고르면 그 금액만 매니저 수락 후 별도로 결제받습니다.
               </p>
