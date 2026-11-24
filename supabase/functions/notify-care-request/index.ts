@@ -81,8 +81,37 @@ async function handle(req: Request): Promise<Response> {
     return json(200, { ok: true, skipped: "NOT_SERVICE_APPLICATIONS" });
   }
 
+  // 신청 INSERT 시점에는 결제가 아직 끝나지 않아 status가 PAYMENT_PENDING입니다.
+  // DB RPC에서도 같은 조건을 검사하지만, 오래된 RPC가 남아 있는 배포에서도 결제 전 알림을
+  // 보내지 않도록 웹훅 payload 단계에서 한 번 더 차단합니다.
+  const incomingStatus = String(body.record.status ?? "").trim().toUpperCase();
+  if (incomingStatus === "PAYMENT_PENDING") {
+    return json(200, { ok: true, skipped: "PAYMENT_NOT_CONFIRMED" });
+  }
+
   const applicationId = body.record.id as string;
   const admin = createAdminClient();
+
+  // 결제 전(PAYMENT_PENDING) 신청은 절대 알리지 않습니다. apply 는 결제창을 열기 전에 신청서를 먼저
+  // 저장하므로, 여기서 막지 않으면 결제하지 않은 신청까지 매니저에게 알림이 갑니다. DB 의
+  // claim_telegram_notification()/is_pending_application_status() 도 같은 조건으로 막지만, 운영 DB 에
+  // 예전 버전 함수가 남아 있어도 알림이 새지 않도록 여기서 '현재 DB 상태'를 한 번 더 확인합니다.
+  // (webhook 바디의 record.status 는 호출 시점 값이라 최신이 아닐 수 있어 DB 에서 다시 읽습니다.)
+  const { data: current, error: currentErr } = await admin
+    .from("service_applications")
+    .select("status")
+    .eq("id", applicationId)
+    .maybeSingle();
+  if (currentErr) {
+    console.error("[notify-care-request] 신청 상태 조회 실패:", currentErr.message);
+    return json(200, { ok: false, error: "STATUS_LOOKUP_FAILED" });
+  }
+  if (!current) {
+    return json(200, { ok: true, skipped: "APPLICATION_NOT_FOUND" });
+  }
+  if (String(current.status || "").trim().toUpperCase() === "PAYMENT_PENDING") {
+    return json(200, { ok: true, skipped: "PAYMENT_PENDING" });
+  }
 
   // 원자적 선점 — 이미 알림을 보냈거나(telegram_notified_at not null), 이미 배정됐거나(manager_id not
   // null), 매칭 가능 상태가 아니면(is_pending_application_status) null 을 돌려받습니다.
