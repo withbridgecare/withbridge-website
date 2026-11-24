@@ -48,6 +48,8 @@
   `issue-virtual-account` `confirm-extra-charge-payment` `confirm-package-order-payment` `cancel-payment` `admin-refund-application`
   `cancel-expired-applications` `admin-set-member-status` `delete-account` `generate-care-report` `submit-manager-application`
   `portone-webhook` `send-status-alimtalk` `notify-care-request` `notify-care-report-alimtalk` `notify-partner-inquiry` `telegram-webhook`
+- [ ] 관리자 취소 신청 환불을 켤 때 `sql/admin_application_refund_system.sql` 실행 후 `sql/admin_refund_button_legacy_payment_status_fix.sql`도 실행하고 `admin-refund-application` Edge Function 을 배포 — 결제 상태 추적 이전의 과거 신청도 실제 PortOne 결제 상태를 확인해 환불할 수 있습니다.
+- [ ] 48시간 미매칭 자동 취소 크론을 복구할 때 `sql/fix_48h_matching_expiry_cron.sql` 실행, `cancel-expired-applications` Edge Function 배포, Vault의 `service_role_key`가 현재 운영 키인지 확인 — 실행 후 대상 신청은 PortOne 실제 환불까지 자동 진행됩니다. 이 SQL은 같은 이름의 기존 크론을 교체하고 10분 간격으로 등록합니다.
 - [ ] 알림 관련 Secrets: `SOLAPI_*`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_MANAGER_CHAT_ID`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `SITE_URL`
 - [ ] AI 리포트 초안: `OPENAI_API_KEY` 또는 `GEMINI_API_KEY` (없으면 AI 초안만 꺼지고 직접 작성은 됨)
 

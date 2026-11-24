@@ -48,6 +48,8 @@ interface ApplicationRow {
   service_type: string | null;
   senior_name: string | null;
   created_at: string | null;
+  status?: string | null;
+  payment_status?: string | null;
 }
 
 // 신청서에 남은 흔적만으로 메일을 보낼 주소를 찾습니다 — 비로그인 신청은 이메일을 아예 받지 않으므로
@@ -185,16 +187,39 @@ Deno.serve(async (req: Request) => {
     try {
       // PortOne V2 결제 취소: amount 를 안 넘기면 전액(100%) 취소. paymentId = application_id 로 맞춰 둔
       // issue-virtual-account/portone-webhook 과 같은 규칙을 그대로 씁니다.
-      const cancellation: any = await portoneFetch(`/payments/${encodeURIComponent(row.id)}/cancel`, {
-        method: "POST",
-        body: JSON.stringify({ reason: "48시간 이내 매니저 미배정으로 인한 자동 취소/환불" }),
-      });
+      let cancellation: any;
+      try {
+        cancellation = await portoneFetch(`/payments/${encodeURIComponent(row.id)}/cancel`, {
+          method: "POST",
+          body: JSON.stringify({ reason: "48시간 이내 매니저 미배정으로 인한 자동 취소/환불" }),
+        });
+      } catch (cancelError) {
+        // 이전 실행에서 PortOne 취소는 성공했지만 DB 반영만 실패했을 수 있습니다.
+        // 이미 전액 취소된 상태라면 이번 주기에 DB 상태를 복구하고, 부분취소/기타 오류는 그대로 실패 처리합니다.
+        if (!(cancelError instanceof PortOneApiError) || cancelError.status === 404) throw cancelError;
+        try {
+          const payment = await portoneFetch(`/payments/${encodeURIComponent(row.id)}`);
+          if (payment?.status !== "CANCELLED") throw cancelError;
+          cancellation = { payment };
+          console.warn(`[cancel-expired-applications] ${row.id} PortOne은 이미 전액 취소됨 — DB 상태를 복구합니다`);
+        } catch (lookupError) {
+          if (lookupError === cancelError) throw cancelError;
+          console.error(`[cancel-expired-applications] ${row.id} 취소 후 결제 상태 재조회 실패:`, lookupError);
+          throw cancelError;
+        }
+      }
 
-      const { error: rpcErr } = await admin.rpc("expire_unmatched_application", {
+      const { data: updated, error: rpcErr } = await admin.rpc("expire_unmatched_application", {
         p_application_id: row.id,
         p_refund_ref: cancellation?.cancellation?.id ?? cancellation?.id ?? null,
       });
       if (rpcErr) throw rpcErr;
+      if (updated?.status !== "EXPIRED_CANCELLED" || updated?.payment_status !== "REFUNDED") {
+        throw new Error(
+          `PORTONE_CANCELLED_BUT_DATABASE_NOT_UPDATED: status=${updated?.status ?? "null"}, ` +
+          `payment_status=${updated?.payment_status ?? "null"}`,
+        );
+      }
 
       console.log(`[cancel-expired-applications] ${row.id} 환불/취소 완료`);
       const refundedAmount: number | null =
@@ -206,12 +231,17 @@ Deno.serve(async (req: Request) => {
         // PortOne 쪽에 결제 기록이 없는 비정상 건(예: admin_confirm_manual_payment 로 수동 승인된 무통장
         // 입금 등 PortOne을 거치지 않은 결제) — 환불할 PortOne 결제 자체가 없으므로 상태만 정리합니다.
         console.warn(`[cancel-expired-applications] ${row.id} PortOne 결제 기록 없음 — 상태만 전환`);
-        const { error: rpcErr } = await admin.rpc("expire_unmatched_application", { p_application_id: row.id });
-        if (!rpcErr) await notifyRefund(admin, row, null);
-        results.push({ application_id: row.id, ok: !rpcErr, detail: rpcErr?.message });
+        const { data: updated, error: rpcErr } = await admin.rpc("expire_unmatched_application", { p_application_id: row.id });
+        const stateUpdated = updated?.status === "EXPIRED_CANCELLED" && updated?.payment_status === "REFUNDED";
+        if (!rpcErr && stateUpdated) await notifyRefund(admin, row, null);
+        results.push({
+          application_id: row.id,
+          ok: !rpcErr && stateUpdated,
+          detail: rpcErr?.message ?? (!stateUpdated ? `DATABASE_NOT_UPDATED: status=${updated?.status ?? "null"}` : undefined),
+        });
         continue;
       }
-      // 그 외 오류(네트워크, PortOne 5xx 등)는 상태를 바꾸지 않고 실패로 남겨 다음 주기(30분 후)에 재시도합니다.
+      // 그 외 오류(네트워크, PortOne 5xx 등)는 상태를 바꾸지 않고 실패로 남겨 다음 크론 주기에 재시도합니다.
       console.error(`[cancel-expired-applications] ${row.id} 처리 실패:`, e);
       results.push({
         application_id: row.id,

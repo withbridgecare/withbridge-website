@@ -98,3 +98,15 @@ select id, status_code, content::text, error_msg, created
   from net._http_response
  order by created desc
  limit 20;
+
+
+-- ----------------------------------------------------------------------------
+-- 8) Edge Function이 쓰는 두 RPC를 service_role로 실행할 수 있는지 확인 — 둘 다 true여야 정상입니다.
+--    false이면 sql/fix_48h_matching_expiry_cron_dev.sql(개발) 또는
+--    sql/fix_48h_matching_expiry_cron.sql(운영)을 다시 실행하세요.
+-- ----------------------------------------------------------------------------
+select
+  has_function_privilege('service_role', 'public.list_expired_unmatched_applications()', 'EXECUTE')
+    as can_list_expired_applications,
+  has_function_privilege('service_role', 'public.expire_unmatched_application(uuid, text)', 'EXECUTE')
+    as can_finalize_expired_application;

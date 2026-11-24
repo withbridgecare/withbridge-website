@@ -4696,6 +4696,7 @@ language sql security definer set search_path = public as $$
 $$;
 
 revoke all on function public.list_expired_unmatched_applications() from public, anon, authenticated;
+grant execute on function public.list_expired_unmatched_applications() to service_role;
 
 
 -- ----------------------------------------------------------------------------
@@ -4739,6 +4740,7 @@ begin
 end $$;
 
 revoke all on function public.expire_unmatched_application(uuid, text) from public, anon, authenticated;
+grant execute on function public.expire_unmatched_application(uuid, text) to service_role;
 
 
 -- ----------------------------------------------------------------------------
@@ -4774,6 +4776,7 @@ select cron.schedule(
     -- Dev 프로젝트의 Project Settings → API → Project URL 로 바꾼 뒤 /functions/v1/cancel-expired-applications 를 그대로 붙이세요.
     url := 'https://__DEV_PROJECT_REF__.supabase.co/functions/v1/cancel-expired-applications',
     headers := jsonb_build_object(
+      'apikey', (select decrypted_secret from vault.decrypted_secrets where name = 'service_role_key'),
       'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'service_role_key'),
       'Content-Type', 'application/json'
     ),

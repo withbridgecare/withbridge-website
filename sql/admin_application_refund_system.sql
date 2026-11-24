@@ -99,7 +99,7 @@ begin
   if v_app.id is null then
     raise exception 'APPLICATION_NOT_FOUND' using errcode = 'P0002';
   end if;
-  if v_app.status not in ('CANCELLED', 'EXPIRED_CANCELLED') then
+  if not (v_app.status ilike '%cancel%' or v_app.status like '%취소%') then
     raise exception 'NOT_CANCELLED' using errcode = 'P0001';
   end if;
 
@@ -131,6 +131,7 @@ begin
 end $$;
 
 revoke all on function public.admin_apply_application_refund(uuid, integer, text, text) from public, anon, authenticated;
+grant execute on function public.admin_apply_application_refund(uuid, integer, text, text) to service_role;
 
 
 -- ============================================================================

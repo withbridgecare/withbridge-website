@@ -1357,8 +1357,12 @@ export function initAdminConsole(): void {
       total.toLocaleString('ko-KR') + '원 / ' + remaining.toLocaleString('ko-KR') + '원' +
       (already > 0 ? ' (기존 환불 누적 ' + already.toLocaleString('ko-KR') + '원)' : '');
     els.adminRefundAmountInput.max = String(remaining);
-    let stillCancelled = row.status === 'CANCELLED' || row.status === 'EXPIRED_CANCELLED';
-    let stillRefundable = row.payment_status === 'PAID' || row.payment_status === 'PARTIALLY_REFUNDED';
+    let stillCancelled = /cancel/i.test(String(row.status || '')) || String(row.status || '').indexOf('취소') !== -1;
+    // payment_status 도입 전에 생성된 실제 결제 건은 null 또는 비표준 값일 수 있습니다.
+    // 최종 결제 금액과 환불 잔액이 있고 명시적으로 REFUNDED가 아니면 모달을 열어 두고,
+    // Edge Function에서 PortOne의 실제 결제 상태를 조회해 최종 검증합니다.
+    let paymentStatus = String(row.payment_status || '').trim().toUpperCase();
+    let stillRefundable = paymentStatus !== 'REFUNDED' && Number(row.final_amount || 0) > 0;
     if (!stillCancelled || !stillRefundable || remaining <= 0) {
       els.adminRefundError.textContent = remaining <= 0
         ? '다시 확인해 보니 이미 전액 환불이 완료되어 더 이상 환불할 금액이 없습니다. 창을 닫고 목록을 새로고침해 주세요.'
