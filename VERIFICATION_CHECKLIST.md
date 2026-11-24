@@ -38,16 +38,18 @@
 - [ ] 사이트 도메인에 운영 도메인 + Vercel 미리보기 도메인 등록 — 메인 **'서비스 지역' 지도**(JS 키 `d4e5f004…`)가 이 등록이 없으면 안 뜸
 - [ ] REST API 키(`4e94e702…`, 신청서 주소→좌표·장소 검색)도 같은 앱이면 도메인 제한 확인 — 이 키는 브라우저에 노출되므로 **도메인 제한 권장**
 
-**PortOne (포트원) V2** — store `store-d049e114…`, channel `channel-key-9b483b99…` (**운영·실결제 채널**)
+**PortOne (포트원) V2** — Store ID/Channel Key는 Supabase Edge Function Secrets에서 관리합니다. `PORTONE_CHANNEL_KEY`가 테스트/실결제 모드를 결정합니다.
 - [ ] 콘솔의 웹훅 주소가 `https://<Supabase 프로젝트>.supabase.co/functions/v1/portone-webhook` 인지 (Next.js 전환과 무관하지만 결제 확정에 필수)
-- [ ] Edge Function Secrets: `PORTONE_STORE_ID`, `PORTONE_API_SECRET`, `PORTONE_WEBHOOK_SECRET`, `PORTONE_VIRTUAL_ACCOUNT_CHANNEL_KEY`
-- [ ] 테스트 방법 결정: (a) 테스트 채널 키를 받아 미리보기에서만 쓰기(`lib/payments/portone.ts` 의 `PORTONE_CHANNEL_KEY`) 또는 (b) 소액 실결제 후 즉시 취소
+- [ ] Edge Function Secrets: `PORTONE_STORE_ID`, `PORTONE_CHANNEL_KEY`, `PORTONE_API_SECRET`, `PORTONE_WEBHOOK_SECRET`, `PORTONE_VIRTUAL_ACCOUNT_CHANNEL_KEY`
+- [ ] 테스트 환경에서는 테스트 채널 키를 `PORTONE_CHANNEL_KEY`로 등록하고, 실서비스 환경에서는 실연동 채널 키를 등록
 
 **Supabase Edge Functions 배포 상태** (`supabase functions list` 또는 대시보드 → Edge Functions)
-- [ ] 아래 16개가 모두 배포돼 있음:
+- [ ] 아래 17개가 모두 배포돼 있음:
   `issue-virtual-account` `confirm-extra-charge-payment` `confirm-package-order-payment` `cancel-payment` `admin-refund-application`
   `cancel-expired-applications` `admin-set-member-status` `delete-account` `generate-care-report` `submit-manager-application`
-  `portone-webhook` `send-status-alimtalk` `notify-care-request` `notify-care-report-alimtalk` `notify-partner-inquiry` `telegram-webhook`
+  `portone-webhook` `get-portone-payment-config` `send-status-alimtalk` `notify-care-request` `notify-care-report-alimtalk` `notify-partner-inquiry` `telegram-webhook`
+- [ ] 관리자 취소 신청 환불을 켤 때 `sql/admin_application_refund_system.sql` 실행 후 `sql/admin_refund_button_legacy_payment_status_fix.sql`도 실행하고 `admin-refund-application` Edge Function 을 배포 — 결제 상태 추적 이전의 과거 신청도 실제 PortOne 결제 상태를 확인해 환불할 수 있습니다.
+- [ ] 48시간 미매칭 자동 취소 크론을 복구할 때 `sql/fix_48h_matching_expiry_cron.sql` 실행, `cancel-expired-applications` Edge Function 배포, Vault의 `service_role_key`가 현재 운영 키인지 확인 — 실행 후 대상 신청은 PortOne 실제 환불까지 자동 진행됩니다. 이 SQL은 같은 이름의 기존 크론을 교체하고 10분 간격으로 등록합니다.
 - [ ] 알림 관련 Secrets: `SOLAPI_*`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_MANAGER_CHAT_ID`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `SITE_URL`
 - [ ] AI 리포트 초안: `OPENAI_API_KEY` 또는 `GEMINI_API_KEY` (없으면 AI 초안만 꺼지고 직접 작성은 됨)
 

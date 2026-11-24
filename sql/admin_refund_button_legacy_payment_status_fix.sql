@@ -143,6 +143,7 @@ begin
 end $$;
 
 revoke all on function public.admin_apply_application_refund(uuid, integer, text, text) from public, anon, authenticated;
+grant execute on function public.admin_apply_application_refund(uuid, integer, text, text) to service_role;
 
 -- ============================================================================
 -- PostgREST 스키마 캐시 새로고침

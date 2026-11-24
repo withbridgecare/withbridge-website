@@ -1,6 +1,10 @@
 # 이 저장소에 Supabase CLI 프로젝트가 아직 연결되어 있지 않다면 `supabase init` / `supabase link`로
 # project_id 등 나머지 설정을 채워 넣으세요. 여기서는 Edge Functions의 JWT 검증 여부만 명시합니다.
 
+[functions.get-portone-payment-config]
+# 브라우저 결제창에 필요한 공개 Store ID/Channel Key만 반환합니다. API Secret은 응답하지 않습니다.
+verify_jwt = false
+
 [functions.issue-virtual-account]
 # 로그인한 보호자만 호출 가능 — Authorization 헤더의 Supabase 액세스 토큰을 게이트웨이가 먼저 검증합니다.
 verify_jwt = true

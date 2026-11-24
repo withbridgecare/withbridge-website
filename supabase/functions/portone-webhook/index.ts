@@ -279,8 +279,27 @@ async function handleRequest(req: Request): Promise<Response> {
     return json(200, { ok: true, status: "PAID" });
   }
 
-  if (status === "CANCELLED" || status === "FAILED") {
-    // 가상계좌 입금 기한 만료(자동 취소) 또는 결제 취소/실패 — 요구사항 4
+  if (status === "CANCELLED") {
+    // PortOne의 현재 상태가 전체 취소로 확인됐을 때 DB도 맞춥니다. 결제 완료 웹훅이 먼저 처리된
+    // 뒤 취소 웹훅이 도착하면 기존 cancel_unpaid_application()은 PAYMENT_PENDING만 취소해
+    // MATCHING_PENDING/PAID가 남을 수 있으므로, 별도 RPC가 미배정 결제 건의 취소/환불 상태를 조정합니다.
+    const { data: updated, error } = await admin.rpc("reconcile_portone_cancelled_application", {
+      p_application_id: paymentId,
+    });
+    if (error) {
+      console.error("[portone-webhook] reconcile_portone_cancelled_application 실패:", error);
+      return json(500, { error: "CANCEL_RECONCILIATION_FAILED", message: error.message });
+    }
+    console.log("[portone-webhook] PortOne 취소 상태를 신청서에 반영했습니다:", {
+      application_id: paymentId,
+      status: updated?.status,
+      payment_status: updated?.payment_status,
+    });
+    return json(200, { ok: true, status, application: updated });
+  }
+
+  if (status === "FAILED") {
+    // 결제 실패 — 아직 결제 대기 중인 신청만 취소합니다.
     const { error } = await admin.rpc("cancel_unpaid_application", { p_application_id: paymentId });
     if (error) {
       console.error("[portone-webhook] cancel_unpaid_application 실패:", error);

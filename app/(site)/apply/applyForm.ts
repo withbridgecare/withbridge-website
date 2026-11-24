@@ -123,7 +123,11 @@ export function initApplyForm(): () => void {
     updateSubmitButtonLabel();
   }
   form.querySelectorAll('input[name="payment_method"]').forEach((el: any) => {
-    el.addEventListener('change', updatePackageModeUi);
+    el.addEventListener('change', () => {
+      updatePackageModeUi();
+      const selected = form.querySelector('input[name="payment_method"]:checked')?.value;
+      $('transferEmailWrap').hidden = selected !== '계좌이체';
+    });
   });
   function currentServicePrice() {
     const svc = SERVICES[$('serviceType').value];
@@ -617,6 +621,14 @@ export function initApplyForm(): () => void {
       window.location.href = ROUTES.login;
       return;
     }
+    const transferEmail = String($('transferEmail')?.value || '').trim();
+    const paymentEmail = applicantEmail || transferEmail;
+    if (values.payment_method === '계좌이체' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(paymentEmail || '')) {
+      $('transferEmailWrap').hidden = false;
+      showFormError('계좌이체 결제창을 열려면 유효한 이메일 주소가 필요합니다. 이메일을 입력한 뒤 다시 신청해 주세요.');
+      $('transferEmail').focus();
+      return;
+    }
     submitting = true;
     const btn = $('submitBtn');
     btn.disabled = true;
@@ -709,7 +721,7 @@ export function initApplyForm(): () => void {
         customer: {
           fullName: values.applicant_name,
           phoneNumber: values.applicant_phone.replace(/\D/g, ''),
-          email: applicantEmail || undefined
+          email: paymentEmail || undefined
         },
         customData: { application_id: applicationId }
       });
@@ -737,6 +749,17 @@ export function initApplyForm(): () => void {
       }
       return;
     }
+    // PortOne V2 SDK 는 결제 UI가 닫히거나 결과를 받지 못하면 undefined 를 반환할 수 있습니다.
+    // undefined 를 성공으로 간주해 서버 확인을 호출하지 않도록, 성공 응답의 유형과 paymentId 를
+    // 모두 확인합니다. 최종 승인 여부는 아래 Edge Function 이 PortOne API에서 다시 검증합니다.
+    if (!payment || payment.transactionType !== 'PAYMENT' || payment.paymentId !== applicationId) {
+      submitting = false;
+      btn.disabled = false;
+      btn.textContent = defaultSubmitLabel();
+      console.warn('[결제] 유효한 PortOne 성공 응답이 없어 결제 확인을 중단했습니다:', payment);
+      showFormError('결제 결과를 확인하지 못했어요. 중복 결제 방지를 위해 다시 결제하지 마시고, PortOne 결제 내역과 신청 상태를 확인해 주세요. 필요하면 고객센터(010-5530-5760)로 문의해 주세요.');
+      return;
+    }
     btn.textContent = '결제 확인 중…';
     const RECHECK_DELAYS_MS = [1500, 3000, 5000]; // 최초 1회 + 최대 3회 재시도, 총 대기 최대 9.5초
     let vaData: any = null, vaError: any = null;
@@ -761,7 +784,9 @@ export function initApplyForm(): () => void {
     let paymentNotice = null;
     if (vaError) {
       console.error('[결제] issue-virtual-account 재시도 끝에도 실패:', vaError);
-      paymentNotice = '결제가 성공적으로 완료되었습니다.';
+      // 결제창 응답은 성공했지만 서버의 PortOne 재조회/DB 반영이 실패한 상태입니다.
+      // 성공으로 안내하면 신청이 매칭 대기 상태로 전환되지 않은 채 사용자가 이탈할 수 있습니다.
+      paymentNotice = '결제 요청은 접수됐지만 승인 확인이 지연되고 있어요. 중복 결제 방지를 위해 다시 결제하지 마시고 고객센터(010-5530-5760)로 문의해 주세요.';
     } else if (vaData && vaData.status === 'PAID') {
       paymentNotice = '결제가 성공적으로 완료되었습니다.';
     }

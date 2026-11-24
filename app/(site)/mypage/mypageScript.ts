@@ -365,8 +365,6 @@ function run({ WBAuth, WBEdgeFn, PortOne, WBPrivacy }: ReturnType<typeof createL
       stat.setAttribute('aria-expanded', String(open));
     });
   })();
-  const PORTONE_STORE_ID = 'store-d049e114-625d-4a7d-9202-b38f9072f3bc';
-  const PORTONE_CHANNEL_KEY = 'channel-key-9b483b99-d68d-4f49-99cf-76cdc0264dbb';
   async function loadExtraCharges() {
     const section = $id('extraChargeSection');
     if (DEMO || !currentUser) { section.hidden = true; return; }
@@ -428,8 +426,6 @@ function run({ WBAuth, WBEdgeFn, PortOne, WBPrivacy }: ReturnType<typeof createL
     let payment: any;
     try {
       payment = await PortOne.requestPayment({
-        storeId: PORTONE_STORE_ID,
-        channelKey: PORTONE_CHANNEL_KEY,
         paymentId: r.extra_charge_payment_id,
         orderName: (r.senior_name || '어르신') + ' 추가 요금',
         totalAmount: r.extra_charge_amount,

@@ -153,16 +153,16 @@ export interface PaymentReconciliationFailureInput {
 export function buildPaymentReconciliationFailureMessage(input: PaymentReconciliationFailureInput): string {
   const divider = "----------------------------------------";
   const siteUrl = (Deno.env.get("SITE_URL") || "").replace(/\/+$/, "");
-  const adminLink = siteUrl ? `${siteUrl}/admin.html` : "admin.html";
+  const adminLink = siteUrl ? `${siteUrl}/admin` : "https://www.withbridge.kr/admin";
   return [
     divider,
-    "[🚨 결제는 승인됐는데 DB 상태 전환 실패]",
+    "[🚨 결제 승인 후 신청 상태 반영 실패]",
     `- 신청 ID: ${input.applicationId}`,
     `- 원인: ${input.reason}`,
     `- 상세: ${input.detail || "-"}`,
     `- 발생 지점: ${input.source}`,
-    "고객은 결제를 완료했지만 매니저에게 배정되지 않습니다 — 어드민 콘솔의 [수동 입금 확인]으로",
-    "지금 바로 처리해 주세요.",
+    "PortOne 결제는 승인됐지만 신청 상태 반영에 실패했습니다.",
+    "어드민에서 신청 정보와 결제 내역을 대조한 뒤 상태를 처리해 주세요.",
     `👉 ${adminLink}`,
     divider,
   ].join("\n");

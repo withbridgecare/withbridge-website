@@ -107,11 +107,14 @@ Deno.serve(async (req: Request) => {
     .maybeSingle();
   if (appErr) return json(500, { error: "APPLICATION_LOOKUP_FAILED", message: appErr.message });
   if (!app) return json(404, { error: "APPLICATION_NOT_FOUND" });
-  if (app.status !== "CANCELLED" && app.status !== "EXPIRED_CANCELLED") {
+  const normalizedApplicationStatus = String(app.status ?? "");
+  if (!/cancel/i.test(normalizedApplicationStatus) && !normalizedApplicationStatus.includes("취소")) {
     return json(409, { error: "NOT_CANCELLED", message: "취소된 신청 건만 환불 처리할 수 있습니다." });
   }
-  if (app.payment_status !== "PAID" && app.payment_status !== "PARTIALLY_REFUNDED") {
-    return json(409, { error: "NOTHING_TO_REFUND", message: "환불할 결제 내역이 없습니다(미결제 또는 이미 환불 완료)." });
+  // payment_status 도입 전 데이터는 null/비표준 값일 수 있습니다. DB 상태만으로 걸러내지 않고,
+  // PortOne의 원본 결제 상태를 조회해 실제 결제된 건인지 확인합니다.
+  if (String(app.payment_status ?? "").trim().toUpperCase() === "REFUNDED") {
+    return json(409, { error: "NOTHING_TO_REFUND", message: "이미 환불 완료로 기록된 신청입니다." });
   }
 
   const total: number = app.final_amount ?? 0;
@@ -126,6 +129,24 @@ Deno.serve(async (req: Request) => {
     return json(409, {
       error: "REFUND_EXCEEDS_REMAINING",
       message: `환불 요청 금액(${requestedAmount}원)이 환불 가능 잔액(${remaining}원)보다 많습니다.`,
+    });
+  }
+
+  let payment: any;
+  try {
+    payment = await portoneFetch(`/payments/${encodeURIComponent(application_id)}`);
+  } catch (e) {
+    if (e instanceof PortOneApiError) {
+      console.error("[admin-refund-application] PortOne 결제 조회 실패:", e.status, e.body);
+      return json(502, { error: "PORTONE_LOOKUP_FAILED", message: "PortOne에서 결제 상태를 확인하지 못했습니다." });
+    }
+    console.error("[admin-refund-application] PortOne 결제 조회 예외:", e);
+    return json(500, { error: "PORTONE_LOOKUP_FAILED", message: "PortOne 결제 상태 확인 중 오류가 발생했습니다." });
+  }
+  if (payment?.status !== "PAID" && payment?.status !== "PARTIAL_CANCELLED") {
+    return json(409, {
+      error: "NOTHING_TO_REFUND",
+      message: `PortOne 결제 상태(${payment?.status ?? "확인 불가"})에서는 환불할 수 없습니다. 실제 결제 내역을 확인해 주세요.`,
     });
   }
 
