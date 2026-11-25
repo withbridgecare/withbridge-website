@@ -29,6 +29,13 @@ export const SITE = {
  */
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://www.withbridge.kr').replace(/\/$/, '');
 
+/**
+ * 매니저 [텔레그램 알림 연결] 버튼이 여는 봇(@아이디, '@' 없이). 환경마다 봇이 다르므로 환경 변수
+ * TELEGRAM_BOT_USERNAME(또는 NEXT_PUBLIC_TELEGRAM_BOT_USERNAME)으로 바꿉니다 — 그 환경 Supabase 의
+ * Edge Function Secret TELEGRAM_BOT_TOKEN 과 같은 봇이어야 연결(/start 토큰)이 그 환경 DB 에 저장됩니다.
+ */
+export const TELEGRAM_BOT_USERNAME = (process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'withbridge_alert_bot').replace(/^@/, '');
+
 /** 이용약관 버전 — app/(site)/terms 의 '약관 버전'과 같게 유지 (약관을 개정하면 함께 갱신) */
 export const TERMS_VERSION = '2026-10-26';
 

@@ -119,11 +119,27 @@ Deno.serve(async (req: Request) => {
     return json(409, { error: "SCHEDULE_ALREADY_COMPLETED" });
   }
 
-  const currentAmount: number = schedule.payment_amount ?? 0;
+  // 실제로 PortOne 에서 돌려줄 수 있는 금액 = 신청서 결제액(final_amount) - 이미 환불한 금액.
+  // care_schedules.payment_amount 는 정산 기준(서비스 정가)이라 쿠폰·적립금이 반영된 실제 결제액과 다를 수
+  // 있고, 텔레그램 수락 건은 예전에 0원으로 저장되기도 했습니다(sql/care_interrupt_partial_refund_fix.sql).
+  // 그래서 '현재 결제액'은 정산 기준값이 있으면 그것과 실제 환불 가능액 중 작은 값, 없으면 실제 환불 가능액으로 봅니다.
+  const { data: app, error: appErr } = await admin
+    .from("service_applications")
+    .select("final_amount, refund_amount, is_package_used")
+    .eq("id", schedule.application_id)
+    .maybeSingle();
+  if (appErr) return json(500, { error: "APPLICATION_LOOKUP_FAILED", message: appErr.message });
+  if (!app) return json(404, { error: "APPLICATION_NOT_FOUND" });
+  if (app.is_package_used) {
+    return json(409, { error: "PACKAGE_BOOKING", message: "패키지 차감 신청은 PortOne 결제가 없어 부분 취소 대신 회차 복구를 사용해 주세요." });
+  }
+  const refundable = Math.max((app.final_amount ?? 0) - (app.refund_amount ?? 0), 0);
+  const scheduleAmount: number = schedule.payment_amount ?? 0;
+  const currentAmount = scheduleAmount > 0 ? Math.min(scheduleAmount, refundable) : refundable;
   if (refund_amount > currentAmount) {
     return json(409, {
       error: "REFUND_EXCEEDS_PAYMENT",
-      message: `환불 요청 금액(${refund_amount}원)이 현재 결제액(${currentAmount}원)보다 많습니다.`,
+      message: `환불 요청 금액(${refund_amount}원)이 환불 가능 금액(${currentAmount}원)보다 많습니다.`,
     });
   }
   const retainedAmount = currentAmount - refund_amount;
@@ -138,7 +154,12 @@ Deno.serve(async (req: Request) => {
   } catch (e) {
     if (e instanceof PortOneApiError) {
       console.error("[cancel-payment] PortOne 부분 취소 실패:", e.status, e.body);
-      return json(502, { error: "PORTONE_CANCEL_FAILED" }); // PortOne 원문 오류는 서버 로그에만 남기고 사용자에게는 보내지 않습니다
+      // 관리자가 원인을 바로 알 수 있도록 PortOne 이 보낸 거절 사유(message)만 전달합니다(카드 정보 등은 포함되지 않음).
+      const portoneMessage = (e.body && typeof e.body === "object" && "message" in e.body) ? String((e.body as any).message) : null;
+      return json(502, {
+        error: "PORTONE_CANCEL_FAILED",
+        message: portoneMessage ? `PortOne 부분 취소 거절: ${portoneMessage}` : "PortOne 부분 취소에 실패했습니다.",
+      });
     }
     console.error("[cancel-payment] 예외:", e);
     return json(500, { error: "PORTONE_CANCEL_FAILED" });
@@ -149,6 +170,7 @@ Deno.serve(async (req: Request) => {
     p_refund_amount: refund_amount,
     p_retained_amount: retainedAmount,
     p_memo: reason,
+    p_admin_id: userData.user.id, // service_role 호출이라 auth.uid() 가 없어, 처리한 관리자를 직접 넘김
   });
   if (rpcErr) {
     // PortOne 환불은 이미 성공했는데 DB 반영이 실패한 경우 — 돈은 이미 돌아갔으므로 운영자가
@@ -157,7 +179,7 @@ Deno.serve(async (req: Request) => {
       "PortOne 응답:", JSON.stringify(cancellation));
     return json(500, {
       error: "DB_UPDATE_FAILED_AFTER_REFUND",
-      message: rpcErr.message,
+      message: `PortOne 부분 취소(${refund_amount}원)는 완료됐지만 DB 반영에 실패했습니다 — 다시 시도하지 말고 개발 담당자에게 알려 주세요. (${rpcErr.message})`,
       portone_cancellation: cancellation?.cancellation ?? cancellation,
     });
   }

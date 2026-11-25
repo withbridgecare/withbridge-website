@@ -11761,9 +11761,10 @@ revoke all on function public.list_approved_managers_for_telegram() from public,
 
 -- ----------------------------------------------------------------------------
 -- 6) claim_telegram_notification() — "이 신청 아직 알림 안 보냈음"을 원자적으로 선점
---    INSERT 직후(결제 전, PAYMENT_PENDING)와 결제 확인 직후(UPDATE, MATCHING_PENDING 진입) 두 시점 모두
---    같은 Database Webhook이 받을 수 있어, telegram_notified_at IS NULL 조건의 UPDATE 1회만 성공시켜
---    중복 알림을 막습니다. is_pending_application_status()는 sql/supabase_schema_latest.sql 에서 정의합니다.
+--    INSERT 직후(결제 전, PAYMENT_PENDING)에도 Database Webhook이 오지만 이 시점에는 반드시 거절하고,
+--    결제 확인 직후(MATCHING_PENDING 진입) 또는 결제 없는 패키지 신청에 대해서만 선점합니다.
+--    PAYMENT_PENDING을 명시적으로 차단해 is_pending_application_status()가 구버전으로 남아 있어도
+--    결제 전 알림이 나가지 않게 합니다.
 -- ----------------------------------------------------------------------------
 create or replace function public.claim_telegram_notification(p_application_id uuid)
 returns public.service_applications
@@ -11773,6 +11774,7 @@ language sql security definer set search_path = public as $$
    where id = p_application_id
      and telegram_notified_at is null
      and manager_id is null
+     and upper(btrim(coalesce(status, ''))) <> 'PAYMENT_PENDING'
      and public.is_pending_application_status(status)
   returning *;
 $$;

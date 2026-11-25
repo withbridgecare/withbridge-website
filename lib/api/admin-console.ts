@@ -249,7 +249,7 @@ export function adminCancelExtraCharge(client: any, s: any) {
 
 /** from 'service_applications' */
 export function getServiceApplications2(client: any, s: any) {
-  return client.from('service_applications').select('is_package_used').eq('id', s.application_id).maybeSingle();
+  return client.from('service_applications').select('is_package_used, final_amount, refund_amount').eq('id', s.application_id).maybeSingle();
 }
 
 /** invoke 'cancel-payment' */

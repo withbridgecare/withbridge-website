@@ -101,6 +101,93 @@ async function notifyRefund(
   }
 }
 
+// ---------------------------------------------------------------------------------------------
+// 취소 신청 후 48시간 미환불 자동 환불 (sql/cancelled_application_auto_refund.sql)
+//   보호자가 신청을 취소(status = 'CANCELLED')했는데 관리자가 48시간 안에 [환불 처리]를 하지 않은 건을
+//   전액 환불합니다. 관리자 [환불 처리](admin-refund-application)와 같은 순서·같은 DB 반영 함수를 씁니다:
+//   PortOne 결제 상태 확인(PAID) → PortOne 전액 취소 → 성공한 뒤에만 admin_apply_application_refund() 로
+//   refund_amount / payment_status(REFUNDED) / refunded_at / 환불 이력을 기록.
+//   PortOne 결제 기록이 없거나(무통장 수동 입금 등) PAID 가 아닌 건은 건드리지 않고 관리자 처리로 남깁니다.
+// ---------------------------------------------------------------------------------------------
+const AUTO_REFUND_REASON = "취소 신청 후 48시간 내 미처리로 인한 자동 환불";
+
+interface CancelledRefundRow extends ApplicationRow {
+  final_amount: number | null;
+  refund_amount: number | null;
+}
+
+async function processOverdueCancelledRefunds(
+  admin: ReturnType<typeof createAdminClient>,
+): Promise<Array<{ application_id: string; ok: boolean; skipped?: string; detail?: unknown }>> {
+  const { data: targets, error: listErr } = await admin.rpc("list_overdue_cancelled_refunds");
+  if (listErr) {
+    // SQL 을 아직 실행하지 않은 프로젝트(함수 없음)에서도 기존 만료 처리는 계속 돌도록 실패만 기록합니다.
+    console.error("[cancel-expired-applications] list_overdue_cancelled_refunds 실패:", listErr.message);
+    return [{ application_id: "-", ok: false, detail: "LIST_OVERDUE_CANCELLED_FAILED: " + listErr.message }];
+  }
+  const rows: CancelledRefundRow[] = Array.isArray(targets) ? targets : [];
+  const results: Array<{ application_id: string; ok: boolean; skipped?: string; detail?: unknown }> = [];
+
+  for (const row of rows) {
+    try {
+      let payment: any;
+      try {
+        payment = await portoneFetch(`/payments/${encodeURIComponent(row.id)}`);
+      } catch (e) {
+        if (e instanceof PortOneApiError && e.status === 404) {
+          console.warn(`[cancel-expired-applications] ${row.id} 취소 건 PortOne 결제 기록 없음 — 관리자 처리로 남김`);
+          results.push({ application_id: row.id, ok: false, skipped: "PORTONE_PAYMENT_NOT_FOUND" });
+          continue;
+        }
+        throw e;
+      }
+
+      let refundRef: string | null = null;
+      let refundedAmount: number | null = null;
+      if (payment?.status === "PAID") {
+        const cancellation: any = await portoneFetch(`/payments/${encodeURIComponent(row.id)}/cancel`, {
+          method: "POST",
+          body: JSON.stringify({ reason: AUTO_REFUND_REASON }), // amount 생략 = 남은 전액 취소
+        });
+        refundRef = cancellation?.cancellation?.id ?? cancellation?.id ?? null;
+        refundedAmount = cancellation?.cancellation?.amount?.total ?? cancellation?.cancellation?.totalAmount ?? null;
+      } else if (payment?.status === "CANCELLED") {
+        // 이전 주기에 PortOne 취소는 성공했는데 DB 반영만 실패한 경우 — DB 만 맞춥니다.
+        console.warn(`[cancel-expired-applications] ${row.id} PortOne 은 이미 전액 취소됨 — DB 만 반영`);
+      } else {
+        console.warn(`[cancel-expired-applications] ${row.id} PortOne 상태(${payment?.status ?? "확인 불가"})라 자동 환불하지 않음`);
+        results.push({ application_id: row.id, ok: false, skipped: "PORTONE_STATUS_" + String(payment?.status ?? "UNKNOWN") });
+        continue;
+      }
+
+      const amount = refundedAmount ?? Math.max((row.final_amount ?? 0) - (row.refund_amount ?? 0), 0);
+      const { data: updated, error: rpcErr } = await admin.rpc("admin_apply_application_refund", {
+        p_application_id: row.id,
+        p_amount: amount,
+        p_reason: AUTO_REFUND_REASON,
+        p_portone_ref: refundRef,
+      });
+      if (rpcErr || !updated?.id) {
+        // 돈은 이미 돌아갔는데 DB 반영만 실패 — 다음 주기에 PortOne 상태 CANCELLED 분기로 다시 맞춥니다.
+        console.error(`[cancel-expired-applications] ${row.id} PortOne 환불 후 DB 반영 실패:`, rpcErr ?? "NO_ROW");
+        results.push({ application_id: row.id, ok: false, detail: "DB_UPDATE_FAILED_AFTER_REFUND: " + (rpcErr?.message ?? "NO_ROW") });
+        continue;
+      }
+      console.log(`[cancel-expired-applications] ${row.id} 취소 건 자동 환불 완료 (${amount}원)`);
+      results.push({ application_id: row.id, ok: true });
+    } catch (e) {
+      // 네트워크·PortOne 오류 등은 상태를 바꾸지 않고 다음 cron 주기(10분 뒤)에 재시도합니다.
+      console.error(`[cancel-expired-applications] ${row.id} 취소 건 자동 환불 실패:`, e);
+      results.push({
+        application_id: row.id,
+        ok: false,
+        detail: e instanceof PortOneApiError ? e.body : e instanceof Error ? e.message : String(e),
+      });
+    }
+  }
+  return results;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
   if (req.method !== "POST") return json(405, { error: "METHOD_NOT_ALLOWED" });
@@ -251,5 +338,11 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  return json(200, { checked: rows.length, results });
+  // 배치 실행(cron 또는 관리자 '지금 배치 수동 실행')일 때만 취소 건 자동 환불도 함께 처리합니다.
+  // 관리자가 특정 신청 하나를 지정한 단건 테스트에서는 건드리지 않습니다.
+  const cancelledRefunds = (isCronCall || !body.application_id)
+    ? await processOverdueCancelledRefunds(admin)
+    : [];
+
+  return json(200, { checked: rows.length, results, cancelled_refunds: cancelledRefunds });
 });

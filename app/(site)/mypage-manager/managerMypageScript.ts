@@ -11,6 +11,7 @@ import { getSupabase } from '@/lib/supabase/client';
 import * as managerApi from '@/lib/api/manager-mypage';
 import { createLegacyShims } from '@/lib/browser/legacy-shims';
 import { loadScript, SCRIPTS } from '@/lib/browser/load-script';
+import { TELEGRAM_BOT_USERNAME } from '@/lib/config';
 
 declare global {
   interface Window {
@@ -820,7 +821,7 @@ function run({ WBAuth, WBEdgeFn, PortOne, WBPrivacy }: ReturnType<typeof createL
     renderDutyToggle();
     refreshTelegramLinkStatus();
   }
-  const TELEGRAM_BOT_USERNAME = 'withbridge_alert_bot';
+  // 봇 아이디는 환경마다 다름 — lib/config.ts TELEGRAM_BOT_USERNAME(환경 변수 TELEGRAM_BOT_USERNAME)
   function setTelegramLinkBtnUI(state?: any) { // 'checking' | 'linked' | 'unlinked' | 'busy'
     const wrap = $('telegramLinkWrap');
     const btn = $('telegramLinkBtn');

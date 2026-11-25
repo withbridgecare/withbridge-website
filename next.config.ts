@@ -69,6 +69,7 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '',
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || '',
     NEXT_PUBLIC_WB_ENV_NAME: process.env.NEXT_PUBLIC_WB_ENV_NAME || process.env.WB_ENV_NAME || 'production',
+    NEXT_PUBLIC_TELEGRAM_BOT_USERNAME: process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || process.env.TELEGRAM_BOT_USERNAME || '',
   },
 
   trailingSlash: false,

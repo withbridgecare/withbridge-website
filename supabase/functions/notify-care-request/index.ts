@@ -125,7 +125,11 @@ async function handle(req: Request): Promise<Response> {
     console.error("[notify-care-request] claim_telegram_notification 호출 실패:", claimErr.message);
     return json(200, { ok: false, error: "CLAIM_FAILED" });
   }
-  if (!claimed) {
+  // 주의: claim_telegram_notification() 은 'SETOF 가 아닌' 단일 행 타입을 돌려주므로, 선점할 행이 없을 때
+  // (결제 전·이미 알림·이미 배정) PostgREST 는 null 이 아니라 "모든 칸이 null 인 객체"를 돌려줍니다.
+  // 그 객체는 truthy 라 !claimed 로는 걸러지지 않아, 빈 값으로 채운 알림(주소 미입력·협의 필요·고객 고객님)이
+  // 결제 전 신청에도 나가던 원인이었습니다. 반드시 id 로 확인합니다.
+  if (!claimed || !claimed.id) {
     return json(200, { ok: true, skipped: "ALREADY_NOTIFIED_OR_NOT_ELIGIBLE" });
   }
 

@@ -2103,10 +2103,25 @@ export function initAdminConsole(): void {
     showToast('추가 요금 청구를 취소했습니다.');
     reloadCareView();
   }
-  let careInterruptState: any = null; // { schedule, isPackage, applicationId }
+  let careInterruptState: any = null; // { schedule, isPackage, applicationId, payment }
+  // 부분 취소 기준 금액 — cancel-payment Edge Function 과 같은 규칙: 일정의 정산 기준 결제액이 있으면 그것과
+  // 신청서의 실제 환불 가능액(final_amount - refund_amount) 중 작은 값, 0원(텔레그램 수락 등)이면 실제 환불 가능액.
+  function careInterruptPaymentBase(s?: any, app?: any) {
+    let scheduleAmount = s && s.payment_amount ? Number(s.payment_amount) : 0;
+    if (!app) return scheduleAmount;
+    let refundable = Math.max(Number(app.final_amount || 0) - Number(app.refund_amount || 0), 0);
+    return scheduleAmount > 0 ? Math.min(scheduleAmount, refundable) : refundable;
+  }
+  function showCareInterruptPayment() {
+    let s = careInterruptState.schedule;
+    let payment = careInterruptState.payment;
+    els.careInterruptSub.textContent = (s.senior_name || '어르신') + ' · 현재 결제액 ' + payment.toLocaleString('ko-KR') + '원';
+    els.careInterruptPaymentInfo.textContent = payment.toLocaleString('ko-KR') + '원';
+    updateCareInterruptRefundPreview();
+  }
   function updateCareInterruptRefundPreview() {
     if (!careInterruptState || careInterruptState.isPackage) return;
-    let payment = careInterruptState.schedule.payment_amount || 0;
+    let payment = careInterruptState.payment || 0;
     let fee = Number(els.careInterruptFeeInput.value || 0);
     if (!Number.isFinite(fee) || fee < 0) fee = 0;
     let refund = Math.max(payment - fee, 0);
@@ -2114,14 +2129,11 @@ export function initAdminConsole(): void {
   }
   els.careInterruptFeeInput.addEventListener('input', updateCareInterruptRefundPreview);
   async function openCareInterruptModal(s?: any) {
-    careInterruptState = { schedule: s, isPackage: false, applicationId: s.application_id };
-    els.careInterruptSub.textContent = (s.senior_name || '어르신') + ' · 현재 결제액 ' +
-      (s.payment_amount || 0).toLocaleString('ko-KR') + '원';
+    careInterruptState = { schedule: s, isPackage: false, applicationId: s.application_id, payment: careInterruptPaymentBase(s, null) };
     els.careInterruptFeeInput.value = '';
     els.careInterruptMemoInput.value = '';
     els.careInterruptError.hidden = true;
-    els.careInterruptPaymentInfo.textContent = (s.payment_amount || 0).toLocaleString('ko-KR') + '원';
-    els.careInterruptRefundInfo.textContent = (s.payment_amount || 0).toLocaleString('ko-KR') + '원';
+    showCareInterruptPayment();
     if (!s.application_id) {
       els.careInterruptRefundSection.hidden = false;
       els.careInterruptPackageSection.hidden = true;
@@ -2133,7 +2145,12 @@ export function initAdminConsole(): void {
     if (res.error) {
       console.error('[Admin] 패키지 여부 확인 실패 → sql/user_packages_system.sql 을 실행했는지 확인하세요:', res.error.code, res.error.message);
     }
+    if (!careInterruptState || careInterruptState.schedule !== s) return; // 기다리는 사이 팝업이 닫히거나 다른 건이 열림
     careInterruptState.isPackage = !!(res.data && res.data.is_package_used);
+    if (res.data && !careInterruptState.isPackage) {
+      careInterruptState.payment = careInterruptPaymentBase(s, res.data);
+      showCareInterruptPayment();
+    }
     els.careInterruptRefundSection.hidden = careInterruptState.isPackage;
     els.careInterruptPackageSection.hidden = !careInterruptState.isPackage;
     els.careInterruptConfirmBtn.hidden = careInterruptState.isPackage; // 패키지는 아래 두 버튼이 곧바로 실행됨
@@ -2152,7 +2169,7 @@ export function initAdminConsole(): void {
     let s = careInterruptState.schedule;
     let fee = Number(els.careInterruptFeeInput.value);
     let memo = els.careInterruptMemoInput.value.trim();
-    let payment = s.payment_amount || 0;
+    let payment = careInterruptState.payment || 0;
     if (!Number.isFinite(fee) || fee < 0) {
       els.careInterruptError.textContent = '차감할 출장비를 올바르게 입력해 주세요.';
       els.careInterruptError.hidden = false;
