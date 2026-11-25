@@ -877,7 +877,21 @@ function run({ WBAuth, WBEdgeFn, PortOne, WBPrivacy }: ReturnType<typeof createL
       setTimeout(refreshTelegramLinkStatus, 4000);
     } catch (err: any) {
       setTelegramLinkBtnUI('unlinked');
-      alert('연결 토큰을 발급하지 못했습니다: ' + ((err && err.message) || err));
+      // request_telegram_link_token() 은 로그인한 '인증 완료 매니저'(managers.certification_verified)에게만
+      // 토큰을 발급합니다. 거절 이유를 운영자가 바로 알 수 있는 문구로 바꿔 보여 줍니다.
+      const raw = String((err && (err.message || err.code)) || err || '');
+      console.error('[텔레그램 연결] 토큰 발급 실패:', err);
+      let msg = '연결 토큰을 발급하지 못했습니다: ' + raw;
+      if (/NOT_A_MANAGER/.test(raw)) {
+        msg = '아직 인증이 완료된 케어 매니저 계정이 아니라 텔레그램을 연결할 수 없습니다.\n' +
+          '관리자에게 매니저 승인(인증 완료)을 요청해 주세요.';
+      } else if (/NOT_AUTHENTICATED/.test(raw)) {
+        msg = '로그인이 만료되었습니다. 다시 로그인한 뒤 [텔레그램 알림 연결]을 눌러 주세요.';
+      } else if (err && err.code === 'PGRST202') {
+        msg = '텔레그램 연결 기능이 아직 서버에 설치되지 않았습니다(request_telegram_link_token 없음).\n' +
+          '관리자에게 sql/telegram_care_request_notifications.sql 실행을 요청해 주세요.';
+      }
+      alert(msg);
     }
   }
   $('telegramLinkBtn').addEventListener('click', handleTelegramLinkClick);
