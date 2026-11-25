@@ -71,7 +71,13 @@ async function handle(req: Request): Promise<Response> {
     console.error("[telegram-webhook] TELEGRAM_WEBHOOK_SECRET 환경변수가 없습니다. supabase secrets set TELEGRAM_WEBHOOK_SECRET=... 로 설정하세요.");
     return json(500, { error: "NOT_CONFIGURED" });
   }
-  if (req.headers.get("X-Telegram-Bot-Api-Secret-Token") !== expectedSecret) {
+  const receivedSecret = req.headers.get("X-Telegram-Bot-Api-Secret-Token");
+  if (receivedSecret !== expectedSecret) {
+    // 비밀값 자체는 절대 로그에 남기지 않고, 인증 실패 원인 구분에 필요한 상태만 기록합니다.
+    console.warn("[telegram-webhook] 요청 거부: webhook secret 불일치", {
+      headerPresent: receivedSecret !== null,
+      configuredSecretPresent: Boolean(expectedSecret),
+    });
     return json(401, { error: "UNAUTHORIZED" });
   }
 

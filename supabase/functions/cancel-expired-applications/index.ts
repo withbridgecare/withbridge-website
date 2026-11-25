@@ -188,13 +188,32 @@ async function processOverdueCancelledRefunds(
   return results;
 }
 
+/** "Bearer <JWT>" 에서 payload 의 role 만 읽습니다(서명 검증은 게이트웨이 verify_jwt 가 담당). 실패하면 null. */
+function jwtRole(authHeader: string): string | null {
+  const token = authHeader.replace(/^Bearer\s+/i, "");
+  const payload = token.split(".")[1];
+  if (!payload) return null;
+  try {
+    const b64 = payload.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(payload.length / 4) * 4, "=");
+    const role = JSON.parse(atob(b64))?.role;
+    return typeof role === "string" ? role : null;
+  } catch {
+    return null;
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
   if (req.method !== "POST") return json(405, { error: "METHOD_NOT_ALLOWED" });
 
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const authHeader = req.headers.get("Authorization") ?? "";
-  const isCronCall = !!serviceRoleKey && authHeader === `Bearer ${serviceRoleKey}`;
+  // cron 호출 판별: ① 함수 환경의 service_role 키와 글자가 같거나 ② JWT 의 role 이 service_role.
+  // ②가 필요한 이유: 새 API 키 체계로 바뀐 프로젝트는 함수에 주입되는 SUPABASE_SERVICE_ROLE_KEY 와
+  // Vault 에 넣은 Legacy service_role JWT 의 글자가 달라 ①만으로는 cron 이 '로그인 안 됨'으로 거절됐습니다.
+  // 이 함수는 verify_jwt = true(config.toml)라 게이트웨이가 서명을 이미 검증한 JWT 만 여기까지 오므로,
+  // payload 의 role 만 읽어도 위조될 수 없습니다(서명이 틀린 토큰은 게이트웨이에서 401).
+  const isCronCall = (!!serviceRoleKey && authHeader === `Bearer ${serviceRoleKey}`) || jwtRole(authHeader) === "service_role";
 
   // body 는 두 호출 경로 모두에서 선택적으로 읽습니다 — cron 은 보통 '{}' 를 보내 application_id 가
   // 없고, 관리자 수동 실행은 특정 건을 지정할 수도(단건 테스트), 안 할 수도(배치 전체 재실행) 있습니다.
